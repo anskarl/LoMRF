@@ -1,0 +1,20 @@
+HoldsAt(fluent,time)
+Happens(event,time)
+Next(time,time)
+Initially(time)
+
+
+// Sigma:
+
+1.0 Next(t1,t0) ^ Happens(InitW, t0) => HoldsAt(CE,t1)
+1.0 Next(t1,t0) ^ Happens(TermW, t0) => !HoldsAt(CE,t1)
+
+
+// Sigma':
+
+4.0 Next(t1,t0) ^ HoldsAt(CE,t0) ^ !Happens(TermW,t0) => HoldsAt(CE,t1)
+Next(t1,t0) ^ !HoldsAt(CE,t0) ^ !Happens(InitW,t0) => !HoldsAt(CE,t1).
+
+
+// Initially:
+Initially(t) => HoldsAt(CE,t).

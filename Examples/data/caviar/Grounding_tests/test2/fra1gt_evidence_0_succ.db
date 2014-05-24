@@ -1,0 +1,37 @@
+// Events
+Enter_ID6 = enter(ID6)
+Enter_ID7 = enter(ID7)
+Exit_ID6 = exit(ID6)
+Exit_ID7 = exit(ID7)
+Walking_ID6 = walking(ID6)
+Walking_ID7 = walking(ID7)
+Running_ID6 = running(ID6)
+Running_ID7 = running(ID7)
+Active_ID6 = active(ID6)
+Active_ID7 = active(ID7)
+Inactive_ID6 = inactive(ID6)
+Inactive_ID7 = inactive(ID7)
+// Fluents
+Fight_ID6_ID6 = fight(ID6, ID6)
+Fight_ID6_ID7 = fight(ID6, ID7)
+Fight_ID7_ID6 = fight(ID7, ID6)
+Fight_ID7_ID7 = fight(ID7, ID7)
+
+// Low-level events:
+Happens(Enter_ID6, 0)
+Happens(Enter_ID7, 0)
+
+Happens(Walking_ID6, 1)
+Happens(Walking_ID6, 2)
+
+Happens(Running_ID7, 1)
+Happens(Running_ID7, 2)
+
+Happens(Exit_ID6, 3)
+Happens(Enter_ID7, 3)
+
+// close
+Close(ID6,ID7,24,1)
+Close(ID6,ID7,24,2)
+Close(ID7,ID6,24,1)
+Close(ID7,ID6,24,2)

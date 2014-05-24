@@ -1,0 +1,54 @@
+//Evidence Predicates
+Happens(event, time)
+Close(id,id,dist,time)
+OrientationMove(id,id,time)
+StartTime(time)
+Next(time,time)
+
+// Query prediactes
+HoldsAt(fluent, time)
+
+//Hidden predicates
+InitiatedAt(fluent, time)
+TerminatedAt(fluent, time)
+
+event enter(id)
+event exit(id)
+event walking(id)
+event running(id)
+event active(id)
+event inactive(id)
+fluent fight(id,id)
+
+//DEC7
+Next(t1,t0) ^ InitiatedAt(f, t0) => HoldsAt(f, t1).
+Next(t1,t0) ^ TerminatedAt(f, t0) => !HoldsAt(f, t1).
+
+Next(t1,t0) ^ HoldsAt(f,t0) ^ !TerminatedAt(f, t0) => HoldsAt(f, t1).
+Next(t1,t0) ^ !HoldsAt(f,t0) ^ !InitiatedAt(f, t0) => !HoldsAt(f, t1).
+
+//initially nothing holds:
+StartTime(t) => !HoldsAt(f, t).
+
+/**
+ * LONG-TERM BEHAVIOUR: fight(Person, Person2)
+ */
+!HoldsAt(fight(p,p),t).
+
+// ----- Initiate fighting
+0.847 InitiatedAt(fight(p1,p2), t) :- Happens(running(p1), t) ^ Close(p1,p2,24,t) ^ !Happens(inactive(p2), t) 
+
+0.847 InitiatedAt(fight(p1,p2), t) :- Happens(active(p1), t) ^ Close(p1,p2,24,t) ^ !Happens(inactive(p2), t) ^ !Happens(running(p2), t)
+
+// ----- Terminate fighting: walking
+1.386 TerminatedAt(fight(p1,p2),t) :- Happens(walking(p1), t) ^ !Close(p1,p2,24,t)
+1.386 TerminatedAt(fight(p1,p2),t) :- Happens(walking(p2), t) ^ !Close(p2,p1,24,t)
+
+// ----- Terminate fighting: start running
+1.386 TerminatedAt(fight(p1,p2), t) :- Happens(running(p1), t) ^ !Close(p1,p2,24,t)
+1.386 TerminatedAt(fight(p1,p2), t) :- Happens(running(p2), t) ^ !Close(p2,p1,24,t)
+
+
+// ----- Terminate fighting: exit
+TerminatedAt(fight(p1,p2), t) :- Happens(exit(p1), t).
+TerminatedAt(fight(p1,p2), t) :- Happens(exit(p2), t).

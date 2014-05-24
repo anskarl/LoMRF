@@ -1,0 +1,12 @@
+throw = {1,...,20}
+face = {1,...,6}
+//throw={1,...,10}
+//face = {1,2}
+
+Outcome(throw, face)
+Eq(face,face)
+
+Outcome(t,1) v Outcome(t,2) v Outcome(t, 3) v Outcome(t, 4) v Outcome(t, 5) v Outcome(t, 6).
+//Outcome(t,1) v Outcome(t,2).
+
+!Outcome(t,f0) v Eq(f0,f1) v !Outcome(t,f1).

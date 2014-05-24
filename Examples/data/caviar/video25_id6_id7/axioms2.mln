@@ -1,0 +1,33 @@
+//Evidence Predicates
+Happens(event, time)
+Close(id,id,dist,time)
+OrientationMove(id,id,time)
+StartTime(time)
+
+// Query prediactes
+HoldsAt(fluent, time)
+
+//Hidden predicates
+InitiatedAt(fluent, time)
+TerminatedAt(fluent, time)
+
+//functions: events
+event enter(id)
+event exit(id)
+event walking(id)
+event running(id)
+event active(id)
+event inactive(id)
+
+//functions: fluents
+fluent meet(id,id)
+fluent fight(id,id)
+fluent move(id,id)
+fluent leaving_object(id,id)
+
+//DEC7
+InitiatedAt(f, t) => HoldsAt(f, succ(t)).
+TerminatedAt(f, t) => !HoldsAt(f, succ(t)).
+
+HoldsAt(f,t) ^ !TerminatedAt(f, t) => HoldsAt(f, succ(t)).
+!HoldsAt(f,t) ^ !InitiatedAt(f, t) => !HoldsAt(f, succ(t)).

@@ -1,0 +1,27 @@
+/**
+ * LONG-TERM BEHAVIOUR: meet(Person, Person2) 
+ */
+
+// ----- Initiate meet
+1.386 Happens(active(p1), t) ^ !Happens(running(p2), t) ^  Close(p1,p2,25,t) => InitiatedAt(meet(p1,p2), t)
+
+-3.178 Happens(inactive(p1),t) ^ !Happens(running(p2),t)  ^ !Happens(active(p2),t) ^ Close(p1,p2,25,t) => InitiatedAt(meet(p1,p2),t)
+
+// ----- Terminate meet: walking
+2 Happens(walking(p1),t)  ^ !Close(p1,p2,34,t) => TerminatedAt(meet(p1,p2),t)
+2 Happens(walking(p2),t)  ^ !Close(p2,p1,34,t) => TerminatedAt(meet(p1,p2),t)
+
+// ----- Terminate meet: start running
+2 Happens(running(p1),t) => TerminatedAt(meet(p1,p2),t) 
+2 Happens(running(p2),t) => TerminatedAt(meet(p1,p2),t) 
+
+// ----- Terminate meet: exit
+Happens(exit(p1), t) => TerminatedAt(meet(p1,p2),t).
+Happens(exit(p2), t) => TerminatedAt(meet(p1,p2),t).
+
+
+//CIRC[I]
+InitiatedAt(meet(p1,p2),t) => (Happens(active(p1), t) ^ !Happens(running(p2), t) ^  Close(p1,p2,25,t)) v (Happens(inactive(p1),t) ^ !Happens(running(p2),t)  ^ !Happens(active(p2),t) ^ Close(p1,p2,25,t)).
+
+//CIRC[T]
+TerminatedAt(meet(p1,p2),t) => (Happens(walking(p1),t)  ^ !Close(p1,p2,34,t)) v (Happens(walking(p2),t)  ^ !Close(p2,p1,34,t)) v Happens(running(p1),t) v Happens(running(p2),t) v Happens(exit(p1), t) v Happens(exit(p2), t).

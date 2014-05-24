@@ -1,0 +1,19 @@
+fluent={F1}
+//Evidence Predicates
+
+// Query prediactes
+HoldsAt(fluent, time)
+
+//Hidden predicates
+InitiatedAt(fluent, time)
+TerminatedAt(fluent, time)
+
+//function: time sequence
+time next(time)
+
+//DEC7
+InitiatedAt(f, t) => HoldsAt(f, next(t)).
+// TerminatedAt(f, t) => !HoldsAt(f, next(t)).
+
+// HoldsAt(f,t) ^ !TerminatedAt(f, t) => HoldsAt(f, next(t)).
+// !HoldsAt(f,t) ^ !InitiatedAt(f, t) => !HoldsAt(f, next(t)).

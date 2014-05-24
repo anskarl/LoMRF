@@ -1,0 +1,75 @@
+# use glob syntax.
+syntax: glob
+*.ser
+*.class
+*~
+*.bak
+#*.off
+*.old
+
+# eclipse conf file
+.settings
+.classpath
+.project
+.manager
+.scala_dependencies
+
+# idea
+.idea
+*.iml
+*.ipr
+*.iws
+
+# building
+target
+build
+null
+tmp*
+temp*
+test-output
+build.log
+
+# other scm
+.svn
+.CVS
+.hg*
+
+# switch to regexp syntax.
+#  syntax: regexp
+#  ^\.pc/
+
+#SHITTY output not in target directory
+build.log
+
+# other
+tmp
+*.swp
+! .gitkeep
+*.log
+.directory
+*.result
+*.fg
+*.description
+
+Release
+
+.ensime
+.ensime_*
+
+
+# sbt specific
+.cache/
+.history/
+.lib/
+dist/*
+target/
+lib_managed/
+src_managed/
+project/boot/
+project/plugins/project/
+project/project/
+project/target/
+
+# Scala-IDE specific
+.scala_dependencies
+.worksheet

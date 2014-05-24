@@ -1,0 +1,40 @@
+//Evidence Predicates
+Happens(event, time)
+Close(id,id,dist,time)
+OrientationMove(id,id,time)
+StartTime(time)
+
+// Query prediactes
+HoldsAt(fluent, time)
+
+//Hidden predicates
+InitiatedAt(fluent, time)
+TerminatedAt(fluent, time)
+
+//functions: events
+event enter(id)
+event exit(id)
+event walking(id)
+event running(id)
+event active(id)
+event inactive(id)
+//functions: fluents
+fluent meet(id,id)
+fluent fight(id,id)
+fluent move(id,id)
+fluent leaving_object(id,id)
+
+
+//DEC7
+InitiatedAt(f, t0) => HoldsAt(f, succ(t0)).
+TerminatedAt(f, t0) => !HoldsAt(f, succ(t0)).
+
+HoldsAt(f,t0) ^ !TerminatedAt(f, t0) => HoldsAt(f,succ(t0)).
+!HoldsAt(f,t0) ^ !InitiatedAt(f, t0) => !HoldsAt(f,succ(t0)). 
+
+// 0.847 Happens(running(p1), t) ^ Close(p1,p2,24,t) ^ !Happens(inactive(p2), t) => InitiatedAt(fight(p1,p2), t)
+
+// -0.847 Happens(active(p1), t) ^ Close(p1,p2,24,t) ^ !Happens(inactive(p2), t) ^ !Happens(running(p2), t) => InitiatedAt(fight(p1,p2), t)
+
+//CIRC[I]
+// InitiatedAt(fight(p1,p2), t) => (Happens(running(p1), t) ^ Close(p1,p2,24,t) ^ !Happens(inactive(p2), t)) v (Happens(active(p1), t) ^ Close(p1,p2,24,t) ^ !Happens(inactive(p2), t) ^ !Happens(running(p2), t)).

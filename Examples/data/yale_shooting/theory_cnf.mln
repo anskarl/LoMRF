@@ -1,0 +1,49 @@
+//Evidence Predicates
+Happens(event,time)
+Next(time,time)
+
+// Query prediactes
+HoldsAt(fluent,time)
+
+//Hidden predicates
+InitiatedAt(fluent,time)
+TerminatedAt(fluent,time)
+
+//DEC7
+!Next(t1,t0) v !InitiatedAt(f, t0) v HoldsAt(f, t1).
+!Next(t1,t0) v !TerminatedAt(f, t0) v !HoldsAt(f, t1).
+
+!Next(t1,t0) v !HoldsAt(f,t0) v TerminatedAt(f, t0) v HoldsAt(f,t1).
+!Next(t1,t0) v HoldsAt(f,t0) v InitiatedAt(f, t0) v !HoldsAt(f,t1).
+
+/**
+ * Domain Specific Axioms
+ */
+2 !Happens(Load,t) v InitiatedAt(Loaded,t) 
+!InitiatedAt(Loaded,t) v Happens(Load,t).
+
+2 !Happens(Shoot,t) v !HoldsAt(Loaded,t) v TerminatedAt(Loaded,t) 
+!TerminatedAt(Loaded,t) v Happens(Shoot,t).
+!TerminatedAt(Loaded,t) v HoldsAt(Loaded,t).
+
+2 !Happens(Shoot,t) v !HoldsAt(Loaded,t) v InitiatedAt(Dead,t)
+!InitiatedAt(Dead,t) v Happens(Shoot,t).
+!InitiatedAt(Dead,t) v HoldsAt(Loaded,t).
+
+2 !Happens(Shoot,t) v !HoldsAt(Loaded,t) v TerminatedAt(Alive,t)
+!TerminatedAt(Alive,t) v Happens(Shoot,t).
+!TerminatedAt(Alive,t) v HoldsAt(Loaded,t).
+
+
+!TerminatedAt(Dead, t).
+!InitiatedAt(Alive,t).
+
+
+//Initially:
+
+HoldsAt(Alive,0).
+!HoldsAt(Dead,0).
+!HoldsAt(Loaded, 0).
+!InitiatedAt(f,0).
+!TerminatedAt(f,0).
+
