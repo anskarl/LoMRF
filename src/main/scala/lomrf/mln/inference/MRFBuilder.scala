@@ -95,7 +95,7 @@ final class MRFBuilder(val mln: MLN, noNegWeights: Boolean = false, unitWeights:
 
   private val mcSatParam = 1
 
-  private val system = ActorSystem("MRFBuilder")
+  private val system = ActorSystem.create("MRFBuilder")
 
 
   private implicit val timeout = Timeout.intToTimeout(5000)
