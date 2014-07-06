@@ -38,14 +38,15 @@ import akka.actor.ActorRef
 import gnu.trove.set.TIntSet
 import lomrf.logic._
 import lomrf.mln.model.MLN
+import lomrf.util.AtomIdentityFunction.IDENTITY_NOT_EXIST
 import lomrf.util.{AtomIdentityFunction, Cartesian}
+
 import scala.collection._
+import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent._
 import scala.concurrent.duration.Duration
 import scala.language.postfixOps
 import scalaxy.loops._
-import lomrf.util.AtomIdentityFunction.IDENTITY_NOT_EXIST
-import scala.concurrent.ExecutionContext.Implicits.global
-import scala.concurrent._
 
 /**
  * @author Anastasios Skarlatidis
@@ -179,7 +180,7 @@ class ClauseGrounderImpl(
 
   def getVariableDomains = variableDomains
 
-  def computeGroundings(): Int = {
+  def computeGroundings() {
 
     debug("The ordering of literals in clause: " + clause + "\n\t" +
       "changed to: " + orderedLiterals.map(_.toString()).reduceLeft(_ + " v " + _))
@@ -298,16 +299,17 @@ class ClauseGrounderImpl(
     else while (groundIterator.hasNext) performGrounding(theta = groundIterator.next())
     */
 
-    val groundingsCounter: Int =
-      if (clause.isGround) performGrounding()
-      else {
-        val f = Future.traverse(groundIterator)(substitution => Future(performGrounding(substitution)))
-        Await.result(f, Duration.Inf).sum
-      }
 
-    debug("Clause: " + clause.toString + " --- produced " + groundingsCounter + " groundings.")
-    //return
-    groundingsCounter
+    if (clause.isGround) {
+      val c = performGrounding()
+      debug("Clause: " + clause.toString + " --- produced " + c + " groundings.")
+    }
+    else {
+      val f = Future.traverse(groundIterator)(substitution => Future(performGrounding(substitution)))
+      val result = Await.result(f, Duration.Inf)
+      debug("Clause: " + clause.toString + " --- produced " + result.sum + " groundings.")
+    }
+
 
   }
 
