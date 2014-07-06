@@ -282,7 +282,10 @@ object InferenceCLI extends OptionParser with Logging {
       + "\n\tSchema definitions : " + mln.schema.size
       + "\n\tFormulas           : " + mln.formulas.size)
 
-    info("CNF clauses = " + mln.clauses.size)
+    info("Number of CNF clauses = " + mln.clauses.size)
+    debug("List of CNF clauses: ")
+    if(isDebugEnabled) mln.clauses.zipWithIndex.foreach{case (c, idx) => debug(idx+": "+c)}
+
     info("Creating MRF...")
     val mrfBuilder = new MRFBuilder(mln, _noNeg)
     val mrf = mrfBuilder.buildNetwork

@@ -39,16 +39,18 @@ import gnu.trove.map.TIntObjectMap
 import gnu.trove.map.hash.TIntObjectHashMap
 import gnu.trove.set.TIntSet
 import gnu.trove.set.hash.TIntHashSet
-import java.util
+import java.{util => jutil}
 import java.util.concurrent.CountDownLatch
 import lomrf.logic._
 import lomrf.mln.model.MLN
 import lomrf.util.{Utilities, Logging, AtomIdentityFunction, Cartesian}
 import lomrf.{DEFAULT_CAPACITY, DEFAULT_LOAD_FACTOR, NO_ENTRY_KEY, processors}
-import scala.Some
 import akka.actor._
 import akka.pattern._
 import akka.util.Timeout
+import scala.concurrent.duration.Duration
+import scalaxy.loops._
+import scala.language.postfixOps
 
 
 /**
@@ -140,7 +142,7 @@ final class MRFBuilder(val mln: MLN, noNegWeights: Boolean = false, unitWeights:
       }
     }
 
-    for (segmentIdx <- 0 until result.cliques.length) {
+    for (segmentIdx <- 0 until result.cliques.length optimized) {
       if (result.cliques(segmentIdx) ne null) {
         val clausesIterator = result.cliques(segmentIdx).iterator()
         while (clausesIterator.hasNext) {
@@ -300,6 +302,7 @@ final class MRFBuilder(val mln: MLN, noNegWeights: Boolean = false, unitWeights:
 
         if (clauseCounter == clausesBatchSize)
           atomRegisters.foreach(_ ! GRND_Iteration_Completed)
+
 
       case CollectedAtomIDs(index, atomIDs) =>
         atomIDBatchesCounter += 1
@@ -464,7 +467,7 @@ final class MRFBuilder(val mln: MLN, noNegWeights: Boolean = false, unitWeights:
         while (iterator.hasNext && !merged) {
           val storedId = iterator.next()
           val storedClique = fetchClique(storedId)
-          if (util.Arrays.equals(storedClique.variables, cliqueEntry.variables)) {
+          if (jutil.Arrays.equals(storedClique.variables, cliqueEntry.variables)) {
             if (storedClique.weight != Double.PositiveInfinity) {
               // merge these cliques
               if (cliqueEntry.weight == Double.PositiveInfinity) {
@@ -509,7 +512,7 @@ final class MRFBuilder(val mln: MLN, noNegWeights: Boolean = false, unitWeights:
     } // store(...)
 
     @inline private def registerVariables(variables: Array[Int]) {
-      for (i <- 0 until variables.length) {
+      for (i <- (0 until variables.length).optimized) {
         val atomID = math.abs(variables(i))
         atomRegisters(atomID % numOfAtomBatches) ! atomID
       }
@@ -519,12 +522,12 @@ final class MRFBuilder(val mln: MLN, noNegWeights: Boolean = false, unitWeights:
 
 
   private final class GroundingWorker(cliqueRegisters: Array[ActorRef]) extends Actor with Logging {
-    //private var statTime = 0L
 
     def receive = {
       case Ground(clause, atomSignatures, atomsDB) =>
         val grounder = new ClauseGrounderImpl(clause, cliqueRegisters, atomSignatures, atomsDB)
         grounder.computeGroundings()
+        debug("Grounding completed for clause "+clause)
         sender ! ClauseGroundingCompleted(clause, grounder.collectedSignatures)
 
       case msg => fatal("GroundingWorker --- Received an unknown message '" + msg + "' from " + sender)
@@ -534,6 +537,8 @@ final class MRFBuilder(val mln: MLN, noNegWeights: Boolean = false, unitWeights:
                                            cliqueRegisters: Array[ActorRef],
                                            atomSignatures: Set[AtomSignature],
                                            atomsDB: Array[TIntSet]) {
+      import concurrent._
+      import concurrent.ExecutionContext.Implicits.global
 
       import AtomIdentityFunction.IDENTITY_NOT_EXIST
 
@@ -541,8 +546,6 @@ final class MRFBuilder(val mln: MLN, noNegWeights: Boolean = false, unitWeights:
 
       private val cliqueBatches = cliqueRegisters.length
       private val atomsDBBatches = atomsDB.length
-
-      private var sat = 0
 
       private val variableDomains: Map[Variable, Iterable[String]] = {
         if (clause.isGround) Map.empty[Variable, Iterable[String]]
@@ -553,7 +556,10 @@ final class MRFBuilder(val mln: MLN, noNegWeights: Boolean = false, unitWeights:
         try {
           Cartesian.CartesianIteratorMap(variableDomains)
         } catch {
-          case ex: NoSuchElementException => fatal("Failed to initialise CartesianIterator for clause: " + clause.toString + " --- domain = " + variableDomains)
+          case ex: NoSuchElementException =>
+            fatal("Failed to initialise CartesianIterator for clause: " +
+              clause.toString + " --- domain = " +
+              variableDomains)
         }
 
 
@@ -641,23 +647,19 @@ final class MRFBuilder(val mln: MLN, noNegWeights: Boolean = false, unitWeights:
                 else 0
             }
           }
-        }
-        )
+        })
 
-      //private val owaLiterals = orderedLiterals.view.map(_._1).filter(literal => mln.isOWA(literal.sentence.signature))
       private val owaLiterals = orderedLiterals.view.map(_._1).filter(literal => mln.isTriState(literal.sentence.signature))
 
       // Collect dynamic atoms
-      private lazy val dynamicAtoms: Map[Int, (List[String] => Boolean)] =
+      private val dynamicAtoms: Map[Int, (List[String] => Boolean)] =
         (for (i <- 0 until orderedLiterals.length; sentence = orderedLiterals(i)._1.sentence; if sentence.isDynamic)
         yield i -> mln.dynamicAtoms(sentence.signature))(breakOut)
 
-      //private val length = clause.literals.count(l => mln.isOWA(l.sentence.signature))
+
       private val length = clause.literals.count(l => mln.isTriState(l.sentence.signature))
 
-      lazy val collectedSignatures = clause.literals.map(_.sentence.signature) -- atomSignatures
-
-      private var groundingsCounter = 0
+      val collectedSignatures = clause.literals.map(_.sentence.signature) -- atomSignatures
 
       def getVariableDomains = variableDomains
 
@@ -666,15 +668,15 @@ final class MRFBuilder(val mln: MLN, noNegWeights: Boolean = false, unitWeights:
         debug("The ordering of literals in clause: " + clause + "\n\t" +
           "changed to: " + orderedLiterals.map(_.toString()).reduceLeft(_ + " v " + _))
 
-        sat = 0 //reset number of satisfied ground clauses
+        //sat = 0 //reset number of satisfied ground clauses
 
-        var idCounter = 0
+        def performGrounding(theta: Map[Variable, String] = Map.empty[Variable, String]): Int = {
+          var sat = 0
+          var counter = 0
 
-        // an array of integer literals, indicating the current ground clause's literals
-        val currentVariables = new Array[Int](length)
+          // an array of integer literals, indicating the current ground clause's literals
+          val currentVariables = new Array[Int](length)
 
-
-        def performGrounding(theta: Map[Variable, String] = Map.empty[Variable, String]) {
           // partial function for substituting terms w.r.t the given theta
           val substitution = substituteTerm(theta) _
           var idx = 0 //literal position index in the currentVariables array
@@ -685,7 +687,8 @@ final class MRFBuilder(val mln: MLN, noNegWeights: Boolean = false, unitWeights:
             val (literal, idf) = literalsIterator.next()
             // When the literal is a dynamic atom, then invoke its truth state dynamically
             if (literal.sentence.isDynamic) {
-              if (literal.isPositive == dynamicAtoms(idx)(literal.sentence.terms.map(substitution))) flagDrop = true
+              //if (literal.isPositive == dynamicAtoms(idx)(literal.sentence.terms.map(substitution))) flagDrop = true
+              flagDrop = literal.isPositive == dynamicAtoms(idx)(literal.sentence.terms.map(substitution))
             }
             else {
               // Otherwise, invoke its state from the evidence
@@ -727,7 +730,7 @@ final class MRFBuilder(val mln: MLN, noNegWeights: Boolean = false, unitWeights:
             var owaIdx = 0
             val cliqueVariables = new Array[Int](idx)
 
-            for (i <- 0 until idx) {
+            for (i <- (0 until idx).optimized) {
               //val currentLiteral = iterator.next()
               val currentAtomID = currentVariables(i)
               cliqueVariables(i) = if (owaLiterals(owaIdx).isPositive) currentAtomID else -currentAtomID
@@ -752,38 +755,47 @@ final class MRFBuilder(val mln: MLN, noNegWeights: Boolean = false, unitWeights:
                   // If the clause is unit and its weight value is negative
                   // negate this clause (e.g. the clause "-w A" will be converted into w !A)
                   cliqueVariables(0) = -cliqueVariables(0)
-                  store(idCounter, -clause.weight, cliqueVariables)
-                  idCounter += 1
+                  store(-clause.weight, cliqueVariables)
+                  counter += 1
                 } else {
                   val posWeight = -clause.weight / cliqueVariables.length
-                  cliqueVariables.foreach {
-                    groundLiteral =>
-                      store(idCounter, posWeight, Array(-groundLiteral))
-                      idCounter += 1
+                  for(groundLiteral <- cliqueVariables){
+                    store(posWeight, Array(-groundLiteral))
+                    counter += 1
                   }
                 }
               }
               else {
                 // store as it is
-                if (cliqueVariables.length > 1) util.Arrays.sort(cliqueVariables)
-                store(idCounter, clause.weight, cliqueVariables)
-                idCounter += 1
+                if (cliqueVariables.length > 1) jutil.Arrays.sort(cliqueVariables)
+
+                store(clause.weight, cliqueVariables)
+                counter += 1
               }
+              counter = 1
             } // end: if (canSend)
           }
+
+          counter
         }
 
-        if (clause.isGround) performGrounding()
+        /* if (clause.isGround) performGrounding()
         else while (groundIterator.hasNext) performGrounding(theta = groundIterator.next())
+        */
+
+        val groundingsCounter: Int =
+          if (clause.isGround) performGrounding()
+          else {
+            val f = Future.traverse(groundIterator)(substitution => Future(performGrounding(substitution)))
+            Await.result(f, Duration.Inf).sum
+          }
 
         debug("Clause: " + clause.toString + " --- produced " + groundingsCounter + " groundings.")
         //return
         groundingsCounter
+
       }
 
-      def numOfGroundings = groundingsCounter
-
-      @inline
       private def substituteTerm(theta: collection.Map[Variable, String])(term: Term): String = term match {
         case c: Constant => c.symbol
         case v: Variable => theta(v)
@@ -794,15 +806,12 @@ final class MRFBuilder(val mln: MLN, noNegWeights: Boolean = false, unitWeights:
           }
       }
 
-      @inline
-      private def store(id: Int, weight: Double, variables: Array[Int]) {
-        var hashKey = util.Arrays.hashCode(variables)
+      private def store(weight: Double, variables: Array[Int]) {
+        var hashKey = jutil.Arrays.hashCode(variables)
         if (hashKey == 0) hashKey += 1 //required for trove collections, since zero represents the key-not-found value
 
         cliqueRegisters(math.abs(hashKey % cliqueBatches)) ! CliqueEntry(hashKey, weight, variables)
-        groundingsCounter += 1
       }
-
 
     }
 
@@ -837,7 +846,7 @@ final class MRFBuilder(val mln: MLN, noNegWeights: Boolean = false, unitWeights:
 
     override def equals(obj: Any): Boolean = obj match {
       case other: CliqueEntry =>
-        other.hashKey == hashKey && other.weight == weight && util.Arrays.equals(other.variables, variables)
+        other.hashKey == hashKey && other.weight == weight && jutil.Arrays.equals(other.variables, variables)
       case _ => false
     }
   }

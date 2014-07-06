@@ -142,7 +142,9 @@ final class AtomIdentityFunction private(
       val set: ConstantsSet = constantsAndStep(idx)._1
 
       val constantID = set(f(term))
-      if (constantID == ConstantsSet.NO_ENTRY) return IDENTITY_NOT_EXIST
+      if (constantID == ConstantsSet.NO_ENTRY)
+        return IDENTITY_NOT_EXIST
+
       val step = constantsAndStep(idx)._2
       val offset = constantID * step
       sum += (offset + constantID)

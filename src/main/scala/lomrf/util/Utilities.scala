@@ -58,7 +58,7 @@ object Utilities {
       var resultFiles = List[File]()
       val queue = mutable.Queue[File](rootDir)
 
-      while (!queue.isEmpty) {
+      while (queue.nonEmpty) {
         queue.dequeue().listFiles.foreach {
           x =>
             if (x.isDirectory) queue.enqueue(x)
@@ -77,7 +77,7 @@ object Utilities {
     var resultFiles = List[File]()
     val queue = mutable.Queue[File](rootDir)
 
-    while (!queue.isEmpty) {
+    while (queue.nonEmpty) {
       queue.dequeue().listFiles.foreach {
         x =>{
           //println("READING "+x.getAbsolutePath)
@@ -100,7 +100,7 @@ object Utilities {
       var resultFiles = List[File]()
       val queue = mutable.Queue[File](rootDir)
 
-      while (!queue.isEmpty) {
+      while (queue.nonEmpty) {
         queue.dequeue().listFiles.foreach {
           x =>
             if (x.isDirectory) queue.enqueue(x)

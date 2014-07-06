@@ -34,6 +34,8 @@ package lomrf.util
 
 import scala.collection.mutable
 import scala.{collection => scol}
+import scalaxy.loops._
+import scala.language.postfixOps
 
 /**
  * @author Anastasios Skarlatidis
@@ -167,7 +169,7 @@ object Cartesian {
         while (!stop) {
           currentIterator = iterators(idx)
           if (currentIterator.hasNext) {
-            for (i <- 0 until idx) {
+            for (i <- (0 until idx).optimized) {
               iterators(i) = sets(i).iterator
               elements(i) = iterators(i).next()
             }
@@ -207,7 +209,7 @@ object Cartesian {
         while (!stop) {
           currentIterator = iterators(idx)
           if (currentIterator.hasNext) {
-            for (i <- 0 until idx) {
+            for (i <- (0 until idx).optimized) {
               iterators(i) = sets(i).iterator
               elements(i) = iterators(i).next()
             }
@@ -235,6 +237,7 @@ object Cartesian {
                                      iterators: Array[Iterator[T]],
                                      elements: Array[T]) extends Iterator[Seq[T]] {
 
+
     private var has_next = true
 
 
@@ -250,7 +253,7 @@ object Cartesian {
         while (!stop) {
           currentIterator = iterators(idx)
           if (currentIterator.hasNext) {
-            for (i <- 0 until idx) {
+            for (i <- (0 until idx).optimized) {
               iterators(i) = sets(i).iterator
               elements(i) = iterators(i).next()
             }
@@ -320,27 +323,31 @@ object Cartesian {
                                                     aIterables: Array[Iterable[T]],
                                                     aIterators: Array[Iterator[T]],
                                                     aElements: Array[T]) extends Iterator[Map[K, T]] {
+
     private val arrayLength = aKeys.length
     private var has_next = true
-
 
     def hasNext = has_next
 
     def next(): Map[K, T] = {
-
       var result = Map[K,T]()
-      for(i <- 0 until arrayLength)
-        result = result + (aKeys(i) -> aElements(i))
 
+      var i = 0
+      while(i < arrayLength){
+        result = result + (aKeys(i) -> aElements(i))
+        i += 1
+      }
 
       var stop = false
       var idx = 0
 
       while(!stop && (idx < arrayLength)){
         if(aIterators(idx).hasNext){
-          for(i <- 0 until idx){
+          var i = 0
+          while(i < idx){
             aIterators(i) = aIterables(i).iterator
             aElements(i) = aIterators(i).next()
+            i += 1
           }
           aElements(idx) = aIterators(idx).next()
           stop = true
@@ -349,8 +356,10 @@ object Cartesian {
           idx += 1
         }
       }
-      if(!stop && idx == arrayLength) has_next = false
 
+      //if(!stop && idx == arrayLength) has_next = false
+
+      has_next = stop || idx != arrayLength
 
       result
     }
