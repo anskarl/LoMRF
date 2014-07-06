@@ -30,7 +30,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package lomrf.mln.inference
+package lomrf.mln.model.mrf
 
 /**
  * This class contains the information of a ground atom in the generated MRF.
@@ -45,28 +45,28 @@ final class GroundAtom(val id: Int, weightHard: Double) {
   // ----------------------------------------------------------------
 
   // Keeps track the last time that this atom is flipped
-  private[inference] var lastFlip = 0
+  private[mln] var lastFlip = 0
 
   // Determines whether the state is fixed to some value (1 = true, -1 false) or not (=0)
-  private[inference] var fixedValue = 0
+  private[mln] var fixedValue = 0
 
   // The current truth state of this particular ground atom
-  private[inference] var state = false
+  private[mln] var state = false
 
   /**
    * The truth state of this particular ground atom in a
    * previously generated world with the lowest cost so far.
    */
-  private[inference] var lowState = false
+  private[mln] var lowState = false
 
   // Keep track how many times this atom had true state
-  private[inference] var truesCounter = 0
+  private[mln] var truesCounter = 0
 
   // The cost that will increase after flipping
-  private[inference] var brakeCost = 0.0
+  private[mln] var brakeCost = 0.0
 
   // The cost that will decrease after flipping
-  private[inference] var makeCost = 0.0
+  private[mln] var makeCost = 0.0
 
   // ----------------------------------------------------------------
   // Publicly accessible functions
@@ -114,7 +114,7 @@ final class GroundAtom(val id: Int, weightHard: Double) {
    *
    * @return delta cost
    */
-  private[inference] def flip: Double = {
+  private[mln] def flip: Double = {
     state = !state
     // invert delta:
     val tmp = brakeCost
@@ -125,15 +125,15 @@ final class GroundAtom(val id: Int, weightHard: Double) {
     makeCost - brakeCost
   }
 
-  private[inference] def saveAsLowState() {
+  private[mln] def saveAsLowState() {
     lowState = state
   }
 
-  private[inference] def restoreLowState() {
+  private[mln] def restoreLowState() {
     state = lowState
   }
 
-  private[inference] def resetDelta() {
+  private[mln] def resetDelta() {
     brakeCost = 0.0
     makeCost = 0.0
   }
@@ -141,7 +141,7 @@ final class GroundAtom(val id: Int, weightHard: Double) {
   /**
    * The given constraint will become satisfied when this atom is flipped (UNSAT -> SAT).
    */
-  private[inference] def assignSatPotential(constraint: Constraint) {
+  private[mln] def assignSatPotential(constraint: Constraint) {
     if (constraint.isPositive) makeCost += constraint.weight
     else brakeCost -= constraint.weight
   }
@@ -149,7 +149,7 @@ final class GroundAtom(val id: Int, weightHard: Double) {
   /**
    * The given constraint will become unsatisfied when this atom is flipped (SAT -> UNSAT).
    */
-  private[inference] def assignUnsatPotential(constraint: Constraint) {
+  private[mln] def assignUnsatPotential(constraint: Constraint) {
     if (constraint.isPositive) brakeCost += constraint.weight
     else makeCost -= constraint.weight
   }
@@ -157,7 +157,7 @@ final class GroundAtom(val id: Int, weightHard: Double) {
   /**
    * The given constraint will no longer becomes unsatisfied when this atom is flipped.
    */
-  private[inference] def revokeSatPotential(constraint: Constraint) {
+  private[mln] def revokeSatPotential(constraint: Constraint) {
     if (constraint.isPositive) makeCost -= constraint.weight
     else brakeCost += constraint.weight
   }
@@ -165,7 +165,7 @@ final class GroundAtom(val id: Int, weightHard: Double) {
   /**
    * The given constraint will no longer becomes satisfied when this atom is flipped.
    */
-  private[inference] def revokeUnsatPotential(constraint: Constraint) {
+  private[mln] def revokeUnsatPotential(constraint: Constraint) {
     if (constraint.isPositive) brakeCost -= constraint.weight
     else brakeCost += constraint.weight
   }

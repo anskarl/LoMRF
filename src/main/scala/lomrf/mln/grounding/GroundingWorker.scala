@@ -30,47 +30,26 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package tests
+package lomrf.mln.grounding
 
-import lomrf.mln.grounding.MRFBuilder
-import org.scalatest.junit.AssertionsForJUnit
-import org.junit.Test
-import org.junit.Assert._
-import lomrf.mln.model._
-import lomrf.logic.AtomSignature
-import lomrf.util.{Utilities, Logging}
+import akka.actor.{Actor, ActorRef}
+import lomrf.mln.model.MLN
+import lomrf.util.Logging
 
 /**
  * @author Anastasios Skarlatidis
  */
+private final class GroundingWorker(mln: MLN, cliqueRegisters: Array[ActorRef], noNegWeights: Boolean) extends Actor with Logging {
 
-class KBMCTest extends AssertionsForJUnit with Logging{
-  private val sep = System.getProperty("file.separator")
-  private val testFilesPath = System.getProperty("user.dir") + sep +"data"+ sep +"tests" +sep
+  def receive = {
+    case Ground(clause, atomSignatures, atomsDB) =>
+      val grounder = new ClauseGrounderImpl(clause, mln, cliqueRegisters, atomSignatures, atomsDB, noNegWeights)
+      grounder.computeGroundings()
+      debug("Grounding completed for clause " + clause)
+      sender ! ClauseGroundingCompleted(clause, grounder.collectedSignatures)
 
-  @Test def simpleKBMC_Test1(){
-    val queryAtoms = Set[AtomSignature](AtomSignature("AdvisedBy",2))
-    val cwa = Set[AtomSignature](AtomSignature("GradStudent",1), AtomSignature("Prof",1), AtomSignature("SameGroup",2), AtomSignature("TA",2))
-
-    info("Loading an MLN instance from data.")
-     val mln = MLN(
-       testFilesPath+"TestUniversity.mln",
-       testFilesPath+"TestUniversityEvidence_SMALL.db",
-       queryAtoms,
-       cwa)
-    info("\n"+mln+"\n")
-
-    
-
-    info("Computing CNF clauses...")
-    assertTrue(mln.clauses.size>0)
-    info("No. of CNF clauses: "+mln.clauses.size)
-    info("grounding...")
-    val mrfBuilder = new MRFBuilder(mln)
-    val startTime = System.currentTimeMillis()
-    mrfBuilder.buildNetwork
-    val endTime = System.currentTimeMillis()
-    info("Total time: "+Utilities.msecTimeToText(endTime - startTime))
+    case msg => fatal("GroundingWorker --- Received an unknown message '" + msg + "' from " + sender)
   }
-  
+
+
 }

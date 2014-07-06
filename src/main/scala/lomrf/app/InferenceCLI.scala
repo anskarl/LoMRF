@@ -36,6 +36,7 @@ import java.io.{FileOutputStream, PrintStream}
 import lomrf.logic.AtomSignature
 import lomrf.logic.PredicateCompletionMode._
 import lomrf.logic.dynamic.{DynamicFunctionBuilder, DynamicAtomBuilder}
+import lomrf.mln.grounding.MRFBuilder
 import lomrf.mln.inference._
 import lomrf.mln.model.MLN
 import lomrf.util.{OptionParser, Logging, ImplFinder, parseAtomSignature}

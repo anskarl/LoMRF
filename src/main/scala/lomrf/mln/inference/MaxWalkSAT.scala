@@ -33,6 +33,7 @@
 package lomrf.mln.inference
 
 
+import lomrf.mln.model.mrf.{GroundAtom, MRFState, MRF}
 import MRF.{NO_ATOM, NO_CONSTRAINT, NO_ATOM_ID}
 import java.io.PrintStream
 import java.util.concurrent.ThreadLocalRandom

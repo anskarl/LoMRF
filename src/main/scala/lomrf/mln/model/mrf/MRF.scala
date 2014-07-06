@@ -30,16 +30,18 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package lomrf.mln.inference
+package lomrf.mln.model.mrf
 
-import collection.mutable
-import collection.parallel.mutable.ParArray
+import java.util
+import java.util.concurrent.ThreadLocalRandom
+
 import gnu.trove.list.array.TIntArrayList
 import gnu.trove.map.TIntObjectMap
 import gnu.trove.map.hash.{TIntIntHashMap, TIntObjectHashMap}
-import java.util
 import lomrf.mln.model.MLN
-import util.concurrent.ThreadLocalRandom
+
+import scala.collection.mutable
+import scala.collection.parallel.mutable.ParArray
 
 
 /**

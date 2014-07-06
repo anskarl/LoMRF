@@ -33,8 +33,8 @@
 package lomrf
 
 import logic.AtomSignature
+import lomrf.mln.model.mrf.Constraint
 import mln.model.MLN
-import mln.inference.Constraint
 import gnu.trove.map.TIntObjectMap
 import gnu.trove.set.TIntSet
 
