@@ -43,7 +43,7 @@ import lomrf.util.Cartesian.CartesianIteratorMap
 
 class CartesianTests extends AssertionsForJUnit{
 
-  @Test def cartesianIteratorForGrounding(){
+ /* @Test def cartesianIteratorForGrounding(){
 
     val m = Map(
       "v1" -> List("One", "Two", "Three"),
@@ -62,6 +62,6 @@ class CartesianTests extends AssertionsForJUnit{
     println("counted = "+count)
     assertEquals(27,count)
 
-  }
+  }*/
 
 }
