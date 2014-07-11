@@ -60,6 +60,14 @@ object KBCompilerCLI extends Logging {
     val opt = new KBCOptions
     if (args.length == 0) println(opt.usage)
     else if (opt.parse(args)) {
+      if(opt.eliminateFunctions && !opt.cnf)
+        warn("Function elimination enables CNF compilation")
+
+      if(opt.introduceFunctions && !opt.cnf)
+        warn("Function introduction enables CNF compilation")
+
+      opt.cnf = opt.eliminateFunctions || opt.introduceFunctions
+
       compile(
         opt.mlnFileName.getOrElse(fatal("Please define the input MLN file.")),
         opt.evidenceFileName.getOrElse(""),
@@ -68,7 +76,8 @@ object KBCompilerCLI extends Logging {
         opt.includeDomain,
         opt.includePredicateDefinitions,
         opt.includeFunctionDefinitions,
-        opt.writeFunctionsAsPredicates,
+        opt.eliminateFunctions,
+        opt.introduceFunctions,
         opt.weightsMode,
         opt.pcm,
         opt.cnf,
@@ -82,7 +91,8 @@ object KBCompilerCLI extends Logging {
               includeDomain: Boolean,
               includePredicateDefinitions: Boolean,
               includeFunctionDefinitions: Boolean,
-              convertFunctionsToPredicates: Boolean,
+              eliminateFunctions: Boolean,
+              introduceFunctions: Boolean,
               weightsMode: WeightsMode,
               pcm: PredicateCompletionMode,
               cnf: Boolean,
@@ -112,7 +122,7 @@ object KBCompilerCLI extends Logging {
     import fileWriter.write
 
 
-    //write domain data
+    // write domain data
     if (includeDomain && !mln.constants.isEmpty) {
       write("// Domain\n")
       for ((name, constants) <- mln.constants; if !constants.isEmpty) {
@@ -121,10 +131,10 @@ object KBCompilerCLI extends Logging {
       write("\n")
     }
 
-    //write predicate definitions
+    // write predicate definitions. In case we introduce functions do not write function predicates (beginning with function prefix)
     if (includePredicateDefinitions && !mln.schema.isEmpty) {
-      write("// Predice definitions\n")
-      for ((signature, args) <- mln.schema) {
+      write("// Predicate definitions\n")
+      for ((signature, args) <- mln.schema ; if !introduceFunctions || !signature.symbol.contains(profile.functionPrefix)) {
         val line = signature.symbol + (
           if (args.isEmpty) "\n"
           else "(" + args.map(_.toString).reduceLeft((left, right) => left + "," + right) + ")\n")
@@ -133,15 +143,26 @@ object KBCompilerCLI extends Logging {
       write("\n")
     }
 
-    //write function definitions
-    if (includeFunctionDefinitions && !mln.functionSchema.isEmpty) {
-      if (convertFunctionsToPredicates) {
+    // write function definitions or functions as predicates
+    if (includeFunctionDefinitions) {
+      if (eliminateFunctions && !mln.functionSchema.isEmpty) { // in order to eliminate functions, functions must exist
         write("// Function definitions as predicates\n")
         for ((signature, (retType, args)) <- mln.functionSchema) {
           val predicate = profile.functionPrefix + signature.symbol + "(" + retType + "," + args.map(_.toString).reduceLeft((left, right) => left + "," + right) + ")\n"
           write(predicate)
         }
-      } else {
+      }
+      else if(introduceFunctions) {
+        write("// Function definitions\n")
+        for ((signature, args) <- mln.schema) {
+          if(signature.symbol.contains(profile.functionPrefix)) {
+            val function = args(0) + " " + signature.symbol.replace(profile.functionPrefix, "") + "(" + args.drop(1).map(_.toString).reduceLeft((left, right) => left + "," + right) + ")\n"
+            write(function)
+          }
+        }
+        write("\n")
+      }
+      else if(!mln.functionSchema.isEmpty) { // in order to write functions definitions, functions must exist
         write("// Function definitions\n")
         for ((signature, (retType, args)) <- mln.functionSchema) {
           val line = retType + " " + signature.symbol + "(" + args.map(_.toString).reduceLeft((left, right) => left + "," + right) + ")\n"
@@ -157,7 +178,7 @@ object KBCompilerCLI extends Logging {
         write("\n// Source formula: " + formula.toText + "\n")
         val clauses = formula.toCNF(mln.constants)
         for (c <- clauses) {
-          write(clauseFormatter(c, weightsMode, convertFunctionsToPredicates)(profile, mln))
+          write(clauseFormatter(c, weightsMode, eliminateFunctions, introduceFunctions)(profile, mln))
           clauseCounter += 1
           write("\n")
         }
@@ -192,7 +213,7 @@ object KBCompilerCLI extends Logging {
     }
   }
 
-  private def clauseFormatter(clause: Clause, weightsMode: WeightsMode, functionDefinitionsAsPredicates: Boolean)(implicit profile: Profile, mln: MLN): String = {
+  private def clauseFormatter(clause: Clause, weightsMode: WeightsMode, eliminateFunctions: Boolean, introduceFunctions: Boolean)(implicit profile: Profile, mln: MLN): String = {
     import lomrf.logic.{Function, Variable, Term, AtomicFormula}
 
     val functionVarPrefix = profile.functionVarPrefix
@@ -202,30 +223,30 @@ object KBCompilerCLI extends Logging {
       // Is a unit clause with negative weight,
       // thus negate it and convert its weight into a positive value
       // (e.g the '-w A(x)' will be converted into 'w !A(x)')
-      clauseFormatter(Clause(-clause.weight, Set(clause.literals.head.negate)), weightsMode, functionDefinitionsAsPredicates)
+      clauseFormatter(Clause(-clause.weight, Set(clause.literals.head.negate)), weightsMode, eliminateFunctions, introduceFunctions)
     } else {
       val txtLiterals =
         profile match {
 
           //
-          // Just write the given clause as it is
+          // Just write the given clause as it is (no functions elimination or introduction)
           //
-          case NormalProfile if !functionDefinitionsAsPredicates => clause.literals.map(_.toText).reduceLeft(_ + " v " + _)
+          case NormalProfile if !(eliminateFunctions || introduceFunctions) => clause.literals.map(_.toText).reduceLeft(_ + " v " + _)
 
           //
           // Replace all functions in the given clause with utility predicates
           //
-          case _ =>
+          case _ if eliminateFunctions =>
 
             val (literalsNoFunctions, literalsWithFunctions) = clause.literals.span(l => l.sentence.functions.isEmpty)
 
-            if (!literalsWithFunctions.isEmpty) {
+            if(!literalsWithFunctions.isEmpty) {
 
 
               var fMap = Map[Function, (String, Literal)]()
               var functionCounter = 0
 
-              for (function <- clause.functions) {
+              for(function <- clause.functions) {
                 fMap.get(function) match {
                   case None =>
                     val functionVar = functionVarPrefix + functionCounter
@@ -260,16 +281,65 @@ object KBCompilerCLI extends Logging {
               fMap.values.foreach(entry => results2 = entry._2 :: results2)
               results2.map(_.toText).reduceLeft(_ + " v " + _)*/
 
-              var results3 =
+              var results =
                 if (!literalsNoFunctions.isEmpty)
                   List[String](literalsNoFunctions.map(_.toText).reduceLeft(_ + " v " + _))
                 else List[String]()
 
-              if (!replacedLiterals.isEmpty) results3 = results3 ::: List[String](replacedLiterals.map(_.toText).reduceLeft(_ + " v " + _))
+              if (!replacedLiterals.isEmpty)
+                results = results ::: List[String](replacedLiterals.map(_.toText).reduceLeft(_ + " v " + _))
 
-              if (!fMap.isEmpty) results3 = results3 ::: List[String](fMap.values.map(_._2.toText).reduceLeft(_ + " v " + _))
+              if (!fMap.isEmpty)
+                results = results ::: List[String](fMap.values.map(_._2.toText).reduceLeft(_ + " v " + _))
 
-              results3.reduceLeft(_ + " v " + _)
+              results.reduceLeft(_ + " v " + _)
+            }
+            else literalsNoFunctions.map(_.toText).reduceLeft(_ + " v " + _)
+
+          //
+          // Replace all function predicates in the given clause with actual functions
+          //
+          case _ if introduceFunctions =>
+
+            val (literalsNoFunctions, literalsFunctions) = clause.literals.partition(l => !l.sentence.symbol.contains(functionPrefix))
+
+            if (!literalsFunctions.isEmpty) {
+
+              var lMap = Map[Term, Function]()
+
+              for(literal <- literalsFunctions) {
+                println(literal.toText)
+                val functionSymbol = literal.sentence.symbol.replace(functionPrefix, "")
+                val functionVar = literal.sentence.terms(0)
+                val terms = literal.sentence.terms.drop(1)
+                val function = Function(functionSymbol, terms)
+                lMap += (functionVar -> function)
+              }
+
+              val replacedLiterals =
+                for {
+                  literal <- literalsNoFunctions
+                  sentence = literal.sentence
+                  newArgs = for (arg <- sentence.terms) yield arg match {
+                    case t: Term =>
+                      val term =
+                        if(lMap.contains(t))
+                          lMap(t)
+                        else
+                          t
+                      term
+                  }
+                } yield literal match {
+                  case p: PositiveLiteral => PositiveLiteral(AtomicFormula(sentence.symbol, newArgs))
+                  case n: NegativeLiteral => NegativeLiteral(AtomicFormula(sentence.symbol, newArgs))
+                }
+
+              val results =
+                if(!replacedLiterals.isEmpty)
+                  List[String](replacedLiterals.map(_.toText).reduceLeft(_ + " v " + _))
+                else List[String]()
+
+              results.reduceLeft(_ + " v " + _)
             }
             else literalsNoFunctions.map(_.toText).reduceLeft(_ + " v " + _)
         }
@@ -297,7 +367,8 @@ object KBCompilerCLI extends Logging {
     var outputMLNFileName: Option[String] = None
 
     var profile: Profile = AlchemyProfile
-    var writeFunctionsAsPredicates: Boolean = profile.functionDefinitionsAsPredicates
+    var eliminateFunctions: Boolean = profile.functionDefinitionsAsPredicates
+    var introduceFunctions: Boolean = false
 
     var includeDomain: Boolean = false
     var includePredicateDefinitions: Boolean = true
@@ -364,10 +435,13 @@ object KBCompilerCLI extends Logging {
       v: Boolean => includeFunctionDefinitions = v
     })
 
-    booleanOpt("fFunctionsAsPredicates", "flag-FunctionsAsPredicates", "boolean", "Write function definitions as predicates (override profile)", {
-      v: Boolean => writeFunctionsAsPredicates = v
+    booleanOpt("fEliminateFunctions", "flag-EliminateFunctions", "boolean", "Write function definitions as predicates (override profile)", {
+      v: Boolean => eliminateFunctions = v
     })
 
+    booleanOpt("fIntroduceFunctions", "flag-IntroduceFunctions", "boolean", "Write functions produced by specific predicates (default is false)", {
+      v: Boolean => introduceFunctions = v
+    })
 
     booleanOpt("cnf", "clausal-form", "boolean", "Convert formulas to clausal form (default is true)", {
       v: Boolean => cnf = v
@@ -383,7 +457,6 @@ object KBCompilerCLI extends Logging {
     })
 
   }
-
 
   sealed abstract class Profile {
     def functionPrefix: String
