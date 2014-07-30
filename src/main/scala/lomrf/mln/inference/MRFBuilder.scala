@@ -767,6 +767,16 @@ final class MRFBuilder(val mln: MLN, noNegWeights: Boolean = false, unitWeights:
                 // store as it is
                 if (cliqueVariables.length > 1) util.Arrays.sort(cliqueVariables)
                 store(idCounter, clause.weight, cliqueVariables)
+
+//                var www = clause.weight
+//                if (cliqueVariables.length > 1) util.Arrays.sort(cliqueVariables)
+//                else if(cliqueVariables.length == 1 && cliqueVariables(0) < 0){
+//                  cliqueVariables(0) = -cliqueVariables(0)
+//                  www = -www
+//                }
+//
+//                store(idCounter, www, cliqueVariables)
+
                 idCounter += 1
               }
             } // end: if (canSend)

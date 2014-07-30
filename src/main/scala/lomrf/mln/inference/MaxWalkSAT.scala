@@ -232,8 +232,9 @@ final class MaxWalkSAT(mrf: MRF, pBest: Double = 0.5, maxFlips: Int = 100000, ma
       val atomID = iterator.key()
       if (atomID >= mln.queryStartID && atomID <= mln.queryEndID) {
         val groundAtom = iterator.value()
-        if (groundAtom.getState) decodeAtom(iterator.key()) match {
-          case Some(txtAtom) => out.println(txtAtom)
+        val state = if(groundAtom.getState) 1 else 0
+        /*if (groundAtom.getState)*/ decodeAtom(iterator.key()) match {
+          case Some(txtAtom) => out.println(txtAtom +" "+ state)
           case _ => error("failed to decode id:" + atomID)
         }
       }
