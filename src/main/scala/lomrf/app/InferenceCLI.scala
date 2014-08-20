@@ -69,6 +69,9 @@ object InferenceCLI extends OptionParser with Logging {
   // Perform marginal inference
   private var _marginalInference = true
 
+  // MAP inference output type
+  private var _mapShowAll = true
+
   // Maximum number of samples to take
   private var _samples = 1000
 
@@ -170,6 +173,15 @@ object InferenceCLI extends OptionParser with Logging {
     }
   })
 
+  opt("show", "map-output-type", "<all | positive>", "Specify MAP inference output type: 0/1 results for all query atoms or " +
+    "only positive query atoms (default is all).", {
+    v: String => v.trim.toLowerCase match {
+      case "all" => _mapShowAll = true
+      case "positive" => _mapShowAll = false
+      case _ => fatal("Unknown parameter for inference type '" + v + "'.")
+    }
+  })
+
   intOpt("samples", "num-samples", "Number of samples to take (default is " + _samples + ").", _samples = _)
 
   doubleOpt("pSA", "probability-simulated-annealing", "Specify the probability to perform a simulated annealing step (default is " + _pSA + "), " +
@@ -253,6 +265,7 @@ object InferenceCLI extends OptionParser with Logging {
       + "\n\t(cwa) Closed-world assumption predicate(s): " + (if (_cwa.isEmpty) "empty" else _cwa.map(_.toString).reduceLeft((left, right) => left + "," + right))
       + "\n\t(owa) Open-world assumption predicate(s): " + (if (_owa.isEmpty) "empty" else _owa.map(_.toString).reduceLeft((left, right) => left + "," + right))
       + "\n\t(marginal) Perform marginal inference: " + _marginalInference
+      + "\n\t(all) Show 0/1 results for all query atoms: " + _mapShowAll
       + "\n\t(samples) Number of samples to take: " + _samples
       + "\n\t(pSA) Probability to perform simulated annealing: " + _pSA
       + "\n\t(pBest) Probability to perform a greedy search: " + _pBest
@@ -296,7 +309,8 @@ object InferenceCLI extends OptionParser with Logging {
       solver.writeResults(resultsWriter)
     }
     else {
-      val solver = new MaxWalkSAT(mrf, pBest = _pBest, maxFlips = _maxFlips, maxTries = _maxTries, targetCost = _targetCost)
+      val solver = new MaxWalkSAT(mrf, pBest = _pBest, maxFlips = _maxFlips, maxTries = _maxTries, targetCost = _targetCost,
+        showAll = _mapShowAll)
       solver.infer()
       solver.writeResults(resultsWriter)
     }
