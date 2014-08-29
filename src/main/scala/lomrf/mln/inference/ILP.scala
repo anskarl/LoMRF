@@ -36,18 +36,26 @@ import lomrf.util._
 import scala.collection.mutable.{ArrayBuffer, HashMap}
 import oscar.linprog.modeling._
 import oscar.algebra._
-import java.io.PrintStream
 
 /**
+ * This is an implementation of an approximate MAP inference algorithm for MLNs using Integer Linear Programming.
+ * The original implementation of the algorithm can be found in: [[http://alchemy.cs.washington.edu/code/]].
+ * Details about the ILP algorithm can be found in the following publication:
+ *
+ * <ul>
+ * <li> Tuyen N. Huynh and Raymond J. Mooney. (2011) Max-Margin Weight Learning for Markov Logic Networks.
+ * In Proceedings of the European Conference on Machine Learning and Principles and Practice of Knowledge Discovery in Databases
+ * (ECML-PKDD 2011), Vol. 2, pp. 81-96, September 2011.
+ * The paper can be found in [[http://www.cs.utexas.edu/users/ai-lab/?HuynhTuyen]]
+ * </ul>
+ *
  * @param mrf The ground Markov network
  *
  * @author Vagelis Michelioudakis
  */
 final class ILP(mrf: MRF) extends LPModel(LPSolverLib.lp_solve) with Logging {
 
-  //def infer(): MRFState = { new MRFState() }
-
-  def test() {
+  def infer() {
 
     var gcount = 0
 
@@ -85,13 +93,21 @@ final class ILP(mrf: MRF) extends LPModel(LPSolverLib.lp_solve) with Logging {
           cacheLiterals += ((k, LPFloatVar("y" + k, 0, 1)))
           gcount += 1
         }
-        if (key > 0) // TODO WARNING: for negative  weights the opposite constraints MUST be included!!!
-          constraints += (cacheLiterals(k))
-        else
-          constraints += (1 - cacheLiterals(k))
+//        if(constraint.weight < 0) {
+//          if(key < 0) // TODO WARNING: for negative  weights the opposite constraints MUST be included!!!
+//            constraints += (cacheLiterals(k))
+//          else
+//            constraints += (1 - cacheLiterals(k))
+//        }
+//        else {
+          if (key > 0) // TODO WARNING: for negative  weights the opposite constraints MUST be included!!!
+            constraints += (cacheLiterals(k))
+          else
+            constraints += (1 - cacheLiterals(k))
+        //}
       }
       info("Constraints: [" + constraints.mkString(", ") + "]")
-      info("Literals Cache: [" + cacheLiterals.mkString(", ") + "]")
+      //info("Literals Cache: [" + cacheLiterals.mkString(", ") + "]")
 
       info("STEP 2")
       val cid = math.abs(constraint.id)
@@ -106,7 +122,7 @@ final class ILP(mrf: MRF) extends LPModel(LPSolverLib.lp_solve) with Logging {
         }
       }
       info("Expressions: [" + expressions.mkString(", ") + "]")
-      info("Clauses Cache: " + cacheClauses.mkString(", "))
+      //info("Clauses Cache: " + cacheClauses.mkString(", "))
 
       info("STEP 3")
       if(constraint.weight.isInfinite || constraint.weight.isNaN || constraint.weight == mrf.weightHard) {

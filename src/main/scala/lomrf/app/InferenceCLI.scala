@@ -327,8 +327,7 @@ object InferenceCLI extends OptionParser with Logging {
       }
       else {
         val solver = new ILP(mrf)
-        solver.test()
-        //solver.infer()
+        solver.infer()
         //solver.writeResults(resultsWriter)
       }
     }
