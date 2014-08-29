@@ -26,6 +26,7 @@ declare -r lib_dir="$base_dir/lib"
 declare -r INFER_JAVA_OPTS=$VM_ARGS" -XX:+AggressiveOpts"
 declare -r INFER_CLASSPATH=$PRJ_COMMONS_CLASSPATH
 
+export LD_LIBRARY_PATH=/home/vagm/Usr/projects/LoMRF/lib/linux64:$LD_LIBRARY_PATH
 
 nice java $INFER_JAVA_OPTS \
 	-cp $INFER_CLASSPATH \
