@@ -39,7 +39,6 @@ import lomrf.logic.dynamic.{DynamicFunctionBuilder, DynamicAtomBuilder}
 import lomrf.mln.inference._
 import lomrf.mln.model.MLN
 import lomrf.util.{OptionParser, Logging, ImplFinder, parseAtomSignature}
-import scala.Some
 
 /**
  * Command-line tool for inference.
@@ -68,6 +67,9 @@ object InferenceCLI extends OptionParser with Logging {
 
   // Perform marginal inference
   private var _marginalInference = true
+
+  // Perform map inference using MaxWalkSAT
+  private var _mws = true
 
   // MAP inference output type
   private var _mapShowAll = true
@@ -173,6 +175,14 @@ object InferenceCLI extends OptionParser with Logging {
     }
   })
 
+  opt("mType", "map-type", "<mws | ilp>", "Specify the MAP inference type: MaxWalkSAt or ILP (default is MaxWalkSAT).", {
+    v: String => v.trim.toLowerCase match {
+      case "ilp" => _mws = false
+      case "mws" => _mws = true
+      case _ => fatal("Unknown parameter for inference type '" + v + "'.")
+    }
+  })
+
   opt("show", "map-output-type", "<all | positive>", "Specify MAP inference output type: 0/1 results for all query atoms or " +
     "only positive query atoms (default is all).", {
     v: String => v.trim.toLowerCase match {
@@ -265,6 +275,7 @@ object InferenceCLI extends OptionParser with Logging {
       + "\n\t(cwa) Closed-world assumption predicate(s): " + (if (_cwa.isEmpty) "empty" else _cwa.map(_.toString).reduceLeft((left, right) => left + "," + right))
       + "\n\t(owa) Open-world assumption predicate(s): " + (if (_owa.isEmpty) "empty" else _owa.map(_.toString).reduceLeft((left, right) => left + "," + right))
       + "\n\t(marginal) Perform marginal inference: " + _marginalInference
+      + "\n\t(mws) Perform MAP inference using MaxWalkSAt: " + _mws
       + "\n\t(all) Show 0/1 results for all query atoms: " + _mapShowAll
       + "\n\t(samples) Number of samples to take: " + _samples
       + "\n\t(pSA) Probability to perform simulated annealing: " + _pSA
@@ -309,10 +320,17 @@ object InferenceCLI extends OptionParser with Logging {
       solver.writeResults(resultsWriter)
     }
     else {
-      val solver = new MaxWalkSAT(mrf, pBest = _pBest, maxFlips = _maxFlips, maxTries = _maxTries, targetCost = _targetCost,
-        showAll = _mapShowAll)
-      solver.infer()
-      solver.writeResults(resultsWriter)
+      if(_mws) {
+        val solver = new MaxWalkSAT(mrf, pBest = _pBest, maxFlips = _maxFlips, maxTries = _maxTries, targetCost = _targetCost, showAll = _mapShowAll)
+        solver.infer()
+        solver.writeResults(resultsWriter)
+      }
+      else {
+        val solver = new ILP(mrf)
+        solver.test()
+        //solver.infer()
+        //solver.writeResults(resultsWriter)
+      }
     }
   }
 }
