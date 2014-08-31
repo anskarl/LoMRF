@@ -36,6 +36,7 @@ import lomrf.util._
 import scala.collection.mutable.{ArrayBuffer, HashMap}
 import oscar.linprog.modeling._
 import oscar.algebra._
+import java.io.PrintStream
 
 /**
  * This is an implementation of an approximate MAP inference algorithm for MLNs using Integer Linear Programming.
@@ -55,7 +56,7 @@ import oscar.algebra._
  */
 final class ILP(mrf: MRF) extends LPModel(LPSolverLib.lp_solve) with Logging {
 
-  def infer() {
+  def infer(out: PrintStream = System.out) {
 
     var gcount = 0
 
@@ -88,8 +89,9 @@ final class ILP(mrf: MRF) extends LPModel(LPSolverLib.lp_solve) with Logging {
       // check ground clauses and perform the ILP transformation
       for(key <- constraint.literals) {
         val k = math.abs(key) // keys may be negative
-        info("Key: " + key)
+        info("New Key: " + key)
         if(!cacheLiterals.contains(k)) {
+          info("Added!")
           cacheLiterals += ((k, LPFloatVar("y" + k, 0, 1)))
           gcount += 1
         }
@@ -146,6 +148,8 @@ final class ILP(mrf: MRF) extends LPModel(LPSolverLib.lp_solve) with Logging {
 
     maximize(sum(expressions))
     start()
+    println("CONSTRAINTS SATISFIED: " + checkConstraints())
+    println("SOLUTION STATUS: " + status.toString)
     release()
 
     println("Literal Vars: "+cacheLiterals.size + ", Clauses Vars: "+cacheClauses.size +", Total: "+(cacheLiterals.size + cacheClauses.size))
@@ -159,7 +163,10 @@ final class ILP(mrf: MRF) extends LPModel(LPSolverLib.lp_solve) with Logging {
       println(v.name + "= " + v.value)
 
     for( (k, v) <- cacheLiterals) {
-      println(decodeLiteral(k)(mrf.mln).get + " " + v.value.get)
+      if(v.value.get == 0.0 || v.value.get == 1.0)
+        out.println(decodeLiteral(k)(mrf.mln).get + " " + v.value.get.toInt)
+      else
+        out.println(decodeLiteral(k)(mrf.mln).get + " " + v.value.get)
     }
 
   }
