@@ -63,14 +63,12 @@ import lomrf.util.{Utilities, Logging}
  * @param maxFlips The maximum number of flips taken to reach a solution (default is 100000).
  * @param maxTries The maximum number of attempts taken to find a solution (default is 1).
  * @param targetCost Any possible world having cost below this threshold is considered as a solution (default is 0.0001)
+ * @param showAll Show 0/1 results for all query atoms (default is true)
  * @param tabuLength Minimum number of flips between flipping the same atom
  *
  * @author Anastasios Skarlatidis
- *
- * @todo merge duplicate duplicate code with MCSAT (= maxWalkSATStep).
- * @todo perform optimisations to improve the performance.
  */
-final class MaxWalkSAT(mrf: MRF, pBest: Double = 0.5, maxFlips: Int = 100000, maxTries: Int = 1, targetCost: Double = 0.001, tabuLength: Int = 5) extends Logging {
+final class MaxWalkSAT(mrf: MRF, pBest: Double = 0.5, maxFlips: Int = 100000, maxTries: Int = 1, targetCost: Double = 0.001, showAll: Boolean = true, tabuLength: Int = 5) extends Logging {
   private val TARGET_COST = targetCost + 0.0001
 
   //private val random = new Random()
@@ -233,9 +231,18 @@ final class MaxWalkSAT(mrf: MRF, pBest: Double = 0.5, maxFlips: Int = 100000, ma
       val atomID = iterator.key()
       if (atomID >= mln.queryStartID && atomID <= mln.queryEndID) {
         val groundAtom = iterator.value()
-        if (groundAtom.getState) decodeAtom(iterator.key()) match {
-          case Some(txtAtom) => out.println(txtAtom)
-          case _ => error("failed to decode id:" + atomID)
+        val state = if(groundAtom.getState) 1 else 0
+        if(showAll) {
+          decodeAtom(iterator.key()) match {
+            case Some(txtAtom) => out.println(txtAtom + " " + state)
+            case _ => error("failed to decode id:" + atomID)
+          }
+        }
+        else {
+          if(state == 1) decodeAtom(iterator.key()) match {
+            case Some(txtAtom) => out.println(txtAtom + " " + state)
+            case _ => error("failed to decode id:" + atomID)
+          }
         }
       }
     }

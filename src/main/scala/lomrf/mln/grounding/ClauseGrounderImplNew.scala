@@ -49,6 +49,8 @@ import scala.language.postfixOps
 import scalaxy.loops._
 
 /**
+ * EXPERIMENTAL
+ *
  * @author Anastasios Skarlatidis
  */
 class ClauseGrounderImplNew(
