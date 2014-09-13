@@ -359,6 +359,49 @@ object TroveConversions {
     def hasNext = underlying.hasNext
   }
 
+  //===================== (Int, Object) =====================
+  implicit def asScalaIteratorIntObj[T](i: gnu.trove.iterator.TIntObjectIterator[T]): Iterator[(Int, T)] = i match {
+      case TIntObjectIteratorWrapper(wrapped) => wrapped
+      case _ => ScalaIteratorIntObjectWrapper(i)
+    }
+
+  implicit def tIntObjectHashMapToScalaIterator[T](i: gnu.trove.map.TIntObjectMap[T]): Iterator[(Int, T)] = i.iterator()
+
+  implicit def tIntObjectHashMapToScalaIterable[T](i: gnu.trove.map.TIntObjectMap[T]) = new Iterable[(Int, T)]{
+    override def iterator = i.iterator()
+  }
+
+
+  case class TIntObjectIteratorWrapper[T](underlying: Iterator[(Int, T)]) extends TIntObjectIterator[T] {
+      private var _key: Int = _
+      private var _value: T = _
+
+
+      override def key() = _key
+
+      override def setValue(p1: T) = throw new UnsupportedOperationException
+
+      override def value() = _value
+
+      override def advance() = {
+        val (fetchedKey, fetchedValue) = underlying.next()
+        _key = fetchedKey
+        _value = fetchedValue
+      }
+
+      override def hasNext = underlying.hasNext
+        def remove() = throw new UnsupportedOperationException
+    }
+
+    case class ScalaIteratorIntObjectWrapper[T](underlying: gnu.trove.iterator.TIntObjectIterator[T]) extends Iterator[(Int, T)] {
+      def next() = {
+        underlying.advance()
+        (underlying.key(), underlying.value())
+      }
+
+      def hasNext = underlying.hasNext
+    }
+
   //===================== Long =====================
   implicit def asScalaIteratorLong(i: gnu.trove.iterator.TLongIterator): Iterator[Long] = i match {
     case TLongIteratorWrapper(wrapped) => wrapped
@@ -418,6 +461,4 @@ object TroveConversions {
 
     def hasNext = underlying.hasNext
   }
-
-
 }

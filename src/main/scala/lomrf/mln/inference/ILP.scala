@@ -38,9 +38,12 @@ import oscar.linprog.modeling._
 import oscar.algebra._
 import java.io.PrintStream
 import gnu.trove.map.TIntObjectMap
-import gnu.trove.map.hash.TIntObjectHashMap
-import scala.collection.mutable
-import gnu.trove.procedure.TIntObjectProcedure
+import gnu.trove.map.hash.{TIntDoubleHashMap, TIntObjectHashMap}
+import scala.annotation.switch
+import scalaxy.loops._
+import scala.language.postfixOps
+import lomrf.util.TroveImplicits._
+import lomrf.util.TroveConversions._
 
 /**
  * This is an implementation of an approximate MAP inference algorithm for MLNs using Integer Linear Programming.
@@ -65,8 +68,8 @@ final class ILP(mrf: MRF) extends LPModel(LPSolverLib.lp_solve) with Logging {
   def infer(out: PrintStream = System.out) {
 
     // Hash map containing pairs of unique literal values to LD variables
-    var cacheLiterals = Map[Int, LPFloatVar]()
-    var cacheClauses = Map[Int, LPFloatVar]()
+    val cacheLiterals = new TIntObjectHashMap[LPFloatVar]()
+    val cacheClauses = new TIntObjectHashMap[LPFloatVar]()
 
     /**
      * A collection of expressions of the equation that we aim to maximize.
@@ -76,61 +79,56 @@ final class ILP(mrf: MRF) extends LPModel(LPSolverLib.lp_solve) with Logging {
      */
     var expressions = List[LinearExpression]()
 
-    var constraintsIterator = mrf.constraints.iterator() // iterator on the ground clauses
+    var constraintsIterator = mrf.constraints.iterator()
 
     while (constraintsIterator.hasNext) {
       constraintsIterator.advance()
 
-      var constraints: List[LinearExpression] =  Nil
+      var constraints: List[LinearExpression] = Nil
+
       // fetch the current constraint, i.e., current weighted ground clause or clique
       val constraint = constraintsIterator.value()
 
-      debug {
+      debug(
         "Ground Clause: " + constraint.weight + " " +
           constraint
             .literals
-            .map (l => decodeLiteral(l).getOrElse(sys.error("Cannot decode literal: " + l)))
-            .reduceLeft(_ + " v " + _)
-      }
+            .map(l => decodeLiteral(l).getOrElse(sys.error("Cannot decode literal: " + l)))
+            .reduceLeft(_ + " v " + _))
 
       // STEP 1: Introduce variables for each ground atom and create possible constraints
-      for(key <- constraint.literals) {
-        val k = math.abs(key) // key is negative if the literal is negative
+      for (literal <- constraint.literals) {
+        val atomID = math.abs(literal)
+        val floatVar = cacheLiterals.putIfAbsent(atomID, LPFloatVar("y" + atomID, 0, 1))
 
-        if(!cacheLiterals.contains(k))
-          cacheLiterals += ( (k, LPFloatVar("y" + k, 0, 1)) )
-
-        if( (constraint.weight > 0 || constraint.weight.isInfinite || constraint.weight.isNaN ||
-          constraint.weight == mrf.weightHard) && key > 0)
-            constraints ::= cacheLiterals(k)
-        else if( (constraint.weight > 0 || constraint.weight.isInfinite || constraint.weight.isNaN ||
-          constraint.weight == mrf.weightHard) && key < 0)
-            constraints ::= (1 - cacheLiterals(k))
-        else if(constraint.weight < 0 && key < 0)
-            constraints ::= cacheLiterals(k)
+        if ((constraint.weight > 0 || constraint.weight.isInfinite || constraint.weight.isNaN ||
+          constraint.weight == mrf.weightHard) && literal > 0)
+          constraints ::= floatVar
+        else if ((constraint.weight > 0 || constraint.weight.isInfinite || constraint.weight.isNaN ||
+          constraint.weight == mrf.weightHard) && literal < 0)
+          constraints ::= (1 - floatVar)
+        else if (constraint.weight < 0 && literal < 0)
+          constraints ::= floatVar
         else
-            constraints ::= (1 - cacheLiterals(k))
+          constraints ::= (1 - floatVar)
       }
 
       debug("Possible Constraints: [" + constraints.mkString(", ") + "]")
 
-      val cid = math.abs(constraint.id)
+      val cid = constraint.id
 
       // Step 2: Create expressions for objective function (only for soft constraints)
-      if(!constraint.weight.isInfinite && !constraint.weight.isNaN && constraint.weight != mrf.weightHard) {
+      if (!constraint.weight.isInfinite && !constraint.weight.isNaN && constraint.weight != mrf.weightHard) {
 
-        if(constraint.isUnit && constraint.weight > 0 && constraint.literals(0) > 0)
-          expressions ::= ( constraint.weight * cacheLiterals(math.abs(constraint.literals(0))) )
-        else if(constraint.isUnit && constraint.weight > 0 && constraint.literals(0) < 0)
-          expressions ::= ( -constraint.weight * cacheLiterals(math.abs(constraint.literals(0))) )
-        else if(constraint.isUnit && constraint.weight < 0 && constraint.literals(0) > 0)
-          expressions ::= ( constraint.weight * cacheLiterals(math.abs(constraint.literals(0))) )
-        else if(constraint.isUnit && constraint.weight < 0 && constraint.literals(0) < 0)
-          expressions ::= ( -constraint.weight * cacheLiterals(math.abs(constraint.literals(0))) )
+        if (constraint.isUnit) {
+          expressions ::= {
+            if (constraint.literals(0) > 0) constraint.weight * cacheLiterals.get(math.abs(constraint.literals(0)))
+            else -constraint.weight * cacheLiterals.get(math.abs(constraint.literals(0)))
+          }
+        }
         else {
-          if(!cacheClauses.contains(cid)) cacheClauses += ( (cid, LPFloatVar("z" + cid, 0, 1)) )
-
-          expressions ::= ( math.abs(constraint.weight) * cacheClauses(cid) )
+          cacheClauses.putIfAbsent(cid, LPFloatVar("z" + cid, 0, 1))
+          expressions ::= math.abs(constraint.weight) * cacheClauses.get(cid)
         }
 
       }
@@ -138,26 +136,29 @@ final class ILP(mrf: MRF) extends LPModel(LPSolverLib.lp_solve) with Logging {
       debug("Expressions: [" + expressions.mkString(", ") + "]")
 
       // Step 3: Add constraints to the solver
-      if(constraint.weight.isInfinite || constraint.weight.isNaN || constraint.weight == mrf.weightHard) {
+      if (constraint.isHardConstraint) {
         add(sum(constraints) >= 1)
-        if(isDebugEnabled) debug(constraints.mkString(" + ") + " >= 1")
+        debug(constraints.mkString(" + ") + " >= 1")
       }
-      else if(constraint.weight > 0 && !constraint.isUnit) {
-        add(sum(constraints) >= cacheClauses(cid))
-        if(isDebugEnabled) debug(constraints.mkString(" + ") + " >= " + cacheClauses(cid).name)
-      }
-      else if(constraint.weight < 0 && !constraint.isUnit) {
-        for(c <- constraints) {
-          add(c >= cacheClauses(cid))
-          if(isDebugEnabled) debug(c + " >= " + cacheClauses(cid).name)
+      else if (!constraint.isUnit) {
+        val cachedVariable = cacheClauses.get(cid)
+        if (constraint.weight > 0) {
+          add(sum(constraints) >= cachedVariable)
+          debug(constraints.mkString(" + ") + " >= " + cachedVariable.name)
+        }
+        else {
+          for (c <- constraints) {
+            add(c >= cachedVariable)
+            debug(c + " >= " + cachedVariable.name)
+          }
         }
       }
     }
 
     info(
-      "\nGround Atoms: "+ mrf.numberOfAtoms +
-      "\nAtom Variables: " + cacheLiterals.size + " + Clauses Variables: " + cacheClauses.size +
-              " = " + (cacheLiterals.size + cacheClauses.size))
+      "\nGround Atoms: " + mrf.numberOfAtoms +
+        "\nAtom Variables: " + cacheLiterals.size + " + Clauses Variables: " + cacheClauses.size +
+        " = " + (cacheLiterals.size + cacheClauses.size))
 
 
     maximize(sum(expressions))
@@ -166,26 +167,29 @@ final class ILP(mrf: MRF) extends LPModel(LPSolverLib.lp_solve) with Logging {
 
     info(
       "\n=========================== Solution ===========================" +
-      "\nAre constraints satisfied: " + checkConstraints() +
-      "\nSolution status: " + status.toString +
-      "\nObjective = "+ objectiveValue.get)
+        "\nAre constraints satisfied: " + checkConstraints() +
+        "\nSolution status: " + status.toString +
+        "\nObjective = " + objectiveValue.get)
 
 
-    // ?????
-    /*if(isDebugEnabled) { // before rounding up
-      for( (k, v) <- cacheLiterals )
-        info(v.name + " = " + v.value.get)
-      for( (k, v) <- cacheClauses )
-        debug(v.name + " = " + v.value.get)
-    }*/
 
-    val solution = new mutable.HashMap[Int, Double]()
-    for( (k, v) <- cacheLiterals )
-      solution += ( (k, v.value.get) )
+    whenDebug {
+      cacheLiterals.iterator.foreach{ case (k: Int, v: LPFloatVar) => debug(v.name + " = " + v.value.get)}
+      cacheClauses.iterator.foreach{ case (k: Int, v: LPFloatVar) => debug(v.name + " = " + v.value.get)}
+    }
 
-    info("Non-Integral Solutions: " + solution.count(p => p._2 != 0.0 && p._2 != 1.0))
+    val solution = new TIntDoubleHashMap(cacheLiterals.size())
 
-    if(solution.exists(p => p._2 != 0.0 && p._2 != 1.0)) {
+    var nonIntegralSolutionsCounter = 0
+    for ((k, v) <- cacheLiterals.iterator()) {
+      val p = v.value.get
+      if (p != 0.0 && p != 1.0) nonIntegralSolutionsCounter += 1
+      solution.put(k, p)
+    }
+
+    info("Number of non-integral solutions: " + nonIntegralSolutionsCounter)
+
+    if (nonIntegralSolutionsCounter > 0) {
       val clauses = new TIntObjectHashMap[Constraint]()
       clauses.putAll(mrf.constraints)
       roundup(solution, clauses)
@@ -197,69 +201,81 @@ final class ILP(mrf: MRF) extends LPModel(LPSolverLib.lp_solve) with Logging {
     while (constraintsIterator.hasNext) {
       constraintsIterator.advance()
       val constraint = constraintsIterator.value()
-      if(constraint.weight.isInfinite || constraint.weight.isNaN || constraint.weight == mrf.weightHard) w += mrf.weightHard
-      else if(constraint.weight > 0) w += constraint.weight
+      if (constraint.weight.isInfinite || constraint.weight.isNaN || constraint.weight == mrf.weightHard) w += mrf.weightHard
+      else if (constraint.weight > 0) w += constraint.weight
       else wNAll += 1
     }
-    info("#Clauses with negative weights: "+wNAll+"/"+mrf.constraints.size())
-    info("Likelihood UBound: e^"+ w)
 
-    for( (k, v) <- solution)
-      out.println(decodeLiteral(k).get + " " + v.toInt)
+    info("Number of clauses with negative weights: " + wNAll + "/" + mrf.constraints.size())
+    info("Likelihood upper bound: e^" + w)
+
+    val solutionIterator = solution.iterator()
+    while(solutionIterator.hasNext){
+      solutionIterator.advance()
+      out.println(decodeLiteral(solutionIterator.key()).get + " " + solutionIterator.value().toInt)
+    }
 
   }
 
-  def roundup(solution: mutable.HashMap[Int, Double], groundClauses: TIntObjectMap[Constraint]) {
-      var F = List[(Double, Int, Double)]()
+  def roundup(solution: TIntDoubleHashMap, groundClauses: TIntObjectMap[Constraint]) {
+    var fractionalSolutions = List[(Double, Int, Double)]()
 
-      val constraints = new TIntObjectHashMap[Constraint]()
-      val unSatConstraints = new TIntObjectHashMap[Constraint]()
+    val unsatConstraints = new TIntObjectHashMap[Constraint]()
 
-      constraints.putAll(groundClauses)
-      for( (k, v) <- solution ) {
-        constraints.retainEntries(new TIntObjectProcedure[Constraint] {
-          override def execute(a: Int, b: Constraint): Boolean = {
-            !((v == 1.0 && b.literals.contains(k)) || (v == 0.0 && b.literals.contains(-k)))
-          }
-        })
-        if(v != 0.0 && v != 1.0) F ::= ( (0.0, k, v) )
+    val clausesIterator = groundClauses.iterator()
+
+    while(clausesIterator.hasNext){
+      clausesIterator.advance()
+
+      val constraint = clausesIterator.value()
+      var idx = 0
+      var sat = false
+
+      while(sat | idx < constraint.literals.length){
+        val literal = constraint.literals(idx)
+        val solutionForAtom = solution.get(math.abs(literal))
+        if(solutionForAtom == 0.0 && literal < 0 || solutionForAtom == 1.0 && literal > 0) sat = true
+        idx += 1
       }
 
-      info("Fractional Solutions: "+F.size)
-      unSatConstraints.putAll(constraints)
-      //info("#UnSAT Clauses: " + unSatConstraints.size()) //?????
+      if(!sat) unsatConstraints.put(clausesIterator.key(), constraint)
+    }
 
-      for (i <- 0 until F.size) {
-        val k = F(i)._2
-        val v = F(i)._3
+    info("Number of fractional solutions: " + fractionalSolutions.size)
+    info("Number of unsatisfied clauses: " + unsatConstraints.size())
 
-        var delta = 0.0
+    for (i <- (0 until fractionalSolutions.size).optimized) {
+      val k = fractionalSolutions(i)._2
+      val v = fractionalSolutions(i)._3
 
-        val constraintsIterator = unSatConstraints.iterator()
+      var delta = 0.0
 
-        while (constraintsIterator.hasNext) {
-          constraintsIterator.advance()
-          val constraint = constraintsIterator.value()
-          if (constraint.literals.contains(k))
-            delta += constraint.weight
-          if (constraint.literals.contains(-k))
-            delta -= constraint.weight
-        }
+      val constraintsIterator = unsatConstraints.iterator()
 
-        solution(k) = if(delta > 0) 1.0 else 0.0
+      while (constraintsIterator.hasNext) {
+        constraintsIterator.advance()
+        val constraint = constraintsIterator.value()
 
-        val y = solution(k)
-        unSatConstraints.retainEntries(new TIntObjectProcedure[Constraint] {
-          override def execute(a: Int, b: Constraint): Boolean = {
-            !((y == 1.0 && b.literals.contains(k)) || (y == 0.0 && b.literals.contains(-k)))
-          }
-        })
-        info("#UnSAT Clauses: " + unSatConstraints.size())
-        info("SOLUTION: " + y)
+        if (constraint.literals.contains(k))
+          delta += constraint.weight
+        else if (constraint.literals.contains(-k))
+          delta -= constraint.weight
       }
+
+      val y = if (delta > 0) 1.0 else 0.0
+      solution.put(k, y)
+
+      (v: @switch) match {
+        case 1.0 => unsatConstraints.retainEntries((a: Int, b: Constraint) => b.literals.contains(-k))
+        case 0.0 => unsatConstraints.retainEntries((a: Int, b: Constraint) => b.literals.contains(k))
+        case _ => fractionalSolutions ::= ((0.0, k, v))
+      }
+
+      info("\titeration: " + i + ", number of unsatisfied clauses: " + unsatConstraints.size() + ", solution: " + y)
+    }
 
     var wNUnSat = 0
-    var constraintsIterator = unSatConstraints.iterator()
+    var constraintsIterator = unsatConstraints.iterator()
 
     while (constraintsIterator.hasNext) {
       constraintsIterator.advance()
@@ -268,9 +284,8 @@ final class ILP(mrf: MRF) extends LPModel(LPSolverLib.lp_solve) with Logging {
       val constraint = constraintsIterator.value()
       groundClauses.remove(key)
 
-      if(constraint.weight < 0) wNUnSat += 1
+      if (constraint.weight < 0) wNUnSat += 1
     }
-
 
     var w = 0.0
     constraintsIterator = groundClauses.iterator()
@@ -278,18 +293,14 @@ final class ILP(mrf: MRF) extends LPModel(LPSolverLib.lp_solve) with Logging {
     while (constraintsIterator.hasNext) {
       constraintsIterator.advance()
       val constraint = constraintsIterator.value()
-
-
-      if(constraint.weight.isInfinite || constraint.weight.isNaN || constraint.weight == mrf.weightHard)
-        w += mrf.weightHard
-      else
-        w += constraint.weight
+      w += (if (constraint.isHardConstraint) mrf.weightHard else constraint.weight)
     }
 
     info(
-      "\n#SAT Clauses: " + groundClauses.size()+
-      "\n#UnSAT clauses with negative weights: "+wNUnSat+"/"+unSatConstraints.size()+
+      "\n#SAT Clauses: " + (groundClauses.size() - unsatConstraints.size()) +
+      "\n#UnSAT clauses with negative weights: " + wNUnSat + "/" + unsatConstraints.size() +
       "\nLikelihood of the solution is: e^" + w)
+
   }
 
   /*def writeResults(out: PrintStream = System.out) {

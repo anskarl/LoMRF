@@ -26,9 +26,10 @@ VM_ARGS=$VM_ARGS" -XX:+DoEscapeAnalysis -XX:+UseFastAccessorMethods -XX:+Optimiz
 #
 # Architecture specific JVM options
 #
-MACHINE=`uname -m`
-if [ $MACHINE = 'x86_64' ]; then
+architecture=`uname -m`
+if [ $architecture = 'x86_64' ]; then
   VM_ARGS=$VM_ARGS" -Xms4g -Xmx4g -XX:+UseCompressedOops -XX:PermSize=256m -XX:MaxPermSize=256m -Xss32m "
 else
   VM_ARGS=$VM_ARGS" -Xms2g -Xmx2g "
+  architecture='x86_32'
 fi

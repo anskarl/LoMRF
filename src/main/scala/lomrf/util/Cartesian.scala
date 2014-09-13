@@ -42,7 +42,6 @@ import scala.language.postfixOps
 /**
  * @author Anastasios Skarlatidis
  */
-
 object Cartesian {
   def productAsStream[T](args: Iterable[Iterable[T]]): Stream[Iterable[T]] = {
     args.foldLeft(Stream.fill(1)(List[T]())) {
@@ -152,10 +151,9 @@ object Cartesian {
     def hasNext = has_next
   }
 
-  private class CartesianIteratorMap[K, T](
-                                            sets: scol.Map[K, Iterable[T]],
-                                            iterators: mutable.Map[K, Iterator[T]],
-                                            elements: mutable.Map[K, T]) extends Iterator[Seq[T]] {
+  private class CartesianIteratorMap[K, T](sets: scol.Map[K, Iterable[T]],
+                                           iterators: mutable.Map[K, Iterator[T]],
+                                           elements: mutable.Map[K, T]) extends Iterator[Seq[T]] {
     private var has_next = true
     private val k0 = sets.head._1
 
@@ -233,8 +231,6 @@ object Cartesian {
           idx += 1
         }
       }
-
-      //if(!stop && idx == arrayLength) has_next = false
 
       has_next = stop || idx != arrayLength
 

@@ -4,7 +4,7 @@ import NativePackagerKeys._
 /** Project */
 name := "LoMRF"
 
-version := "0.2.3-beta_201405"
+version := "0.2.3-beta_201410"
 
 organization := "com.github.anskarl"
 
