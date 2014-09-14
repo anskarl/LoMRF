@@ -51,10 +51,10 @@ import lomrf.util.TroveConversions._
  * Details about the ILP algorithm can be found in the following publication:
  *
  * <ul>
- * <li> Tuyen N. Huynh and Raymond J. Mooney. (2011) Max-Margin Weight Learning for Markov Logic Networks.
- * In Proceedings of the European Conference on Machine Learning and Principles and Practice of Knowledge Discovery in Databases
- * (ECML-PKDD 2011), Vol. 2, pp. 81-96, September 2011.
- * The paper can be found in [[http://www.cs.utexas.edu/users/ai-lab/?HuynhTuyen]]
+ * <li> Tuyen N. Huynh and Raymond J. Mooney. Max-Margin Weight Learning for Markov Logic Networks.
+ * In Proceedings of the European Conference on Machine Learning and Principles and Practice of
+ * Knowledge Discovery in Databases (ECML-PKDD 2011), Vol. 2, pp. 81-96, 2011.
+ * </li>
  * </ul>
  *
  * @param mrf The ground Markov network
