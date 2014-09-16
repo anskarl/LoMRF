@@ -125,60 +125,36 @@ object TroveImplicits {
     def execute(p1: Byte) = f(p1)
   }*/
 
-  implicit def toByteProcedure(f: Byte => Unit): TByteProcedure = new TByteProcedure() {
-    def execute(p1: Byte) = {
-      f.asInstanceOf[ByteProcedure[_]](p1)
-      true
-    }
+  implicit def toByteProcedure(f: Byte => Boolean): TByteProcedure = new TByteProcedure() {
+    def execute(p1: Byte) = f.asInstanceOf[ByteProcedure[Boolean]](p1)
   }
 
-  implicit def toByteByteProcedure(f: (Byte, Byte) => Unit): TByteByteProcedure = new TByteByteProcedure() {
-    def execute(p1: Byte, p2: Byte) = {
-      f.asInstanceOf[ByteByteProcedure[_]](p1, p2)
-      true
-    }
+  implicit def toByteByteProcedure(f: (Byte, Byte) => Boolean): TByteByteProcedure = new TByteByteProcedure() {
+    def execute(p1: Byte, p2: Byte) = f.asInstanceOf[ByteByteProcedure[Boolean]](p1, p2)
   }
 
-  implicit def toByteShortProcedure(f: (Byte, Short) => Unit): TByteShortProcedure = new TByteShortProcedure() {
-    def execute(p1: Byte, p2: Short) = {
-      f.asInstanceOf[ByteShortProcedure[_]](p1, p2)
-      true
-    }
+  implicit def toByteShortProcedure(f: (Byte, Short) => Boolean): TByteShortProcedure = new TByteShortProcedure() {
+    def execute(p1: Byte, p2: Short) = f.asInstanceOf[ByteShortProcedure[Boolean]](p1, p2)
   }
 
-  implicit def toByteIntProcedure(f: (Byte, Int) => Unit): TByteIntProcedure = new TByteIntProcedure() {
-    def execute(p1: Byte, p2: Int) = {
-      f.asInstanceOf[ByteIntProcedure[_]](p1, p2)
-      true
-    }
+  implicit def toByteIntProcedure(f: (Byte, Int) => Boolean): TByteIntProcedure = new TByteIntProcedure() {
+    def execute(p1: Byte, p2: Int) = f.asInstanceOf[ByteIntProcedure[Boolean]](p1, p2)
   }
 
-  implicit def toByteLongProcedure(f: (Byte, Long) => Unit): TByteLongProcedure = new TByteLongProcedure() {
-    def execute(p1: Byte, p2: Long) = {
-      f.asInstanceOf[ByteLongProcedure[_]](p1, p2)
-      true
-    }
+  implicit def toByteLongProcedure(f: (Byte, Long) => Boolean): TByteLongProcedure = new TByteLongProcedure() {
+    def execute(p1: Byte, p2: Long) = f.asInstanceOf[ByteLongProcedure[Boolean]](p1, p2)
   }
 
-  implicit def toByteFloatProcedure(f: (Byte, Float) => Unit): TByteFloatProcedure = new TByteFloatProcedure() {
-    def execute(p1: Byte, p2: Float) = {
-      f.asInstanceOf[ByteFloatProcedure[_]](p1, p2)
-      true
-    }
+  implicit def toByteFloatProcedure(f: (Byte, Float) => Boolean): TByteFloatProcedure = new TByteFloatProcedure() {
+    def execute(p1: Byte, p2: Float) = f.asInstanceOf[ByteFloatProcedure[Boolean]](p1, p2)
   }
 
-  implicit def toByteDoubleProcedure(f: (Byte, Double) => Unit): TByteDoubleProcedure = new TByteDoubleProcedure() {
-    def execute(p1: Byte, p2: Double) = {
-      f.asInstanceOf[ByteDoubleProcedure[_]](p1, p2)
-      true
-    }
+  implicit def toByteDoubleProcedure(f: (Byte, Double) => Boolean): TByteDoubleProcedure = new TByteDoubleProcedure() {
+    def execute(p1: Byte, p2: Double) = f.asInstanceOf[ByteDoubleProcedure[Boolean]](p1, p2)
   }
 
-  implicit def toByteObjectProcedure[O](f: (Byte, O) => Unit): TByteObjectProcedure[O] = new TByteObjectProcedure[O]() {
-    def execute(p1: Byte, p2: O) = {
-      f.asInstanceOf[ByteObjectProcedure[O, _]](p1, p2)
-      true
-    }
+  implicit def toByteObjectProcedure[O](f: (Byte, O) => Boolean): TByteObjectProcedure[O] = new TByteObjectProcedure[O]() {
+    def execute(p1: Byte, p2: O) = f.asInstanceOf[ByteObjectProcedure[O, Boolean]](p1, p2)
   }
 
 
@@ -216,60 +192,36 @@ object TroveImplicits {
     def apply(v1: Short, v2: O): R
   }
 
-  implicit def toShortProcedure(f: Short => Unit): TShortProcedure = new TShortProcedure() {
-    def execute(p1: Short) = {
-      f.asInstanceOf[ShortProcedure[_]](p1)
-      true
-    }
+  implicit def toShortProcedure(f: Short => Boolean): TShortProcedure = new TShortProcedure() {
+    def execute(p1: Short) = f.asInstanceOf[ShortProcedure[Boolean]](p1)
   }
 
-  implicit def toShortByteProcedure(f: (Short, Byte) => Unit): TShortByteProcedure = new TShortByteProcedure() {
-    def execute(p1: Short, p2: Byte) = {
-      f.asInstanceOf[ShortByteProcedure[_]](p1, p2)
-      true
-    }
+  implicit def toShortByteProcedure(f: (Short, Byte) => Boolean): TShortByteProcedure = new TShortByteProcedure() {
+    def execute(p1: Short, p2: Byte) = f.asInstanceOf[ShortByteProcedure[Boolean]](p1, p2)
   }
 
-  implicit def toByteShortProcedure(f: (Short, Short) => Unit): TShortShortProcedure = new TShortShortProcedure() {
-    def execute(p1: Short, p2: Short) = {
-      f.asInstanceOf[ShortShortProcedure[_]](p1, p2)
-      true
-    }
+  implicit def toByteShortProcedure(f: (Short, Short) => Boolean): TShortShortProcedure = new TShortShortProcedure() {
+    def execute(p1: Short, p2: Short) = f.asInstanceOf[ShortShortProcedure[Boolean]](p1, p2)
   }
 
-  implicit def toShortIntProcedure(f: (Short, Int) => Unit): TShortIntProcedure = new TShortIntProcedure() {
-    def execute(p1: Short, p2: Int) = {
-      f.asInstanceOf[ShortIntProcedure[_]](p1, p2)
-      true
-    }
+  implicit def toShortIntProcedure(f: (Short, Int) => Boolean): TShortIntProcedure = new TShortIntProcedure() {
+    def execute(p1: Short, p2: Int) = f.asInstanceOf[ShortIntProcedure[Boolean]](p1, p2)
   }
 
-  implicit def toShortLongProcedure(f: (Short, Long) => Unit): TShortLongProcedure = new TShortLongProcedure() {
-    def execute(p1: Short, p2: Long) = {
-      f.asInstanceOf[ShortLongProcedure[_]](p1, p2)
-      true
-    }
+  implicit def toShortLongProcedure(f: (Short, Long) => Boolean): TShortLongProcedure = new TShortLongProcedure() {
+    def execute(p1: Short, p2: Long) = f.asInstanceOf[ShortLongProcedure[Boolean]](p1, p2)
   }
 
-  implicit def toShortFloatProcedure(f: (Short, Float) => Unit): TShortFloatProcedure = new TShortFloatProcedure() {
-    def execute(p1: Short, p2: Float) = {
-      f.asInstanceOf[ShortFloatProcedure[_]](p1, p2)
-      true
-    }
+  implicit def toShortFloatProcedure(f: (Short, Float) => Boolean): TShortFloatProcedure = new TShortFloatProcedure() {
+    def execute(p1: Short, p2: Float) = f.asInstanceOf[ShortFloatProcedure[Boolean]](p1, p2)
   }
 
-  implicit def toShortDoubleProcedure(f: (Short, Double) => Unit): TShortDoubleProcedure = new TShortDoubleProcedure() {
-    def execute(p1: Short, p2: Double) = {
-      f.asInstanceOf[ShortDoubleProcedure[_]](p1, p2)
-      true
-    }
+  implicit def toShortDoubleProcedure(f: (Short, Double) => Boolean): TShortDoubleProcedure = new TShortDoubleProcedure() {
+    def execute(p1: Short, p2: Double) = f.asInstanceOf[ShortDoubleProcedure[Boolean]](p1, p2)
   }
 
-  implicit def toShortObjectProcedure[O](f: (Short, O) => Unit): TShortObjectProcedure[O] = new TShortObjectProcedure[O]() {
-    def execute(p1: Short, p2: O) = {
-      f.asInstanceOf[ShortObjectProcedure[O, _]](p1, p2)
-      true
-    }
+  implicit def toShortObjectProcedure[O](f: (Short, O) => Boolean): TShortObjectProcedure[O] = new TShortObjectProcedure[O]() {
+    def execute(p1: Short, p2: O) = f.asInstanceOf[ShortObjectProcedure[O, Boolean]](p1, p2)
   }
 
   //===================== Int =====================
@@ -305,60 +257,36 @@ object TroveImplicits {
     def apply(v1: Int, v2: O): R
   }
 
-  implicit def toIntProcedure(f: Int => Unit): TIntProcedure = new TIntProcedure() {
-    def execute(p1: Int) = {
-      f.asInstanceOf[IntProcedure[_]](p1)
-      true
-    }
+  implicit def toIntProcedure(f: Int => Boolean): TIntProcedure = new TIntProcedure() {
+    def execute(p1: Int) = f.asInstanceOf[IntProcedure[Boolean]](p1)
   }
 
-  implicit def toIntByteProcedure(f: (Int, Byte) => Unit): TIntByteProcedure = new TIntByteProcedure() {
-    def execute(p1: Int, p2: Byte) = {
-      f.asInstanceOf[IntByteProcedure[_]](p1, p2)
-      true
-    }
+  implicit def toIntByteProcedure(f: (Int, Byte) => Boolean): TIntByteProcedure = new TIntByteProcedure() {
+    def execute(p1: Int, p2: Byte) = f.asInstanceOf[IntByteProcedure[Boolean]](p1, p2)
   }
 
-  implicit def toIntShortProcedure(f: (Int, Short) => Unit): TIntShortProcedure = new TIntShortProcedure() {
-    def execute(p1: Int, p2: Short) = {
-      f.asInstanceOf[IntShortProcedure[_]](p1, p2)
-      true
-    }
+  implicit def toIntShortProcedure(f: (Int, Short) => Boolean): TIntShortProcedure = new TIntShortProcedure() {
+    def execute(p1: Int, p2: Short) = f.asInstanceOf[IntShortProcedure[Boolean]](p1, p2)
   }
 
-  implicit def toIntIntProcedure(f: (Int, Int) => Unit): TIntIntProcedure = new TIntIntProcedure() {
-    def execute(p1: Int, p2: Int) = {
-      f.asInstanceOf[IntIntProcedure[_]](p1, p2)
-      true
-    }
+  implicit def toIntIntProcedure(f: (Int, Int) => Boolean): TIntIntProcedure = new TIntIntProcedure() {
+    def execute(p1: Int, p2: Int) = f.asInstanceOf[IntIntProcedure[Boolean]](p1, p2)
   }
 
-  implicit def toIntLongProcedure(f: (Int, Long) => Unit): TIntLongProcedure = new TIntLongProcedure() {
-    def execute(p1: Int, p2: Long) = {
-      f.asInstanceOf[IntLongProcedure[_]](p1, p2)
-      true
-    }
+  implicit def toIntLongProcedure(f: (Int, Long) => Boolean): TIntLongProcedure = new TIntLongProcedure() {
+    def execute(p1: Int, p2: Long) = f.asInstanceOf[IntLongProcedure[Boolean]](p1, p2)
   }
 
-  implicit def toIntFloatProcedure(f: (Int, Float) => Unit): TIntFloatProcedure = new TIntFloatProcedure() {
-    def execute(p1: Int, p2: Float) = {
-      f.asInstanceOf[IntFloatProcedure[_]](p1, p2)
-      true
-    }
+  implicit def toIntFloatProcedure(f: (Int, Float) => Boolean): TIntFloatProcedure = new TIntFloatProcedure() {
+    def execute(p1: Int, p2: Float) = f.asInstanceOf[IntFloatProcedure[Boolean]](p1, p2)
   }
 
-  implicit def toIntDoubleProcedure(f: (Int, Double) => Unit): TIntDoubleProcedure = new TIntDoubleProcedure() {
-    def execute(p1: Int, p2: Double) = {
-      f.asInstanceOf[IntDoubleProcedure[_]](p1, p2)
-      true
-    }
+  implicit def toIntDoubleProcedure(f: (Int, Double) => Boolean): TIntDoubleProcedure = new TIntDoubleProcedure() {
+    def execute(p1: Int, p2: Double) = f.asInstanceOf[IntDoubleProcedure[Boolean]](p1, p2)
   }
 
-  implicit def toIntObjectProcedure[O](f: (Int, O) => Unit): TIntObjectProcedure[O] = new TIntObjectProcedure[O]() {
-    def execute(p1: Int, p2: O) = {
-      f.asInstanceOf[IntObjectProcedure[O, _]](p1, p2)
-      true
-    }
+  implicit def toIntObjectProcedure[O](f: (Int, O) => Boolean): TIntObjectProcedure[O] = new TIntObjectProcedure[O]() {
+    def execute(p1: Int, p2: O) = f.asInstanceOf[IntObjectProcedure[O, Boolean]](p1, p2)
   }
 
   //===================== Long =====================
@@ -394,60 +322,36 @@ object TroveImplicits {
     def apply(v1: Long, v2: O): R
   }
 
-  implicit def toLongProcedure(f: Long => Unit): TLongProcedure = new TLongProcedure() {
-    def execute(p1: Long) = {
-      f.asInstanceOf[LongProcedure[_]](p1)
-      true
-    }
+  implicit def toLongProcedure(f: Long => Boolean): TLongProcedure = new TLongProcedure() {
+    def execute(p1: Long) = f.asInstanceOf[LongProcedure[Boolean]](p1)
   }
 
-  implicit def toLongByteProcedure(f: (Long, Byte) => Unit): TLongByteProcedure = new TLongByteProcedure() {
-    def execute(p1: Long, p2: Byte) = {
-      f.asInstanceOf[LongByteProcedure[_]](p1, p2)
-      true
-    }
+  implicit def toLongByteProcedure(f: (Long, Byte) => Boolean): TLongByteProcedure = new TLongByteProcedure() {
+    def execute(p1: Long, p2: Byte) = f.asInstanceOf[LongByteProcedure[Boolean]](p1, p2)
   }
 
-  implicit def toLongShortProcedure(f: (Long, Short) => Unit): TLongShortProcedure = new TLongShortProcedure() {
-    def execute(p1: Long, p2: Short) = {
-      f.asInstanceOf[LongShortProcedure[_]](p1, p2)
-      true
-    }
+  implicit def toLongShortProcedure(f: (Long, Short) => Boolean): TLongShortProcedure = new TLongShortProcedure() {
+    def execute(p1: Long, p2: Short) = f.asInstanceOf[LongShortProcedure[Boolean]](p1, p2)
   }
 
-  implicit def toLongIntProcedure(f: (Long, Int) => Unit): TLongIntProcedure = new TLongIntProcedure() {
-    def execute(p1: Long, p2: Int) = {
-      f.asInstanceOf[LongIntProcedure[_]](p1, p2)
-      true
-    }
+  implicit def toLongIntProcedure(f: (Long, Int) => Boolean): TLongIntProcedure = new TLongIntProcedure() {
+    def execute(p1: Long, p2: Int) = f.asInstanceOf[LongIntProcedure[Boolean]](p1, p2)
   }
 
-  implicit def toLongLongProcedure(f: (Long, Long) => Unit): TLongLongProcedure = new TLongLongProcedure() {
-    def execute(p1: Long, p2: Long) = {
-      f.asInstanceOf[LongLongProcedure[_]](p1, p2)
-      true
-    }
+  implicit def toLongLongProcedure(f: (Long, Long) => Boolean): TLongLongProcedure = new TLongLongProcedure() {
+    def execute(p1: Long, p2: Long) = f.asInstanceOf[LongLongProcedure[Boolean]](p1, p2)
   }
 
-  implicit def toLongFloatProcedure(f: (Long, Float) => Unit): TLongFloatProcedure = new TLongFloatProcedure() {
-    def execute(p1: Long, p2: Float) = {
-      f.asInstanceOf[LongFloatProcedure[_]](p1, p2)
-      true
-    }
+  implicit def toLongFloatProcedure(f: (Long, Float) => Boolean): TLongFloatProcedure = new TLongFloatProcedure() {
+    def execute(p1: Long, p2: Float) = f.asInstanceOf[LongFloatProcedure[Boolean]](p1, p2)
   }
 
-  implicit def toLongDoubleProcedure(f: (Long, Double) => Unit): TLongDoubleProcedure = new TLongDoubleProcedure() {
-    def execute(p1: Long, p2: Double) = {
-      f.asInstanceOf[LongDoubleProcedure[_]](p1, p2)
-      true
-    }
+  implicit def toLongDoubleProcedure(f: (Long, Double) => Boolean): TLongDoubleProcedure = new TLongDoubleProcedure() {
+    def execute(p1: Long, p2: Double) = f.asInstanceOf[LongDoubleProcedure[Boolean]](p1, p2)
   }
 
-  implicit def toLongObjectProcedure[O](f: (Long, O) => Unit): TLongObjectProcedure[O] = new TLongObjectProcedure[O]() {
-    def execute(p1: Long, p2: O) = {
-      f.asInstanceOf[LongObjectProcedure[O, _]](p1, p2)
-      true
-    }
+  implicit def toLongObjectProcedure[O](f: (Long, O) => Boolean): TLongObjectProcedure[O] = new TLongObjectProcedure[O]() {
+    def execute(p1: Long, p2: O) = f.asInstanceOf[LongObjectProcedure[O, Boolean]](p1, p2)
   }
 
   //===================== Float =====================
@@ -483,60 +387,36 @@ object TroveImplicits {
     def apply(v1: Float, v2: O): R
   }
 
-  implicit def toFloatProcedure(f: Float => Unit): TFloatProcedure = new TFloatProcedure() {
-    def execute(p1: Float) = {
-      f.asInstanceOf[FloatProcedure[_]](p1)
-      true
-    }
+  implicit def toFloatProcedure(f: Float => Boolean): TFloatProcedure = new TFloatProcedure() {
+    def execute(p1: Float) = f.asInstanceOf[FloatProcedure[Boolean]](p1)
   }
 
-  implicit def toFloatByteProcedure(f: (Float, Byte) => Unit): TFloatByteProcedure = new TFloatByteProcedure() {
-    def execute(p1: Float, p2: Byte) = {
-      f.asInstanceOf[FloatByteProcedure[_]](p1, p2)
-      true
-    }
+  implicit def toFloatByteProcedure(f: (Float, Byte) => Boolean): TFloatByteProcedure = new TFloatByteProcedure() {
+    def execute(p1: Float, p2: Byte) = f.asInstanceOf[FloatByteProcedure[Boolean]](p1, p2)
   }
 
-  implicit def toLongShortProcedure(f: (Float, Short) => Unit): TFloatShortProcedure = new TFloatShortProcedure() {
-    def execute(p1: Float, p2: Short) = {
-      f.asInstanceOf[FloatShortProcedure[_]](p1, p2)
-      true
-    }
+  implicit def toLongShortProcedure(f: (Float, Short) => Boolean): TFloatShortProcedure = new TFloatShortProcedure() {
+    def execute(p1: Float, p2: Short) = f.asInstanceOf[FloatShortProcedure[Boolean]](p1, p2)
   }
 
-  implicit def toLongIntProcedure(f: (Float, Int) => Unit): TFloatIntProcedure = new TFloatIntProcedure() {
-    def execute(p1: Float, p2: Int) = {
-      f.asInstanceOf[FloatIntProcedure[_]](p1, p2)
-      true
-    }
+  implicit def toLongIntProcedure(f: (Float, Int) => Boolean): TFloatIntProcedure = new TFloatIntProcedure() {
+    def execute(p1: Float, p2: Int) = f.asInstanceOf[FloatIntProcedure[Boolean]](p1, p2)
   }
 
-  implicit def toFloatLongProcedure(f: (Float, Long) => Unit): TFloatLongProcedure = new TFloatLongProcedure() {
-    def execute(p1: Float, p2: Long) = {
-      f.asInstanceOf[FloatLongProcedure[_]](p1, p2)
-      true
-    }
+  implicit def toFloatLongProcedure(f: (Float, Long) => Boolean): TFloatLongProcedure = new TFloatLongProcedure() {
+    def execute(p1: Float, p2: Long) =  f.asInstanceOf[FloatLongProcedure[Boolean]](p1, p2)
   }
 
-  implicit def toFloatFloatProcedure(f: (Float, Float) => Unit): TFloatFloatProcedure = new TFloatFloatProcedure() {
-    def execute(p1: Float, p2: Float) = {
-      f.asInstanceOf[FloatFloatProcedure[_]](p1, p2)
-      true
-    }
+  implicit def toFloatFloatProcedure(f: (Float, Float) => Boolean): TFloatFloatProcedure = new TFloatFloatProcedure() {
+    def execute(p1: Float, p2: Float) = f.asInstanceOf[FloatFloatProcedure[Boolean]](p1, p2)
   }
 
-  implicit def toFloatDoubleProcedure(f: (Float, Double) => Unit): TFloatDoubleProcedure = new TFloatDoubleProcedure() {
-    def execute(p1: Float, p2: Double) = {
-      f.asInstanceOf[FloatDoubleProcedure[_]](p1, p2)
-      true
-    }
+  implicit def toFloatDoubleProcedure(f: (Float, Double) => Boolean): TFloatDoubleProcedure = new TFloatDoubleProcedure() {
+    def execute(p1: Float, p2: Double) = f.asInstanceOf[FloatDoubleProcedure[Boolean]](p1, p2)
   }
 
-  implicit def toFloatObjectProcedure[O](f: (Float, O) => Unit): TFloatObjectProcedure[O] = new TFloatObjectProcedure[O]() {
-    def execute(p1: Float, p2: O) = {
-      f.asInstanceOf[FloatObjectProcedure[O, _]](p1, p2)
-      true
-    }
+  implicit def toFloatObjectProcedure[O](f: (Float, O) => Boolean): TFloatObjectProcedure[O] = new TFloatObjectProcedure[O]() {
+    def execute(p1: Float, p2: O) = f.asInstanceOf[FloatObjectProcedure[O, Boolean]](p1, p2)
   }
 
   //===================== Double =====================
@@ -572,60 +452,36 @@ object TroveImplicits {
     def apply(v1: Double, v2: O): R
   }
 
-  implicit def toDoubleProcedure(f: Double => Unit): TDoubleProcedure = new TDoubleProcedure() {
-    def execute(p1: Double) = {
-      f.asInstanceOf[DoubleProcedure[_]](p1)
-      true
-    }
+  implicit def toDoubleProcedure(f: Double => Boolean): TDoubleProcedure = new TDoubleProcedure() {
+    def execute(p1: Double) = f.asInstanceOf[DoubleProcedure[Boolean]](p1)
   }
 
-  implicit def toDoubleByteProcedure(f: (Double, Byte) => Unit): TDoubleByteProcedure = new TDoubleByteProcedure() {
-    def execute(p1: Double, p2: Byte) = {
-      f.asInstanceOf[DoubleByteProcedure[_]](p1, p2)
-      true
-    }
+  implicit def toDoubleByteProcedure(f: (Double, Byte) => Boolean): TDoubleByteProcedure = new TDoubleByteProcedure() {
+    def execute(p1: Double, p2: Byte) = f.asInstanceOf[DoubleByteProcedure[Boolean]](p1, p2)
   }
 
-  implicit def toDoubleShortProcedure(f: (Double, Short) => Unit): TDoubleShortProcedure = new TDoubleShortProcedure() {
-    def execute(p1: Double, p2: Short) = {
-      f.asInstanceOf[DoubleShortProcedure[_]](p1, p2)
-      true
-    }
+  implicit def toDoubleShortProcedure(f: (Double, Short) => Boolean): TDoubleShortProcedure = new TDoubleShortProcedure() {
+    def execute(p1: Double, p2: Short) = f.asInstanceOf[DoubleShortProcedure[Boolean]](p1, p2)
   }
 
-  implicit def toDoubleIntProcedure(f: (Double, Int) => Unit): TDoubleIntProcedure = new TDoubleIntProcedure() {
-    def execute(p1: Double, p2: Int) = {
-      f.asInstanceOf[DoubleIntProcedure[_]](p1, p2)
-      true
-    }
+  implicit def toDoubleIntProcedure(f: (Double, Int) => Boolean): TDoubleIntProcedure = new TDoubleIntProcedure() {
+    def execute(p1: Double, p2: Int) = f.asInstanceOf[DoubleIntProcedure[Boolean]](p1, p2)
   }
 
-  implicit def toDoubleLongProcedure(f: (Double, Long) => Unit): TDoubleLongProcedure = new TDoubleLongProcedure() {
-    def execute(p1: Double, p2: Long) = {
-      f.asInstanceOf[DoubleLongProcedure[_]](p1, p2)
-      true
-    }
+  implicit def toDoubleLongProcedure(f: (Double, Long) => Boolean): TDoubleLongProcedure = new TDoubleLongProcedure() {
+    def execute(p1: Double, p2: Long) = f.asInstanceOf[DoubleLongProcedure[Boolean]](p1, p2)
   }
 
-  implicit def toDoubleFloatProcedure(f: (Double, Float) => Unit): TDoubleFloatProcedure = new TDoubleFloatProcedure() {
-    def execute(p1: Double, p2: Float) = {
-      f.asInstanceOf[DoubleFloatProcedure[_]](p1, p2)
-      true
-    }
+  implicit def toDoubleFloatProcedure(f: (Double, Float) => Boolean): TDoubleFloatProcedure = new TDoubleFloatProcedure() {
+    def execute(p1: Double, p2: Float) = f.asInstanceOf[DoubleFloatProcedure[Boolean]](p1, p2)
   }
 
-  implicit def toDoubleDoubleProcedure(f: (Double, Double) => Unit): TDoubleDoubleProcedure = new TDoubleDoubleProcedure() {
-    def execute(p1: Double, p2: Double) = {
-      f.asInstanceOf[DoubleDoubleProcedure[_]](p1, p2)
-      true
-    }
+  implicit def toDoubleDoubleProcedure(f: (Double, Double) => Boolean): TDoubleDoubleProcedure = new TDoubleDoubleProcedure() {
+    def execute(p1: Double, p2: Double) = f.asInstanceOf[DoubleDoubleProcedure[Boolean]](p1, p2)
   }
 
-  implicit def toDoubleObjectProcedure[O](f: (Double, O) => Unit): TDoubleObjectProcedure[O] = new TDoubleObjectProcedure[O]() {
-    def execute(p1: Double, p2: O) = {
-      f.asInstanceOf[DoubleObjectProcedure[O, _]](p1, p2)
-      true
-    }
+  implicit def toDoubleObjectProcedure[O](f: (Double, O) => Boolean): TDoubleObjectProcedure[O] = new TDoubleObjectProcedure[O]() {
+    def execute(p1: Double, p2: O) = f.asInstanceOf[DoubleObjectProcedure[O, Boolean]](p1, p2)
   }
 
 
@@ -663,59 +519,37 @@ object TroveImplicits {
   }
 
 
-  implicit def toObjectProcedure[O](f: O => Unit): TObjectProcedure[O] = new TObjectProcedure[O]() {
-    def execute(p1: O) = {
-      f.asInstanceOf[ObjectProcedure[O, _]](p1)
-      true
-    }
+  implicit def toObjectProcedure[O](f: O => Boolean): TObjectProcedure[O] = new TObjectProcedure[O]() {
+    def execute(p1: O) = f.asInstanceOf[ObjectProcedure[O, Boolean]](p1)
   }
 
-  implicit def toObjectByteProcedure[O](f: (O, Byte) => Unit): TObjectByteProcedure[O] = new TObjectByteProcedure[O]() {
-    def execute(p1: O, p2: Byte) = {
-      f.asInstanceOf[ObjectByteProcedure[O, _]](p1, p2)
-      true
-    }
+  implicit def toObjectByteProcedure[O](f: (O, Byte) => Boolean): TObjectByteProcedure[O] = new TObjectByteProcedure[O]() {
+    def execute(p1: O, p2: Byte) = f.asInstanceOf[ObjectByteProcedure[O, Boolean]](p1, p2)
   }
 
-  implicit def toObjectShortProcedure[O](f: (O, Short) => Unit): TObjectShortProcedure[O] = new TObjectShortProcedure[O]() {
-    def execute(p1: O, p2: Short) = {
-      f.asInstanceOf[ObjectShortProcedure[O, _]](p1, p2)
-      true
-    }
+  implicit def toObjectShortProcedure[O](f: (O, Short) => Boolean): TObjectShortProcedure[O] = new TObjectShortProcedure[O]() {
+    def execute(p1: O, p2: Short) = f.asInstanceOf[ObjectShortProcedure[O, Boolean]](p1, p2)
   }
 
-  implicit def toObjectIntProcedure[O](f: (O, Int) => Unit): TObjectIntProcedure[O] = new TObjectIntProcedure[O]() {
-    def execute(p1: O, p2: Int) = {
-      f.asInstanceOf[ObjectIntProcedure[O, _]](p1, p2)
-      true
-    }
+  implicit def toObjectIntProcedure[O](f: (O, Int) => Boolean): TObjectIntProcedure[O] = new TObjectIntProcedure[O]() {
+    def execute(p1: O, p2: Int) = f.asInstanceOf[ObjectIntProcedure[O, Boolean]](p1, p2)
   }
 
-  implicit def toObjectLongProcedure[O](f: (O, Long) => Unit): TObjectLongProcedure[O] = new TObjectLongProcedure[O]() {
-    def execute(p1: O, p2: Long) = {
-      f.asInstanceOf[ObjectLongProcedure[O, _]](p1, p2)
-      true
-    }
+  implicit def toObjectLongProcedure[O](f: (O, Long) => Boolean): TObjectLongProcedure[O] = new TObjectLongProcedure[O]() {
+    def execute(p1: O, p2: Long) = f.asInstanceOf[ObjectLongProcedure[O, Boolean]](p1, p2)
   }
 
-  implicit def toObjectFloatProcedure[O](f: (O, Float) => Unit): TObjectFloatProcedure[O] = new TObjectFloatProcedure[O]() {
-    def execute(p1: O, p2: Float) = {
-      f.asInstanceOf[ObjectFloatProcedure[O, _]](p1, p2)
-      true
-    }
+  implicit def toObjectFloatProcedure[O](f: (O, Float) => Boolean): TObjectFloatProcedure[O] = new TObjectFloatProcedure[O]() {
+    def execute(p1: O, p2: Float) = f.asInstanceOf[ObjectFloatProcedure[O, Boolean]](p1, p2)
   }
 
-  implicit def toObjectDoubleProcedure[O](f: (O, Double) => Unit): TObjectDoubleProcedure[O] = new TObjectDoubleProcedure[O]() {
-    def execute(p1: O, p2: Double) = {
-      f.asInstanceOf[ObjectDoubleProcedure[O, _]](p1, p2)
-      true
-    }
+  implicit def toObjectDoubleProcedure[O](f: (O, Double) => Boolean): TObjectDoubleProcedure[O] = new TObjectDoubleProcedure[O]() {
+    def execute(p1: O, p2: Double) = f.asInstanceOf[ObjectDoubleProcedure[O, Boolean]](p1, p2)
+
   }
 
-  implicit def toObjectObjectProcedure[O1, O2](f: (O1, O2) => Unit): TObjectObjectProcedure[O1, O2] = new TObjectObjectProcedure[O1, O2]() {
-    def execute(p1: O1, p2: O2) = {
-      f.asInstanceOf[ObjectObjectProcedure[O1, O2, _]](p1, p2)
-      true
-    }
+  implicit def toObjectObjectProcedure[O1, O2](f: (O1, O2) => Boolean): TObjectObjectProcedure[O1, O2] = new TObjectObjectProcedure[O1, O2]() {
+    def execute(p1: O1, p2: O2) = f.asInstanceOf[ObjectObjectProcedure[O1, O2, Boolean]](p1, p2)
+
   }
 }

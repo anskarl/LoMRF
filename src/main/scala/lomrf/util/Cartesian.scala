@@ -32,13 +32,16 @@
 
 package lomrf.util
 
+import lomrf.logic.Variable
+
 import scala.collection.mutable
 import scala.{collection => scol}
+import scalaxy.loops._
+import scala.language.postfixOps
 
 /**
  * @author Anastasios Skarlatidis
  */
-
 object Cartesian {
   def productAsStream[T](args: Iterable[Iterable[T]]): Stream[Iterable[T]] = {
     args.foldLeft(Stream.fill(1)(List[T]())) {
@@ -55,25 +58,6 @@ object Cartesian {
       }
     }
   }
-
-  object CartesianIteratorList {
-
-    def apply[T](sets: Iterable[Iterable[T]])(implicit m: Manifest[T]): Iterator[List[T]] = {
-
-      val iterators = new Array[Iterator[T]](sets.size)
-      val elements = new Array[T](sets.size)
-      val indexedSets = new Array[Iterable[T]](sets.size)
-
-      for ((s, idx) <- sets.view.zipWithIndex) {
-        iterators(idx) = s.iterator
-        elements(idx) = iterators(idx).next()
-        indexedSets(idx) = s
-      }
-      new CartesianIteratorListImpl(indexedSets, iterators, elements)
-    }
-
-  }
-
 
   object CartesianIterator {
     def apply[T](sets: Iterable[Iterable[T]])(implicit m: Manifest[T]): Iterator[Seq[T]] = {
@@ -104,36 +88,15 @@ object Cartesian {
       new CartesianIteratorMap(sets, iterators, elements)
     }
 
-    def apply2[K, T](sets: scol.Map[K, Iterable[T]])(implicit m: Manifest[T]): CartesianIteratorMap2[K, T] = {
-
-
-      val iterators = new Array[Iterator[T]](sets.size)
-      val elements = new Array[T](sets.size)
-      val indexedSets = new Array[Iterable[T]](sets.size)
-      var index = Map[K, Int]()
-      var indexToKeys = Map[Int, K]()
-
-      for (((k, v), idx) <- sets.view.zipWithIndex) {
-        index += (k -> idx)
-        iterators(idx) = v.iterator
-        elements(idx) = iterators(idx).next()
-        indexedSets(idx) = v
-        indexToKeys += (idx -> k)
-      }
-
-      new CartesianIteratorMap2(index, indexToKeys, indexedSets, iterators, elements)
-    }
-
-
   }
 
 
   object CartesianIteratorMap {
-    def apply[K: Manifest, T: Manifest](sets: scol.Map[K, Iterable[T]]): Iterator[Map[K, T]] = {
-      val arrayKeys = new Array[K](sets.size)
-      val arrayIterators = new Array[Iterator[T]](sets.size)
-      val arrayElements = new Array[T](sets.size)
-      val arrayIterables = new Array[Iterable[T]](sets.size)
+    def apply(sets: scol.Map[Variable, Iterable[String]]): Iterator[Map[Variable, String]] = {
+      val arrayKeys = new Array[Variable](sets.size)
+      val arrayIterators = new Array[Iterator[String]](sets.size)
+      val arrayElements = new Array[String](sets.size)
+      val arrayIterables = new Array[Iterable[String]](sets.size)
 
       var idx = 0
       for ((k, v) <- sets.iterator) {
@@ -167,7 +130,7 @@ object Cartesian {
         while (!stop) {
           currentIterator = iterators(idx)
           if (currentIterator.hasNext) {
-            for (i <- 0 until idx) {
+            for (i <- (0 until idx).optimized) {
               iterators(i) = sets(i).iterator
               elements(i) = iterators(i).next()
             }
@@ -188,93 +151,9 @@ object Cartesian {
     def hasNext = has_next
   }
 
-  private class CartesianIteratorListImpl[T](
-                                              sets: Array[Iterable[T]],
-                                              iterators: Array[Iterator[T]],
-                                              elements: Array[T]) extends Iterator[List[T]] {
-    private var has_next = true
-
-
-    def next(): List[T] = {
-      val result = elements.toList
-      var currentIterator = iterators(0)
-
-      if (currentIterator.hasNext) elements(0) = currentIterator.next()
-      else {
-        var idx = 0
-        var stop = false
-
-        while (!stop) {
-          currentIterator = iterators(idx)
-          if (currentIterator.hasNext) {
-            for (i <- 0 until idx) {
-              iterators(i) = sets(i).iterator
-              elements(i) = iterators(i).next()
-            }
-            elements(idx) = currentIterator.next()
-            stop = true
-          }
-          else if (idx == iterators.length - 1 && !currentIterator.hasNext) {
-            stop = true
-            has_next = false
-          }
-          else idx += 1
-
-        }
-      }
-      result
-    }
-
-    def hasNext = has_next
-  }
-
-  class CartesianIteratorMap2[K, T](
-                                     index: Map[K, Int],
-                                     val indexToKeys: Map[Int, K],
-                                     sets: Array[Iterable[T]],
-                                     iterators: Array[Iterator[T]],
-                                     elements: Array[T]) extends Iterator[Seq[T]] {
-
-    private var has_next = true
-
-
-    def next(): Seq[T] = {
-      val result = elements.toList
-      var currentIterator = iterators(0)
-
-      if (currentIterator.hasNext) elements(0) = currentIterator.next()
-      else {
-        var idx = 1
-        var stop = false
-
-        while (!stop) {
-          currentIterator = iterators(idx)
-          if (currentIterator.hasNext) {
-            for (i <- 0 until idx) {
-              iterators(i) = sets(i).iterator
-              elements(i) = iterators(i).next()
-            }
-            elements(idx) = currentIterator.next()
-            stop = true
-          }
-          else if (idx == iterators.length - 1 && !currentIterator.hasNext) {
-            stop = true
-            has_next = false
-          }
-          else idx += 1
-
-        }
-      }
-      result
-    }
-
-    def hasNext = has_next
-  }
-
-  private class CartesianIteratorMap[K, T](
-                                            sets: scol.Map[K, Iterable[T]],
-                                            iterators: mutable.Map[K, Iterator[T]],
-                                            elements: mutable.Map[K, T]) extends Iterator[Seq[T]] {
+  private class CartesianIteratorMap[K, T](sets: scol.Map[K, Iterable[T]],
+                                           iterators: mutable.Map[K, Iterator[T]],
+                                           elements: mutable.Map[K, T]) extends Iterator[Seq[T]] {
     private var has_next = true
     private val k0 = sets.head._1
 
@@ -315,32 +194,35 @@ object Cartesian {
   /**
    * Iterating over Cartesian products
    */
-  private class CartesianIteratorMapMapImpl[K, T](
-                                                    aKeys: Array[K],
-                                                    aIterables: Array[Iterable[T]],
-                                                    aIterators: Array[Iterator[T]],
-                                                    aElements: Array[T]) extends Iterator[Map[K, T]] {
+  private class CartesianIteratorMapMapImpl(aKeys: Array[Variable],
+                                            aIterables: Array[Iterable[String]],
+                                            aIterators: Array[Iterator[String]],
+                                            aElements: Array[String]) extends Iterator[Map[Variable, String]] {
+
     private val arrayLength = aKeys.length
     private var has_next = true
 
-
     def hasNext = has_next
 
-    def next(): Map[K, T] = {
+    def next(): Map[Variable, String] = {
+      var result = Map[Variable,String]()
 
-      var result = Map[K,T]()
-      for(i <- 0 until arrayLength)
+      var i = 0
+      while(i < arrayLength){
         result = result + (aKeys(i) -> aElements(i))
-
+        i += 1
+      }
 
       var stop = false
       var idx = 0
 
       while(!stop && (idx < arrayLength)){
         if(aIterators(idx).hasNext){
-          for(i <- 0 until idx){
+          var i = 0
+          while(i < idx){
             aIterators(i) = aIterables(i).iterator
             aElements(i) = aIterators(i).next()
+            i += 1
           }
           aElements(idx) = aIterators(idx).next()
           stop = true
@@ -349,8 +231,8 @@ object Cartesian {
           idx += 1
         }
       }
-      if(!stop && idx == arrayLength) has_next = false
 
+      has_next = stop || idx != arrayLength
 
       result
     }

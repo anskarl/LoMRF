@@ -40,6 +40,10 @@ trait Logging {
   def info(message: => String) = {if (_logger.isInfoEnabled) _logger.info(message)}
   def info(message: => String, ex: => Throwable) = { if (_logger.isInfoEnabled) _logger.info(message,ex)}
 
+ /* def info(messages: (Unit => String)*) = if (_logger.isInfoEnabled) {
+    _logger.info(messages.reduceLeft( _ + "\n" + _.apply()))
+  }*/
+
   def warn(message: => String) {if (_logger.isWarnEnabled) _logger.warn(message)}
   def warn(message: => String, ex: => Throwable) = {if (_logger.isWarnEnabled) _logger.warn(message,ex)}
 
@@ -83,5 +87,5 @@ trait Logging {
   }
 
 
-  
+  def whenDebug(body: => Unit): Unit = if(_logger.isDebugEnabled) body
 }

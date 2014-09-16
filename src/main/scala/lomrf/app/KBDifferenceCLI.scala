@@ -1,7 +1,6 @@
 package lomrf.app
 
 import lomrf.util.{Logging, OptionParser}
-import scala.Some
 import lomrf.mln.model.MLN
 import lomrf.logic.AtomSignature
 import java.io.FileWriter
@@ -11,6 +10,7 @@ import java.io.FileWriter
  * difference checking given two knowledge bases.
  *
  * @author Vagelis Michelioudakis
+ * @author Anastasios Skarlatidis
  */
 object KBDifferenceCLI extends Logging {
 

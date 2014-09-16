@@ -30,15 +30,16 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package lomrf.mln.inference
+package lomrf.mln.model.mrf
+
 
 final class Constraint(val weight: Double, val literals: Array[Int], val isHardConstraint: Boolean, val threshold: Double, val id: Int = -1) {
 
   // ----------------------------------------------------------------
   // Mutable information: accessible only from classes of model package.
   // ----------------------------------------------------------------
-  private[inference] var nsat: Int = 0
-  private[inference] var inactive: Boolean = false
+  private[mln] var nsat: Int = 0
+  private[mln] var inactive: Boolean = false
 
   val isPositive: Boolean = weight > 0
 

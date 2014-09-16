@@ -32,6 +32,7 @@
 
 package lomrf.mln.inference
 
+import lomrf.mln.model.mrf.{GroundAtom, MRFState, MRF}
 import MRF.{NO_ATOM, NO_CONSTRAINT, NO_ATOM_ID}
 import java.io.PrintStream
 import java.util.concurrent.ThreadLocalRandom
@@ -59,15 +60,16 @@ import lomrf.util.{Utilities, Logging}
  * @param maxFlips The maximum number of flips taken to reach a solution (default is 100000).
  * @param maxTries The maximum number of attempts taken to find a solution (default is 1).
  * @param targetCost Any possible world having cost below this threshold is considered as a solution (default is 0.0001)
- * @param showAll Show 0/1 results for all query atoms (default is true)
+ * @param outputAll Show 0/1 results for all query atoms (default is true)
+ * @param satHardUnit Trivially satisfy hard constrained unit clauses (default is true)
+ * @param satHardPriority Satisfiability priority to hard constrained clauses (default is true)
  * @param tabuLength Minimum number of flips between flipping the same atom
  *
  * @author Anastasios Skarlatidis
- *
- * @todo merge duplicate duplicate code with MCSAT (= maxWalkSATStep).
- * @todo perform optimisations to improve the performance.
+ * @author Vagelis Michelioudakis
  */
-final class MaxWalkSAT(mrf: MRF, pBest: Double = 0.5, maxFlips: Int = 100000, maxTries: Int = 1, targetCost: Double = 0.001, showAll: Boolean = true, tabuLength: Int = 5) extends Logging {
+final class MaxWalkSAT(mrf: MRF, pBest: Double = 0.5, maxFlips: Int = 100000, maxTries: Int = 1, targetCost: Double = 0.001,
+                       outputAll: Boolean = true, satHardUnit: Boolean = true, satHardPriority: Boolean = false, tabuLength: Int = 5) extends Logging {
   private val TARGET_COST = targetCost + 0.0001
 
   //private val random = new Random()
@@ -85,9 +87,10 @@ final class MaxWalkSAT(mrf: MRF, pBest: Double = 0.5, maxFlips: Int = 100000, ma
    */
   def infer(): MRFState = {
     val startTime = System.currentTimeMillis()
-    val state = infer(MRFState(mrf))
+    val state = infer(MRFState(mrf, satHardUnit, satHardPriority))
     val endTime = System.currentTimeMillis()
     info(Utilities.msecTimeToText("Total Max-WalkSAT time: ", endTime - startTime))
+    state.printMRFStateStats()
 
     //return the best state
     state
@@ -212,13 +215,10 @@ final class MaxWalkSAT(mrf: MRF, pBest: Double = 0.5, maxFlips: Int = 100000, ma
       state.reset(tabuLength, unitPropagation = false)
       iteration = 0
       var chosenAtom = NO_ATOM
-      info("Number of UnSat Clauses before running: "+state.getNumberUnsatisfied+"/"+mrf.constraints.size())
       while (iteration < maxFlips) {
 
         if (state.getCost <= TARGET_COST) {
           info("A solution is found after " + (iteration * (numTry + 1)) + " iterations.")
-          info("Number of UnSat Clauses: "+state.getNumberUnsatisfied+"/"+mrf.constraints.size())
-          info("Total Cost: "+state.getCost)
           iteration = maxFlips //force stop
         }
         else {
@@ -232,9 +232,6 @@ final class MaxWalkSAT(mrf: MRF, pBest: Double = 0.5, maxFlips: Int = 100000, ma
       numTry += 1
     }
     state.restoreLowState()
-
-    state.evaluate()
-    state.printStats()
 
     //return best state
     state
@@ -256,7 +253,7 @@ final class MaxWalkSAT(mrf: MRF, pBest: Double = 0.5, maxFlips: Int = 100000, ma
       if (atomID >= mln.queryStartID && atomID <= mln.queryEndID) {
         val groundAtom = iterator.value()
         val state = if(groundAtom.getState) 1 else 0
-        if(showAll) {
+        if(outputAll) {
           decodeAtom(iterator.key()) match {
             case Some(txtAtom) => out.println(txtAtom + " " + state)
             case _ => error("failed to decode id:" + atomID)

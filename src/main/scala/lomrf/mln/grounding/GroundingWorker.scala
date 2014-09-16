@@ -30,38 +30,26 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package tests
+package lomrf.mln.grounding
 
-import org.scalatest.junit.AssertionsForJUnit
-import org.junit.Test
-import org.junit.Assert._
-import lomrf.util.Cartesian.CartesianIteratorMap
+import akka.actor.{Actor, ActorRef}
+import lomrf.mln.model.MLN
+import lomrf.util.Logging
 
 /**
  * @author Anastasios Skarlatidis
  */
+private final class GroundingWorker(mln: MLN, cliqueRegisters: Array[ActorRef], noNegWeights: Boolean) extends Actor with Logging {
 
-class CartesianTests extends AssertionsForJUnit{
+  def receive = {
+    case Ground(clause, atomSignatures, atomsDB) =>
+      val grounder = new ClauseGrounderImpl(clause, mln, cliqueRegisters, atomSignatures, atomsDB, noNegWeights)
+      grounder.computeGroundings()
+      debug("Grounding completed for clause " + clause)
+      sender ! ClauseGroundingCompleted(clause, grounder.collectedSignatures)
 
- /* @Test def cartesianIteratorForGrounding(){
+    case msg => fatal("GroundingWorker --- Received an unknown message '" + msg + "' from " + sender)
+  }
 
-    val m = Map(
-      "v1" -> List("One", "Two", "Three"),
-      "v2" -> List("Alpha", "Beta", "Gamma"),
-      "v3" ->  List("X", "Y", "Z")
-    )
-
-    val cartesian = CartesianIteratorMap[String,String](m)
-    var count = 0
-    while(cartesian.hasNext){
-      val tuple = cartesian.next()
-      val line = tuple.map(x => x._1.toString+" -> "+x._2.toString).reduceLeft(_ + ", " + _)
-      println(line)
-      count+=1
-    }
-    println("counted = "+count)
-    assertEquals(27,count)
-
-  }*/
 
 }

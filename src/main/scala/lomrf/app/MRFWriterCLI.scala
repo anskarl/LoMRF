@@ -37,8 +37,9 @@ import java.text.DecimalFormat
 import lomrf.logic.AtomSignature
 import lomrf.logic.PredicateCompletionMode._
 import lomrf.logic.dynamic.{DynamicFunctionBuilder, DynamicAtomBuilder}
-import lomrf.mln.inference.{MRF, MRFBuilder}
+import lomrf.mln.grounding.MRFBuilder
 import lomrf.mln.model.MLN
+import lomrf.mln.model.mrf.MRF
 import lomrf.util._
 import scala.Some
 

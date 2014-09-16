@@ -4,7 +4,7 @@ import NativePackagerKeys._
 /** Project */
 name := "LoMRF"
 
-version := "0.2.3-beta_201405"
+version := "0.2.3-beta_201410"
 
 organization := "com.github.anskarl"
 
@@ -23,6 +23,8 @@ javacOptions ++= Seq("-source", "1.7", "-target", "1.7", "-Xlint:unchecked", "-X
 // Append scalac options
 scalacOptions ++= Seq(
 	"-optimise",
+	"-Yclosure-elim",
+	"-Yinline",
 	"-nowarn",
 	"-feature",
 	"-target:jvm-1.7",
@@ -74,6 +76,8 @@ libraryDependencies ++= Seq(
 	"junit" % "junit" % "4.11",
 	"org.scalatest" %% "scalatest" % "2.1.6"
 )
+
+libraryDependencies += "com.nativelibs4java" %% "scalaxy-loops" % "0.1.1" % "provided"
 
 // Include utility BASH scripts in the 'bin' directory
 mappings in Universal <++= (packageBin in Compile) map { jar =>

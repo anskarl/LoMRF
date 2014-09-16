@@ -1,8 +1,9 @@
 package examples
 
 import lomrf.logic.AtomSignature
+import lomrf.mln.grounding.MRFBuilder
 import lomrf.mln.model.MLN
-import lomrf.mln.inference.{MRF, MRFBuilder}
+import lomrf.mln.model.mrf.MRF
 import lomrf.util.Logging
 
 object ExpProb extends Logging {

@@ -36,6 +36,7 @@ import java.io.{FileOutputStream, PrintStream}
 import lomrf.logic.AtomSignature
 import lomrf.logic.PredicateCompletionMode._
 import lomrf.logic.dynamic.{DynamicFunctionBuilder, DynamicAtomBuilder}
+import lomrf.mln.grounding.MRFBuilder
 import lomrf.mln.inference._
 import lomrf.mln.model.MLN
 import lomrf.util.{OptionParser, Logging, ImplFinder, parseAtomSignature}
@@ -71,8 +72,14 @@ object InferenceCLI extends OptionParser with Logging {
   // Perform map inference using MaxWalkSAT
   private var _mws = true
 
-  // MAP inference output type
-  private var _mapShowAll = true
+  // MAP inference output type (all or positive only)
+  private var _mapOutputAll = true
+
+  // Trivially satisfy hard constrained unit clauses
+  private var _satHardUnit = true
+
+  // Satisfiability priority to hard constrained clauses
+  private var _satHardPriority = true
 
   // Maximum number of samples to take
   private var _samples = 1000
@@ -172,7 +179,7 @@ object InferenceCLI extends OptionParser with Logging {
     }
   })
 
-  opt("mType", "map-type", "<mws | ilp>", "Specify the MAP inference type: MaxWalkSAt or ILP (default is MaxWalkSAT).", {
+  opt("mapType", "map-type", "<mws | ilp>", "Specify the MAP inference type: MaxWalkSAt or ILP (default is MaxWalkSAT).", {
     v: String => v.trim.toLowerCase match {
       case "ilp" => _mws = false
       case "mws" => _mws = true
@@ -180,14 +187,20 @@ object InferenceCLI extends OptionParser with Logging {
     }
   })
 
-  opt("show", "map-output-type", "<all | positive>", "Specify MAP inference output type: 0/1 results for all query atoms or " +
+  opt("mapWrite", "map-output-type", "<all | positive>", "Specify MAP inference output type: 0/1 results for all query atoms or " +
     "only positive query atoms (default is all).", {
     v: String => v.trim.toLowerCase match {
-      case "all" => _mapShowAll = true
-      case "positive" => _mapShowAll = false
+      case "all" => _mapOutputAll = true
+      case "positive" => _mapOutputAll = false
       case _ => fatal("Unknown parameter for inference type '" + v + "'.")
     }
   })
+
+  booleanOpt("satHardUnit", "sat-hard-unit", "Trivially satisfy hard constrained unit clauses (default is " + _satHardUnit + ")" +
+    " in MaxWalkSAT.", _satHardUnit = _)
+
+  booleanOpt("satHardPriority", "sat-hard-priority", "Priority to hard constrained clauses (default is " + _satHardUnit + ")" +
+    " in MaxWalkSAT.", _satHardUnit = _)
 
   intOpt("samples", "num-samples", "Number of samples to take (default is " + _samples + ").", _samples = _)
 
@@ -273,7 +286,9 @@ object InferenceCLI extends OptionParser with Logging {
       + "\n\t(owa) Open-world assumption predicate(s): " + (if (_owa.isEmpty) "empty" else _owa.map(_.toString).reduceLeft((left, right) => left + "," + right))
       + "\n\t(marginal) Perform marginal inference: " + _marginalInference
       + "\n\t(mws) Perform MAP inference using MaxWalkSAt: " + _mws
-      + "\n\t(all) Show 0/1 results for all query atoms: " + _mapShowAll
+      + "\n\t(all) Show 0/1 results for all query atoms: " + _mapOutputAll
+      + "\n\t(satHardUnit) Trivially satisfy hard constrained unit clauses: " + _satHardUnit
+      + "\n\t(satHardPriority) Satisfiability priority to hard constrained clauses: " + _satHardPriority
       + "\n\t(samples) Number of samples to take: " + _samples
       + "\n\t(pSA) Probability to perform simulated annealing: " + _pSA
       + "\n\t(pBest) Probability to perform a greedy search: " + _pBest
@@ -303,7 +318,10 @@ object InferenceCLI extends OptionParser with Logging {
       + "\n\tSchema definitions : " + mln.schema.size
       + "\n\tFormulas           : " + mln.formulas.size)
 
-    info("CNF clauses = " + mln.clauses.size)
+    info("Number of CNF clauses = " + mln.clauses.size)
+    debug("List of CNF clauses: ")
+    if(isDebugEnabled) mln.clauses.zipWithIndex.foreach{case (c, idx) => debug(idx+": "+c)}
+
     info("Creating MRF...")
     val mrfBuilder = new MRFBuilder(mln, _noNeg)
     val mrf = mrfBuilder.buildNetwork
@@ -318,12 +336,13 @@ object InferenceCLI extends OptionParser with Logging {
     }
     else { // MAP inference methods
       if(_mws) {
-        val solver = new MaxWalkSAT(mrf, pBest = _pBest, maxFlips = _maxFlips, maxTries = _maxTries, targetCost = _targetCost, showAll = _mapShowAll)
+        val solver = new MaxWalkSAT(mrf, pBest = _pBest, maxFlips = _maxFlips, maxTries = _maxTries, targetCost = _targetCost,
+                                    outputAll = _mapOutputAll, satHardUnit = _satHardUnit, satHardPriority = _satHardPriority)
         solver.infer()
         solver.writeResults(resultsWriter)
       }
       else {
-        val solver = new ILP(mrf)
+        val solver = new ILP2(mrf)
         solver.infer(resultsWriter)
         solver.writeResults(resultsWriter)
       }

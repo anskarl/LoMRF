@@ -30,21 +30,20 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package lomrf.mln.inference
+package lomrf.mln.model.mrf
 
-import scala.collection.mutable
-import scala.collection.parallel.mutable.ParArray
+import java.util
+import java.util.concurrent.ThreadLocalRandom
 import gnu.trove.list.array.TIntArrayList
 import gnu.trove.map.TIntObjectMap
 import gnu.trove.map.hash.{TIntIntHashMap, TIntObjectHashMap}
-import java.util
 import lomrf.mln.model.MLN
-import util.concurrent.ThreadLocalRandom
-import scala.util.Random
 import lomrf.util._
 import scala.collection
 import scala.Some
 import scala.collection.mutable.ArrayBuffer
+import scala.collection.mutable
+import scala.collection.parallel.mutable.ParArray
 
 
 /**
@@ -127,17 +126,16 @@ object MRF {
   }
 }
 
-final class MRFState private(val mrf: MRF, parAtoms: ParArray[GroundAtom], parConstraints: ParArray[Constraint]) {
+final class MRFState private(val mrf: MRF, parAtoms: ParArray[GroundAtom], parConstraints: ParArray[Constraint], satHardPriority: Boolean = true) extends Logging {
 
   private val atoms = mrf.atoms
   private var dirtyAtoms = new mutable.HashSet[GroundAtom]()
-  private var priority = new ArrayBuffer[Constraint]()
+  private var priorityBuffer = new ArrayBuffer[Constraint]()
 
   private var totalCost = Double.MaxValue
   private var lowCost = Double.MaxValue
   private var totalActive = 0
-  private val random = new Random()
-  random.setSeed(1)
+  //private val random = new Random()
 
   @inline private def atomID(lit: Int) = math.abs(lit)
 
@@ -147,45 +145,31 @@ final class MRFState private(val mrf: MRF, parAtoms: ParArray[GroundAtom], parCo
 
   def apply(aid: Int): Boolean = state(aid)
 
-  def printStats() {
-    println("Stats:")
+  // TODO: Should be in Utilities
+  def printMRFStateStats() {
+    evaluate()
+    info("Stats:")
+    info("UnSat Clauses: " + Unsatisfied.size + "/" + mrf.constraints.size())
     var cNeg = 0
     for(i <- 0 until Unsatisfied.size) {
       if(Unsatisfied(i).weight < 0) cNeg += 1
-      else {
-        val clause = Unsatisfied(i).literals.map {
-          l =>
-            decodeLiteral(l)(mrf.mln) match {
-              case Some(litTXT) => litTXT
-              case None => sys.error("Cannot decode literal: " + l)
-            }
-        }.reduceLeft(_ + " v " + _)
-        println(Unsatisfied(i).weight + " " + clause)
-      }
     }
-    println("-UnSat Constraints with negative weights: "+cNeg+"/"+Unsatisfied.size)
-    println("-UnSat Constraints with positive weights: "+(Unsatisfied.size-cNeg)+"/"+Unsatisfied.size)
-    var ll = 0.0
-    var llub = 0.0
-    val iter = mrf.constraints.iterator()
-    var count = 0
-    while(iter.hasNext) {
-      iter.advance()
-      val c = iter.value()
-      if(c.isSatisfied) {
-        count += 1
-        if(c.isHardConstraint)
-          ll += 8.93129e+15
-        else
-          ll += c.weight
-      }
-      if(c.isHardConstraint)
-        llub += 8.93129e+15
-      else if(c.weight > 0)
-        llub += c.weight
+    info("UnSat negative constraints: " + cNeg + "/" + Unsatisfied.size)
+    info("UnSat positive constraints: " + (Unsatisfied.size-cNeg) + "/" + Unsatisfied.size)
+    info("UnSat hard constraints: " + Unsatisfied.hard + "/" + Unsatisfied.size)
+    info("Total Cost: " + totalCost)
+
+    var likelihood, likelihoodUB = 0.0
+
+    val iterator = mrf.constraints.iterator()
+    while(iterator.hasNext) {
+      iterator.advance()
+      val c = iterator.value()
+      if(c.isSatisfied) likelihood += c.weight
+      if(c.weight > 0 || c.isHardConstraint) likelihoodUB += c.weight
     }
-    println("-Likelihood is e^"+ll)
-    println("-Likelihood UB is e^"+llub)
+    info("Likelihood is e^" + likelihood)
+    info("Likelihood upper bound is e^" + likelihoodUB)
   }
 
   /**
@@ -193,23 +177,23 @@ final class MRFState private(val mrf: MRF, parAtoms: ParArray[GroundAtom], parCo
    */
   def reset(tabuLength:Int = 5, unitPropagation: Boolean = false) {
     if (unitPropagation) _unitPropagation()
-    var count = 0
+
     //randomise and reset delta
     parAtoms.foreach {
       atom =>{
         // random state only for unfixed atoms
-        if (atom.fixedValue == 0) { count += 1 ; atom.state = random.nextBoolean()}//ThreadLocalRandom.current().nextBoolean()
+        if (atom.fixedValue == 0) atom.state = ThreadLocalRandom.current().nextBoolean()
         // reset delta
         atom.resetDelta()
         // reset last flip
         atom.lastFlip = -(tabuLength + 1)
       }
     }
-    println("I randomized "+count+" atoms!")
+
     lowCost = evaluate()
-    saveAsLowState() // destroy each sampling iteration???
+    saveAsLowState()
     dirtyAtoms = new mutable.HashSet[GroundAtom]()
-    //priority = new ArrayBuffer[Constraint]()
+    priorityBuffer = new ArrayBuffer[Constraint]()
   }
 
   // -----------------------------------
@@ -217,7 +201,7 @@ final class MRFState private(val mrf: MRF, parAtoms: ParArray[GroundAtom], parCo
   // -----------------------------------
 
   def randomise() {
-    parAtoms.foreach(atom => if (atom.fixedValue == 0) atom.state = random.nextBoolean())//ThreadLocalRandom.current().nextBoolean())
+    parAtoms.foreach(atom => if (atom.fixedValue == 0) atom.state = ThreadLocalRandom.current().nextBoolean())
   }
 
   def unfixAll() {
@@ -287,8 +271,7 @@ final class MRFState private(val mrf: MRF, parAtoms: ParArray[GroundAtom], parCo
       }
     }
 
-  } // */
-
+  }
 
   def flip(atom: GroundAtom, iteration:Int) {
 
@@ -296,9 +279,7 @@ final class MRFState private(val mrf: MRF, parAtoms: ParArray[GroundAtom], parCo
 
     // --- Flip that atom.
     // --- Update cost according to the specified atom's delta.
-    val test = atom.flip
-//    println("[FLIP FUNCTION ] Atom delta change: " + test)
-    totalCost += test // WARNING: Sometimes total cost does not change. WHY?
+    totalCost += atom.flip
     atom.lastFlip = iteration
 
 
@@ -345,7 +326,7 @@ final class MRFState private(val mrf: MRF, parAtoms: ParArray[GroundAtom], parCo
             //       only when it is positive, otherwise do the opposite.
             if (constraint.weight > 0) {
               Unsatisfied -= constraint
-              if(constraint.isHardConstraint && priority.contains(constraint)) priority -= constraint
+              if(constraint.isHardConstraint && priorityBuffer.contains(constraint)) priorityBuffer -= constraint
             }
             else Unsatisfied += constraint
 
@@ -414,7 +395,7 @@ final class MRFState private(val mrf: MRF, parAtoms: ParArray[GroundAtom], parCo
             //       only when it is positive, otherwise do the opposite
             if (constraint.weight > 0) {
               Unsatisfied += constraint
-              if(constraint.isHardConstraint) priority += constraint
+              if(constraint.isHardConstraint) priorityBuffer += constraint
             }
             else Unsatisfied -= constraint
 
@@ -460,20 +441,6 @@ final class MRFState private(val mrf: MRF, parAtoms: ParArray[GroundAtom], parCo
         }
       }
     }
-//    if (Unsatisfied.size < 20) {
-//      println("[FLIP FUNCTION ] UnSAT:")
-//      for (i <- 0 until Unsatisfied.size) {
-//        val clause = Unsatisfied(i).literals.map {
-//          l =>
-//            decodeLiteral(l)(mrf.mln) match {
-//              case Some(litTXT) => litTXT
-//              case None => sys.error("Cannot decode literal: " + l)
-//            }
-//        }.reduceLeft(_ + " v " + _)
-//        println("[FLIP FUNCTION ] " + Unsatisfied(i).weight +" "+ clause)
-//      }
-//    }
-//    println("[FLIP FUNCTION ] Flipped to "+atom.state)
   }
 
   // -----------------------------------
@@ -529,7 +496,7 @@ final class MRFState private(val mrf: MRF, parAtoms: ParArray[GroundAtom], parCo
       iterator.advance()
       val constraint = iterator.value()
       //if ( constraint.isHardConstraint || ( constraint.isSatisfied && (random.nextDouble() < constraint.threshold))){
-      if (constraint.isSatisfied && (constraint.isHardConstraint || (/*ThreadLocalRandom.current().nextDouble()*/random.nextDouble() <= constraint.threshold))) {
+      if (constraint.isSatisfied && (constraint.isHardConstraint || (ThreadLocalRandom.current().nextDouble() <= constraint.threshold))) {
         constraint.inactive = false
         totalActive += 1
       }
@@ -645,30 +612,22 @@ final class MRFState private(val mrf: MRF, parAtoms: ParArray[GroundAtom], parCo
 
   def getNumberUnsatisfied: Int = Unsatisfied.size
 
-  def getRandomAtom: GroundAtom = parAtoms(/*ThreadLocalRandom.current().nextInt(parAtoms.length)*/random.nextInt(parAtoms.length))
+  def getRandomAtom: GroundAtom = parAtoms(ThreadLocalRandom.current().nextInt(parAtoms.length))
 
   def getRandomAtom(rand: util.Random): GroundAtom = parAtoms(rand.nextInt(parAtoms.length))
 
   def getRandomUnsatConstraint: Constraint = {
-//    if (Unsatisfied.size > 0) Unsatisfied(/*ThreadLocalRandom.current().nextInt(Unsatisfied.size)*/random.nextInt(Unsatisfied.size))
-//    else MRF.NO_CONSTRAINT
     var constraint = MRF.NO_CONSTRAINT
-    var found = false
-    if(priority.size > 0)
-      constraint = priority.remove(0)
-    else if(Unsatisfied.size > 0) {
-      if(Unsatisfied.hard > 0)
-        constraint = Unsatisfied.getRandomHard()
-      else
-        constraint = Unsatisfied(random.nextInt(Unsatisfied.size))
-//      for(i <- 0 until Unsatisfied.size) {
-//        if(Unsatisfied(i).isHardConstraint && !found) {
-//          constraint = Unsatisfied(i)
-//          found = true
-//        }
-//      }
-//      if(!found) constraint = Unsatisfied(random.nextInt(Unsatisfied.size))
-      //constraint = Unsatisfied(random.nextInt(Unsatisfied.size))
+    if(!satHardPriority && Unsatisfied.size > 0)
+      constraint = Unsatisfied(ThreadLocalRandom.current().nextInt(Unsatisfied.size))
+    else if(satHardPriority) {
+      if(priorityBuffer.size > 0) constraint = priorityBuffer.remove(0)
+      else if(Unsatisfied.size > 0) {
+        if (Unsatisfied.hard > 0)
+          constraint = Unsatisfied.getRandomHard()
+        else
+          constraint = Unsatisfied(ThreadLocalRandom.current().nextInt(Unsatisfied.size))
+      }
     }
     constraint
   }
@@ -676,8 +635,6 @@ final class MRFState private(val mrf: MRF, parAtoms: ParArray[GroundAtom], parCo
   def count() {
     parAtoms.foreach(atom => if (atom.state) atom.truesCounter += 1)
   }
-
-  //def getUnSatConstraints = Unsatisfied // problem!!! TODO cannot be accessed from external sources
 
   private object Unsatisfied {
 
@@ -699,7 +656,7 @@ final class MRFState private(val mrf: MRF, parAtoms: ParArray[GroundAtom], parCo
 
     def getRandomHard(): Constraint = {
       var constraint = MRF.NO_CONSTRAINT
-      var idx = random.nextInt(_numHard) + 1
+      var idx = ThreadLocalRandom.current().nextInt(_numHard) + 1
       val iterator = _constraintIds.iterator()
       while(iterator.hasNext) {
         val id = iterator.next()
@@ -759,7 +716,7 @@ final class MRFState private(val mrf: MRF, parAtoms: ParArray[GroundAtom], parCo
 
 object MRFState {
 
-  def apply(mrf: MRF): MRFState = {
+  def apply(mrf: MRF, satHardUnit: Boolean = true, satHardPriority: Boolean = true): MRFState = {
 
     @inline def fixLiteral(literal: Int) {
       val atom = mrf.atoms.get(math.abs(literal))
@@ -786,7 +743,7 @@ object MRFState {
       if(parAtom(i).isFixed) count +=1
       i += 1
     }
-    println("[INFO ] Number of fixed atoms: "+count)
+
     val constraintsIterator = mrf.constraints.iterator()
     i = 0
     while (constraintsIterator.hasNext) {
@@ -795,12 +752,12 @@ object MRFState {
       parConstraints(constraint.id) = constraint
 
       //Trivially satisfy hard-constrained unit clauses
-      if (constraint.isHardConstraint && constraint.isUnit) {
+      if (satHardUnit && constraint.isHardConstraint && constraint.isUnit) {
         fixLiteral(constraint.literals(0))
         //constraint.nsat = 1
       }
       i += 1
     }
-    new MRFState(mrf, parAtom, parConstraints)
+    new MRFState(mrf, parAtom, parConstraints, satHardPriority)
   }
 }

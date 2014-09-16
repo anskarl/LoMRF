@@ -1,9 +1,11 @@
 package examples
 
+import lomrf.mln.grounding.MRFBuilder
 import lomrf.mln.model._
 import lomrf.logic.AtomSignature
-import lomrf.mln.inference.{MRF, MaxWalkSAT, MRFBuilder}
+import lomrf.mln.inference.MaxWalkSAT
 import java.io.{FileOutputStream, PrintStream}
+import lomrf.mln.model.mrf.MRF
 import lomrf.util.{Utilities, Logging}
 
 

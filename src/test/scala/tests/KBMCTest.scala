@@ -32,12 +32,12 @@
 
 package tests
 
+import lomrf.mln.grounding.MRFBuilder
 import org.scalatest.junit.AssertionsForJUnit
 import org.junit.Test
 import org.junit.Assert._
 import lomrf.mln.model._
 import lomrf.logic.AtomSignature
-import lomrf.mln.inference.MRFBuilder
 import lomrf.util.{Utilities, Logging}
 
 /**

@@ -34,7 +34,7 @@ package lomrf.util
 
 import scala.collection.mutable
 import java.io.File
-import lomrf.mln.inference.MRFState
+import lomrf.mln.model.mrf.MRFState
 
 /**
  * @author Anastasios Skarlatidis
@@ -60,7 +60,7 @@ object Utilities extends Logging {
       var resultFiles = List[File]()
       val queue = mutable.Queue[File](rootDir)
 
-      while (!queue.isEmpty) {
+      while (queue.nonEmpty) {
         queue.dequeue().listFiles.foreach {
           x =>
             if (x.isDirectory) queue.enqueue(x)
@@ -79,7 +79,7 @@ object Utilities extends Logging {
     var resultFiles = List[File]()
     val queue = mutable.Queue[File](rootDir)
 
-    while (!queue.isEmpty) {
+    while (queue.nonEmpty) {
       queue.dequeue().listFiles.foreach {
         x =>{
           //println("READING "+x.getAbsolutePath)
@@ -101,7 +101,7 @@ object Utilities extends Logging {
       var resultFiles = List[File]()
       val queue = mutable.Queue[File](rootDir)
 
-      while (!queue.isEmpty) {
+      while (queue.nonEmpty) {
         queue.dequeue().listFiles.foreach {
           x =>
             if (x.isDirectory) queue.enqueue(x)
@@ -185,28 +185,7 @@ object Utilities extends Logging {
    *
    * @param state MRF state
    */
-  def printMRFStateStats(state: MRFState) {
-//    info("Stats:")
-//    val iterator = state.getUnSatConstraints.elements.iterator()
-//    var neg = 0
-//    while(iterator.hasNext) {
-//      if(state.mrf.constraints.get(iterator.next()).weight < 0) neg += 1
-//    }
-//    val size = state.getUnSatConstraints.size
-//    info("UnSat negative constraints: "+neg+"/"+size)
-//    info("UnSat positive constraints: "+(size - neg)+"/"+size)
-//
-//    var likelihood, likelihoodUB = 0.0
-//    val it = state.mrf.constraints.iterator()
-//    while(it.hasNext) {
-//      it.advance()
-//      val c = it.value()
-//      if(c.isSatisfied) likelihood += c.weight
-//      if(c.weight > 0 || c.isHardConstraint) likelihoodUB += c.weight
-//    }
-//    info("Likelihood: e^" + likelihood)
-//    info("Likelihood upper bound: e^" + likelihoodUB)
-  }
+  def printMRFStateStats(state: MRFState) {}
 
   object Memoize {
 

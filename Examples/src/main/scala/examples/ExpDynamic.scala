@@ -1,9 +1,11 @@
 package examples
 
 import lomrf.logic.AtomSignature
+import lomrf.mln.grounding.MRFBuilder
 import lomrf.mln.model.MLN
-import lomrf.mln.inference.{MRF, MCSAT, MRFBuilder}
+import lomrf.mln.inference.MCSAT
 import java.io.PrintStream
+import lomrf.mln.model.mrf.MRF
 import lomrf.util.Logging
 
 object ExpDynamic extends Logging {
