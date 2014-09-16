@@ -61,10 +61,9 @@ object KBDifferenceCLI extends Logging {
         "\tFound " + mln_2.functionSchema.size + " functions.")
 
     val fileWriter = new FileWriter(target)
-    var identical = true
 
-    val diff2 = mln_2.clauses.par.filter(x=> !mln_1.clauses.contains(x))
-    val diff1 = mln_1.clauses.par.filter(x=> !mln_2.clauses.contains(x))
+    val diff1 = mln_1.clauses.par.filter(x => !mln_2.clauses.contains(x))
+    val diff2 = mln_2.clauses.par.filter(x => !mln_1.clauses.contains(x))
 
     if(diff1.nonEmpty){
       fileWriter.write("KB 1 (" + source(0) + ") does not contain the following clauses:\n\n")
@@ -76,25 +75,11 @@ object KBDifferenceCLI extends Logging {
       diff2.seq.foreach(clause => fileWriter.write(clause.toString + "\n"))
     }
 
+    if(diff1.isEmpty && diff2.isEmpty) info("KBs are exactly the same!")
 
-    /*fileWriter.write("KB 1 (" + source(0) + ") does not contain the following clauses:\n\n")
-    for(clause <- mln_2.clauses) {
-      if(!mln_1.clauses.contains(clause)) {
-        fileWriter.write(clause.toString + "\n")
-        identical = false
-      }
-    }*/
-    /*fileWriter.write("\nKB 2 (" + source(1) + ") does not contain the following clauses:\n\n")
-    for(clause <- mln_1.clauses) {
-      if(!mln_2.clauses.contains(clause)) {
-        fileWriter.write(clause.toString + "\n")
-        identical = false
-      }
-    }*/
     fileWriter.flush()
     fileWriter.close()
 
-    //if(identical) info("KBs are exactly the same!")
   }
 
   private class KBCOptions extends OptionParser {
@@ -103,7 +88,6 @@ object KBDifferenceCLI extends Logging {
     var evidenceFileName: Option[Array[String]] = None
     var outputFileName: Option[String] = None
 
-    // TODO: Fix trim function
     opt("i", "input", "<files>", "Two comma separated input files", {
       v: String => if (!v.isEmpty) inputFileName = Some(v.split(',').map(_.trim))
     })
