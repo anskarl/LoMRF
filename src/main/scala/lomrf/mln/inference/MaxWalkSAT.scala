@@ -32,12 +32,10 @@
 
 package lomrf.mln.inference
 
-
 import MRF.{NO_ATOM, NO_CONSTRAINT, NO_ATOM_ID}
 import java.io.PrintStream
 import java.util.concurrent.ThreadLocalRandom
 import lomrf.util.{Utilities, Logging}
-
 
 /**
  * This is an implementation of the MaxWalkSAT local-search algorithm with tabu search for weighed satisfiability solving.
@@ -55,7 +53,6 @@ import lomrf.util.{Utilities, Logging}
  * Discrete Mathematics and Theoretical Computer Science, pp. 573–586. AMS
  * </li>
  * </ul>
- *
  *
  * @param mrf The ground Markov network
  * @param pBest The probability to perform a greedy search (default is 0.5).
@@ -75,8 +72,17 @@ final class MaxWalkSAT(mrf: MRF, pBest: Double = 0.5, maxFlips: Int = 100000, ma
 
   //private val random = new Random()
 
+  /**
+   * Fetch atom given its literal code
+   * @param literal Code of the literal
+   * @return The ground atom which corresponds to the given literal code
+   */
   @inline private def fetchAtom(literal: Int) = mrf.atoms.get(math.abs(literal))
 
+  /**
+   * Runs MAP inference using MaxWalkSAT
+   * @return The MRFState after inference procedure is complete
+   */
   def infer(): MRFState = {
     val startTime = System.currentTimeMillis()
     val state = infer(MRFState(mrf))
@@ -87,8 +93,14 @@ final class MaxWalkSAT(mrf: MRF, pBest: Double = 0.5, maxFlips: Int = 100000, ma
     state
   }
 
+  /**
+   * Runs MAP inference using MaxWalkSAT
+   * @param state The current MRFState
+   * @return The MRFState after inference procedure is complete
+   */
   private[inference] def infer(state: MRFState): MRFState = {
 
+    // Circular access, for better performance
     val bufferAtoms = new Array[GroundAtom](mrf.maxNumberOfLiterals)
     var bufferIdx = 0
     var currentAtom = MRF.NO_ATOM
@@ -96,6 +108,11 @@ final class MaxWalkSAT(mrf: MRF, pBest: Double = 0.5, maxFlips: Int = 100000, ma
     var numTry = 0
     var iteration = 0
 
+    /**
+     * MaxWalkSAT step which performs noisy and greedy moves, according to a probability, in order
+     * to select the next atom to flip.
+     * @return The ground atom that was chosen to flip
+     */
     @inline def maxWalkSATStep(): GroundAtom = {
       val lucky = state.getRandomUnsatConstraint
 
@@ -156,7 +173,6 @@ final class MaxWalkSAT(mrf: MRF, pBest: Double = 0.5, maxFlips: Int = 100000, ma
         //
         // Noisy move: Choose a random atom to flip
         //
-
         if (lucky.isPositive) {
           // a. The chosen constraint has positive weight value.
           while (idx < literals.length) {
@@ -185,7 +201,6 @@ final class MaxWalkSAT(mrf: MRF, pBest: Double = 0.5, maxFlips: Int = 100000, ma
 
       }
 
-
       // return the chosen atom
       if (bufferIdx == 1) bufferAtoms(0)
       else if (bufferIdx > 1) bufferAtoms(ThreadLocalRandom.current().nextInt(bufferIdx))
@@ -193,23 +208,23 @@ final class MaxWalkSAT(mrf: MRF, pBest: Double = 0.5, maxFlips: Int = 100000, ma
     }
 
 
-
-
     while (numTry < maxTries) {
       state.reset(tabuLength, unitPropagation = false)
       iteration = 0
       var chosenAtom = NO_ATOM
+      info("Number of UnSat Clauses before running: "+state.getNumberUnsatisfied+"/"+mrf.constraints.size())
       while (iteration < maxFlips) {
 
         if (state.getCost <= TARGET_COST) {
           info("A solution is found after " + (iteration * (numTry + 1)) + " iterations.")
+          info("Number of UnSat Clauses: "+state.getNumberUnsatisfied+"/"+mrf.constraints.size())
+          info("Total Cost: "+state.getCost)
           iteration = maxFlips //force stop
         }
         else {
           chosenAtom = maxWalkSATStep()
           if (chosenAtom.id != NO_ATOM_ID) {
             state.flip(chosenAtom, iteration)
-
           }
           iteration += 1
         }
@@ -218,10 +233,17 @@ final class MaxWalkSAT(mrf: MRF, pBest: Double = 0.5, maxFlips: Int = 100000, ma
     }
     state.restoreLowState()
 
+    state.evaluate()
+    state.printStats()
+
     //return best state
     state
   }
 
+  /**
+   * Write the results of inference into the selected output stream
+   * @param out Chosen output stream (default is console)
+   */
   def writeResults(out: PrintStream = System.out) {
     import lomrf.util.decodeAtom
 

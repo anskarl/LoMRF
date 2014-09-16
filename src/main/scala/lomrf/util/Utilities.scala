@@ -34,23 +34,25 @@ package lomrf.util
 
 import scala.collection.mutable
 import java.io.File
+import lomrf.mln.inference.MRFState
 
 /**
  * @author Anastasios Skarlatidis
  */
 
-object Utilities {
+object Utilities extends Logging {
+
   implicit def strToFile(str:String) = new File(str)
 
-  def flatMapSublists[A,B](ls: List[A])(f: (List[A]) => List[B]): List[B] =
+  def flatMapSubLists[A,B](ls: List[A])(f: (List[A]) => List[B]): List[B] =
     ls match {
       case Nil => Nil
-      case sublist@(_ :: tail) => f(sublist) ::: flatMapSublists(tail)(f)
+      case sublist@(_ :: tail) => f(sublist) ::: flatMapSubLists(tail)(f)
     }
 
   def combinations[A](n: Int, ls: List[A]): List[List[A]] =
     if (n == 0) List(Nil)
-    else flatMapSublists(ls) { sl =>
+    else flatMapSubLists(ls) { sl =>
       combinations(n - 1, sl.tail) map {sl.head :: _}
     }
   
@@ -94,7 +96,6 @@ object Utilities {
     }
     resultFiles
   }
-
 
   def findFilesOpt(rootDir: File, matcher: String => Option[File]): List[File] = {
       var resultFiles = List[File]()
@@ -149,12 +150,11 @@ object Utilities {
     (System.currentTimeMillis - begin, result)
   }
 
-  def powerset[T](xs: Set[T]) = (Set(Set.empty[T]) /: xs)((xss, x) => xss ++ xss.map(_ + x))
+  def powerSet[T](xs: Set[T]) = (Set(Set.empty[T]) /: xs)((xss, x) => xss ++ xss.map(_ + x))
 
   def naturals: Stream[Int] = Stream.cons(1, naturals.map(_ + 1))
 
-
-  def printTable(table: Array[Array[String]], firstRowAsHeader:Boolean = true){
+  def printTable(table: Array[Array[String]], firstRowAsHeader:Boolean = true) {
     // Find the maximum number of columns
     var maxColumns = 0
     for(i <- 0 until table.length) {
@@ -181,9 +181,32 @@ object Utilities {
     }
   }
 
-
-
-
+  /**
+   *
+   * @param state MRF state
+   */
+  def printMRFStateStats(state: MRFState) {
+//    info("Stats:")
+//    val iterator = state.getUnSatConstraints.elements.iterator()
+//    var neg = 0
+//    while(iterator.hasNext) {
+//      if(state.mrf.constraints.get(iterator.next()).weight < 0) neg += 1
+//    }
+//    val size = state.getUnSatConstraints.size
+//    info("UnSat negative constraints: "+neg+"/"+size)
+//    info("UnSat positive constraints: "+(size - neg)+"/"+size)
+//
+//    var likelihood, likelihoodUB = 0.0
+//    val it = state.mrf.constraints.iterator()
+//    while(it.hasNext) {
+//      it.advance()
+//      val c = it.value()
+//      if(c.isSatisfied) likelihood += c.weight
+//      if(c.weight > 0 || c.isHardConstraint) likelihoodUB += c.weight
+//    }
+//    info("Likelihood: e^" + likelihood)
+//    info("Likelihood upper bound: e^" + likelihoodUB)
+  }
 
   object Memoize {
 
@@ -216,8 +239,6 @@ object Utilities {
         cache.getOrElseUpdate(x, f(a, b, c))
       }
     }
-
-
   }
 
 }

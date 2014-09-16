@@ -272,7 +272,8 @@ final class MCSAT(mrf: MRF, pBest: Double = 0.5, pSA: Double = 0.1, maxFlips: In
       val atomID = iterator.key()
       if (atomID >= mln.queryStartID && atomID <= mln.queryEndID) {
         val groundAtom = iterator.value()
-        val probability = (groundAtom.getTruesCount * 1.0) / samples
+        var probability = (groundAtom.getTruesCount * 1.0) / samples
+        if(probability < 0.099) probability = 0.0
         // Add Gaussian noise for P=0.0 and P=1.0. Also reformat the displayed probability result in order to have at maximum 7 floating point decimals
         //val txtProbability = if (probability == 0.0) "4.9995e-05" else if(probability == 1.0) "0.99995" else numFormat.format(probability)
         decodeAtom(iterator.key()) match {

@@ -43,6 +43,7 @@ import scala.collection.mutable
 import gnu.trove.procedure.{TIntObjectProcedure, TObjectProcedure, TIntProcedure}
 import lomrf.logic.AtomSignature
 
+// TODO: Add RockIt optimizations
 /**
  * This is an implementation of an approximate MAP inference algorithm for MLNs using Integer Linear Programming.
  * The original implementation of the algorithm can be found in: [[http://alchemy.cs.washington.edu/code/]].
@@ -71,7 +72,7 @@ final class ILP(mrf: MRF) extends LPModel(LPSolverLib.lp_solve) with Logging {
     val expressions = ArrayBuffer[LinearExpression]()
     val constraints =  ArrayBuffer[LinearExpression]()
 
-    var constraintsIterator = mrf.constraints.iterator() // iterator on the ground clauses
+    val constraintsIterator = mrf.constraints.iterator() // iterator on the ground clauses
 
     while (constraintsIterator.hasNext) {
       constraintsIterator.advance()
@@ -164,7 +165,9 @@ final class ILP(mrf: MRF) extends LPModel(LPSolverLib.lp_solve) with Logging {
     info("Solution status: " + status.toString)
     info("Objective = "+ objectiveValue.get)
 
-    if(isDebugEnabled) { // before rounding up
+    // ==========================================ILP Rounding==================================================
+
+    if(isDebugEnabled) {
       for( (k, v) <- cacheLiterals )
         info(v.name + " = " + v.value.get)
       for( (k, v) <- cacheClauses )
@@ -172,37 +175,111 @@ final class ILP(mrf: MRF) extends LPModel(LPSolverLib.lp_solve) with Logging {
     }
 
     val solution = new HashMap[Int, Double]()
-    for( (k, v) <- cacheLiterals )
-      solution += ( (k, v.value.get) )
+    for( (k, v) <- cacheLiterals ) {
+      var s = v.value.get
+      if(s > 1.0) s = 1.0
+      solution += ((k, v.value.get))
+    }
+
+    info("Non-Integral Solutions: " + solution.count(p => p._2 != 0.0 && p._2 != 1.0))
+
+    var c = 0
+    for( (k, v) <- solution) {
+      if(v == 0.0) {
+        mrf.atoms.get(k).state = false
+        mrf.atoms.get(k).fixedValue = -1
+        c += 1
+      }
+      else if(v == 1.0) {
+        mrf.atoms.get(k).state = true
+        mrf.atoms.get(k).fixedValue = 1
+        c += 1
+      }
+    }
+    info("Number of integral solutions counted: "+c)
+
+    val uc = new TIntObjectHashMap[Constraint]()
+    uc.putAll(mrf.constraints)
+
+    var iterator = mrf.atoms.iterator()
+    while (iterator.hasNext) {
+      iterator.advance()
+      val atomID = iterator.key()
+      val state = iterator.value().state
+      if(iterator.value().isFixed) {
+        uc.retainEntries(new TIntObjectProcedure[Constraint] {
+          override def execute(a: Int, b: Constraint): Boolean = {
+            ( (b.weight > 0 || b.isHardConstraint )&& !((state && b.literals.contains(atomID)) || (!state && b.literals.contains(-atomID))) ) ||
+            ( b.weight < 0 && ((state && b.literals.contains(atomID)) || (!state && b.literals.contains(-atomID))) )
+          }
+        })
+      }
+    }
+    info("ILP UnSAT Constraints before MWS: "+uc.size())
+
+    info("Running MaxWalkSAT on the remaining solutions")
+    val sat = new MaxWalkSAT(mrf)
+    sat.infer()
+
+    uc.clear()
+    uc.putAll(mrf.constraints)
+
+    iterator = mrf.atoms.iterator()
+    while (iterator.hasNext) {
+      iterator.advance()
+      val atomID = iterator.key()
+      val state = iterator.value().state
+      uc.retainEntries(new TIntObjectProcedure[Constraint] {
+        override def execute(a: Int, b: Constraint): Boolean = {
+          ( b.weight > 0 && !((state && b.literals.contains(atomID)) || (!state && b.literals.contains(-atomID))) ) ||
+            ( b.weight < 0 && ((state && b.literals.contains(atomID)) || (!state && b.literals.contains(-atomID))) )
+        }
+      })
+    }
+    info("ILP UnSAT Constraints: "+uc.size())
+
+    val iter = uc.iterator()
+    while(iter.hasNext) {
+      iter.advance()
+      val clause = iter.value().literals.map {
+        l =>
+          decodeLiteral(l)(mrf.mln) match {
+            case Some(litTXT) => litTXT
+            case None => sys.error("Cannot decode literal: " + l)
+          }
+      }.reduceLeft(_ + " v " + _)
+      info(iter.value().weight + " " + clause)
+    }
+
 
 //    for( (k, v) <- solution) {
 //      info(decodeLiteral(k)(mrf.mln).get + " " + v)
 //    }
 
-    info("Non-Integral Solutions: " + solution.count(p => p._2 != 0.0 && p._2 != 1.0))
+//    if(solution.exists(p => p._2 != 0.0 && p._2 != 1.0)) {
+//      val clauses = new TIntObjectHashMap[Constraint]()
+//      clauses.putAll(mrf.constraints)
+//      roundup(solution, clauses)
+//    }
+//
+//    var w = 0.0
+//    var wNAll = 0
+//    constraintsIterator = mrf.constraints.iterator() // iterator on the ground clauses
+//    while (constraintsIterator.hasNext) {
+//      constraintsIterator.advance()
+//      val constraint = constraintsIterator.value()
+//      if(constraint.weight.isInfinite || constraint.weight.isNaN || constraint.weight == mrf.weightHard) w += mrf.weightHard
+//      else if(constraint.weight > 0) w += constraint.weight
+//      else wNAll += 1
+//    }
+//    info("#Clauses with negative weights: "+wNAll+"/"+mrf.constraints.size())
+//    info("Likelihood UBound: e^"+ w)
+//
+//    for( (k, v) <- solution) {
+//      out.println(decodeLiteral(k)(mrf.mln).get + " " + v.toInt)
+//    }
 
-    if(solution.exists(p => p._2 != 0.0 && p._2 != 1.0)) {
-      val clauses = new TIntObjectHashMap[Constraint]()
-      clauses.putAll(mrf.constraints)
-      roundup(solution, clauses)
-    }
 
-    var w = 0.0
-    var wNAll = 0
-    constraintsIterator = mrf.constraints.iterator() // iterator on the ground clauses
-    while (constraintsIterator.hasNext) {
-      constraintsIterator.advance()
-      val constraint = constraintsIterator.value()
-      if(constraint.weight.isInfinite || constraint.weight.isNaN || constraint.weight == mrf.weightHard) w += mrf.weightHard
-      else if(constraint.weight > 0) w += constraint.weight
-      else wNAll += 1
-    }
-    info("#Clauses with negative weights: "+wNAll+"/"+mrf.constraints.size())
-    info("Likelihood UBound: e^"+ w)
-
-    for( (k, v) <- solution) {
-      out.println(decodeLiteral(k)(mrf.mln).get + " " + v.toInt)
-    }
 //    for( (k, v) <- cacheLiterals) {
 //     if(v.value.get <= 0.0 || v.value.get >= 1.0) // warning rounding to int may cause problems (new hashmap)
 //        out.println(decodeLiteral(k)(mrf.mln).get + " " + v.value.get.toInt)
@@ -326,7 +403,7 @@ final class ILP(mrf: MRF) extends LPModel(LPSolverLib.lp_solve) with Logging {
     info("Likelihood of the solution is: e^" + w)
   }
 
-  /*def writeResults(out: PrintStream = System.out) {
+  def writeResults(out: PrintStream = System.out) {
     import lomrf.util.decodeAtom
 
     implicit val mln = mrf.mln
@@ -338,20 +415,12 @@ final class ILP(mrf: MRF) extends LPModel(LPSolverLib.lp_solve) with Logging {
       if (atomID >= mln.queryStartID && atomID <= mln.queryEndID) {
         val groundAtom = iterator.value()
         val state = if(groundAtom.getState) 1 else 0
-        if(showAll) {
-          decodeAtom(iterator.key()) match {
-            case Some(txtAtom) => out.println(txtAtom + " " + state)
-            case _ => error("failed to decode id:" + atomID)
-          }
-        }
-        else {
-          if(state == 1) decodeAtom(iterator.key()) match {
-            case Some(txtAtom) => out.println(txtAtom + " " + state)
-            case _ => error("failed to decode id:" + atomID)
-          }
+        decodeAtom(iterator.key()) match {
+          case Some(txtAtom) => out.println(txtAtom + " " + state)
+          case _ => error("failed to decode id:" + atomID)
         }
       }
     }
-  }*/
+  }
 
 }

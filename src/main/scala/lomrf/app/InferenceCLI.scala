@@ -152,7 +152,6 @@ object InferenceCLI extends OptionParser with Logging {
     v: String => _resultsFileName = Some(v)
   })
 
-
   opt("q", "query", "<string>", "Comma separated query atoms. "
     + "Each atom must be defined using its identity (i.e. Name/arity). "
     + "For example the identity of QueryAtom(arg1,arg2) is QueryAtom/2", _.split(',').foreach(v => addQueryAtom(v)))
@@ -164,8 +163,6 @@ object InferenceCLI extends OptionParser with Logging {
   opt("owa", "open-world-assumption", "<string>",
     "Specified evidence atoms (comma-separated without white-spaces) are open world, while other evidence atoms are closed-world. " +
       "Each atom must be defined using its identity (i.e. Name/arity, see the description of -q for an example)", _.split(",").foreach(v => addOWA(v)))
-
-
 
   opt("infer", "inference-type", "<map | marginal>", "Specify the inference type: MAP or Marginal (default is marginal).", {
     v: String => v.trim.toLowerCase match {
@@ -311,7 +308,7 @@ object InferenceCLI extends OptionParser with Logging {
     val mrfBuilder = new MRFBuilder(mln, _noNeg)
     val mrf = mrfBuilder.buildNetwork
 
-    if (_marginalInference) {
+    if (_marginalInference) { // Marginal inference methods
       val solver = new MCSAT(
         mrf, pBest = _pBest, pSA = _pSA, maxFlips = _maxFlips, maxTries = _maxTries, targetCost = _targetCost, numSolutions = _numSolutions,
         saTemperature = _saTemperature, samples = _samples, lateSA = _lateSA, unitPropagation = _unitProp
@@ -319,7 +316,7 @@ object InferenceCLI extends OptionParser with Logging {
       solver.infer()
       solver.writeResults(resultsWriter)
     }
-    else {
+    else { // MAP inference methods
       if(_mws) {
         val solver = new MaxWalkSAT(mrf, pBest = _pBest, maxFlips = _maxFlips, maxTries = _maxTries, targetCost = _targetCost, showAll = _mapShowAll)
         solver.infer()
@@ -328,7 +325,7 @@ object InferenceCLI extends OptionParser with Logging {
       else {
         val solver = new ILP(mrf)
         solver.infer(resultsWriter)
-        //solver.writeResults(resultsWriter)
+        solver.writeResults(resultsWriter)
       }
     }
   }
