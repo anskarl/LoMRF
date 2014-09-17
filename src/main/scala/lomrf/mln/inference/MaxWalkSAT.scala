@@ -69,9 +69,9 @@ import lomrf.util.{Utilities, Logging}
  * @author Vagelis Michelioudakis
  */
 final class MaxWalkSAT(mrf: MRF, pBest: Double = 0.5, maxFlips: Int = 100000, maxTries: Int = 1, targetCost: Double = 0.001,
-                       outputAll: Boolean = true, satHardUnit: Boolean = true, satHardPriority: Boolean = false, tabuLength: Int = 5) extends Logging {
-  private val TARGET_COST = targetCost + 0.0001
+                       outputAll: Boolean = true, satHardUnit: Boolean = true, satHardPriority: Boolean = true, tabuLength: Int = 5) extends Logging {
 
+  private val TARGET_COST = targetCost + 0.0001
   //private val random = new Random()
 
   /**
