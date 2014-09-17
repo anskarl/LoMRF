@@ -295,12 +295,11 @@ class ClauseGrounderImpl(
       counter
     }
 
-    /* if (clause.isGround) performGrounding()
+     if (clause.isGround) performGrounding()
     else while (groundIterator.hasNext) performGrounding(theta = groundIterator.next())
-    */
 
 
-    if (clause.isGround) {
+/*    if (clause.isGround) {
       val c = performGrounding()
       debug("Clause: " + clause.toString + " --- produced " + c + " groundings.")
     }
@@ -308,7 +307,7 @@ class ClauseGrounderImpl(
       val f = Future.traverse(groundIterator)(substitution => Future(performGrounding(substitution)))
       val result = Await.result(f, Duration.Inf)
       debug("Clause: " + clause.toString + " --- produced " + result.sum + " groundings.")
-    }
+    }*/
 
 
   }
