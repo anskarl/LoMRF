@@ -33,7 +33,7 @@
 package lomrf.mln.model.mrf
 
 
-final class Constraint(val weight: Double, val literals: Array[Int], val isHardConstraint: Boolean, val threshold: Double, val id: Int = -1) {
+final class Constraint(val weight: Double, val literals: Array[Int], val isHardConstraint: Boolean, val threshold: Double, val id: Int = -1, var mode: Int = 0) {
 
   // ----------------------------------------------------------------
   // Mutable information: accessible only from classes of model package.
@@ -56,10 +56,17 @@ final class Constraint(val weight: Double, val literals: Array[Int], val isHardC
    * </ul>
    * @return the cost of violating this constraint
    */
-  def cost: Double = {
-    if (isPositive && nsat == 0) weight
-    else if (!isPositive && nsat > 0) -weight
-    else 0
+  def cost: Double = { // modification testing
+    if(mode == 0) {
+      if (isPositive && nsat == 0) weight
+      else if (!isPositive && nsat > 0) -weight
+      else 0
+    }
+    else {
+      if (isPositive && nsat == 0) 1
+      else if (!isPositive && nsat > 0) 1
+      else 0
+    }
   }
 
   /**

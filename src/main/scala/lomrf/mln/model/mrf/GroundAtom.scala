@@ -82,7 +82,7 @@ final class GroundAtom(val id: Int, weightHard: Double) {
   /**
    * @return true when it breaks at least one hard-constrained clause
    */
-  def breaksHardConstraint = brakeCost >= weightHard
+  def breaksHardConstraint = brakeCost >= weightHard // TODO In mode sampleSAT is problematic
 
   /**
    * This atom is either fixed or it will break at least one hard-constraint if it is flipped
@@ -142,32 +142,60 @@ final class GroundAtom(val id: Int, weightHard: Double) {
    * The given constraint will become satisfied when this atom is flipped (UNSAT -> SAT).
    */
   private[mln] def assignSatPotential(constraint: Constraint) {
-    if (constraint.isPositive) makeCost += constraint.weight
-    else brakeCost -= constraint.weight
+    if(constraint.mode == 0) {
+      if (constraint.isPositive) makeCost += constraint.weight
+      else brakeCost -= constraint.weight
+    }
+    else {
+      val v = if(constraint.weight > 0) 1 else -1
+      if (constraint.isPositive) makeCost += v
+      else brakeCost -= v
+    }
   }
 
   /**
    * The given constraint will become unsatisfied when this atom is flipped (SAT -> UNSAT).
    */
   private[mln] def assignUnsatPotential(constraint: Constraint) {
-    if (constraint.isPositive) brakeCost += constraint.weight
-    else makeCost -= constraint.weight
+    if(constraint.mode == 0) {
+      if (constraint.isPositive) brakeCost += constraint.weight
+      else makeCost -= constraint.weight
+    }
+    else {
+      val v = if(constraint.weight > 0) 1 else -1
+      if (constraint.isPositive) brakeCost += v
+      else makeCost -= v
+    }
   }
 
   /**
    * The given constraint will no longer becomes unsatisfied when this atom is flipped.
    */
   private[mln] def revokeSatPotential(constraint: Constraint) {
-    if (constraint.isPositive) makeCost -= constraint.weight
-    else brakeCost += constraint.weight
+    if(constraint.mode == 0) {
+      if (constraint.isPositive) makeCost -= constraint.weight
+      else brakeCost += constraint.weight
+    }
+    else {
+      val v = if(constraint.weight > 0) 1 else -1
+      if (constraint.isPositive) makeCost -= v
+      else brakeCost += v
+    }
   }
 
   /**
    * The given constraint will no longer becomes satisfied when this atom is flipped.
    */
   private[mln] def revokeUnsatPotential(constraint: Constraint) {
-    if (constraint.isPositive) brakeCost -= constraint.weight
-    else brakeCost += constraint.weight
+    if(constraint.mode == 0) {
+      if (constraint.isPositive) brakeCost -= constraint.weight
+      else brakeCost += constraint.weight
+    }
+    else {
+      val v = if(constraint.weight > 0) 1 else -1
+      if (constraint.isPositive) brakeCost -= v
+      else brakeCost += v
+    }
   }
 
 }

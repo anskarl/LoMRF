@@ -187,7 +187,7 @@ object InferenceCLI extends OptionParser with Logging {
     }
   })
 
-  opt("mapWrite", "map-output-type", "<all | positive>", "Specify MAP inference output type: 0/1 results for all query atoms or " +
+  opt("mapOutput", "map-output-type", "<all | positive>", "Specify MAP inference output type: 0/1 results for all query atoms or " +
     "only positive query atoms (default is all).", {
     v: String => v.trim.toLowerCase match {
       case "all" => _mapOutputAll = true
@@ -199,8 +199,8 @@ object InferenceCLI extends OptionParser with Logging {
   booleanOpt("satHardUnit", "sat-hard-unit", "Trivially satisfy hard constrained unit clauses (default is " + _satHardUnit + ")" +
     " in MaxWalkSAT.", _satHardUnit = _)
 
-  booleanOpt("satHardPriority", "sat-hard-priority", "Priority to hard constrained clauses (default is " + _satHardUnit + ")" +
-    " in MaxWalkSAT.", _satHardUnit = _)
+  booleanOpt("satHardPriority", "sat-hard-priority", "Priority to hard constrained clauses (default is " + _satHardPriority + ")" +
+    " in MaxWalkSAT.", _satHardPriority = _)
 
   intOpt("samples", "num-samples", "Number of samples to take (default is " + _samples + ").", _samples = _)
 

@@ -149,13 +149,13 @@ final class MRFState private(val mrf: MRF, parAtoms: ParArray[GroundAtom], parCo
   def printMRFStateStats() {
     evaluate()
     info("Stats:")
-    info("UnSat Clauses: " + Unsatisfied.size + "/" + mrf.constraints.size())
+    info("UnSat Clauses: " + Unsatisfied.size + "/" + totalActive)
     var cNeg = 0
     for(i <- 0 until Unsatisfied.size) {
       if(Unsatisfied(i).weight < 0) cNeg += 1
     }
     info("UnSat negative constraints: " + cNeg + "/" + Unsatisfied.size)
-    info("UnSat positive constraints: " + (Unsatisfied.size-cNeg) + "/" + Unsatisfied.size)
+    info("UnSat positive constraints: " + (Unsatisfied.size-Unsatisfied.hard-cNeg) + "/" + Unsatisfied.size)
     info("UnSat hard constraints: " + Unsatisfied.hard + "/" + Unsatisfied.size)
     info("Total Cost: " + totalCost)
 
@@ -177,21 +177,21 @@ final class MRFState private(val mrf: MRF, parAtoms: ParArray[GroundAtom], parCo
    */
   def reset(tabuLength:Int = 5, unitPropagation: Boolean = false) {
     if (unitPropagation) _unitPropagation()
-
+    var count = 0
     //randomise and reset delta
     parAtoms.foreach {
       atom =>{
         // random state only for unfixed atoms
-        if (atom.fixedValue == 0) atom.state = ThreadLocalRandom.current().nextBoolean()
+        if (atom.fixedValue == 0) {atom.state = ThreadLocalRandom.current().nextBoolean();count+=1}
         // reset delta
         atom.resetDelta()
         // reset last flip
         atom.lastFlip = -(tabuLength + 1)
       }
     }
-
+    println("unfixed: "+count)
     lowCost = evaluate()
-    saveAsLowState()
+    saveAsLowState() // maybe for mcsat save as lowstate should be done in unit propagation
     dirtyAtoms = new mutable.HashSet[GroundAtom]()
     priorityBuffer = new ArrayBuffer[Constraint]()
   }
@@ -232,10 +232,12 @@ final class MRFState private(val mrf: MRF, parAtoms: ParArray[GroundAtom], parCo
       nIterator.advance()
       val constraint = nIterator.value()
       if (!constraint.inactive && !constraint.isPositive && !constraint.isSatisfied) {
+        println("Neg clauses found!")
         for (i <- 0 until constraint.literals.length)
           fixAtom(math.abs(constraint.literals(i)), constraint.literals(i) < 0)
       }
     }
+
     // 3. Process positive constraints.
     var done = false
     while (!done) {
@@ -245,11 +247,12 @@ final class MRFState private(val mrf: MRF, parAtoms: ParArray[GroundAtom], parCo
         pIterator.advance()
         val constraint = pIterator.value()
         if (!constraint.inactive && constraint.isPositive && !constraint.isSatisfied) {
-
+          println("Pos clauses found!")
           var numOfNonFixedAtoms = 0
           var nonFixedLiteral = 0
 
           var idx = 0
+          var isSat = false
           while (idx < constraint.literals.length) {
             val lit = constraint.literals(idx)
             val atomID = math.abs(lit)
@@ -258,12 +261,16 @@ final class MRFState private(val mrf: MRF, parAtoms: ParArray[GroundAtom], parCo
             if (atom.fixedValue == 0) {
               nonFixedLiteral = lit
               numOfNonFixedAtoms += 1
-              if (numOfNonFixedAtoms > 1) idx = constraint.literals.length //break
+              //if (numOfNonFixedAtoms > 1) idx = constraint.literals.length //break
+            }
+            else if( (atom.fixedValue == 1 && lit > 0) || (atom.fixedValue == -1 && lit < 0) ){
+              isSat = true
+              idx = constraint.literals.length
             }
             idx += 1
           }
 
-          if (numOfNonFixedAtoms == 1) {
+          if (!isSat && numOfNonFixedAtoms == 1) {
             fixAtom(math.abs(nonFixedLiteral), nonFixedLiteral > 0)
             done = false
           }
@@ -736,11 +743,9 @@ object MRFState {
 
     val atomsIterator = mrf.atoms.iterator()
     var i = 0
-    var count = 0
     while (atomsIterator.hasNext) {
       atomsIterator.advance()
       parAtom(i) = atomsIterator.value()
-      if(parAtom(i).isFixed) count +=1
       i += 1
     }
 

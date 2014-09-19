@@ -62,6 +62,7 @@ import lomrf.util.{Utilities, Logging}
  * @param unitPropagation Perform unit-propagation (default is true)
  *
  * @author Anastasios Skarlatidis
+ * @author Vagelis Michelioudakis
  *
  * @todo merge duplicate duplicate code with MaxWalkSAT (= maxWalkSATStep).
  * @todo perform optimisations to improve the performance.
@@ -69,13 +70,11 @@ import lomrf.util.{Utilities, Logging}
 final class MCSAT(mrf: MRF, pBest: Double = 0.5, pSA: Double = 0.1, maxFlips: Int = 100000, maxTries: Int = 1, targetCost: Double = 0.001,
                       numSolutions: Int = 10, saTemperature: Double = 0.1, samples: Int = 1000, lateSA: Boolean = true, unitPropagation: Boolean = true, tabuLength: Int = 5) extends Logging {
 
-
   private val TARGET_COST = targetCost + 0.0001
-  private val mrfAtoms = mrf.atoms
   //private val random = new Random()
 
 
-  @inline private def fetchAtom(literal: Int) = mrfAtoms.get(math.abs(literal))
+  @inline private def fetchAtom(literal: Int) = mrf.atoms.get(math.abs(literal))
 
   def infer(): MRFState = {
     val state = MRFState(mrf)
@@ -205,11 +204,22 @@ final class MCSAT(mrf: MRF, pBest: Double = 0.5, pSA: Double = 0.1, maxFlips: In
       }
     }
 
+    @inline def changeMode(mode: Int) {
+      val iterator = mrf.constraints.iterator()
+      while(iterator.hasNext) {
+        iterator.advance()
+        iterator.value().mode = mode
+      }
+    }
+
     initialise()
 
     state.selectAllConstraints()
     state.evaluate()
+    state.printMRFStateStats()
 
+    println("MC-SAT BEGINS...")
+    changeMode(1)
     var samplesCounter = 1
 
     val mcsatStartTime = System.currentTimeMillis()
@@ -247,6 +257,7 @@ final class MCSAT(mrf: MRF, pBest: Double = 0.5, pSA: Double = 0.1, maxFlips: In
 
       //-----------------------------------------------------
       state.restoreLowState()
+      state.printMRFStateStats()
       state.count()
       //-----------------------------------------------------
       samplesCounter += 1
@@ -265,16 +276,14 @@ final class MCSAT(mrf: MRF, pBest: Double = 0.5, pSA: Double = 0.1, maxFlips: In
     val numFormat = new DecimalFormat("0.0######")
 
     implicit val mln = mrf.mln
-    //mln.queryEndID
 
-    val iterator = mrfAtoms.iterator()
+    val iterator = mrf.atoms.iterator()
     while (iterator.hasNext) {
       iterator.advance()
       val atomID = iterator.key()
       if (atomID >= mln.queryStartID && atomID <= mln.queryEndID) {
         val groundAtom = iterator.value()
-        var probability = (groundAtom.getTruesCount * 1.0) / samples
-        if(probability < 0.099) probability = 0.0
+        val probability = (groundAtom.getTruesCount * 1.0) / samples
         // Add Gaussian noise for P=0.0 and P=1.0. Also reformat the displayed probability result in order to have at maximum 7 floating point decimals
         //val txtProbability = if (probability == 0.0) "4.9995e-05" else if(probability == 1.0) "0.99995" else numFormat.format(probability)
         decodeAtom(iterator.key()) match {

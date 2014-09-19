@@ -232,6 +232,7 @@ final class MaxWalkSAT(mrf: MRF, pBest: Double = 0.5, maxFlips: Int = 100000, ma
       numTry += 1
     }
     state.restoreLowState()
+    state.printMRFStateStats()
 
     //return best state
     state
