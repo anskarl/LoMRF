@@ -39,7 +39,7 @@ import gnu.trove.set.TIntSet
 import lomrf.logic._
 import lomrf.mln.model.MLN
 import lomrf.util.AtomIdentityFunction.IDENTITY_NOT_EXIST
-import lomrf.util.{AtomIdentityFunction, Cartesian}
+import lomrf.util.{Logging, AtomIdentityFunction, Cartesian}
 
 import scala.collection._
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -59,7 +59,7 @@ class ClauseGrounderImplNew(
                           cliqueRegisters: Array[ActorRef],
                           atomSignatures: Set[AtomSignature],
                           atomsDB: Array[TIntSet],
-                          noNegWeights: Boolean = false) {
+                          noNegWeights: Boolean = false) extends Logging{
 
   require(!clause.weight.isNaN, "Found a clause with not a valid weight value (NaN).")
 

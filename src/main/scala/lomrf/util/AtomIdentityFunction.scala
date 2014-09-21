@@ -217,6 +217,8 @@ final class AtomIdentityFunction private(
 
 
   private class MatchingIDsIterator(rangesMap: Map[Int, Range], iteratorsMap: mutable.Map[Int, Iterator[Int]], values: Array[Int]) extends Iterator[Int] {
+    import scalaxy.loops._
+
 
     private val _length = rangesMap.map(_._2.size).product
     private var counter = 0
@@ -231,7 +233,7 @@ final class AtomIdentityFunction private(
     def next(): Int = {
       if (counter < _length) {
         sum = startID
-        for (idx <- 0 until values.length) {
+        for (idx <- (0 until values.length).optimized) {
           //1. encode
           val constantID = values(idx)
           val step = constantsAndStep(idx)._2

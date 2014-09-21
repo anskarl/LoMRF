@@ -32,9 +32,12 @@
 
 package lomrf.util
 
+import java.nio.file.Path
+
 import scala.collection.mutable
-import java.io.File
-import lomrf.mln.model.mrf.MRFState
+import java.io.{IOException, File}
+
+import scala.reflect._
 
 /**
  * @author Anastasios Skarlatidis
@@ -42,94 +45,24 @@ import lomrf.mln.model.mrf.MRFState
 
 object Utilities extends Logging {
 
-  implicit def strToFile(str:String) = new File(str)
 
-  def flatMapSubLists[A,B](ls: List[A])(f: (List[A]) => List[B]): List[B] =
-    ls match {
-      case Nil => Nil
-      case sublist@(_ :: tail) => f(sublist) ::: flatMapSubLists(tail)(f)
-    }
+  def msecTimeToText(msg: String, milliseconds: Long): String = msg + " = " + msecTimeToText(milliseconds)
 
-  def combinations[A](n: Int, ls: List[A]): List[List[A]] =
-    if (n == 0) List(Nil)
-    else flatMapSubLists(ls) { sl =>
-      combinations(n - 1, sl.tail) map {sl.head :: _}
-    }
-  
-  def findFiles(rootDir: File, matcher: String => Boolean): List[File] = {
-      var resultFiles = List[File]()
-      val queue = mutable.Queue[File](rootDir)
-
-      while (queue.nonEmpty) {
-        queue.dequeue().listFiles.foreach {
-          x =>
-            if (x.isDirectory) queue.enqueue(x)
-            else if (matcher(x.getAbsolutePath)) resultFiles ::= x
-        }
-      }
-      resultFiles
-  }
-
-  sealed trait FileType
-  case object DIR extends FileType
-  case object FILE extends FileType
-  case object ANY extends FileType
-
-  def findFiles(rootDir: File, fileType: FileType, matcher: String => Boolean): List[File] = {
-    var resultFiles = List[File]()
-    val queue = mutable.Queue[File](rootDir)
-
-    while (queue.nonEmpty) {
-      queue.dequeue().listFiles.foreach {
-        x =>{
-          //println("READING "+x.getAbsolutePath)
-          if (x.isDirectory) queue.enqueue(x)
-
-          fileType match {
-            case ANY => if (matcher(x.getPath)) resultFiles ::= x
-            case DIR if x.isDirectory => if (matcher(x.getPath)) resultFiles ::= x
-            case FILE if x.isFile => if (matcher(x.getPath)) resultFiles ::= x
-            case _ => //println("IGNORING "+x)
-          }
-        }
-      }
-    }
-    resultFiles
-  }
-
-  def findFilesOpt(rootDir: File, matcher: String => Option[File]): List[File] = {
-      var resultFiles = List[File]()
-      val queue = mutable.Queue[File](rootDir)
-
-      while (queue.nonEmpty) {
-        queue.dequeue().listFiles.foreach {
-          x =>
-            if (x.isDirectory) queue.enqueue(x)
-            matcher(x.getAbsolutePath) match{
-              case Some(entry) => resultFiles ::= entry
-              case _ =>
-            }
-        }
-      }
-      resultFiles
-  }
-
-  def msecTimeToText(msg:String, milliseconds: Long): String = msg + " = "+msecTimeToText(milliseconds)
-  
   def msecTimeToText(milliseconds: Long): String = {
     val time = milliseconds / 1000
     val seconds = time % 60
     val minutes = (time % 3600) / 60
     val hours = time / 3600
 
-    hours + "h " + minutes + "m " + seconds + "s " + (milliseconds % 1000)+"ms"
+    hours + "h " + minutes + "m " + seconds + "s " + (milliseconds % 1000) + "ms"
   }
 
-  def msecTimeToTextUntilNow(msg:String, fromTime: Long) = msg + " = "+msecTimeToText(System.currentTimeMillis - fromTime)
+  def msecTimeToTextUntilNow(msg: String, fromTime: Long) = msg + " = " + msecTimeToText(System.currentTimeMillis - fromTime)
+
   def msecTimeToTextUntilNow(fromTime: Long) = msecTimeToText(System.currentTimeMillis - fromTime)
 
-  def nsecTimeToText(msg:String, nanoseconds: Long): String = msg + " = "+nsecTimeToText(nanoseconds)
-  
+  def nsecTimeToText(msg: String, nanoseconds: Long): String = msg + " = " + nsecTimeToText(nanoseconds)
+
   def nsecTimeToText(nanoseconds: Long): String = {
     val nsec = nanoseconds % 1000000L
     val milliseconds = nanoseconds / 1000000L
@@ -137,7 +70,7 @@ object Utilities extends Logging {
     val time = milliseconds / 1000
     val sec = time % 60
 
-    sec + "s " + msec+"ms "+nsec+"ns"
+    sec + "s " + msec + "ms " + nsec + "ns"
   }
 
   /**
@@ -154,27 +87,27 @@ object Utilities extends Logging {
 
   def naturals: Stream[Int] = Stream.cons(1, naturals.map(_ + 1))
 
-  def printTable(table: Array[Array[String]], firstRowAsHeader:Boolean = true) {
+  def printTable(table: Array[Array[String]], firstRowAsHeader: Boolean = true) {
     // Find the maximum number of columns
     var maxColumns = 0
-    for(i <- 0 until table.length) {
-      if(table(i).length > maxColumns) maxColumns = table(i).length
+    for (i <- 0 until table.length) {
+      if (table(i).length > maxColumns) maxColumns = table(i).length
     }
 
     // Find the maximum length of a string in each column
     val lengths = new Array[Int](maxColumns)
-    for(i <- 0 until table.length) {
-      for(j <- 0 until table(i).length){
-        if(lengths(j) < table(i)(j).length()) lengths(j) = table(i)(j).length()
+    for (i <- 0 until table.length) {
+      for (j <- 0 until table(i).length) {
+        if (lengths(j) < table(i)(j).length()) lengths(j) = table(i)(j).length()
       }
     }
 
-    for(i <- 0 until table.length) {
-      if(firstRowAsHeader && i == 1) println()
+    for (i <- 0 until table.length) {
+      if (firstRowAsHeader && i == 1) println()
 
-      for(j <- 0 until table(i).length){
+      for (j <- 0 until table(i).length) {
         printf(
-          "%1$" + lengths(j)+"s"+ (if (j + 1 == lengths.length) "\n" else " "),
+          "%1$" + lengths(j) + "s" + (if (j + 1 == lengths.length) "\n" else " "),
           table(i)(j)
         )
       }
@@ -182,42 +115,158 @@ object Utilities extends Logging {
   }
 
   /**
+   * Safe dereference operator.
    *
-   * @param state MRF state
+   * This operator returns the specified default value (see parameter alt) when the current
+   * instance is null. To do that, we implicitly extend that instance with an anonymous inner
+   * class that carries the actual operator).
+   *
+   * @param alt the value to return when the current instance is null
+   * @tparam T the type of the return value
+   * @return the instance when is not null, otherwise the specified alternative value
    */
-  def printMRFStateStats(state: MRFState) {}
-
-  object Memoize {
-
-    def apply[T, R](f: T => R) = new Memoize1(f)
-
-    def apply[T1, T2, R](f: (T1, T2) => R) = new Memoize2(f)
-
-    def apply[T1, T2, T3, R](f: (T1, T2, T3) => R) = new Memoize3(f)
-
-    class Memoize1[T, R](f: T => R) extends (T => R) {
-      private[this] val cache = new mutable.WeakHashMap[T, R]()
-
-      def apply(x: T): R = cache.getOrElseUpdate(x, f(x))
-    }
-
-    class Memoize2[T1, T2, R](f: (T1, T2) => R) extends ((T1, T2) => R) {
-      private[this] val cache = new mutable.WeakHashMap[(T1, T2), R]()
-
-      def apply(a: T1, b: T2): R = {
-        val x = a -> b
-        cache.getOrElseUpdate(x, f(a, b))
-      }
-    }
-
-    class Memoize3[T1, T2, T3, R](f: (T1, T2, T3) => R) extends ((T1, T2, T3) => R) {
-      private[this] val cache = new mutable.WeakHashMap[(T1, T2, T3), R]()
-
-      def apply(a: T1, b: T2, c: T3): R = {
-        val x = (a, b, c)
-        cache.getOrElseUpdate(x, f(a, b, c))
-      }
-    }
+  implicit def dereferenceOperator[T](alt: => T) = new {
+    def ??:[A >: T](pred: A) = if (pred == null) alt else pred
   }
+
+  object io {
+
+    implicit def strToFile(str: String) = new File(str)
+
+    implicit def pathToFile(path: Path) = path.toFile
+
+    /**
+     * Search recursively for files/directories in a directory.
+     *
+     * @param targetDir: the target directory to search
+     * @param matcherFunction: a simple filtering function (maps files to Boolean values, where the value 'true'
+     *                       represents that the file matches the filtering criteria of the function)
+
+     * @param recursively When is set true the function searches recursively in all dirs. It is true by default.
+     *
+     * @return A list of matched files
+     *
+     * @throws IOException: when the target directory does not exists
+     *                    or when the application does not have read permissions to access.
+     *
+     * @throws IllegalArgumentException: when the 'targetDir' parameter is not a directory
+     *
+     */
+    def findFiles(targetDir: File, matcherFunction: File => Boolean, recursively: Boolean = true): List[File] = {
+
+      if (!targetDir.exists())
+        throw new IOException("The specified target directory does not exists")
+
+      if (!targetDir.isDirectory)
+        throw new IllegalArgumentException("The specified target directory does not seem to be a directory")
+
+      if (!targetDir.canRead)
+        throw new IOException("Cannot read the specified target directory, please check if you have sufficient permissions.")
+
+      val directories = mutable.Queue[File](targetDir)
+
+      var resultFiles = List[File]()
+
+      while (directories.nonEmpty) {
+        for (currentFile <- directories.dequeue().listFiles) {
+          // When the current file is a directory and the recursively=true, then
+          // simply enqueue this file in the directories queue, otherwise continue.
+          if (recursively && currentFile.isDirectory) directories.enqueue(currentFile)
+
+          // When the current file is matching (according to the given matcher function), then
+          // add this file to the result list, otherwise continue.
+          if (matcherFunction(currentFile)) resultFiles ::= currentFile
+        }
+      }
+
+      resultFiles
+    }
+
+    /**
+     * Search recursively for files/directories in a directory and give the fist matching file.
+     *
+     * @param targetDir: the target directory to search
+     * @param matcherFunction: a simple filtering function (maps files to Boolean values, where the value 'true'
+     *                       represents that the file matches the filtering criteria of the function)
+
+     * @param recursively When is set true the function searches recursively in all dirs. It is true by default.
+     *
+     * @return A list of matched files
+     *
+     * @throws IOException: when the target directory does not exists
+     *                    or when the application does not have read permissions to access.
+     *
+     * @throws IllegalArgumentException: when the 'targetDir' parameter is not a directory
+     */
+    def findFirstFile(targetDir: File, matcherFunction: File => Boolean, recursively: Boolean = true): Option[File] = {
+
+      if (!targetDir.exists())
+        throw new IOException("The specified target directory does not exists")
+
+      if (!targetDir.isDirectory)
+        throw new IllegalArgumentException("The specified target directory does not seem to be a directory")
+
+      if (!targetDir.canRead)
+        throw new IOException("Cannot read the specified target directory, please check if you have sufficient permissions.")
+
+      if (!targetDir.isDirectory) return None
+
+      val directories = mutable.Queue[File](targetDir)
+
+
+      while (directories.nonEmpty) {
+        for (currentFile <- directories.dequeue().listFiles) {
+          // When the current file is a directory and the recursively=true, then
+          // simply enqueue this file in the directories queue, otherwise continue.
+          if (recursively && currentFile.isDirectory) directories.enqueue(currentFile)
+
+          // When the current file is matching (according to the given matcher function), then
+          // add this file to the result list, otherwise continue.
+          if (matcherFunction(currentFile)) return Some(currentFile)
+        }
+      }
+
+      None
+    }
+
+  }
+
+  object reflect {
+
+    /**
+     * Utility function to test whether the given instance
+     * is of a particular type.
+     *
+     * @param obj the object instance to check
+     * @tparam T the type to test against
+     *
+     * @return true if obj is of type T, otherwise false
+     */
+    def isOfType[T: ClassTag](obj: Any): Boolean = {
+
+      val clazzTag = classTag[T].runtimeClass
+
+      def isPrimitiveClass[C: ClassTag] =
+        classTag[C].runtimeClass.isAssignableFrom(obj.asInstanceOf[AnyRef].getClass)
+
+      def isRegularClass[C: ClassTag] =
+        clazzTag.isAssignableFrom(obj.asInstanceOf[AnyRef].getClass)
+
+      clazzTag.toString match {
+        case "char" => isPrimitiveClass[java.lang.Character]
+        case "byte" => isPrimitiveClass[java.lang.Byte]
+        case "short" => isPrimitiveClass[java.lang.Short]
+        case "boolean" => isPrimitiveClass[java.lang.Boolean]
+        case "int" => isPrimitiveClass[java.lang.Integer]
+        case "float" => isPrimitiveClass[java.lang.Float]
+        case "long" => isPrimitiveClass[java.lang.Long]
+        case "double" => isPrimitiveClass[java.lang.Double]
+        case _  => isRegularClass
+      }
+
+    }
+
+  }
+
 
 }

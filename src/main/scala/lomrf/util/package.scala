@@ -37,6 +37,7 @@ import lomrf.mln.model.mrf.Constraint
 import mln.model.MLN
 import gnu.trove.map.TIntObjectMap
 import gnu.trove.set.TIntSet
+import scalaxy.loops._
 
 /**
  * @author Anastasios Skarlatidis
@@ -65,7 +66,7 @@ package object util {
       val position = idx - sum
       val iterator = elements(segIndex).iterator()
 
-      for( i <- 0 until position) iterator.next()
+      for( i <- (0 until position).optimized) iterator.next()
 
       iterator.next()
     }
@@ -90,7 +91,7 @@ package object util {
       val position = idx - sum
       val iterator = elements(segIndex).iterator()
 
-      for( i <- 0 to position) iterator.advance()
+      for( i <- (0 to position).optimized) iterator.advance()
 
       iterator.key()
     }
@@ -115,7 +116,7 @@ package object util {
       val position = idx - sum
       val iterator = elements(segIndex).iterator()
 
-      for( i <- 0 to position) iterator.advance()
+      for( i <- (0 to position).optimized) iterator.advance()
 
       (iterator.key(), iterator.value())
     }
@@ -168,7 +169,7 @@ package object util {
         buffer.append(' ')
     }
 
-    for(i <- 0 until feature.literals.length){
+    for(i <- (0 until feature.literals.length).optimized){
       decodeLiteral(feature.literals(i)) match{
         case Some(litTXT) =>
           buffer.append(litTXT)
