@@ -401,7 +401,7 @@ trait OptionParser {
       i += 1
     }
 
-    if (!requiredArgs.isEmpty ||
+    if (requiredArgs.nonEmpty ||
       (argListCount == 0 && argList.isDefined)) {
       System.err.println("Error: missing arguments: " + argumentNames.mkString(", "))
       answer = false

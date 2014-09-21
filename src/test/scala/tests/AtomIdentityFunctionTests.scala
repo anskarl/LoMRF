@@ -37,14 +37,13 @@ import lomrf.logic.AtomSignature
 import lomrf.mln.model.MLN
 import gnu.trove.set.hash.TIntHashSet
 import lomrf.util.{Utilities, Cartesian, AtomIdentityFunction}
-import org.scalatest.FunSuite
-import org.scalatest.matchers.ShouldMatchers
+import org.scalatest.{Matchers, FunSuite}
 
 /**
  * @author Anastasios Skarlatidis
  */
 
-class AtomIdentityFunctionTests extends FunSuite with ShouldMatchers {
+class AtomIdentityFunctionTests extends FunSuite with Matchers {
 
   val verboseMsg = true
 
@@ -128,7 +127,7 @@ class AtomIdentityFunctionTests extends FunSuite with ShouldMatchers {
 
       if (!isUnique && verboseMsg) println("] FAILURE id:= " + id + " is not unique, identity function is not 1-1.")
 
-      isUnique should be === true
+      isUnique should be true
 
       if (verboseMsg) {
         println("]")
@@ -148,7 +147,7 @@ class AtomIdentityFunctionTests extends FunSuite with ShouldMatchers {
       }
 
 
-      id should be === nid
+      id shouldEqual nid
 
 
     }
@@ -159,7 +158,7 @@ class AtomIdentityFunctionTests extends FunSuite with ShouldMatchers {
     println("Expected number of groundings: " + expectedNumOfGroundings)
     println("Stored products: " + idSet.size)
 
-    idSet.size should be === expectedNumOfGroundings
+    idSet.size shouldEqual expectedNumOfGroundings
 
   }
 
@@ -204,7 +203,7 @@ class AtomIdentityFunctionTests extends FunSuite with ShouldMatchers {
     println(Utilities.nsecTimeToText("Avg time producing ID ", totalEnc / expectedNumOfGroundings))
     println("Expected number of groundings: " + expectedNumOfGroundings)
     println("Produced  products: " + counter)
-    counter should be === expectedNumOfGroundings
+    counter shouldEqual expectedNumOfGroundings
   }
 
   test("Encoding benchmark 2 --- KB with a large domain.") {
@@ -248,7 +247,7 @@ class AtomIdentityFunctionTests extends FunSuite with ShouldMatchers {
     println(Utilities.nsecTimeToText("Average time producing ID ", totalEnc / expectedNumOfGroundings))
     println("Expected number of groundings: " + expectedNumOfGroundings)
     println("Produced  products: " + counter)
-    counter should be === expectedNumOfGroundings
+    counter shouldEqual  expectedNumOfGroundings
   }
 
   test("Filter all instances of Alpha/3 --- returns all instances") {
@@ -283,7 +282,7 @@ class AtomIdentityFunctionTests extends FunSuite with ShouldMatchers {
         counter += 1
       }
       if (verboseMsg) println("counted: " + counter)
-      counter should be === expectedNumOfGroundings
+      counter shouldEqual expectedNumOfGroundings
     }
 
   test("Filter all instances of Alpha/3 where fluent is equal to 'F1'") {
@@ -327,7 +326,7 @@ class AtomIdentityFunctionTests extends FunSuite with ShouldMatchers {
       val id = fIter.next()
       val decElements = identityFunction.decode(id).getOrElse(sys.error("Cannot decode: " + id))
       val collectedElements = collected(id)
-      decElements.zip(collectedElements).foreach(entries => entries._1 should be === entries._2)
+      decElements.zip(collectedElements).foreach(entries => entries._1 shouldEqual entries._2)
 
       if (verboseMsg) println(id + "\t" + toStr(decElements) + " == " + toStr(collectedElements))
 
@@ -339,7 +338,7 @@ class AtomIdentityFunctionTests extends FunSuite with ShouldMatchers {
       println("collected: " + collected.size)
     }
 
-    counter should be === collected.size
+    counter shouldEqual collected.size
   }
 
 
@@ -381,7 +380,7 @@ class AtomIdentityFunctionTests extends FunSuite with ShouldMatchers {
         case None => sys.error("Cannot decode: " + id)
       }
       val collectedElements = collected(id)
-      decElements.zip(collectedElements).foreach(entries => entries._1 should be === entries._2)
+      decElements.zip(collectedElements).foreach(entries => entries._1 shouldEqual entries._2)
       if (verboseMsg) println(id + "\t" + toStr(decElements) + " == " + toStr(collectedElements))
 
       counter += 1
@@ -391,7 +390,7 @@ class AtomIdentityFunctionTests extends FunSuite with ShouldMatchers {
       println("collected: " + collected.size)
     }
 
-    counter should be === collected.size
+    counter shouldEqual collected.size
   }
 
   test("Filter all instances of Alpha/3 where fluent, time and event are equal to 'F1', '0' and 'E3' repsectively") {
@@ -429,7 +428,7 @@ class AtomIdentityFunctionTests extends FunSuite with ShouldMatchers {
       val id = fIter.next()
       val decElements = identityFunction.decode(id).getOrElse(sys.error("Cannot decode: " + id))
       val collectedElements = collected(id)
-      decElements.zip(collectedElements).foreach(entries => entries._1 should be === entries._2)
+      decElements.zip(collectedElements).foreach(entries => entries._1 shouldEqual entries._2)
       if (verboseMsg) println(id + "\t" + toStr(decElements) + " == " + toStr(collectedElements))
 
       counter += 1
@@ -438,7 +437,7 @@ class AtomIdentityFunctionTests extends FunSuite with ShouldMatchers {
       println("counted: " + counter)
       println("collected: " + collected.size)
     }
-    counter should be === collected.size
+    counter shouldEqual collected.size
   }
 
 

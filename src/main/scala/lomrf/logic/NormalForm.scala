@@ -123,7 +123,7 @@ object NormalForm {
 
     @tailrec
     def construct(insideFormula: Formula): Formula = {
-      if (!quantifiers.isEmpty)
+      if (quantifiers.nonEmpty)
         quantifiers.dequeue() match {
           case f: ExistentialQuantifier => construct(ExistentialQuantifier(f.variable, insideFormula))
           case f: UniversalQuantifier => construct(UniversalQuantifier(f.variable, insideFormula))

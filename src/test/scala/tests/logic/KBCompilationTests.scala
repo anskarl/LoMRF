@@ -278,7 +278,7 @@ class KBCompilationTests extends AssertionsForJUnit with Logging {
 
     val formulas = Set(kbParser.parseFormula(constraint1), kbParser.parseFormula(constraint2),
       kbParser.parseFormula(pec1), kbParser.parseFormula(pec2), kbParser.parseFormula(pec3), kbParser.parseFormula(pec4))
-    val definiteClauses1 = LinkedHashSet(
+    val definiteClauses1 = mutable.LinkedHashSet(
       kbParser.parseDefiniteClause("InitiatedAt(f,t):- !Happens(abrupt(x),t)."),
       kbParser.parseDefiniteClause(meet_init1),
       kbParser.parseDefiniteClause(meet_init2),
@@ -288,7 +288,7 @@ class KBCompilationTests extends AssertionsForJUnit with Logging {
       kbParser.parseDefiniteClause(move_term1),
       kbParser.parseDefiniteClause(move_term2))
 
-    val definiteClauses2 = LinkedHashSet(
+    val definiteClauses2 = mutable.LinkedHashSet(
       kbParser.parseDefiniteClause(meet_init1),
       kbParser.parseDefiniteClause(meet_init2),
       kbParser.parseDefiniteClause(meet_term1),
@@ -298,7 +298,7 @@ class KBCompilationTests extends AssertionsForJUnit with Logging {
       kbParser.parseDefiniteClause(move_term1),
       kbParser.parseDefiniteClause(move_term2))
 
-    val definiteClauses3 = LinkedHashSet(
+    val definiteClauses3 = mutable.LinkedHashSet(
       kbParser.parseDefiniteClause(meet_init1),
       kbParser.parseDefiniteClause(meet_init2),
       kbParser.parseDefiniteClause(meet_term1),

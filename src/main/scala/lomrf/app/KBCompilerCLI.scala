@@ -123,7 +123,7 @@ object KBCompilerCLI extends Logging {
 
 
     // write domain data
-    if (includeDomain && !mln.constants.isEmpty) {
+    if (includeDomain && mln.constants.nonEmpty) {
       write("// Domain\n")
       for ((name, constants) <- mln.constants; if !constants.isEmpty) {
         write(name + "={" + constants.map(_.toString).reduceLeft((left, right) => left + "," + right) + "}\n")
@@ -132,7 +132,7 @@ object KBCompilerCLI extends Logging {
     }
 
     // write predicate definitions. In case we introduce functions do not write function predicates (beginning with function prefix)
-    if (includePredicateDefinitions && !mln.schema.isEmpty) {
+    if (includePredicateDefinitions && mln.schema.nonEmpty) {
       write("// Predicate definitions\n")
       for ((signature, args) <- mln.schema ; if !introduceFunctions || !signature.symbol.contains(profile.functionPrefix)) {
         val line = signature.symbol + (
@@ -145,7 +145,7 @@ object KBCompilerCLI extends Logging {
 
     // write function definitions or functions as predicates
     if (includeFunctionDefinitions) {
-      if (eliminateFunctions && !mln.functionSchema.isEmpty) { // in order to eliminate functions, functions must exist
+      if (eliminateFunctions && mln.functionSchema.nonEmpty) { // in order to eliminate functions, functions must exist
         write("// Function definitions as predicates\n")
         for ((signature, (retType, args)) <- mln.functionSchema) {
           val predicate = profile.functionPrefix + signature.symbol + "(" + retType + "," + args.map(_.toString).reduceLeft((left, right) => left + "," + right) + ")\n"
@@ -162,7 +162,7 @@ object KBCompilerCLI extends Logging {
         }
         write("\n")
       }
-      else if(!mln.functionSchema.isEmpty) { // in order to write functions definitions, functions must exist
+      else if(mln.functionSchema.nonEmpty) { // in order to write functions definitions, functions must exist
         write("// Function definitions\n")
         for ((signature, (retType, args)) <- mln.functionSchema) {
           val line = retType + " " + signature.symbol + "(" + args.map(_.toString).reduceLeft((left, right) => left + "," + right) + ")\n"
@@ -240,7 +240,7 @@ object KBCompilerCLI extends Logging {
 
             val (literalsNoFunctions, literalsWithFunctions) = clause.literals.span(l => l.sentence.functions.isEmpty)
 
-            if(!literalsWithFunctions.isEmpty) {
+            if(literalsWithFunctions.nonEmpty) {
 
 
               var fMap = Map[Function, (String, Literal)]()
@@ -282,14 +282,14 @@ object KBCompilerCLI extends Logging {
               results2.map(_.toText).reduceLeft(_ + " v " + _)*/
 
               var results =
-                if (!literalsNoFunctions.isEmpty)
+                if (literalsNoFunctions.nonEmpty)
                   List[String](literalsNoFunctions.map(_.toText).reduceLeft(_ + " v " + _))
                 else List[String]()
 
-              if (!replacedLiterals.isEmpty)
+              if (replacedLiterals.nonEmpty)
                 results = results ::: List[String](replacedLiterals.map(_.toText).reduceLeft(_ + " v " + _))
 
-              if (!fMap.isEmpty)
+              if (fMap.nonEmpty)
                 results = results ::: List[String](fMap.values.map(_._2.toText).reduceLeft(_ + " v " + _))
 
               results.reduceLeft(_ + " v " + _)
@@ -303,7 +303,7 @@ object KBCompilerCLI extends Logging {
 
             val (literalsNoFunctions, literalsFunctions) = clause.literals.partition(l => !l.sentence.symbol.contains(functionPrefix))
 
-            if (!literalsFunctions.isEmpty) {
+            if (literalsFunctions.nonEmpty) {
 
               var lMap = Map[Term, Function]()
 
@@ -335,7 +335,7 @@ object KBCompilerCLI extends Logging {
                 }
 
               val results =
-                if(!replacedLiterals.isEmpty)
+                if(replacedLiterals.nonEmpty)
                   List[String](replacedLiterals.map(_.toText).reduceLeft(_ + " v " + _))
                 else List[String]()
 

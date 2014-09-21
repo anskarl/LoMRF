@@ -230,7 +230,7 @@ private[model] object KB extends Logging {
       }
     }
 
-    while (!queue.isEmpty) {
+    while (queue.nonEmpty) {
       val inc = queue.dequeue()
       val incFile = {
         var tmp = new File(inc.filename)

@@ -40,7 +40,6 @@ import gnu.trove.map.hash.{TIntIntHashMap, TIntObjectHashMap}
 import lomrf.mln.model.MLN
 import lomrf.util._
 import scala.collection
-import scala.Some
 import scala.collection.mutable.ArrayBuffer
 import scala.collection.mutable
 import scala.collection.parallel.mutable.ParArray
@@ -591,7 +590,7 @@ final class MRFState private(val mrf: MRF, parAtoms: ParArray[GroundAtom], parCo
 
   def saveLowState(cost: Double) {
     lowCost = cost
-    if (!dirtyAtoms.isEmpty) {
+    if (dirtyAtoms.nonEmpty) {
       dirtyAtoms.foreach(_.saveAsLowState())
       dirtyAtoms = new mutable.HashSet[GroundAtom]()
     }
@@ -600,7 +599,7 @@ final class MRFState private(val mrf: MRF, parAtoms: ParArray[GroundAtom], parCo
 
   def restoreLowState() {
     totalCost = lowCost
-    if (!dirtyAtoms.isEmpty) {
+    if (dirtyAtoms.nonEmpty) {
       dirtyAtoms.foreach(_.restoreLowState())
       dirtyAtoms = new mutable.HashSet[GroundAtom]()
     }
@@ -631,7 +630,7 @@ final class MRFState private(val mrf: MRF, parAtoms: ParArray[GroundAtom], parCo
       if(priorityBuffer.size > 0) constraint = priorityBuffer.remove(0)
       else if(Unsatisfied.size > 0) {
         if (Unsatisfied.hard > 0)
-          constraint = Unsatisfied.getRandomHard()
+          constraint = Unsatisfied.getRandomHard
         else
           constraint = Unsatisfied(ThreadLocalRandom.current().nextInt(Unsatisfied.size))
       }
@@ -661,7 +660,7 @@ final class MRFState private(val mrf: MRF, parAtoms: ParArray[GroundAtom], parCo
       else Some(mrf.constraints.get(_constraintIds.getQuick(idx)))
     }
 
-    def getRandomHard(): Constraint = {
+    def getRandomHard: Constraint = {
       var constraint = MRF.NO_CONSTRAINT
       var idx = ThreadLocalRandom.current().nextInt(_numHard) + 1
       val iterator = _constraintIds.iterator()

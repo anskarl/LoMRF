@@ -86,7 +86,7 @@ final class Clause(val weight: Double, val literals: Set[Literal]){
     literals.filter(_.isPositive).toList match {
       case p1 :: Nil =>
         val negativeLiterals = literals.filter(_.isNegative)
-        if (!negativeLiterals.isEmpty)
+        if (negativeLiterals.nonEmpty)
           new ImplicationDefiniteClause(negativeLiterals.map(_.sentence), p1.sentence)
         else p1.sentence
       case _ => throw new IllegalStateException("Not a definite clause.")

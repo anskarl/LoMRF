@@ -73,8 +73,8 @@ libraryDependencies += "net.sf.trove4j" % "trove4j" % "3.0.3"
 
 // Unit testing
 libraryDependencies ++= Seq(
-	"junit" % "junit" % "4.11",
-	"org.scalatest" %% "scalatest" % "2.1.6"
+	"junit" % "junit" % "4.11" % "test",
+	"org.scalatest" %% "scalatest" % "2.2.1" % "test"
 )
 
 libraryDependencies += "com.nativelibs4java" %% "scalaxy-loops" % "0.1.1" % "provided"

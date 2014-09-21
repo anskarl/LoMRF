@@ -50,7 +50,7 @@ package object logic extends Logging {
     case _ =>
       val queue = mutable.Queue[Formula]()
       formula.subFormulas.foreach(queue.enqueue(_))
-      while (!queue.isEmpty) {
+      while (queue.nonEmpty) {
         val currentFormula = queue.dequeue()
         currentFormula match {
           case atom: AtomicFormula => if (atom.signature == signature) return true
@@ -85,7 +85,7 @@ package object logic extends Logging {
       formula.subFormulas.foreach(queue.enqueue(_))
       var result = Set[AtomSignature]()
 
-      while (!queue.isEmpty) {
+      while (queue.nonEmpty) {
         val currentFormula = queue.dequeue()
         currentFormula match {
           case atom: AtomicFormula => result += atom.signature
@@ -98,7 +98,7 @@ package object logic extends Logging {
 
   def replaceAtom(targetAtom: AtomicFormula, inFormula: Formula, replacement: Formula): Option[Formula] = {
     Unify(targetAtom, inFormula) match {
-      case Some(theta) if !theta.isEmpty =>
+      case Some(theta) if theta.nonEmpty =>
         val replacementPrime = Substitute(theta, replacement)
         val targetPrime = Substitute(theta, inFormula)
         debug("Substituted formula: " + targetPrime.toText)

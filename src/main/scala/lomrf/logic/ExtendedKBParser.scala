@@ -166,7 +166,7 @@ final class ExtendedKBParser(predicateSchema: Map[AtomSignature, List[String]],
       + "\n--- > > > " + undefinedDomainVars
       + "\n--- > > > " + definedDomainVars)*/
 
-    if (!undefinedDomainVars.isEmpty) {
+    if (undefinedDomainVars.nonEmpty) {
 
       val definedDomainVarMap = definedDomainVars.map(v => (v.symbol, v.domainName)).toMap
       for (currentVar <- undefinedDomainVars) {

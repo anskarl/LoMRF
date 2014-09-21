@@ -226,7 +226,7 @@ object MLN extends Logging {
     info(
       "Stage 0: Loading an MLN instance from data..." +
       "\n\tInput MLN file: " + mlnFileName +
-      "\n\tInput evidence file(s): " + (if (!evidenceFileNames.isEmpty) evidenceFileNames.reduceLeft(_+", "+_) else ""))
+      "\n\tInput evidence file(s): " + (if (evidenceFileNames.nonEmpty) evidenceFileNames.reduceLeft(_+", "+_) else ""))
 
 
     //parse knowledge base (.mln)

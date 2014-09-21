@@ -32,8 +32,7 @@
 
 package tests
 
-import org.scalatest.FunSuite
-import org.scalatest.matchers.ShouldMatchers
+import org.scalatest.{Matchers, FunSuite}
 import lomrf.logic.AtomSignature
 import lomrf.mln.model.MLN
 
@@ -41,7 +40,7 @@ import lomrf.mln.model.MLN
  * @author Anastasios Skarlatidis
  */
 
-class ClauseEncodeDecodeTests extends FunSuite with ShouldMatchers {
+class ClauseEncodeDecodeTests extends FunSuite with Matchers {
 
 
   private val sep = System.getProperty("file.separator")
