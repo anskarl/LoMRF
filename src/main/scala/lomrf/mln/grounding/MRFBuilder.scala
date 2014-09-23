@@ -88,7 +88,7 @@ import scalaxy.loops._
  *
  * @author Anastasios Skarlatidis
  */
-final class MRFBuilder(val mln: MLN, noNegWeights: Boolean = false, unitWeights: Boolean = false) extends Logging {
+final class MRFBuilder(val mln: MLN, noNegWeights: Boolean = false, unitWeights: Boolean = false, eliminateNegatedUnit: Boolean = false) extends Logging {
 
   private val mcSatParam = 1
 
@@ -102,7 +102,7 @@ final class MRFBuilder(val mln: MLN, noNegWeights: Boolean = false, unitWeights:
     val latch = new CountDownLatch(1)
 
     val startTime = System.currentTimeMillis()
-    val masterActor = system.actorOf(Props(new GroundingMaster(mln, latch, noNegWeights)), name = "master")
+    val masterActor = system.actorOf(Props(new GroundingMaster(mln, latch, noNegWeights, eliminateNegatedUnit)), name = "master")
     latch.await()
     val endTime = System.currentTimeMillis()
     val result = Await.result((masterActor ? REQUEST_RESULTS).mapTo[Result], timeout.duration)

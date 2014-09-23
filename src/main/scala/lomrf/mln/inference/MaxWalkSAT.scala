@@ -72,6 +72,7 @@ final class MaxWalkSAT(mrf: MRF, pBest: Double = 0.5, maxFlips: Int = 100000, ma
                        outputAll: Boolean = true, satHardUnit: Boolean = true, satHardPriority: Boolean = true, tabuLength: Int = 5) extends Logging {
 
   private val TARGET_COST = targetCost + 0.0001
+  private var duplicateInfo = false
   //private val random = new Random()
 
   /**
@@ -86,6 +87,7 @@ final class MaxWalkSAT(mrf: MRF, pBest: Double = 0.5, maxFlips: Int = 100000, ma
    * @return The MRFState after inference procedure is complete
    */
   def infer(): MRFState = {
+    duplicateInfo = true
     val startTime = System.currentTimeMillis()
     val state = infer(MRFState(mrf, satHardUnit, satHardPriority))
     val endTime = System.currentTimeMillis()
@@ -232,7 +234,7 @@ final class MaxWalkSAT(mrf: MRF, pBest: Double = 0.5, maxFlips: Int = 100000, ma
       numTry += 1
     }
     state.restoreLowState()
-    state.printMRFStateStats()
+    if(!duplicateInfo) state.printMRFStateStats()
 
     //return best state
     state

@@ -39,11 +39,11 @@ import lomrf.util.Logging
 /**
  * @author Anastasios Skarlatidis
  */
-private final class GroundingWorker(mln: MLN, cliqueRegisters: Array[ActorRef], noNegWeights: Boolean) extends Actor with Logging {
+private final class GroundingWorker(mln: MLN, cliqueRegisters: Array[ActorRef], noNegWeights: Boolean, eliminateNegatedUnit: Boolean) extends Actor with Logging {
 
   def receive = {
     case Ground(clause, atomSignatures, atomsDB) =>
-      val grounder = new ClauseGrounderImpl(clause, mln, cliqueRegisters, atomSignatures, atomsDB, noNegWeights)
+      val grounder = new ClauseGrounderImpl(clause, mln, cliqueRegisters, atomSignatures, atomsDB, noNegWeights, eliminateNegatedUnit)
       grounder.computeGroundings()
       debug("Grounding completed for clause " + clause)
       sender ! ClauseGroundingCompleted(clause, grounder.collectedSignatures)

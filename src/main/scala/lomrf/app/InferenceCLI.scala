@@ -81,6 +81,9 @@ object InferenceCLI extends OptionParser with Logging {
   // Satisfiability priority to hard constrained clauses
   private var _satHardPriority = true
 
+  // Rounding algorithm for ILP map inference
+  private var _ilpRounding = 1
+
   // Maximum number of samples to take
   private var _samples = 1000
 
@@ -119,6 +122,11 @@ object InferenceCLI extends OptionParser with Logging {
   // 1 !A(x)
   // 1 !B(x)
   private var _noNeg = false
+
+  // Eliminate negated unit clauses
+  // For example:
+  // 2 !A(x) becomes -2 A(x)
+  private var _eliminateNegatedUnit = false
 
   // Perform unit-propagation (only for MC-SAT)
   private var _unitProp = true
@@ -202,6 +210,10 @@ object InferenceCLI extends OptionParser with Logging {
   booleanOpt("satHardPriority", "sat-hard-priority", "Priority to hard constrained clauses (default is " + _satHardPriority + ")" +
     " in MaxWalkSAT.", _satHardPriority = _)
 
+  intOpt("ilpRounding", "ilp-rounding", "Rounding algorithm for ILP 1: RoundUp 2: MaxWalkSAT (default is " + _ilpRounding + ").", {
+    v: Int => if (v != 1 || v != 2) fatal("The rounding value must be 1 or 2, but you gave: " + v) else _ilpRounding = v
+  })
+
   intOpt("samples", "num-samples", "Number of samples to take (default is " + _samples + ").", _samples = _)
 
   doubleOpt("pSA", "probability-simulated-annealing", "Specify the probability to perform a simulated annealing step (default is " + _pSA + "), " +
@@ -247,19 +259,21 @@ object InferenceCLI extends OptionParser with Logging {
 
   booleanOpt("noNeg", "eliminate-negative-weights", "Eliminate negative weight values from ground clauses (default is " + _noNeg + ").", _noNeg = _)
 
+  booleanOpt("noNegatedUnit", "eliminate-negated-unit", "Eliminate negated unit ground clauses (default is " + _eliminateNegatedUnit + ").", _eliminateNegatedUnit = _)
+
   opt("dynamic", "dynamic-implementations", "<string>", "Comma separated paths to search recursively for dynamic predicates/functions implementations (*.class and *.jar files).", {
     path: String => if (!path.isEmpty) _implPaths = Some(path.split(','))
   })
 
-  flagOpt("h", "help", "Print usage options.", {
-    println(usage)
-    sys.exit(0)
+  flagOpt("f:dpart", "flag:domain-partition", "Try to partition the domain and create several smaller MLNs.", {
+    _domainPartition = true
   })
 
   flagOpt("v", "version", "Print LoMRF version.", sys.exit(0))
 
-  flagOpt("f:dpart", "flag:domain-partition", "Try to partition the domain and create several smaller MLNs.", {
-    _domainPartition = true
+  flagOpt("h", "help", "Print usage options.", {
+    println(usage)
+    sys.exit(0)
   })
 
   def main(args: Array[String]) {
@@ -289,6 +303,7 @@ object InferenceCLI extends OptionParser with Logging {
       + "\n\t(all) Show 0/1 results for all query atoms: " + _mapOutputAll
       + "\n\t(satHardUnit) Trivially satisfy hard constrained unit clauses: " + _satHardUnit
       + "\n\t(satHardPriority) Satisfiability priority to hard constrained clauses: " + _satHardPriority
+      + "\n\t(ilpRounding) Rounding algorithm used in ILP map inference: " + _ilpRounding
       + "\n\t(samples) Number of samples to take: " + _samples
       + "\n\t(pSA) Probability to perform simulated annealing: " + _pSA
       + "\n\t(pBest) Probability to perform a greedy search: " + _pBest
@@ -300,6 +315,7 @@ object InferenceCLI extends OptionParser with Logging {
       + "\n\t(numSolutions) Number of solutions in MC-SAT: " + _numSolutions
       + "\n\t(lateSA) Simulated annealing is performed only when MC-SAT reaches a plateau: " + _lateSA
       + "\n\t(noNeg) Eliminate negative weights: " + _noNeg
+      + "\n\t(noNegatedUnit) Eliminate negated ground unit clauses: " + _eliminateNegatedUnit
       + "\n\t(unitProp) Perform unit-propagation: " + _unitProp
     )
 
@@ -323,7 +339,7 @@ object InferenceCLI extends OptionParser with Logging {
     if(isDebugEnabled) mln.clauses.zipWithIndex.foreach{case (c, idx) => debug(idx+": "+c)}
 
     info("Creating MRF...")
-    val mrfBuilder = new MRFBuilder(mln, _noNeg)
+    val mrfBuilder = new MRFBuilder(mln, _noNeg, _eliminateNegatedUnit)
     val mrf = mrfBuilder.buildNetwork
 
     if (_marginalInference) { // Marginal inference methods
@@ -342,9 +358,9 @@ object InferenceCLI extends OptionParser with Logging {
         solver.writeResults(resultsWriter)
       }
       else {
-        val solver = new ILP2(mrf)
+        /*val solver = new ILP2(mrf)
         solver.infer(resultsWriter)
-        solver.writeResults(resultsWriter)
+        solver.writeResults(resultsWriter)*/
       }
     }
   }
