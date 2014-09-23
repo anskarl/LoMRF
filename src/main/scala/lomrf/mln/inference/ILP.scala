@@ -48,28 +48,38 @@ import lomrf.util.TroveConversions._
 /**
  * This is an implementation of an approximate MAP inference algorithm for MLNs using Integer Linear Programming.
  * The original implementation of the algorithm can be found in: [[http://alchemy.cs.washington.edu/code/]].
- * Details about the ILP algorithm can be found in the following publication:
+ * Details about the ILP algorithm can be found in the following publications:
  *
  * <ul>
  * <li> Tuyen N. Huynh and Raymond J. Mooney. Max-Margin Weight Learning for Markov Logic Networks.
  * In Proceedings of the European Conference on Machine Learning and Principles and Practice of
  * Knowledge Discovery in Databases (ECML-PKDD 2011), Vol. 2, pp. 81-96, 2011.
  * </li>
+ *
+ * <li> Jan Noessner, Mathias Niepert and Heiner Stuckenschmidt.
+ * RockIt: Exploiting Parallelism and Symmetry for MAP Inference in Statistical Relational Models.
+ * Proceedings of the Twenty-Seventh (AAAI) Conference on Artificial Intelligence, July 14-18, 2013.
+ * Bellevue, Washington: AAAI Press
+ * </li>
  * </ul>
  *
  * @param mrf The ground Markov network
+ * @param ilpRounding The rounding algorithm selection option
  *
  * @author Anastasios Skarlatidis
  * @author Vagelis Michelioudakis
  */
-final class ILP(mrf: MRF) extends LPModel(LPSolverLib.lp_solve) with Logging {
+final class ILP(mrf: MRF, ilpRounding: Int) extends LPModel(LPSolverLib.lp_solve) with Logging {
+
   implicit val mln = mrf.mln
 
   def infer(out: PrintStream = System.out) {
 
-    // Hash map containing pairs of unique literal values to LD variables
-    val cacheLiterals = new TIntObjectHashMap[LPFloatVar]()
-    val cacheClauses = new TIntObjectHashMap[LPFloatVar]()
+    /* Hash maps containing pairs of unique literal keys to LD variables [y]
+     * and unique clause ids to LD variables [z].
+     */
+    val literalLDVars = new TIntObjectHashMap[LPFloatVar]()
+    val clauseLDVars = new TIntObjectHashMap[LPFloatVar]()
 
     /**
      * A collection of expressions of the equation that we aim to maximize.
@@ -96,10 +106,11 @@ final class ILP(mrf: MRF) extends LPModel(LPSolverLib.lp_solve) with Logging {
             .map(l => decodeLiteral(l).getOrElse(sys.error("Cannot decode literal: " + l)))
             .reduceLeft(_ + " v " + _))
 
-      // STEP 1: Introduce variables for each ground atom and create possible constraints
+      // Step 1: Introduce variables for each ground atom and create possible constraints
       for (literal <- constraint.literals) {
         val atomID = math.abs(literal)
-        val floatVar = cacheLiterals.putIfAbsent(atomID, LPFloatVar("y" + atomID, 0, 1))
+        literalLDVars.putIfAbsent(atomID, LPFloatVar("y" + atomID, 0, 1))
+        val floatVar = literalLDVars.get(atomID)
 
         if ((constraint.weight > 0 || constraint.weight.isInfinite || constraint.weight.isNaN ||
           constraint.weight == mrf.weightHard) && literal > 0)
@@ -122,13 +133,13 @@ final class ILP(mrf: MRF) extends LPModel(LPSolverLib.lp_solve) with Logging {
 
         if (constraint.isUnit) {
           expressions ::= {
-            if (constraint.literals(0) > 0) constraint.weight * cacheLiterals.get(math.abs(constraint.literals(0)))
-            else -constraint.weight * cacheLiterals.get(math.abs(constraint.literals(0)))
+            if (constraint.literals(0) > 0) constraint.weight * literalLDVars.get(math.abs(constraint.literals(0)))
+            else -constraint.weight * literalLDVars.get(math.abs(constraint.literals(0)))
           }
         }
         else {
-          cacheClauses.putIfAbsent(cid, LPFloatVar("z" + cid, 0, 1))
-          expressions ::= math.abs(constraint.weight) * cacheClauses.get(cid)
+          clauseLDVars.putIfAbsent(cid, LPFloatVar("z" + cid, 0, 1))
+          expressions ::= math.abs(constraint.weight) * clauseLDVars.get(cid)
         }
 
       }
@@ -141,55 +152,57 @@ final class ILP(mrf: MRF) extends LPModel(LPSolverLib.lp_solve) with Logging {
         debug(constraints.mkString(" + ") + " >= 1")
       }
       else if (!constraint.isUnit) {
-        val cachedVariable = cacheClauses.get(cid)
+        val clauseVar = clauseLDVars.get(cid)
         if (constraint.weight > 0) {
-          add(sum(constraints) >= cachedVariable)
-          debug(constraints.mkString(" + ") + " >= " + cachedVariable.name)
+          add(sum(constraints) >= clauseVar)
+          debug(constraints.mkString(" + ") + " >= " + clauseVar.name)
         }
         else {
           for (c <- constraints) {
-            add(c >= cachedVariable)
-            debug(c + " >= " + cachedVariable.name)
+            add(c >= clauseVar)
+            debug(c + " >= " + clauseVar.name)
           }
         }
       }
     }
 
     info(
-      "\nGround Atoms: " + mrf.numberOfAtoms +
-        "\nAtom Variables: " + cacheLiterals.size + " + Clauses Variables: " + cacheClauses.size +
-        " = " + (cacheLiterals.size + cacheClauses.size))
+        "\nGround Atoms: " + mrf.numberOfAtoms +
+        "\nAtom Variables: " + literalLDVars.size + " + Clauses Variables: " + clauseLDVars.size +
+        " = " + (literalLDVars.size + clauseLDVars.size))
 
 
+    // Step 4: Optimize function subject to the constraints introduced
     maximize(sum(expressions))
     start()
     release()
 
     info(
-      "\n=========================== Solution ===========================" +
+        "\n=========================== Solution ===========================" +
         "\nAre constraints satisfied: " + checkConstraints() +
         "\nSolution status: " + status.toString +
         "\nObjective = " + objectiveValue.get)
 
 
-
     whenDebug {
-      cacheLiterals.iterator.foreach{ case (k: Int, v: LPFloatVar) => debug(v.name + " = " + v.value.get)}
-      cacheClauses.iterator.foreach{ case (k: Int, v: LPFloatVar) => debug(v.name + " = " + v.value.get)}
+      literalLDVars.iterator.foreach{ case (k: Int, v: LPFloatVar) => debug(v.name + " = " + v.value.get)}
+      clauseLDVars.iterator.foreach{ case (k: Int, v: LPFloatVar) => debug(v.name + " = " + v.value.get)}
     }
 
-    val solution = new TIntDoubleHashMap(cacheLiterals.size())
+    val solution = new TIntDoubleHashMap(literalLDVars.size())
 
     var nonIntegralSolutionsCounter = 0
-    for ((k, v) <- cacheLiterals.iterator()) {
+    for ((k, v) <- literalLDVars.iterator()) {
       val p = v.value.get
       if (p != 0.0 && p != 1.0) nonIntegralSolutionsCounter += 1
       solution.put(k, p)
     }
 
+    // TODO: At this point LDVar hash maps are useless, so should we destroy them?
+
     info("Number of non-integral solutions: " + nonIntegralSolutionsCounter)
 
-    if (nonIntegralSolutionsCounter > 0) {
+    /*if (nonIntegralSolutionsCounter > 0) {
       val clauses = new TIntObjectHashMap[Constraint]()
       clauses.putAll(mrf.constraints)
       roundup(solution, clauses)
@@ -207,12 +220,12 @@ final class ILP(mrf: MRF) extends LPModel(LPSolverLib.lp_solve) with Logging {
     }
 
     info("Number of clauses with negative weights: " + wNAll + "/" + mrf.constraints.size())
-    info("Likelihood upper bound: e^" + w)
+    info("Likelihood upper bound: e^" + w)*/
 
     val solutionIterator = solution.iterator()
     while(solutionIterator.hasNext){
       solutionIterator.advance()
-      out.println(decodeLiteral(solutionIterator.key()).get + " " + solutionIterator.value().toInt)
+      out.println(decodeLiteral(solutionIterator.key()).get + " " + solutionIterator.value())
     }
 
   }

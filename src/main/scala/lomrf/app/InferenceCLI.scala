@@ -265,7 +265,7 @@ object InferenceCLI extends OptionParser with Logging {
     path: String => if (!path.isEmpty) _implPaths = Some(path.split(','))
   })
 
-  flagOpt("f:dpart", "flag:domain-partition", "Try to partition the domain and create several smaller MLNs.", {
+  flagOpt("dPart", "domain-partition", "Try to partition the domain and create several smaller MLNs.", {
     _domainPartition = true
   })
 
@@ -358,9 +358,9 @@ object InferenceCLI extends OptionParser with Logging {
         solver.writeResults(resultsWriter)
       }
       else {
-        /*val solver = new ILP2(mrf)
+        val solver = new ILP(mrf, ilpRounding = _ilpRounding)
         solver.infer(resultsWriter)
-        solver.writeResults(resultsWriter)*/
+        /*solver.writeResults(resultsWriter)*/
       }
     }
   }
