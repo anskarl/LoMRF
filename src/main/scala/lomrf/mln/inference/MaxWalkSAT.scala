@@ -234,7 +234,7 @@ final class MaxWalkSAT(mrf: MRF, pBest: Double = 0.5, maxFlips: Int = 100000, ma
       numTry += 1
     }
     state.restoreLowState()
-    if(!duplicateInfo) state.printMRFStateStats()
+    if(!duplicateInfo) state.printMRFStateStats() // in case MCSAT is running
 
     //return best state
     state
