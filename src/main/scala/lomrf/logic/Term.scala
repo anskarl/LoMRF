@@ -32,6 +32,7 @@
 
 package lomrf.logic
 
+
 /**
  * In First-Order Logic, a Term is any expression representing an object
  * in the domain. It can be a constant, a variable or a function applied
@@ -130,19 +131,17 @@ case class Constant(symbol: String) extends Term(symbol) {
  * @param args function's arguments (Terms, i.e. constants, variables or other functions)
  * @param domain the domain of resulting constant (e.g. persons, object, numbers, etc.)
  */
-case class Function(symbol: String, args: List[Term], domain: String) extends Term(symbol){
+case class TermFunction(symbol: String, args: List[_ <:Term], domain: String) extends Term(symbol){
 
   def this(symbol: String, args: List[Term]) = this(symbol, args, "_?")
 
   lazy val signature = AtomSignature(symbol, args.size)
 
-  lazy val variables:Set[Variable] = args.foldRight(Set[Variable]()){
-    (a: Term, b) => a match {
-      case v: Variable => Set(v) ++ b
-      case f: Function => f.variables ++ b
-      case _ => b
-    }
-  }
+  lazy val variables: Set[Variable] = uniqueVariablesIn(args)
+
+  lazy val constants: Set[Constant] = uniqueConstantsIn(args)
+
+  lazy val functions: Set[TermFunction] = uniqueFunctionsIn(args)
 
   /**
    * A function is computeGroundings, if all its arguments are computeGroundings.
@@ -165,9 +164,9 @@ case class Function(symbol: String, args: List[Term], domain: String) extends Te
 
 }
 
-object Function{
+object TermFunction{
 
   val UNDEFINED_RETURN_TYPE = "_?"
 
-  def apply(symbol: String, args: List[Term]) = new Function(symbol, args, UNDEFINED_RETURN_TYPE)
+  def apply(symbol: String, args: List[Term]) = new TermFunction(symbol, args, UNDEFINED_RETURN_TYPE)
 }

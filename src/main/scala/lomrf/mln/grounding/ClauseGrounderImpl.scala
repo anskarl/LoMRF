@@ -315,7 +315,7 @@ class ClauseGrounderImpl(
   private def substituteTerm(theta: collection.Map[Variable, String])(term: Term): String = term match {
     case c: Constant => c.symbol
     case v: Variable => theta(v)
-    case f: Function =>
+    case f: TermFunction =>
       mln.functionMappers.get(f.signature) match {
         case Some(m) => m(f.args.map(a => substituteTerm(theta)(a)))
         case None => fatal("Cannot apply substitution using theta: " + theta + " in function " + f.signature)

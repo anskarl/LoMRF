@@ -68,7 +68,7 @@ object Unify {
         else (x,y) match{
           case (v: Variable, _) => unifyVar(v,y,theta)
           case (_, v: Variable) => unifyVar(v,x,theta)
-          case (a: Function, b:Function) =>
+          case (a: TermFunction, b:TermFunction) =>
             if(a.symbol == b.symbol) unifyTerms(a.args, b.args, theta)
             else None
           case _ => None
@@ -98,7 +98,7 @@ object Unify {
     case Some(m) if m.contains(v) => apply(m(v),x, theta)
     case Some(m) => x match {
       case a: Variable if m.contains(a) => apply(v, m(a), theta)
-      case f: Function =>
+      case f: TermFunction =>
         val groundFunction = Substitute(m, f)
         if(groundFunction.variables.contains(v)) None //failure
         else Some(m + (v -> groundFunction))

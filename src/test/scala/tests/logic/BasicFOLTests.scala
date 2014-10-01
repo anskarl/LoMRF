@@ -58,7 +58,7 @@ class BasicFOLTests  extends AssertionsForJUnit with Logging{
     assertTrue(unify(k3,k1))
 
     val k4 = AtomicFormula("Knows", List[Term](Variable("y",typePerson),
-      Function("motherOf", List[Term](Variable("y", typePerson)), typePerson)))
+      TermFunction("motherOf", List[Term](Variable("y", typePerson)), typePerson)))
     assertTrue(unify(k1,k4))
     assertTrue(unify(k4,k1))
 
@@ -67,24 +67,24 @@ class BasicFOLTests  extends AssertionsForJUnit with Logging{
     assertFalse(unify(k5,k1))
 
     val k6 = AtomicFormula("Knows", List[Term](Variable("y",typePerson),
-      Function("parentOf", List[Term](
-        Function("motherOf", List[Term](Variable("y", typePerson)), typePerson)), typePerson)))
+      TermFunction("parentOf", List[Term](
+        TermFunction("motherOf", List[Term](Variable("y", typePerson)), typePerson)), typePerson)))
     assertTrue(unify(k1,k6))
     assertTrue(unify(k6,k1))
 
 
     val k7 = AtomicFormula("Knows", List[Term](Variable("y",typePerson),
-      Function("parentOf", List[Term](
-        Function("motherOf", List[Term](Variable("x", typePerson)), typePerson)), typePerson)))
+      TermFunction("parentOf", List[Term](
+        TermFunction("motherOf", List[Term](Variable("x", typePerson)), typePerson)), typePerson)))
     assertFalse(unify(k1,k7))
     assertFalse(unify(k7,k1))
 
 
     val k8 = AtomicFormula("Knows", List[Term](Variable("y",typePerson),
-      Function("functionOf",
+      TermFunction("functionOf",
         List[Term](
-            Function("motherOf", List[Term](Variable("y", typePerson)), typePerson),
-            Function("fatherOf", List[Term](Variable("y", typePerson)), typePerson),
+            TermFunction("motherOf", List[Term](Variable("y", typePerson)), typePerson),
+            TermFunction("fatherOf", List[Term](Variable("y", typePerson)), typePerson),
             Variable("y",typePerson),
             Constant("Something")
         ) , typePerson)))
@@ -96,7 +96,7 @@ class BasicFOLTests  extends AssertionsForJUnit with Logging{
     val typeFluent = "fluent"
     val k9 = AtomicFormula("InitiatedAt",
       List[Term](
-        Function(
+        TermFunction(
           "meet",
           List[Term](Variable("x", typePerson), Variable("y", typePerson)),
           typeFluent),
@@ -119,7 +119,7 @@ class BasicFOLTests  extends AssertionsForJUnit with Logging{
       ))
     val k12 = AtomicFormula("Alpha",
           List[Term](
-            Function("func", List[Term](Variable("y", typeTime)), typeTime),
+            TermFunction("func", List[Term](Variable("y", typeTime)), typeTime),
             Constant("10")
           ))
     assertTrue(unify(k11,k12))
@@ -138,19 +138,19 @@ class BasicFOLTests  extends AssertionsForJUnit with Logging{
 
 
     // k1 = InitiatedAt(meet(x,y),t)
-    val k1 = AtomicFormula("InitiatedAt",List[Term](Function("meet",List[Term](Variable("x", typePerson), Variable("y", typePerson)),typeFluent),Variable("t", typeTime)))
+    val k1 = AtomicFormula("InitiatedAt",List[Term](TermFunction("meet",List[Term](Variable("x", typePerson), Variable("y", typePerson)),typeFluent),Variable("t", typeTime)))
 
     // k2 = InitiatedAt(meet(A,y),t)
-    val k2 = AtomicFormula("InitiatedAt",List[Term](Function("meet",List[Term](Constant("A"), Variable("y", typePerson)),typeFluent),Variable("t", typeTime)))
+    val k2 = AtomicFormula("InitiatedAt",List[Term](TermFunction("meet",List[Term](Constant("A"), Variable("y", typePerson)),typeFluent),Variable("t", typeTime)))
 
     // k3 = InitiatedAt(meet(A,B),t)
-    val k3 = AtomicFormula("InitiatedAt",List[Term](Function("meet",List[Term](Constant("A"), Constant("B")),typeFluent),Variable("t", typeTime)))
+    val k3 = AtomicFormula("InitiatedAt",List[Term](TermFunction("meet",List[Term](Constant("A"), Constant("B")),typeFluent),Variable("t", typeTime)))
 
     // k4 = InitiatedAt(meet(x,B),t)
-    val k4 = AtomicFormula("InitiatedAt",List[Term](Function("meet",List[Term](Variable("x", typePerson), Constant("B")),typeFluent),Variable("t", typeTime)))
+    val k4 = AtomicFormula("InitiatedAt",List[Term](TermFunction("meet",List[Term](Variable("x", typePerson), Constant("B")),typeFluent),Variable("t", typeTime)))
 
     //k5 = InitiatedAt(meet(C,B),t)
-    val k5 = AtomicFormula("InitiatedAt",List[Term](Function("meet",List[Term](Constant("C"), Constant("B")),typeFluent),Variable("t", typeTime)))
+    val k5 = AtomicFormula("InitiatedAt",List[Term](TermFunction("meet",List[Term](Constant("C"), Constant("B")),typeFluent),Variable("t", typeTime)))
 
     // g = InitiatedAt(f,t)
     val g = AtomicFormula("InitiatedAt", List[Term](Variable("f", typeFluent),Variable("t", typeTime)))

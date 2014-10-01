@@ -52,7 +52,7 @@ final class ExtendedKBParser(predicateSchema: Map[AtomSignature, List[String]],
   private var dynamicPredicates = Map[AtomSignature, List[String] => Boolean]()
 
   private var dynamicFunctions = Map[AtomSignature, List[String] => String]()
-  private var dynamicFunctionsInstances = Set[Function]()
+  private var dynamicFunctionsInstances = Set[TermFunction]()
 
   def getDynamicPredicates = dynamicPredicates
 
@@ -196,7 +196,7 @@ final class ExtendedKBParser(predicateSchema: Map[AtomSignature, List[String]],
               element match {
                 case upperCaseID(s, _*) => Constant(s)
                 case lowerCaseID(v, _*) => fetchTypedVariable(v)
-                case func: Function => func
+                case func: TermFunction => func
                 case _ => sys.error("Cannot parse the symbol: " + element)
               }
             }
@@ -216,9 +216,9 @@ final class ExtendedKBParser(predicateSchema: Map[AtomSignature, List[String]],
                   val variable = Variable(v, argType)
                   currentTypes = variable :: currentTypes //NEW
                   variable
-                case func: Function =>
+                case func: TermFunction =>
                   if (!func.isDomainDefined) {
-                    val result = Function(func.symbol, func.args, argType)
+                    val result = TermFunction(func.symbol, func.args, argType)
                     dynamicFunctionsInstances += result
                     result
                   }
@@ -262,7 +262,7 @@ final class ExtendedKBParser(predicateSchema: Map[AtomSignature, List[String]],
    * Parses FOL function symbols, as well as their arguments. The arguments may be constant symbols, variables
    * or even other FOL function definitions. Consequently, recursive function definitions are supported.
    */
-  def functionArgPrefix: Parser[Function] = lowerCaseID ~ "(" ~ repsep(lowerCaseID | upperCaseID | functionArg, ",") ~ ")" ^^ {
+  def functionArgPrefix: Parser[TermFunction] = lowerCaseID ~ "(" ~ repsep(lowerCaseID | upperCaseID | functionArg, ",") ~ ")" ^^ {
     case functionName ~ "(" ~ arguments ~ ")" =>
 
       val functionSignature = AtomSignature(functionName, arguments.size)
@@ -275,7 +275,7 @@ final class ExtendedKBParser(predicateSchema: Map[AtomSignature, List[String]],
             term match {
               case upperCaseID(s, _*) => Constant(s)
               case lowerCaseID(v, _*) => fetchTypedVariable(v)
-              case func: Function => func
+              case func: TermFunction => func
               case _ => sys.error("Cannot parse symbol: " + term)
             }
           }
@@ -301,7 +301,7 @@ final class ExtendedKBParser(predicateSchema: Map[AtomSignature, List[String]],
                 val variable = Variable(v, argType)
                 currentTypes = variable :: currentTypes //NEW
                 variable
-              case func: Function =>
+              case func: TermFunction =>
                 //if the function is user-defined (thus it has a return type),
                 //check if its return type is the same with the corresponding argument type.
                 if (func.isDomainDefined && func.domain != argType)
@@ -312,7 +312,7 @@ final class ExtendedKBParser(predicateSchema: Map[AtomSignature, List[String]],
               case _ => sys.error("Cannot parse the symbol: " + symbol)
             }
           }
-          Function(functionName, termList, retType)
+          TermFunction(functionName, termList, retType)
       } //end
   }
 
@@ -469,8 +469,8 @@ final class ExtendedKBParser(predicateSchema: Map[AtomSignature, List[String]],
     case x => fatal("Can't parse the following expression as an Atomic Formula: " + x)
   }
 
-  def parseFunction(src: String): Function = parse(functionArg, src) match {
-    case Success(expr, _) if expr.isInstanceOf[Function] => expr
+  def parseFunction(src: String): TermFunction = parse(functionArg, src) match {
+    case Success(expr, _) if expr.isInstanceOf[TermFunction] => expr
     case x => fatal("Can't parse the following expression as a Function: " + x)
   }
 

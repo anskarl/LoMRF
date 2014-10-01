@@ -128,7 +128,7 @@ private[model] object KB extends Logging {
       def parseTerm(term: Term, key: String) {
         term match {
           case Constant(symbol) => constants(key) += symbol
-          case f: Function if !dynamicFunctionBuilders.contains(f.signature) =>
+          case f: TermFunction if !dynamicFunctionBuilders.contains(f.signature) =>
             for ((term, idx) <- f.args.zipWithIndex) parseTerm(term, functionSchema(f.signature)._2(idx))
           case _ => //ignore
         }

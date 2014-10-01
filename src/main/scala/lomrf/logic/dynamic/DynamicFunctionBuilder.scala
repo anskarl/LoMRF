@@ -32,7 +32,7 @@
 
 package lomrf.logic.dynamic
 
-import lomrf.logic.{Term, AtomSignature, Function}
+import lomrf.logic.{Term, AtomSignature, TermFunction}
 
 /**
  * @author Anastasios Skarlatidis
@@ -41,8 +41,8 @@ import lomrf.logic.{Term, AtomSignature, Function}
 trait DynamicFunctionBuilder {
   def signature: AtomSignature
   def resultFunction: (List[String] => String)
-  def apply(terms: List[Term], resultDomain: String): Function
-  def apply(terms: List[Term]): Function
+  def apply(terms: List[Term], resultDomain: String): TermFunction
+  def apply(terms: List[Term]): TermFunction
 }
 
 final class DynSuccFunctionBuilder extends DynamicFunctionBuilder {
@@ -53,12 +53,12 @@ final class DynSuccFunctionBuilder extends DynamicFunctionBuilder {
 
   def apply(terms: List[Term], resultDomain: String) = {
     require(terms.size == 1)
-    new Function("succ", terms, resultDomain)
+    new TermFunction("succ", terms, resultDomain)
   }
 
   def apply(terms: List[Term]) = {
     require(terms.size == 1)
-    new Function("succ", terms)
+    new TermFunction("succ", terms)
   }
 }
 
@@ -74,12 +74,12 @@ final class DynPrecFunctionBuilder extends DynamicFunctionBuilder {
 
   def apply(terms: List[Term], resultDomain: String) = {
     require(terms.size == 1)
-    new Function("prec", terms, resultDomain)
+    new TermFunction("prec", terms, resultDomain)
   }
 
   def apply(terms: List[Term]) = {
     require(terms.size == 1)
-    new Function("prec", terms)
+    new TermFunction("prec", terms)
   }
 }
 
@@ -96,12 +96,12 @@ final class DynPlusFunctionBuilder extends DynamicFunctionBuilder {
 
   def apply(terms: List[Term], resultDomain: String) = {
     require(terms.size == 2)
-    new Function("plus", terms, resultDomain)
+    new TermFunction("plus", terms, resultDomain)
   }
 
   def apply(terms: List[Term]) = {
     require(terms.size == 2)
-    new Function("plus", terms)
+    new TermFunction("plus", terms)
   }
 }
 
@@ -118,12 +118,12 @@ final class DynMinusFunctionBuilder extends DynamicFunctionBuilder {
 
   def apply(terms: List[Term], resultDomain: String) = {
     require(terms.size == 2)
-    new Function("minus", terms, resultDomain)
+    new TermFunction("minus", terms, resultDomain)
   }
 
   def apply(terms: List[Term]) = {
     require(terms.size == 2)
-    new Function("minus", terms)
+    new TermFunction("minus", terms)
   }
 }
 
@@ -140,12 +140,12 @@ final class DynTimesFunctionBuilder extends DynamicFunctionBuilder {
 
   def apply(terms: List[Term], resultDomain: String) = {
     require(terms.size == 2)
-    new Function("times", terms, resultDomain)
+    new TermFunction("times", terms, resultDomain)
   }
 
   def apply(terms: List[Term]) = {
     require(terms.size == 2)
-    new Function("times", terms)
+    new TermFunction("times", terms)
   }
 }
 
@@ -161,12 +161,12 @@ final class DynDividedByFunctionBuilder extends DynamicFunctionBuilder {
 
   def apply(terms: List[Term], resultDomain: String) = {
     require(terms.size == 2)
-    new Function("dividedBy", terms, resultDomain)
+    new TermFunction("dividedBy", terms, resultDomain)
   }
 
   def apply(terms: List[Term]) = {
     require(terms.size == 2)
-    new Function("dividedBy", terms)
+    new TermFunction("dividedBy", terms)
   }
 }
 
@@ -182,12 +182,12 @@ final class DynModFunctionBuilder extends DynamicFunctionBuilder {
 
   def apply(terms: List[Term], resultDomain: String) = {
     require(terms.size == 2)
-    new Function("mod", terms, resultDomain)
+    new TermFunction("mod", terms, resultDomain)
   }
 
   def apply(terms: List[Term]) = {
     require(terms.size == 2)
-    new Function("mod", terms)
+    new TermFunction("mod", terms)
   }
 }
 
@@ -204,12 +204,12 @@ final class DynConcatFunctionBuilder extends DynamicFunctionBuilder {
 
   def apply(terms: List[Term], resultDomain: String) = {
     require(terms.size == 2)
-    new Function("concat", terms, resultDomain)
+    new TermFunction("concat", terms, resultDomain)
   }
 
   def apply(terms: List[Term]) = {
     require(terms.size == 2)
-    new Function("concat", terms)
+    new TermFunction("concat", terms)
   }
 }
 

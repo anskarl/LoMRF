@@ -1,0 +1,20 @@
+person={1,...,10000}
+
+//graduate students
+GradStudent(person)
+
+//professors
+Prof(person)
+
+//teaching assistant
+TA(person,person)
+
+//professors of the same teaching group
+SameGroup(person, person)
+
+//each student is advised by a professor 
+AdvisedBy(person, person)
+
+
+//The example formula to test the FROG algorithm:
+GradStudent(x) ^ Prof(y) ^ Prof(z) ^ TA(x,z) ^ SameGroup(y,z) => AdvisedBy(x,y).

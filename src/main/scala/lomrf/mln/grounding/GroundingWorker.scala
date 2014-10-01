@@ -43,7 +43,7 @@ private final class GroundingWorker(mln: MLN, cliqueRegisters: Array[ActorRef], 
 
   def receive = {
     case Ground(clause, atomSignatures, atomsDB) =>
-      val grounder = new ClauseGrounderImplNew(clause, mln, cliqueRegisters, atomSignatures, atomsDB, noNegWeights)
+      val grounder = new ClauseGrounderImpl(clause, mln, cliqueRegisters, atomSignatures, atomsDB, noNegWeights)
       grounder.computeGroundings()
       debug("Grounding completed for clause " + clause)
       sender ! ClauseGroundingCompleted(clause, grounder.collectedSignatures)
