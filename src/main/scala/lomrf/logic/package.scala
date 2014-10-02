@@ -200,13 +200,41 @@ package object logic extends Logging {
    * @param terms input list of terms
    * @return The resulting set of variables found in the given list of terms, or an empty set if none is found.
    */
-  @inline
+  def uniqueVariablesIn(terms: Iterable[_ <: Term]): Set[Variable] = {
+    val queue = mutable.Queue[Term]()
+    queue ++= terms
+    var result = Set[Variable]()
+
+    while (queue.nonEmpty) queue.dequeue() match {
+      case v: Variable => result += v
+      case f: TermFunction => queue ++= f.args
+      case _ => //do nothing
+    }
+    result
+  }
+
+  /*@inline
   def uniqueVariablesIn(terms: Iterable[_ <: Term]): Set[Variable] =
     terms.foldRight(Set[Variable]())((a, b) => a match {
       case v: Variable => Set(v) ++ b
       case f: TermFunction => f.variables ++ b
       case _ => b
-    })
+    })*/
+
+  def variablesIn(terms: Iterable[_ <: Term]): List[Variable] = {
+    val stack = mutable.Stack[Term]()
+    stack.pushAll(terms)
+
+    var result = List[Variable]()
+
+    while (stack.nonEmpty) stack.pop() match {
+      case v: Variable => result ::= v
+      case f: TermFunction => stack.pushAll(f.args)
+      case _ => //do nothing
+    }
+
+    result
+  }
 
 
   /**
@@ -234,13 +262,26 @@ package object logic extends Logging {
     variablesRec(termLists, Set.empty)
   }
 
-  @inline
+  /* @inline
+   def uniqueConstantsIn(terms: Iterable[_ <: Term]): Set[Constant] = {
+     terms.foldRight(Set[Constant]())((a, rest) => a match {
+       case c: Constant => Set(c) ++ rest
+       case f: TermFunction => f.constants ++ rest
+       case _ => rest
+     })
+   }*/
+
   def uniqueConstantsIn(terms: Iterable[_ <: Term]): Set[Constant] = {
-    terms.foldRight(Set[Constant]())((a, rest) => a match {
-      case c: Constant => Set(c) ++ rest
-      case f: TermFunction => f.constants ++ rest
-      case _ => rest
-    })
+    val queue = mutable.Queue[Term]()
+    queue ++= terms
+    var result = Set[Constant]()
+
+    while (queue.nonEmpty) queue.dequeue() match {
+      case c: Constant => result += c
+      case f: TermFunction => queue ++= f.args
+      case _ => //do nothing
+    }
+    result
   }
 
   def uniqueConstantsInLists(termLists: Iterable[Iterable[_ <: Term]]): Set[Constant] = {
@@ -255,12 +296,26 @@ package object logic extends Logging {
     constantsRec(termLists, Set.empty)
   }
 
-  @inline
+  /*@inline
   def uniqueFunctionsIn(terms: Iterable[_ <: Term]): Set[TermFunction] =
     terms.foldRight(Set[TermFunction]())((t, rest) => t match {
       case f: TermFunction => Set(f) ++ f.functions ++ rest
       case _ => rest
-    })
+    })*/
+
+  def uniqueFunctionsIn(terms: Iterable[_ <: Term]): Set[TermFunction] = {
+    val queue = mutable.Queue[Term]()
+    queue ++= terms
+    var result = Set[TermFunction]()
+
+    while (queue.nonEmpty) queue.dequeue() match {
+      case f: TermFunction =>
+        result += f
+        queue ++= f.args
+      case _ => //do nothing
+    }
+    result
+  }
 
   def uniqueFunctionsInLists(termLists: Iterable[Iterable[_ <: Term]]): Set[TermFunction] = {
     @tailrec
