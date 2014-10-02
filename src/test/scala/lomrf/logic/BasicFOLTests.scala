@@ -30,7 +30,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package tests.logic
+package lomrf.logic
 
 import org.scalatest.junit.AssertionsForJUnit
 import org.junit.Assert._

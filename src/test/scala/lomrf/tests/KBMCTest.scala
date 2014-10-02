@@ -30,38 +30,47 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package tests
+package lomrf.tests
 
+import lomrf.mln.grounding.MRFBuilder
 import org.scalatest.junit.AssertionsForJUnit
 import org.junit.Test
 import org.junit.Assert._
-import lomrf.util.Cartesian.CartesianIteratorMap
+import lomrf.mln.model._
+import lomrf.logic.AtomSignature
+import lomrf.util.{Utilities, Logging}
 
 /**
  * @author Anastasios Skarlatidis
  */
 
-class CartesianTests extends AssertionsForJUnit{
+class KBMCTest extends AssertionsForJUnit with Logging{
+  private val sep = System.getProperty("file.separator")
+  private val testFilesPath = System.getProperty("user.dir") + sep +"data"+ sep +"tests" +sep
 
- /* @Test def cartesianIteratorForGrounding(){
+  @Test def simpleKBMC_Test1(){
+    val queryAtoms = Set[AtomSignature](AtomSignature("AdvisedBy",2))
+    val cwa = Set[AtomSignature](AtomSignature("GradStudent",1), AtomSignature("Prof",1), AtomSignature("SameGroup",2), AtomSignature("TA",2))
 
-    val m = Map(
-      "v1" -> List("One", "Two", "Three"),
-      "v2" -> List("Alpha", "Beta", "Gamma"),
-      "v3" ->  List("X", "Y", "Z")
-    )
+    info("Loading an MLN instance from data.")
+     val mln = MLN(
+       testFilesPath+"TestUniversity.mln",
+       testFilesPath+"TestUniversityEvidence_SMALL.db",
+       queryAtoms,
+       cwa)
+    info("\n"+mln+"\n")
 
-    val cartesian = CartesianIteratorMap[String,String](m)
-    var count = 0
-    while(cartesian.hasNext){
-      val tuple = cartesian.next()
-      val line = tuple.map(x => x._1.toString+" -> "+x._2.toString).reduceLeft(_ + ", " + _)
-      println(line)
-      count+=1
-    }
-    println("counted = "+count)
-    assertEquals(27,count)
+    
 
-  }*/
-
+    info("Computing CNF clauses...")
+    assertTrue(mln.clauses.size>0)
+    info("No. of CNF clauses: "+mln.clauses.size)
+    info("grounding...")
+    val mrfBuilder = new MRFBuilder(mln)
+    val startTime = System.currentTimeMillis()
+    mrfBuilder.buildNetwork
+    val endTime = System.currentTimeMillis()
+    info("Total time: "+Utilities.msecTimeToText(endTime - startTime))
+  }
+  
 }
