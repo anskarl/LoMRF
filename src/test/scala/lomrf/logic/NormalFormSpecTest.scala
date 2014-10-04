@@ -327,9 +327,9 @@ final class NormalFormSpecTest extends FunSpec with Matchers{
       val f = dec1.functions.head
       assert(f.symbol == "succ")
       assert(f.domain == "time")
-      assert(f.args.size == 1)
+      assert(f.terms.size == 1)
 
-      f.args.head match{
+      f.terms.head match{
         case v: Variable => assert(v.domain == "time")
         case _ => sys.error("The argument of function " + f + " should be a variable.")
       }

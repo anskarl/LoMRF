@@ -218,7 +218,7 @@ final class ExtendedKBParser(predicateSchema: Map[AtomSignature, List[String]],
                   variable
                 case func: TermFunction =>
                   if (!func.isDomainDefined) {
-                    val result = TermFunction(func.symbol, func.args, argType)
+                    val result = TermFunction(func.symbol, func.terms, argType)
                     dynamicFunctionsInstances += result
                     result
                   }

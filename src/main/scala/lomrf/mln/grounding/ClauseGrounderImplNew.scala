@@ -328,7 +328,7 @@ class ClauseGrounderImplNew(
     case v: Variable => theta(v)
     case f: TermFunction =>
       mln.functionMappers.get(f.signature) match {
-        case Some(m) => m(f.args.map(a => substituteTerm(theta)(a)))
+        case Some(m) => m(f.terms.map(a => substituteTerm(theta)(a)))
         case None => fatal("Cannot apply substitution using theta: " + theta + " in function " + f.signature)
       }
   }

@@ -175,7 +175,7 @@ package object logic extends Logging {
   private def generalisationOf(f1: TermFunction, f2: TermFunction, level: Int = 0)
                               (implicit functionSchema: Map[AtomSignature, (String, List[String])]): Option[TermFunction] = {
     val generalizedArgs: List[Term] = {
-      for ((pair, idx) <- f1.args.zip(f2.args).zipWithIndex)
+      for ((pair, idx) <- f1.terms.zip(f2.terms).zipWithIndex)
       yield pair match {
         case (v: Variable, _) => v
         case (_, v: Variable) => v
@@ -207,7 +207,7 @@ package object logic extends Logging {
 
     while (queue.nonEmpty) queue.dequeue() match {
       case v: Variable => result += v
-      case f: TermFunction => queue ++= f.args
+      case f: TermFunction => queue ++= f.terms
       case _ => //do nothing
     }
     result
@@ -229,7 +229,7 @@ package object logic extends Logging {
 
     while (stack.nonEmpty) stack.pop() match {
       case v: Variable => result ::= v
-      case f: TermFunction => stack.pushAll(f.args)
+      case f: TermFunction => stack.pushAll(f.terms)
       case _ => //do nothing
     }
 
@@ -278,7 +278,7 @@ package object logic extends Logging {
 
     while (queue.nonEmpty) queue.dequeue() match {
       case c: Constant => result += c
-      case f: TermFunction => queue ++= f.args
+      case f: TermFunction => queue ++= f.terms
       case _ => //do nothing
     }
     result
@@ -311,7 +311,7 @@ package object logic extends Logging {
     while (queue.nonEmpty) queue.dequeue() match {
       case f: TermFunction =>
         result += f
-        queue ++= f.args
+        queue ++= f.terms
       case _ => //do nothing
     }
     result

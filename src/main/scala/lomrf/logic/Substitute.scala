@@ -67,7 +67,7 @@ object Substitute {
     if(theta.contains(alpha))
       theta(alpha)
     else alpha match {
-      case x: TermFunction => TermFunction(x.symbol, x.args.map(substTerm(theta, _)), x.domain)
+      case x: TermFunction => TermFunction(x.symbol, x.terms.map(substTerm(theta, _)), x.domain)
       case _ => alpha
     }
   }

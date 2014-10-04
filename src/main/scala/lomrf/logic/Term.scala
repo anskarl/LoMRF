@@ -14,7 +14,7 @@
  *
  * Logical Markov Random Fields.
  *
- * Copyright (C) 2012  Anastasios Skarlatidis.
+ * Copyright (C) 2012 Anastasios Skarlatidis.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -40,12 +40,9 @@ package lomrf.logic
  *
  * @author Anastasios Skarlatidis
  */
-sealed abstract class Term(symbol: String) extends MLNExpression {
+sealed trait Term extends MLNExpression {
 
-  /**
-   * The name of this term
-   */
-  def getSymbol: String = symbol
+  val symbol: String
 
   /**
    * Determine whether this term is ground (i.e. does not contain any variable) or not.
@@ -54,37 +51,32 @@ sealed abstract class Term(symbol: String) extends MLNExpression {
    */
   def isGround = false
 
+  /**
+   * Determine whether this term is a variable
+   *
+   * @return true if it is a variable, false otherwise.
+   */
   def isVariable = false
 
+  /**
+   * Determine whether this term is a constant
+   *
+   * @return true if it is a constant, false otherwise.
+   */
   def isConstant = false
 
+  /**
+   * Determine whether this term is a function
+   *
+   * @return true if it is a function, false otherwise.
+   */
   def isFunction = false
 
-  /**
-   * If the symbol is numeric, it will give its ''int'' numeric representation.
-   */
-  def toInt = symbol.toInt
-  /**
-   * If the symbol is numeric, it will give its ''double'' numeric representation.
-   */
-  def toDouble = symbol.toDouble
-
-  /**
-   * If the symbol is numeric, it will give its ''long'' numeric representation.
-   */
-  def toLong = symbol.toLong
-
-  /**
-   * If the symbol is numeric, it will give its ''float'' numeric representation.
-   */
-  def toFloat = symbol.toFloat
 
   /**
    * Gives the textual representation of this term.
    */
   def toText: String
-
-  override def toString = symbol
 
 }
 
@@ -95,35 +87,55 @@ sealed abstract class Term(symbol: String) extends MLNExpression {
  * @param domainName the variable domain (e.g. time, objects, persons, etc.)
  * @param index after variable standardization the index may be greater than 0 (see [[lomrf.logic.NormalForm]])
  */
-case class Variable(symbol: String, private[logic] var domainName: String = Variable.UNDEFINED_DOMAIN, index: Int = Variable.DEFAULT_INDEX) extends Term(symbol) {
+sealed case class Variable(override val symbol: String, private[logic] var domainName: String = Variable.UNDEFINED_DOMAIN, index: Int = Variable.DEFAULT_INDEX) extends Term {
 
-  /**
-   * Always false
-   */
+
   override def isGround = false
 
   override def isVariable = true
 
   def domain: String = domainName
 
-  def toText = if(index>0) symbol+"-"+index else symbol
+  def toText = if (index > 0) symbol + "-" + index else symbol
 
-  override def toString = symbol + (if(index>0) "$"+index+":" else ":") + domain
+  override def toString = symbol + (if (index > 0) "$" + index + ":" else ":") + domain
 
   override lazy val hashCode = symbol.## ^ index
 
   override def equals(obj: scala.Any) = obj match {
-      case other: Variable =>
-        this.symbol == other.symbol &&
-          this.domain == other.domain &&
-          this.index == other.index
+    case other: Variable =>
+      this.symbol == other.symbol &&
+        this.domain == other.domain &&
+        this.index == other.index
 
-      case _ => false
-    }
+    case _ => false
+  }
 }
 
-object Variable{
+object Variable {
+
+  /**
+   * If the domain of a variable is not specified, then by default is '0' (i.e., unassigned domain).
+   */
   val UNDEFINED_DOMAIN = "0"
+
+  /**
+   * In first-oder logic a variable name is unique inside the scope of a quantifier. For example:
+   *
+   * {{{A(x) ^ Exist x B(x)}}}
+   *
+   * The scope of variable 'x' after the existential quantifier is different from the one in A(x). Therefore,
+   * the instance of the variable is different and in LoMRF this situation is represented by the index of the
+   * variable. In the example, the index of the first variable is 0, while the index of the second one is 1
+   * (i.e., incremented by one). As a result, the .toString() of the first one is 'x', while the .toString() of the
+   * second one is 'x$1'.
+   *
+   * By default, all variables are assumed to have the default index value, which is zero.
+   *
+   * Please note that in LoMRF, unquantified variables are implicitly assumed that are universally quantified, for example:
+   *
+   * {{{Foo(x) => Bar(y)}}} is the same with {{{Forall x, y Foo(x) => Bar(y)}}}
+   */
   val DEFAULT_INDEX = 0
 }
 
@@ -132,7 +144,7 @@ object Variable{
  *
  * @param symbol constant value
  */
-case class Constant(symbol: String) extends Term(symbol) {
+sealed case class Constant(override val symbol: String) extends Term {
 
   override def isGround = true
 
@@ -149,63 +161,73 @@ case class Constant(symbol: String) extends Term(symbol) {
  * arguments (through constant instantiation of its variables) and produces a result (constant).
  *
  * @param symbol function name
- * @param args function's arguments (Terms, i.e. constants, variables or other functions)
+ * @param terms function's arguments (Terms, i.e. constants, variables or other functions)
  * @param domain the domain of resulting constant (e.g. persons, object, numbers, etc.)
  */
-case class TermFunction(symbol: String, args: List[_ <:Term], domain: String) extends Term(symbol){
+sealed case class TermFunction(override val symbol: String, terms: List[_ <: Term], domain: String) extends Term {
 
-  def this(symbol: String, args: List[Term]) = this(symbol, args, "_?")
+  def this(symbol: String, terms: List[Term]) = this(symbol, terms, "_?")
 
-  lazy val signature = AtomSignature(symbol, args.size)
+  lazy val signature = AtomSignature(symbol, terms.size)
 
-  lazy val variables: Set[Variable] = uniqueVariablesIn(args)
+  lazy val variables: Set[Variable] = uniqueVariablesIn(terms)
 
-  lazy val constants: Set[Constant] = uniqueConstantsIn(args)
+  lazy val constants: Set[Constant] = uniqueConstantsIn(terms)
 
-  lazy val functions: Set[TermFunction] = uniqueFunctionsIn(args)
+  lazy val functions: Set[TermFunction] = uniqueFunctionsIn(terms)
 
   /**
-   * A function is computeGroundings, if all its arguments are computeGroundings.
+   * A function is ground, only when it does not contain any variable
    */
   override def isGround = variables.isEmpty
 
   override def isFunction = true
 
-  def arity: Int = args.size
+  def arity: Int = terms.size
 
   def isDomainDefined: Boolean = domain != "_?"
 
   def toText = {
-    if(args == Nil) symbol + "()"
-    else symbol + "(" + args.map((t: Term) => t.toText).reduceLeft( _ + ", " + _ ) + ")"
+    if (terms == Nil) symbol + "()"
+    else symbol + "(" + terms.map((t: Term) => t.toText).reduceLeft(_ + ", " + _) + ")"
   }
-  
+
   override def toString = {
-    if(args == Nil) symbol+"():"+domain
-    else symbol + "(" + args.map((t: Term) => t.toString).reduceLeft( _ + ", " + _ ) + "):"+domain
+    if (terms == Nil) symbol + "():" + domain
+    else symbol + "(" + terms.map((t: Term) => t.toString).reduceLeft(_ + ", " + _) + "):" + domain
   }
 
   override lazy val hashCode = {
-      var code = symbol.## ^ domain.##
-      for (term <- args) code ^= term.##
-      code
-    }
+    var code = symbol.## ^ domain.##
+    for (term <- terms) code ^= term.##
+    code
+  }
 
   override def equals(obj: scala.Any) = obj match {
-      case other: TermFunction =>
-        other.## == this.## &&
-          other.arity == this.arity &&
-          other.symbol == this.symbol &&
-          other.domain == this.domain &&
-          other.args == this.args
-      case _ => false
-    }
+    case other: TermFunction =>
+      other.## == this.## &&
+        other.arity == this.arity &&
+        other.symbol == this.symbol &&
+        other.domain == this.domain &&
+        other.terms == this.terms
+    case _ => false
+  }
 
 }
 
-object TermFunction{
+object TermFunction {
 
+  /**
+   * Undefined domain
+   */
   val UNDEFINED_RETURN_TYPE = "_?"
 
+  /**
+   * Create a new function with undefined domain
+   *
+   * @param symbol the name of the function
+   * @param args the terms of the function
+   * @return a new instance of function
+   */
   def apply(symbol: String, args: List[Term]) = new TermFunction(symbol, args, UNDEFINED_RETURN_TYPE)
 }

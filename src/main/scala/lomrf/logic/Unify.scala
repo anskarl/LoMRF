@@ -69,7 +69,7 @@ object Unify {
           case (v: Variable, _) => unifyVar(v,y,theta)
           case (_, v: Variable) => unifyVar(v,x,theta)
           case (a: TermFunction, b:TermFunction) =>
-            if(a.symbol == b.symbol) unifyTerms(a.args, b.args, theta)
+            if(a.symbol == b.symbol) unifyTerms(a.terms, b.terms, theta)
             else None
           case _ => None
         }

@@ -129,7 +129,7 @@ private[model] object KB extends Logging {
         term match {
           case Constant(symbol) => constants(key) += symbol
           case f: TermFunction if !dynamicFunctionBuilders.contains(f.signature) =>
-            for ((term, idx) <- f.args.zipWithIndex) parseTerm(term, functionSchema(f.signature)._2(idx))
+            for ((term, idx) <- f.terms.zipWithIndex) parseTerm(term, functionSchema(f.signature)._2(idx))
           case _ => //ignore
         }
       }
