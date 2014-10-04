@@ -52,7 +52,13 @@ sealed abstract class Term(symbol: String) extends MLNExpression {
    *
    * @return true if it is ground, false otherwise.
    */
-  def isGround: Boolean
+  def isGround = false
+
+  def isVariable = false
+
+  def isConstant = false
+
+  def isFunction = false
 
   /**
    * If the symbol is numeric, it will give its ''int'' numeric representation.
@@ -89,18 +95,31 @@ sealed abstract class Term(symbol: String) extends MLNExpression {
  * @param domainName the variable domain (e.g. time, objects, persons, etc.)
  * @param index after variable standardization the index may be greater than 0 (see [[lomrf.logic.NormalForm]])
  */
-case class Variable(symbol: String, private[logic] var domainName: String = Variable.UNDEFINED_DOMAIN, index:Int = Variable.DEFAULT_INDEX) extends Term(symbol) {
+case class Variable(symbol: String, private[logic] var domainName: String = Variable.UNDEFINED_DOMAIN, index: Int = Variable.DEFAULT_INDEX) extends Term(symbol) {
 
   /**
    * Always false
    */
-  def isGround = false
+  override def isGround = false
+
+  override def isVariable = true
 
   def domain: String = domainName
 
-  def toText = if(index>0) symbol+"-"+index else symbol //symbol.replaceAll("\\$","-")
+  def toText = if(index>0) symbol+"-"+index else symbol
 
-  override def toString = symbol+(if(index>0) "$"+index+":" else ":")+domain
+  override def toString = symbol + (if(index>0) "$"+index+":" else ":") + domain
+
+  override lazy val hashCode = symbol.## ^ index
+
+  override def equals(obj: scala.Any) = obj match {
+      case other: Variable =>
+        this.symbol == other.symbol &&
+          this.domain == other.domain &&
+          this.index == other.index
+
+      case _ => false
+    }
 }
 
 object Variable{
@@ -115,7 +134,9 @@ object Variable{
  */
 case class Constant(symbol: String) extends Term(symbol) {
 
-  def isGround: Boolean = true
+  override def isGround = true
+
+  override def isConstant = true
 
   def toText = symbol
 
@@ -146,7 +167,9 @@ case class TermFunction(symbol: String, args: List[_ <:Term], domain: String) ex
   /**
    * A function is computeGroundings, if all its arguments are computeGroundings.
    */
-  def isGround: Boolean = !args.exists(_.isGround != true)
+  override def isGround = variables.isEmpty
+
+  override def isFunction = true
 
   def arity: Int = args.size
 
@@ -161,6 +184,22 @@ case class TermFunction(symbol: String, args: List[_ <:Term], domain: String) ex
     if(args == Nil) symbol+"():"+domain
     else symbol + "(" + args.map((t: Term) => t.toString).reduceLeft( _ + ", " + _ ) + "):"+domain
   }
+
+  override lazy val hashCode = {
+      var code = symbol.## ^ domain.##
+      for (term <- args) code ^= term.##
+      code
+    }
+
+  override def equals(obj: scala.Any) = obj match {
+      case other: TermFunction =>
+        other.## == this.## &&
+          other.arity == this.arity &&
+          other.symbol == this.symbol &&
+          other.domain == this.domain &&
+          other.args == this.args
+      case _ => false
+    }
 
 }
 

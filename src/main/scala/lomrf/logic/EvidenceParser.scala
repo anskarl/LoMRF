@@ -36,7 +36,7 @@ package lomrf.logic
  * @author Anastasios Skarlatidis
  */
 
-class ProbEvidenceParser extends CommonsMLNParser {
+class EvidenceParser extends CommonsMLNParser {
 
   /**
    * A grounded term is a constant

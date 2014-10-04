@@ -436,6 +436,12 @@ final class ExtendedKBParser(predicateSchema: Map[AtomSignature, List[String]],
   }
 
 
+  //--------------------------------------------------------------------------------------------------------------------
+  //--- Public API with utility functions for parsing
+  //--------------------------------------------------------------------------------------------------------------------
+
+
+
   /**
    * Parses an individual formula from text
    *
