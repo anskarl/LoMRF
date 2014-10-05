@@ -72,7 +72,6 @@ sealed trait Term extends MLNExpression {
    */
   def isFunction = false
 
-
   /**
    * Gives the textual representation of this term.
    */
@@ -87,7 +86,9 @@ sealed trait Term extends MLNExpression {
  * @param domainName the variable domain (e.g. time, objects, persons, etc.)
  * @param index after variable standardization the index may be greater than 0 (see [[lomrf.logic.NormalForm]])
  */
-sealed case class Variable(override val symbol: String, private[logic] var domainName: String = Variable.UNDEFINED_DOMAIN, index: Int = Variable.DEFAULT_INDEX) extends Term {
+sealed case class Variable(override val symbol: String,
+                           private[logic] var domainName: String = Variable.UNDEFINED_DOMAIN,
+                           index: Int = Variable.DEFAULT_INDEX) extends Term {
 
 
   override def isGround = false
@@ -218,7 +219,7 @@ sealed case class TermFunction(override val symbol: String, terms: List[_ <: Ter
 object TermFunction {
 
   /**
-   * Undefined domain
+   * Default value for undefined domain
    */
   val UNDEFINED_RETURN_TYPE = "_?"
 
