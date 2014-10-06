@@ -257,7 +257,7 @@ final class ExtendedKBParser(predicateSchema: Map[AtomSignature, List[String]],
     case left ~ ">=" ~ right => this.parsePredicate("greaterThanEq(" + left + "," + right + ")")
   }
 
-  def functionArg = functionArgPrefix | functionArgInfix
+  def functionArg = functionArgPrefix | functionArgInfix | functionArgSuffix
   /**
    * Parses FOL function symbols, as well as their arguments. The arguments may be constant symbols, variables
    * or even other FOL function definitions. Consequently, recursive function definitions are supported.
@@ -336,6 +336,16 @@ final class ExtendedKBParser(predicateSchema: Map[AtomSignature, List[String]],
 
   def modInfix = (lowerCaseID | upperCaseID) ~ "%" ~ (lowerCaseID | upperCaseID ) ^^ {
     case left ~ "%" ~ right => this.parseFunction("mod(" + left + "," + right + ")")
+  }
+
+  def functionArgSuffix = succSuffix | prevSuffix
+
+  def succSuffix = (lowerCaseID | upperCaseID) ~ "++" ^^{
+    case left ~ "++" => this.parseFunction("succ(" + left  + ")")
+  }
+
+  def prevSuffix = (lowerCaseID | upperCaseID) ~ "--" ^^{
+    case left ~ "++" => this.parseFunction("prev(" + left  + ")")
   }
 
   /**

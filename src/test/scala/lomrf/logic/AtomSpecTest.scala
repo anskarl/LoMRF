@@ -157,7 +157,6 @@ final class AtomSpecTest extends FunSpec with Matchers {
       result.toText should be(atomHappens.toText)
     }
 
-
     it("has '" + nConst + "' constant(s)") {
       result.constants.size should equal(nConst)
       result.constants should equal(atomHappens.constants)
@@ -166,6 +165,11 @@ final class AtomSpecTest extends FunSpec with Matchers {
     it("has '" + nVar + "' variable(s)") {
       result.variables.size should equal(nVar)
       result.variables should equal(atomHappens.variables)
+    }
+
+    it("contains the function "+term1.toText){
+      result.functions.size should equal(1)
+      result.functions.head should equal(term1)
     }
 
     if (nVar > 0) it("is ground") {

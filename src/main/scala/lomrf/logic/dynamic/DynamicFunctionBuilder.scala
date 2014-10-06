@@ -60,6 +60,16 @@ final class DynSuccFunctionBuilder extends DynamicFunctionBuilder {
     require(terms.size == 1)
     new TermFunction("succ", terms)
   }
+
+
+  def apply(term: Term, resultDomain: String) = {
+    new TermFunction("succ", term :: Nil, resultDomain)
+  }
+
+  def apply(term: Term) = {
+    new TermFunction("succ", term :: Nil)
+  }
+
 }
 
 object DynSuccFunctionBuilder{
@@ -80,6 +90,14 @@ final class DynPrecFunctionBuilder extends DynamicFunctionBuilder {
   def apply(terms: List[Term]) = {
     require(terms.size == 1)
     new TermFunction("prec", terms)
+  }
+
+  def apply(term: Term, resultDomain: String) = {
+    new TermFunction("prec", term :: Nil, resultDomain)
+  }
+
+  def apply(term: Term) = {
+    new TermFunction("prec", term :: Nil)
   }
 }
 
@@ -103,6 +121,14 @@ final class DynPlusFunctionBuilder extends DynamicFunctionBuilder {
     require(terms.size == 2)
     new TermFunction("plus", terms)
   }
+
+  def apply(term: Term, term2: Term, resultDomain: String) = {
+    new TermFunction("plus", term :: term2 :: Nil, resultDomain)
+  }
+
+  def apply(term: Term, term2: Term) = {
+    new TermFunction("plus", term :: term2 :: Nil)
+  }
 }
 
 object DynPlusFunctionBuilder{
@@ -124,6 +150,14 @@ final class DynMinusFunctionBuilder extends DynamicFunctionBuilder {
   def apply(terms: List[Term]) = {
     require(terms.size == 2)
     new TermFunction("minus", terms)
+  }
+
+  def apply(term: Term, term2: Term, resultDomain: String) = {
+    new TermFunction("minus", term :: term2 :: Nil, resultDomain)
+  }
+
+  def apply(term: Term, term2: Term) = {
+    new TermFunction("minus", term :: term2 :: Nil)
   }
 }
 
@@ -147,6 +181,14 @@ final class DynTimesFunctionBuilder extends DynamicFunctionBuilder {
     require(terms.size == 2)
     new TermFunction("times", terms)
   }
+
+  def apply(term: Term, term2: Term, resultDomain: String) = {
+    new TermFunction("times", term :: term2 :: Nil, resultDomain)
+  }
+
+  def apply(term: Term, term2: Term) = {
+    new TermFunction("times", term :: term2 :: Nil)
+  }
 }
 
 object DynTimesFunctionBuilder{
@@ -167,6 +209,14 @@ final class DynDividedByFunctionBuilder extends DynamicFunctionBuilder {
   def apply(terms: List[Term]) = {
     require(terms.size == 2)
     new TermFunction("dividedBy", terms)
+  }
+
+  def apply(term: Term, term2: Term, resultDomain: String) = {
+    new TermFunction("dividedBy", term :: term2 :: Nil, resultDomain)
+  }
+
+  def apply(term: Term, term2: Term) = {
+    new TermFunction("dividedBy", term :: term2 :: Nil)
   }
 }
 
@@ -189,6 +239,14 @@ final class DynModFunctionBuilder extends DynamicFunctionBuilder {
     require(terms.size == 2)
     new TermFunction("mod", terms)
   }
+
+  def apply(term: Term, term2: Term, resultDomain: String) = {
+    new TermFunction("mod", term :: term2 :: Nil, resultDomain)
+  }
+
+  def apply(term: Term, term2: Term) = {
+    new TermFunction("mod", term :: term2 :: Nil)
+  }
 }
 
 object DynModFunctionBuilder{
@@ -210,6 +268,14 @@ final class DynConcatFunctionBuilder extends DynamicFunctionBuilder {
   def apply(terms: List[Term]) = {
     require(terms.size == 2)
     new TermFunction("concat", terms)
+  }
+
+  def apply(term: Term, term2: Term, resultDomain: String) = {
+    new TermFunction("concat", term :: term2 :: Nil, resultDomain)
+  }
+
+  def apply(term: Term, term2: Term) = {
+    new TermFunction("concat", term :: term2 :: Nil)
   }
 }
 
