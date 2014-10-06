@@ -113,7 +113,10 @@ final class MRFBuilder(val mln: MLN, noNegWeights: Boolean = false, unitWeights:
 
     var weightHard = 10.0
     for (clause <- mln.clauses; if !clause.isHard && clause.variables.nonEmpty) {
-      weightHard += (math.abs(clause.weight) * clause.variables.map(v => mln.constants(v.domain).size).reduceLeft(_ * _))
+      val productOfVarDomains = clause.variables.iterator.map(v => mln.constants(v.domain).size).reduceLeftOption(_ * _)
+      val productOfFuncDomains = clause.functions.iterator.map(f => mln.constants(f.domain).size).reduceLeftOption(_ * _)
+
+      weightHard += (math.abs(clause.weight) * productOfVarDomains.getOrElse(0) * productOfFuncDomains.getOrElse(1))
     }
     weightHard = math.ceil(weightHard)
     info("Hard weight value is set to: " + weightHard)

@@ -76,10 +76,10 @@ object InferenceCLI extends OptionParser with Logging {
   private var _mapOutputAll = true
 
   // Trivially satisfy hard constrained unit clauses
-  private var _satHardUnit = true
+  private var _satHardUnit = false
 
   // Satisfiability priority to hard constrained clauses
-  private var _satHardPriority = true
+  private var _satHardPriority = false
 
   // Rounding algorithm for ILP map inference
   private var _ilpRounding = 1

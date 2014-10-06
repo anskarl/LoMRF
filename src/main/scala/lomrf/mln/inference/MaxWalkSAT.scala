@@ -69,10 +69,9 @@ import lomrf.util.{Utilities, Logging}
  * @author Vagelis Michelioudakis
  */
 final class MaxWalkSAT(mrf: MRF, pBest: Double = 0.5, maxFlips: Int = 100000, maxTries: Int = 1, targetCost: Double = 0.001,
-                       outputAll: Boolean = true, satHardUnit: Boolean = true, satHardPriority: Boolean = true, tabuLength: Int = 5) extends Logging {
+                       outputAll: Boolean = true, satHardUnit: Boolean = false, satHardPriority: Boolean = false, tabuLength: Int = 5) extends Logging {
 
   private val TARGET_COST = targetCost + 0.0001
-  private var duplicateInfo = false
   //private val random = new Random()
 
   /**
@@ -87,12 +86,10 @@ final class MaxWalkSAT(mrf: MRF, pBest: Double = 0.5, maxFlips: Int = 100000, ma
    * @return The MRFState after inference procedure is complete
    */
   def infer(): MRFState = {
-    duplicateInfo = true
     val startTime = System.currentTimeMillis()
     val state = infer(MRFState(mrf, satHardUnit, satHardPriority))
     val endTime = System.currentTimeMillis()
     info(Utilities.msecTimeToText("Total Max-WalkSAT time: ", endTime - startTime))
-    state.printMRFStateStats()
 
     //return the best state
     state
@@ -137,8 +134,8 @@ final class MaxWalkSAT(mrf: MRF, pBest: Double = 0.5, maxFlips: Int = 100000, ma
           // a. The chosen constraint has positive weight value.
           while (idx < literals.length) {
             currentAtom = fetchAtom(literals(idx))
-            if (!currentAtom.isCritical
-              && (currentAtom.brakeCost == 0 || tabuLength < (iteration - currentAtom.lastFlip))) {
+            if (!currentAtom.isFixed
+              && (currentAtom.breakCost == 0 || tabuLength < (iteration - currentAtom.lastFlip))) {
               if (currentAtom.delta < bestDelta) {
                 bestDelta = currentAtom.delta
                 bufferAtoms(0) = currentAtom
@@ -158,8 +155,8 @@ final class MaxWalkSAT(mrf: MRF, pBest: Double = 0.5, maxFlips: Int = 100000, ma
           while (idx < literals.length) {
             currentAtom = fetchAtom(literals(idx))
             currentDelta = currentAtom.delta
-            if (!currentAtom.isCritical && ((literals(idx) > 0) == currentAtom.state)
-              && (currentAtom.brakeCost == 0 || tabuLength < (iteration - currentAtom.lastFlip)) ) {
+            if (!currentAtom.isFixed && ((literals(idx) > 0) == currentAtom.state)
+              && (currentAtom.breakCost == 0 || tabuLength < (iteration - currentAtom.lastFlip)) ) {
               if (currentDelta < bestDelta) {
                 bestDelta = currentDelta
                 bufferAtoms(0) = currentAtom
@@ -183,7 +180,7 @@ final class MaxWalkSAT(mrf: MRF, pBest: Double = 0.5, maxFlips: Int = 100000, ma
           while (idx < literals.length) {
             currentAtom = fetchAtom(literals(idx))
             if (!currentAtom.isFixed
-              && (currentAtom.brakeCost == 0 || tabuLength < (iteration - currentAtom.lastFlip))) {
+              && (currentAtom.breakCost == 0 || tabuLength < (iteration - currentAtom.lastFlip))) {
               bufferAtoms(bufferIdx) = currentAtom
               bufferIdx += 1
             }
@@ -196,7 +193,7 @@ final class MaxWalkSAT(mrf: MRF, pBest: Double = 0.5, maxFlips: Int = 100000, ma
           while (idx < literals.length) {
             currentAtom = fetchAtom(literals(idx))
             if (!currentAtom.isFixed && ((literals(idx) > 0) == currentAtom.state)
-              && (currentAtom.brakeCost == 0 || tabuLength < (iteration - currentAtom.lastFlip))) {
+              && (currentAtom.breakCost == 0 || tabuLength < (iteration - currentAtom.lastFlip))) {
               bufferAtoms(bufferIdx) = currentAtom
               bufferIdx += 1
             }
@@ -217,7 +214,9 @@ final class MaxWalkSAT(mrf: MRF, pBest: Double = 0.5, maxFlips: Int = 100000, ma
       state.reset(tabuLength, unitPropagation = false)
       iteration = 0
       var chosenAtom = NO_ATOM
+
       while (iteration < maxFlips) {
+        iteration += 1
 
         if (state.getCost <= TARGET_COST) {
           info("A solution is found after " + (iteration * (numTry + 1)) + " iterations.")
@@ -228,13 +227,12 @@ final class MaxWalkSAT(mrf: MRF, pBest: Double = 0.5, maxFlips: Int = 100000, ma
           if (chosenAtom.id != NO_ATOM_ID) {
             state.flip(chosenAtom, iteration)
           }
-          iteration += 1
         }
       }
       numTry += 1
     }
     state.restoreLowState()
-    if(!duplicateInfo) state.printMRFStateStats() // in case MCSAT is running
+    state.printMRFStateStats()
 
     //return best state
     state
