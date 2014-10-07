@@ -38,7 +38,7 @@ import lomrf.util.Logging
 /**
  * @author Anastasios Skarlatidis
  */
-final class ExtendedKBParser(predicateSchema: Map[AtomSignature, List[String]],
+final class KBParser(predicateSchema: Map[AtomSignature, List[String]],
                              functionSchema: Map[AtomSignature, (String, List[String])],
                              dynamicAtomBuilders: Map[AtomSignature, DynamicAtomBuilder] = predef.dynAtomBuilders,
                              dynamicFunctionBuilders: Map[AtomSignature, DynamicFunctionBuilder] = predef.dynFunctionBuilders) extends CommonsMLNParser with Logging {

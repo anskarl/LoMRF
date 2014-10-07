@@ -85,7 +85,7 @@ final class KBParserSpecTest extends FunSpec with Matchers {
   )
 
 
-  private val parser = new ExtendedKBParser(predicateSchema, functionsSchema)
+  private val parser = new KBParser(predicateSchema, functionsSchema)
   private val functionPlus = DynPlusFunctionBuilder()
   private val functionSucc = DynSuccFunctionBuilder()
 

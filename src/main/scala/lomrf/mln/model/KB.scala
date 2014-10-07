@@ -201,7 +201,7 @@ private[model] object KB extends Logging {
     // ---------------------------------------------------
 
     fileReader.reset()
-    val kbParser = new ExtendedKBParser(predicateSchema, functionSchema, dynamicAtomBuilders, dynamicFunctionBuilders)
+    val kbParser = new KBParser(predicateSchema, functionSchema, dynamicAtomBuilders, dynamicFunctionBuilders)
 
     val formulas = new mutable.LinkedHashSet[Formula]()
     var definiteClauses = new mutable.LinkedHashSet[WeightedDefiniteClause]()
