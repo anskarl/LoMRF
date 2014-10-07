@@ -6,7 +6,7 @@
       <pattern>[%-5p] %m%n</pattern>
     </encoder>
     <filter class="ch.qos.logback.classic.filter.ThresholdFilter">
-      <level>DEBUG</level>
+      <level>INFO</level>
     </filter>
   </appender>
   <appender name="FILE" class="ch.qos.logback.core.FileAppender">
@@ -18,7 +18,7 @@
       <level>ERROR</level>
     </filter>
   </appender>
-  <root level="DEBUG">
+  <root level="INFO">
     <appender-ref ref="CONSOLE"/>
     <appender-ref ref="FILE"/>
   </root>

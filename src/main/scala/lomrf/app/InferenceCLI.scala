@@ -339,7 +339,7 @@ object InferenceCLI extends OptionParser with Logging {
     if(isDebugEnabled) mln.clauses.zipWithIndex.foreach{case (c, idx) => debug(idx+": "+c)}
 
     info("Creating MRF...")
-    val mrfBuilder = new MRFBuilder(mln, _noNeg, _eliminateNegatedUnit)
+    val mrfBuilder = new MRFBuilder(mln, noNegWeights = _noNeg, eliminateNegatedUnit = _eliminateNegatedUnit)
     val mrf = mrfBuilder.buildNetwork
 
     if (_marginalInference) { // Marginal inference methods

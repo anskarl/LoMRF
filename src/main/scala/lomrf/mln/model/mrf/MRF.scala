@@ -139,13 +139,15 @@ final class MRFState private(val mrf: MRF, parAtoms: ParArray[GroundAtom], parCo
   private var lowCost = Double.MaxValue
   private var lowUnsat = Int.MaxValue
   private var totalActive = mrf.atoms.size()
+
+  private var mode = MRF.MODE_MWS
   //private val random = new Random()
 
   @inline private def atomID(lit: Int) = math.abs(lit)
 
   @inline private def state(lit: Int) = atoms.get(atomID(lit)).state
 
-  @inline private def isTrueLiteral(lit: Int): Boolean = ((lit > 0) && atoms.get(lit).state) || ((lit < 0) && !atoms.get(-lit).state)
+  @inline private def isTrueLiteral(lit: Int): Boolean = (lit > 0) == state(lit)
 
   def apply(aid: Int): Boolean = state(aid)
 
@@ -155,6 +157,7 @@ final class MRFState private(val mrf: MRF, parAtoms: ParArray[GroundAtom], parCo
    */
   def setInferenceMode(mode: Int) {
     parConstraints.foreach(_.mode = mode)
+    this.mode = mode
   }
 
   /**
@@ -586,8 +589,6 @@ final class MRFState private(val mrf: MRF, parAtoms: ParArray[GroundAtom], parCo
 
         if (!constraint.inactive && !constraint.isSatisfiedByFixed) {
 
-          val cost = constraint.cost
-
           // increase by one the number of literals that satisfy this clause
           constraint.nsat += 1
 
@@ -603,12 +604,12 @@ final class MRFState private(val mrf: MRF, parAtoms: ParArray[GroundAtom], parCo
             //       only when it is positive, otherwise do the opposite.
             if (constraint.weight > 0) {
               Unsatisfied -= constraint
-              totalCost -= cost
+              totalCost -= (if(mode == MRF.MODE_MWS) math.abs(constraint.weight) else 1)
               if(constraint.isHardConstraint && priorityBuffer.contains(constraint)) priorityBuffer -= constraint
             }
             else {
               Unsatisfied += constraint
-              totalCost += constraint.cost
+              totalCost += (if(mode == MRF.MODE_MWS) math.abs(constraint.weight) else 1)
             }
 
             //    b. Since the given atom satisfies this constraint, the state of the rest
@@ -666,8 +667,6 @@ final class MRFState private(val mrf: MRF, parAtoms: ParArray[GroundAtom], parCo
 
         if (!constraint.inactive && !constraint.isSatisfiedByFixed) {
 
-          val cost = constraint.cost
-
           // Since the corresponding literal does not satisfies the current constraint any longer,
           // reduce by one its number of satisfied literals.
           constraint.nsat -= 1
@@ -684,12 +683,12 @@ final class MRFState private(val mrf: MRF, parAtoms: ParArray[GroundAtom], parCo
             //       only when it is positive, otherwise do the opposite
             if (constraint.weight > 0) {
               Unsatisfied += constraint
-              totalCost += constraint.cost
+              totalCost += (if(mode == MRF.MODE_MWS) math.abs(constraint.weight) else 1)
               if(constraint.isHardConstraint) priorityBuffer += constraint
             }
             else {
               Unsatisfied -= constraint
-              totalCost -= cost
+              totalCost -= (if(mode == MRF.MODE_MWS) math.abs(constraint.weight) else 1)
             }
 
             //    b. Since the current constraint is now unsatisfied, specify that by
