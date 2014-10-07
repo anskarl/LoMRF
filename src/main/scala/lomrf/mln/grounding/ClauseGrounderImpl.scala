@@ -71,7 +71,7 @@ class ClauseGrounderImpl(
 
   private val groundIterator =
     try {
-      Cartesian.CartesianIteratorMap(variableDomains)
+      Cartesian.CartesianIterator(variableDomains)
     } catch {
       case ex: NoSuchElementException =>
         fatal("Failed to initialise CartesianIterator for clause: " +
