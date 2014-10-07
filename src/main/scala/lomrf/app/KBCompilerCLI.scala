@@ -214,7 +214,7 @@ object KBCompilerCLI extends Logging {
   }
 
   private def clauseFormatter(clause: Clause, weightsMode: WeightsMode, eliminateFunctions: Boolean, introduceFunctions: Boolean)(implicit profile: Profile, mln: MLN): String = {
-    import lomrf.logic.{Function, Variable, Term, AtomicFormula}
+    import lomrf.logic.{TermFunction, Variable, Term, AtomicFormula}
 
     val functionVarPrefix = profile.functionVarPrefix
     val functionPrefix = profile.functionPrefix
@@ -243,14 +243,14 @@ object KBCompilerCLI extends Logging {
             if(literalsWithFunctions.nonEmpty) {
 
 
-              var fMap = Map[Function, (String, Literal)]()
+              var fMap = Map[TermFunction, (String, Literal)]()
               var functionCounter = 0
 
               for(function <- clause.functions) {
                 fMap.get(function) match {
                   case None =>
                     val functionVar = functionVarPrefix + functionCounter
-                    val terms = Variable(functionVar, function.domain) :: function.args
+                    val terms = Variable(functionVar, function.domain) :: function.terms
                     val functionLiteral = NegativeLiteral(AtomicFormula(functionPrefix + function.symbol, terms))
                     fMap += (function ->(functionVar, functionLiteral))
                     functionCounter += 1
@@ -263,7 +263,7 @@ object KBCompilerCLI extends Logging {
                   literal <- literalsWithFunctions
                   sentence = literal.sentence
                   newArgs = for (arg <- sentence.terms) yield arg match {
-                    case f: Function =>
+                    case f: TermFunction =>
                       val varName = fMap(f)._1
                       Variable(varName, "")
                     case t: Term => t
@@ -305,14 +305,14 @@ object KBCompilerCLI extends Logging {
 
             if (literalsFunctions.nonEmpty) {
 
-              var lMap = Map[Term, Function]()
+              var lMap = Map[Term, TermFunction]()
 
               for(literal <- literalsFunctions) {
                 println(literal.toText)
                 val functionSymbol = literal.sentence.symbol.replace(functionPrefix, "")
                 val functionVar = literal.sentence.terms(0)
                 val terms = literal.sentence.terms.drop(1)
-                val function = Function(functionSymbol, terms)
+                val function = TermFunction(functionSymbol, terms)
                 lMap += (functionVar -> function)
               }
 

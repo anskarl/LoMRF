@@ -80,7 +80,7 @@ private[model] object Evidence extends Logging {
 
     val constantMap = kb_constants
 
-    val evidenceParser = new ProbEvidenceParser
+    val evidenceParser = new EvidenceParser
     val evidenceExpressionsDB =
     for (file <- files; fileReader = new BufferedReader(new FileReader(file)))
       yield evidenceParser.parseAll(evidenceParser.evidence, fileReader) match {

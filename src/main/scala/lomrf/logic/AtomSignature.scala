@@ -97,6 +97,6 @@ object AtomSignature {
    * @param fun the FOL function
    * @return the resulting signature
    */
-  def apply(fun: lomrf.logic.Function): AtomSignature = new AtomSignature(fun.symbol, fun.arity)
+  def apply(fun: lomrf.logic.TermFunction): AtomSignature = new AtomSignature(fun.symbol, fun.arity)
 }
 

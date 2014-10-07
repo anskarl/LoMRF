@@ -55,7 +55,7 @@ final class Clause(val weight: Double, val literals: Set[Literal]){
   /**
    * The set of functions that appear inside this clause
    */
-  lazy val functions: List[Function] = literals.foldRight(List[Function]())((a:Literal, b) => a.sentence.functions ::: b)
+  lazy val functions: Set[TermFunction] = literals.foldRight(Set[TermFunction]())((a:Literal, b) => a.sentence.functions ++ b)
 
   /**
    * @return true if this clause is hard-constrained (i.e. weight = Infinity), otherwise false.

@@ -34,8 +34,8 @@ package lomrf
 
 import collection.mutable
 import lomrf.logic.dynamic._
-import scala.Some
 import lomrf.util.Logging
+import scala.annotation.tailrec
 
 /**
  * @author Anastasios Skarlatidis
@@ -164,7 +164,7 @@ package object logic extends Logging {
             val typeName = predicateSchema(atom1.signature)(idx)
             Variable("var_" + idx, typeName, idx)
           }
-        case (f1: Function, f2: Function) => generalisationOf(f1, f2).getOrElse(return None)
+        case (f1: TermFunction, f2: TermFunction) => generalisationOf(f1, f2).getOrElse(return None)
         case _ => return None
       }
     }
@@ -172,10 +172,10 @@ package object logic extends Logging {
     Some(AtomicFormula(atom1.symbol, generalizedArgs))
   }
 
-  private def generalisationOf(f1: Function, f2: Function, level: Int = 0)
-                              (implicit functionSchema: Map[AtomSignature, (String, List[String])]): Option[Function] = {
+  private def generalisationOf(f1: TermFunction, f2: TermFunction, level: Int = 0)
+                              (implicit functionSchema: Map[AtomSignature, (String, List[String])]): Option[TermFunction] = {
     val generalizedArgs: List[Term] = {
-      for ((pair, idx) <- f1.args.zip(f2.args).zipWithIndex)
+      for ((pair, idx) <- f1.terms.zip(f2.terms).zipWithIndex)
       yield pair match {
         case (v: Variable, _) => v
         case (_, v: Variable) => v
@@ -185,12 +185,148 @@ package object logic extends Logging {
             val typeName = functionSchema(f1.signature)._2(idx)
             Variable("var_" + "l" + level + "i" + idx, typeName, idx)
           }
-        case (f1: Function, f2: Function) => generalisationOf(f1, f2, level + 1).getOrElse(return None)
+        case (f1: TermFunction, f2: TermFunction) => generalisationOf(f1, f2, level + 1).getOrElse(return None)
         case _ => return None
       }
     }
 
-    Some(Function(f1.symbol, generalizedArgs, f1.domain))
+    Some(TermFunction(f1.symbol, generalizedArgs, f1.domain))
+  }
+
+
+  /**
+   * Collects all variables from a list of terms
+   *
+   * @param terms input list of terms
+   * @return The resulting set of variables found in the given list of terms, or an empty set if none is found.
+   */
+  def uniqueVariablesIn(terms: Iterable[_ <: Term]): Set[Variable] = {
+    val queue = mutable.Queue[Term]()
+    queue ++= terms
+    var result = Set[Variable]()
+
+    while (queue.nonEmpty) queue.dequeue() match {
+      case v: Variable => result += v
+      case f: TermFunction => queue ++= f.terms
+      case _ => //do nothing
+    }
+    result
+  }
+
+  /*@inline
+  def uniqueVariablesIn(terms: Iterable[_ <: Term]): Set[Variable] =
+    terms.foldRight(Set[Variable]())((a, b) => a match {
+      case v: Variable => Set(v) ++ b
+      case f: TermFunction => f.variables ++ b
+      case _ => b
+    })*/
+
+  def variablesIn(terms: Iterable[_ <: Term]): List[Variable] = {
+    val stack = mutable.Stack[Term]()
+    stack.pushAll(terms)
+
+    var result = List[Variable]()
+
+    while (stack.nonEmpty) stack.pop() match {
+      case v: Variable => result ::= v
+      case f: TermFunction => stack.pushAll(f.terms)
+      case _ => //do nothing
+    }
+
+    result
+  }
+
+
+  /**
+   * Collects all variables from a given list of term lists.
+   *
+   * @param termLists input list of term list
+   * @return The resulting set of variables found in the given lists of terms, or an empty set if none is found.
+   */
+  def uniqueVariablesInLists(termLists: Iterable[Iterable[_ <: Term]]): Set[Variable] = {
+    /**
+     * Recursively collect all variables from list of term list
+     *
+     * @param terms list of term list
+     * @param variables the current set of variables found from previous runs
+     * @return the resulting set of variables
+     */
+    @tailrec
+    def variablesRec(terms: Iterable[Iterable[_ <: Term]], variables: Set[Variable]): Set[Variable] = {
+      if (terms.nonEmpty)
+        variablesRec(terms.tail, uniqueVariablesIn(terms.head) ++ variables)
+      else variables
+    }
+
+    // Start collecting the variables recursively. Initially the set of variables is empty.
+    variablesRec(termLists, Set.empty)
+  }
+
+  /* @inline
+   def uniqueConstantsIn(terms: Iterable[_ <: Term]): Set[Constant] = {
+     terms.foldRight(Set[Constant]())((a, rest) => a match {
+       case c: Constant => Set(c) ++ rest
+       case f: TermFunction => f.constants ++ rest
+       case _ => rest
+     })
+   }*/
+
+  def uniqueConstantsIn(terms: Iterable[_ <: Term]): Set[Constant] = {
+    val queue = mutable.Queue[Term]()
+    queue ++= terms
+    var result = Set[Constant]()
+
+    while (queue.nonEmpty) queue.dequeue() match {
+      case c: Constant => result += c
+      case f: TermFunction => queue ++= f.terms
+      case _ => //do nothing
+    }
+    result
+  }
+
+  def uniqueConstantsInLists(termLists: Iterable[Iterable[_ <: Term]]): Set[Constant] = {
+    @tailrec
+    def constantsRec(terms: Iterable[Iterable[_ <: Term]], constants: Set[Constant]): Set[Constant] = {
+      if (terms.nonEmpty)
+        constantsRec(terms.tail, uniqueConstantsIn(terms.head) ++ constants)
+      else constants
+    }
+
+    // Start collecting the constants recursively. Initially the set of constants is empty.
+    constantsRec(termLists, Set.empty)
+  }
+
+  /*@inline
+  def uniqueFunctionsIn(terms: Iterable[_ <: Term]): Set[TermFunction] =
+    terms.foldRight(Set[TermFunction]())((t, rest) => t match {
+      case f: TermFunction => Set(f) ++ f.functions ++ rest
+      case _ => rest
+    })*/
+
+  def uniqueFunctionsIn(terms: Iterable[_ <: Term]): Set[TermFunction] = {
+    val queue = mutable.Queue[Term]()
+    queue ++= terms
+    var result = Set[TermFunction]()
+
+    while (queue.nonEmpty) queue.dequeue() match {
+      case f: TermFunction =>
+        result += f
+        queue ++= f.terms
+      case _ => //do nothing
+    }
+    result
+  }
+
+  def uniqueFunctionsInLists(termLists: Iterable[Iterable[_ <: Term]]): Set[TermFunction] = {
+    @tailrec
+    def functionsRec(terms: Iterable[Iterable[_ <: Term]], functions: Set[TermFunction]): Set[TermFunction] = {
+      if (terms.nonEmpty)
+        functionsRec(terms.tail, uniqueFunctionsIn(terms.head) ++ functions)
+      else functions
+    }
+
+    // Start collecting the functions recursively. Initially the set of functions is empty.
+    functionsRec(termLists, Set.empty)
   }
 
 
@@ -199,13 +335,12 @@ package object logic extends Logging {
     val dynAtomBuilders: Map[AtomSignature, DynamicAtomBuilder] =
       List(
         DynEqualsBuilder(), DynLessThanBuilder(), DynLessThanEqBuilder(),
-        DynGreaterThanBuilder(), DynGreaterThanEqBuilder(),DynSubstringBuilder()
+        DynGreaterThanBuilder(), DynGreaterThanEqBuilder(), DynSubstringBuilder()
       ).map(builder => builder.signature -> builder).toMap
 
 
     val dynAtoms: Map[AtomSignature, List[String] => Boolean] =
-      dynAtomBuilders.map{case (signature, builder) => signature -> builder.stateFunction}
-
+      dynAtomBuilders.map { case (signature, builder) => signature -> builder.stateFunction}
 
 
     val dynFunctionBuilders: Map[AtomSignature, DynamicFunctionBuilder] =
@@ -215,7 +350,7 @@ package object logic extends Logging {
       ).map(builder => builder.signature -> builder).toMap
 
     val dynFunctions: Map[AtomSignature, List[String] => String] =
-      dynFunctionBuilders.map{case (signature, builder) => signature -> builder.resultFunction}
+      dynFunctionBuilders.map { case (signature, builder) => signature -> builder.resultFunction}
 
   }
 

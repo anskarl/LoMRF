@@ -185,66 +185,30 @@ class ClauseGrounderImplNew(
 
   def computeGroundings() {
 
-    debug("CLAUSE: "+orderedLiterals)
+   /* debug("The ordering of literals in clause: " + clause + "\n\t" +
+          "changed to: " + orderedLiterals.map(_.toString()).reduceLeft(_ + " v " + _))*/
 
 
-    // ---- NEW
-    val _varSteps = new Array[Int](orderedLiterals.size)
 
-    var _varSet = Set.empty[Variable]
-
-    val _varArray = new Array[Variable](variableDomains.size)
-
+    val steps = new Array[Int](orderedLiterals.length)
+    var countedVariables = Set[Variable]()
+    //val variableOrder = Array()
     var _idx = 0
-    var _vidx = 0
-
-    for((literal, _ ) <- orderedLiterals) {
-      for(term <- literal.sentence.terms) term match {
-        case v: Variable =>
-          _varSteps(_idx) =
-            if(_varSet.contains(v)) 0 // it is already known
-            else {
-              _varSet += v // add to known so far variables set
-              _varArray(_vidx) = v
-              _vidx += 1
-              1
-            }
-          _idx += 1
-      }
+    for((literal, _) <- orderedLiterals){
+      val prevSize = countedVariables.size
+      countedVariables ++= literal.sentence.variables
+      steps(_idx) += countedVariables.size - prevSize
+      _idx += 1
     }
 
-    debug("\t _varSteps: ["+_varSteps.map(_.toString).reduceLeft(_ + ", "+ _)+"]")
-    debug("\t   _varSet: ["+_varSet.map(_.toString).reduceLeft(_ + ", "+ _)+"]")
-    debug("\t _varArray: ["+_varArray.map(_.toString).reduceLeft(_ + ", "+ _)+"]")
+    debug("CLAUSE: "+orderedLiterals.map(_._1.toText).reduceLeft(_ + " v " + _)+
+      "\n\t S = ["+steps.map(_.toString).reduceLeft(_ +", " +_ )+"]")
 
     sys.exit()
 
-    // ----
-
-
-    // ---- NEW
-    // Prepare groundings
-    /*val arrayKeys = new Array[Variable](variableDomains.size)
-    val arrayIterators = new Array[Iterator[String]](variableDomains.size)
-    val arrayElements = new Array[String](variableDomains.size)
-    val arrayIterables = new Array[Iterable[String]](variableDomains.size)
-
-    var idx = 0
-    for ((k, v) <- variableDomains.iterator) {
-      arrayKeys(idx) = k
-      arrayIterables(idx) = v
-      arrayIterators(idx) = v.iterator
-      arrayElements(idx) = arrayIterators(idx).next()
-      idx += 1
-    }*/
-
-    // ----
-
-    debug("The ordering of literals in clause: " + clause + "\n\t" +
-      "changed to: " + orderedLiterals.map(_.toString()).reduceLeft(_ + " v " + _))
-
-
     def performGrounding(theta: Map[Variable, String] = Map.empty[Variable, String]): Int = {
+
+
       var sat = 0
       var counter = 0
 
@@ -254,15 +218,14 @@ class ClauseGrounderImplNew(
       // partial function for substituting terms w.r.t the given theta
       val substitution = substituteTerm(theta) _
       var idx = 0 //literal position index in the currentVariables array
-      var flagDrop = false //utility flag to indicate whether to keep or not the current ground clause
-      val literalsIterator = orderedLiterals.iterator // literals iterator, that gives first all evidence literals
 
-      while (!flagDrop && literalsIterator.hasNext) {
-        val (literal, idf) = literalsIterator.next()
+      var literalIdx = 0 // current position in orderedLiterals
+      val DROP = orderedLiterals.length + 1 //utility position to indicate whether to keep or not the current ground clause
+      while (literalIdx < orderedLiterals.length) {
+        val (literal, idf) = orderedLiterals(literalIdx)
         // When the literal is a dynamic atom, then invoke its truth state dynamically
         if (literal.sentence.isDynamic) {
-          //if (literal.isPositive == dynamicAtoms(idx)(literal.sentence.terms.map(substitution))) flagDrop = true
-          flagDrop = literal.isPositive == dynamicAtoms(idx)(literal.sentence.terms.map(substitution))
+          if (literal.isPositive == dynamicAtoms(idx)(literal.sentence.terms.map(substitution))) literalIdx = DROP
         }
         else {
           // Otherwise, invoke its state from the evidence
@@ -272,8 +235,9 @@ class ClauseGrounderImplNew(
             // Due to closed-world assumption in the evidence atoms or in the function mappings,
             // the identity of the atom cannot be determined and in that case the current clause grounding
             // will be omitted from the MRF
-            flagDrop = true
-          } else {
+            literalIdx = DROP
+          }
+          else {
             // Otherwise, the atomID has a valid id number and the following pattern matching procedure
             // investigates whether the current literal satisfies the ground clause. If it does, the clause
             // is omitted from the MRF, since it is always satisfied from that literal.
@@ -281,7 +245,7 @@ class ClauseGrounderImplNew(
             if ((literal.isNegative && (state == FALSE.value)) || (literal.isPositive && (state == TRUE.value))) {
               // the clause is always satisfied from that literal
               sat += 1
-              flagDrop = true //we don't need to keep that ground clause
+              literalIdx = DROP //we don't need to keep that ground clause
             }
             else if (state == UNKNOWN.value) {
               // The state of the literal is unknown, thus the literal will be stored to the currentVariables
@@ -290,9 +254,10 @@ class ClauseGrounderImplNew(
             }
           }
         }
+        literalIdx += 1
       } //end:  while (literalsIterator.hasNext && !flagDrop)
 
-      if (!flagDrop) {
+      if (literalIdx == DROP) {
         // So far the ground clause is produced, but we have to
         // examine whether we will keep it or not. If the
         // ground clause contains any literal that is included in the
@@ -331,10 +296,11 @@ class ClauseGrounderImplNew(
               cliqueVariables(0) = -cliqueVariables(0)
               store(-clause.weight, cliqueVariables)
               counter += 1
-            } else {
+            }
+            else {
               val posWeight = -clause.weight / cliqueVariables.length
-              for (groundLiteral <- cliqueVariables) {
-                store(posWeight, Array(-groundLiteral))
+              for(i <- (0 until cliqueVariables.length).optimized){
+                store(posWeight, Array(-cliqueVariables(i)))
                 counter += 1
               }
             }
@@ -353,30 +319,16 @@ class ClauseGrounderImplNew(
       counter
     }
 
-    /* if (clause.isGround) performGrounding()
-    else while (groundIterator.hasNext) performGrounding(theta = groundIterator.next())
-    */
-
-
-    if (clause.isGround) {
-      val c = performGrounding()
-      debug("Clause: " + clause.toString + " --- produced " + c + " groundings.")
-    }
-    else {
-      val f = Future.traverse(groundIterator)(substitution => Future(performGrounding(substitution)))
-      val result = Await.result(f, Duration.Inf)
-      debug("Clause: " + clause.toString + " --- produced " + result.sum + " groundings.")
-    }
-
-
+    /*if (clause.isGround) performGrounding()
+    else while (groundIterator.hasNext) performGrounding(theta = groundIterator.next())*/
   }
 
   private def substituteTerm(theta: collection.Map[Variable, String])(term: Term): String = term match {
     case c: Constant => c.symbol
     case v: Variable => theta(v)
-    case f: Function =>
+    case f: TermFunction =>
       mln.functionMappers.get(f.signature) match {
-        case Some(m) => m(f.args.map(a => substituteTerm(theta)(a)))
+        case Some(m) => m(f.terms.map(a => substituteTerm(theta)(a)))
         case None => fatal("Cannot apply substitution using theta: " + theta + " in function " + f.signature)
       }
   }
