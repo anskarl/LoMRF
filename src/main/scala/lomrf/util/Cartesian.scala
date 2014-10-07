@@ -32,6 +32,8 @@
 
 package lomrf.util
 
+import java.util
+
 import lomrf.logic.Variable
 
 import scala.collection.mutable
@@ -62,6 +64,7 @@ object Cartesian {
     }
 
     def apply(sets: scol.Map[Variable, Iterable[String]]): Iterator[Map[Variable, String]] = {
+
       val arrayKeys = new Array[Variable](sets.size)
       val arrayIterators = new Array[Iterator[String]](sets.size)
       val arrayElements = new Array[String](sets.size)
@@ -76,7 +79,7 @@ object Cartesian {
         idx += 1
       }
 
-      new CartesianIteratorMapMapImpl(arrayKeys, arrayIterables, arrayIterators, arrayElements)
+      new CartesianIteratorMapImpl(arrayKeys, arrayIterables, arrayIterators, arrayElements)
     }
 
   }
@@ -124,10 +127,10 @@ object Cartesian {
   /**
    * Iterating over Cartesian products
    */
-  private class CartesianIteratorMapMapImpl(aKeys: Array[Variable],
-                                            aIterables: Array[Iterable[String]],
-                                            aIterators: Array[Iterator[String]],
-                                            aElements: Array[String]) extends Iterator[Map[Variable, String]] {
+  private class CartesianIteratorMapImpl(aKeys: Array[Variable],
+                                         aIterables: Array[Iterable[String]],
+                                         aIterators: Array[Iterator[String]],
+                                         aElements: Array[String]) extends Iterator[Map[Variable, String]] {
 
     private val arrayLength = aKeys.length
     private var has_next = true
@@ -167,5 +170,56 @@ object Cartesian {
       result
     }
   }
+
+  //todo
+  /*class CartesianIteratorArithmeticImpl(lengths: Array[Int],
+                                        aElements: Array[Int]) extends Iterator[Array[Int]] {
+
+    private val primaryLength = lengths(0) - 1
+    private var has_next = true
+
+    def hasNext = has_next
+
+    private var idx = 1
+
+    def next(): Array[Int] = {
+      val result = new Array[Int](aElements.length)
+      System.arraycopy(aElements, 0, result, 0, aElements.length )
+
+      if(aElements(0) > 0){
+        aElements(0) -= 1
+      }
+      else {
+        aElements(0) = primaryLength
+
+        if(aElements(idx) == 0){
+          if(idx == aElements.length-1) has_next = false
+          else idx += 1
+        }
+
+        aElements(idx) -= 1
+      }
+
+      result
+    }
+  }
+
+  def main(args: Array[String]): Unit ={
+    val lengths = Array(10,5,2)
+    val elements = lengths.map(_ - 1)
+    val expectedIterations = lengths.product //this is the correct number of products
+
+    val iterator = new CartesianIteratorArithmeticImpl(lengths, elements)
+
+    var counter = 0
+    while(iterator.hasNext){
+      println(iterator.next().map(_.toString).reduceLeft(_ + ", " + _))
+      counter += 1
+    }
+
+    println("expected = " + expectedIterations)
+    println("counted = " + counter)
+
+  }*/
 
 }
