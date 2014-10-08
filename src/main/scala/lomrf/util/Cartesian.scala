@@ -82,6 +82,10 @@ object Cartesian {
       new CartesianIteratorMapImpl(arrayKeys, arrayIterables, arrayIterators, arrayElements)
     }
 
+    def apply(sets: Array[ConstantsSet]) =
+      new CartesianIteratorArithmeticImpl(sets.map(_.size - 1))
+
+
   }
 
   private class CartesianIteratorSeqImpl[T](
@@ -190,8 +194,7 @@ object Cartesian {
 
       while(!stop && (idx < elements.length)){
         if(elements(idx) > 0) {
-          if(idx > 0 ) System.arraycopy(lengths, 0, elements, 0, idx )
-
+          if(idx > 0) System.arraycopy(lengths, 0, elements, 0, idx)
           elements(idx) -= 1
           stop = true
         }
@@ -202,30 +205,6 @@ object Cartesian {
 
       result
     }
-  }
-
-  def main(args: Array[String]): Unit ={
-    val lengths = Array(10,5,2)
-
-    for( (l, iteration) <- lengths.permutations.zipWithIndex){
-      val elements = l.map(_ - 1)
-      val expectedIterations = l.product //this is the correct number of products
-
-      val iterator = new CartesianIteratorArithmeticImpl(elements)
-
-      val result = iterator.map(_.toString).toSet
-
-      println("iteration: "+iteration)
-      println("["+elements.map(_.toString).reduceLeft(_ + ", "+ _)+"]")
-      println("expected = " + expectedIterations)
-      println("produced = " + result.size)
-      println()
-
-      assert(expectedIterations == result.size)
-    }
-
-
-
   }
 
 }
