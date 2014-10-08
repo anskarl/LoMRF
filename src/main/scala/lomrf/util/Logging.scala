@@ -51,7 +51,6 @@ trait Logging {
    *
    * @param message: the message to log
    */
-  @inline
   protected def debug(message: => String) = loggerInstance.debug(message)
 
   /**
@@ -60,7 +59,6 @@ trait Logging {
    * @param message: the message to log
    * @param ex: the thrown exception
    */
-  @inline
   protected def debug(message: => String, ex: => Throwable) = loggerInstance.debug(message, ex)
 
   /**
@@ -71,7 +69,6 @@ trait Logging {
    * @param value: the instance's value
    * @return the instance's value
    */
-  @inline
   protected def debugValue[T](valueName: => String, value: => T) = loggerInstance.debugValue(valueName, value)
 
   /**
@@ -79,7 +76,6 @@ trait Logging {
    *
    * @param message: the informational message to log
    */
-  @inline
   protected def info(message: => String) = loggerInstance.info(message)
 
   /**
@@ -89,7 +85,6 @@ trait Logging {
    * @param message: the informational message to log
    * @param ex: the thrown exception
    */
-  @inline
   protected def info(message: => String, ex: => Throwable) = loggerInstance.info(message, ex)
 
   /**
@@ -97,7 +92,6 @@ trait Logging {
    *
    * @param message: the informational message to log
    */
-  @inline
   protected def warn(message: => String) = loggerInstance.warn(message)
 
 
@@ -108,7 +102,6 @@ trait Logging {
    * @param message: the warning message to log
    * @param ex: the thrown exception to log
    */
-  @inline
   protected def warn(message: => String, ex: => Throwable) = loggerInstance.warn(message, ex)
 
 
@@ -118,7 +111,6 @@ trait Logging {
    *
    * @param message: the error message to log
    */
-  @inline
   protected def error(message: => String) = loggerInstance.error(message)
 
 
@@ -129,7 +121,6 @@ trait Logging {
    * @param message: the error message to log
    * @param ex: the thrown exception to log
    */
-  @inline
   protected def error(message: => String, ex: => Throwable) = loggerInstance.error(message, ex)
 
 
@@ -157,7 +148,6 @@ trait Logging {
    *
    * @see <a href="http://www.slf4j.org/faq.html#trace">www.slf4j.org/faq.html#trace</a>
    */
-  @inline
   protected def trace(message: => String) = loggerInstance.trace(message)
 
 
@@ -169,7 +159,6 @@ trait Logging {
    *
    * @see <a href="http://www.slf4j.org/faq.html#trace">www.slf4j.org/faq.html#trace</a>
    */
-  @inline
   protected def trace(message: => String, ex: => Throwable) = loggerInstance.trace(message, ex)
 
 
