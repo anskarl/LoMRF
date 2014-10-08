@@ -171,34 +171,34 @@ object Cartesian {
     }
   }
 
-  //todo
-  /*class CartesianIteratorArithmeticImpl(lengths: Array[Int],
-                                        aElements: Array[Int]) extends Iterator[Array[Int]] {
 
-    private val primaryLength = lengths(0) - 1
+  private[util] class CartesianIteratorArithmeticImpl(initialElements: Array[Int]) extends Iterator[Array[Int]] {
+
+    private val lengths = util.Arrays.copyOf(initialElements, initialElements.length)
+    private val elements = util.Arrays.copyOf(initialElements, initialElements.length)
     private var has_next = true
 
     def hasNext = has_next
 
-    private var idx = 1
 
     def next(): Array[Int] = {
-      val result = new Array[Int](aElements.length)
-      System.arraycopy(aElements, 0, result, 0, aElements.length )
+      val result = new Array[Int](elements.length)
+      System.arraycopy(elements, 0, result, 0, elements.length )
 
-      if(aElements(0) > 0){
-        aElements(0) -= 1
-      }
-      else {
-        aElements(0) = primaryLength
+      var stop = false
+      var idx = 0
 
-        if(aElements(idx) == 0){
-          if(idx == aElements.length-1) has_next = false
-          else idx += 1
+      while(!stop && (idx < elements.length)){
+        if(elements(idx) > 0) {
+          if(idx > 0 ) System.arraycopy(lengths, 0, elements, 0, idx )
+
+          elements(idx) -= 1
+          stop = true
         }
-
-        aElements(idx) -= 1
+        else idx += 1
       }
+
+      has_next = stop || idx != elements.length
 
       result
     }
@@ -206,20 +206,26 @@ object Cartesian {
 
   def main(args: Array[String]): Unit ={
     val lengths = Array(10,5,2)
-    val elements = lengths.map(_ - 1)
-    val expectedIterations = lengths.product //this is the correct number of products
 
-    val iterator = new CartesianIteratorArithmeticImpl(lengths, elements)
+    for( (l, iteration) <- lengths.permutations.zipWithIndex){
+      val elements = l.map(_ - 1)
+      val expectedIterations = l.product //this is the correct number of products
 
-    var counter = 0
-    while(iterator.hasNext){
-      println(iterator.next().map(_.toString).reduceLeft(_ + ", " + _))
-      counter += 1
+      val iterator = new CartesianIteratorArithmeticImpl(elements)
+
+      val result = iterator.map(_.toString).toSet
+
+      println("iteration: "+iteration)
+      println("["+elements.map(_.toString).reduceLeft(_ + ", "+ _)+"]")
+      println("expected = " + expectedIterations)
+      println("produced = " + result.size)
+      println()
+
+      assert(expectedIterations == result.size)
     }
 
-    println("expected = " + expectedIterations)
-    println("counted = " + counter)
 
-  }*/
+
+  }
 
 }
