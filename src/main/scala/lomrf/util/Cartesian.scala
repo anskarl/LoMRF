@@ -82,7 +82,7 @@ object Cartesian {
       new CartesianIteratorMapImpl(arrayKeys, arrayIterables, arrayIterators, arrayElements)
     }
 
-    def apply(sets: Array[ConstantsSet]) =
+    def apply(sets: Iterable[ConstantsSet]) =
       new CartesianIteratorArithmeticImpl(sets.map(_.size - 1))
 
 
@@ -176,10 +176,10 @@ object Cartesian {
   }
 
 
-  private[util] class CartesianIteratorArithmeticImpl(initialElements: Array[Int]) extends Iterator[Array[Int]] {
+  private[util] class CartesianIteratorArithmeticImpl(initialElements: Iterable[Int]) extends Iterator[Array[Int]] {
 
-    private val lengths = util.Arrays.copyOf(initialElements, initialElements.length)
-    private val elements = util.Arrays.copyOf(initialElements, initialElements.length)
+    private val lengths = initialElements.toArray
+    private val elements = util.Arrays.copyOf(lengths, lengths.length)
     private var has_next = true
 
     def hasNext = has_next

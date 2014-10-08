@@ -32,7 +32,7 @@
 
 package lomrf
 
-import collection.mutable
+import scala.collection.{SeqLike, IterableLike, mutable}
 import lomrf.logic.dynamic._
 import lomrf.util.Logging
 import scala.annotation.tailrec
@@ -213,14 +213,6 @@ package object logic extends Logging {
     result
   }
 
-  /*@inline
-  def uniqueVariablesIn(terms: Iterable[_ <: Term]): Set[Variable] =
-    terms.foldRight(Set[Variable]())((a, b) => a match {
-      case v: Variable => Set(v) ++ b
-      case f: TermFunction => f.variables ++ b
-      case _ => b
-    })*/
-
   def variablesIn(terms: Iterable[_ <: Term]): List[Variable] = {
     val stack = mutable.Stack[Term]()
     stack.pushAll(terms)
@@ -231,6 +223,29 @@ package object logic extends Logging {
       case v: Variable => result ::= v
       case f: TermFunction => stack.pushAll(f.terms)
       case _ => //do nothing
+    }
+
+    result
+  }
+
+  def uniqueOrderedVariablesIn(literals: Iterable[Literal]): List[Variable] = {
+    val stack = mutable.Stack[Term]()
+
+    var variables = Set[Variable]()
+    var result = List[Variable]()
+
+    for (literal <- literals) {
+      stack.pushAll(literal.sentence.terms)
+
+      while (stack.nonEmpty) stack.pop() match {
+        case v: Variable if !variables.contains(v) =>
+          variables += v
+          result ::= v
+        case f: TermFunction =>
+          stack.pushAll(f.terms)
+        case _ => //do nothing
+      }
+
     }
 
     result
@@ -262,15 +277,6 @@ package object logic extends Logging {
     variablesRec(termLists, Set.empty)
   }
 
-  /* @inline
-   def uniqueConstantsIn(terms: Iterable[_ <: Term]): Set[Constant] = {
-     terms.foldRight(Set[Constant]())((a, rest) => a match {
-       case c: Constant => Set(c) ++ rest
-       case f: TermFunction => f.constants ++ rest
-       case _ => rest
-     })
-   }*/
-
   def uniqueConstantsIn(terms: Iterable[_ <: Term]): Set[Constant] = {
     val queue = mutable.Queue[Term]()
     queue ++= terms
@@ -295,13 +301,6 @@ package object logic extends Logging {
     // Start collecting the constants recursively. Initially the set of constants is empty.
     constantsRec(termLists, Set.empty)
   }
-
-  /*@inline
-  def uniqueFunctionsIn(terms: Iterable[_ <: Term]): Set[TermFunction] =
-    terms.foldRight(Set[TermFunction]())((t, rest) => t match {
-      case f: TermFunction => Set(f) ++ f.functions ++ rest
-      case _ => rest
-    })*/
 
   def uniqueFunctionsIn(terms: Iterable[_ <: Term]): Set[TermFunction] = {
     val queue = mutable.Queue[Term]()

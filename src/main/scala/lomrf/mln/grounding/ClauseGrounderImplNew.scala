@@ -188,9 +188,10 @@ class ClauseGrounderImplNew(
    /* debug("The ordering of literals in clause: " + clause + "\n\t" +
           "changed to: " + orderedLiterals.map(_.toString()).reduceLeft(_ + " v " + _))*/
 
-
+    val orderedUVars = lomrf.logic.uniqueOrderedVariablesIn(orderedLiterals.map(_._1))
 
     val steps = new Array[Int](orderedLiterals.length)
+
     var countedVariables = Set[Variable]()
     //val variableOrder = Array()
     var _idx = 0
