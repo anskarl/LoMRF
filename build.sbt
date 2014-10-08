@@ -25,7 +25,7 @@ scalacOptions ++= Seq(
 	"-optimise",
 	"-Yclosure-elim",
 	"-Yinline",
-	"-nowarn",
+	//"-nowarn",
 	"-feature",
 	"-target:jvm-1.7",
 	"-language:implicitConversions"
@@ -78,6 +78,9 @@ libraryDependencies ++= Seq(
 )
 
 libraryDependencies += "com.nativelibs4java" %% "scalaxy-loops" % "0.1.1" % "provided"
+
+// todo: add abide support (see https://github.com/scala/scala-abide)
+// libraryDependencies += "com.typesafe" %% "abide-core" % "0.1-SNAPSHOT" % "abide"
 
 // Include utility BASH scripts in the 'bin' directory
 mappings in Universal <++= (packageBin in Compile) map { jar =>
