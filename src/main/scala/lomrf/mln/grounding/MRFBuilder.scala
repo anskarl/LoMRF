@@ -124,7 +124,6 @@ final class MRFBuilder(val mln: MLN, noNegWeights: Boolean = false, eliminateNeg
 
       weightHard += (math.abs(clause.weight) * productOfVarDomains.getOrElse(0) * productOfFuncDomains.getOrElse(1))
     }
-    weightHard = math.ceil(weightHard)
     info("Hard weight value is set to: " + weightHard)
 
     // Conversion to flat version
