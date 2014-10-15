@@ -135,10 +135,10 @@ final class MRFState private(val mrf: MRF, parAtoms: ParArray[GroundAtom], parCo
   private var dirtyAtoms = new mutable.HashSet[GroundAtom]()
   private var priorityBuffer = new ArrayBuffer[Constraint]()
 
-  private var totalCost = Double.MaxValue
-  private var lowCost = Double.MaxValue
+  private var totalCost = BigDecimal.double2bigDecimal(Double.MaxValue)
+  private var lowCost = BigDecimal.double2bigDecimal(Double.MaxValue)
   private var lowUnsat = Int.MaxValue
-  private var totalActive = mrf.atoms.size()
+  private var totalActive = mrf.numberOfConstraints
 
   private var mode = MRF.MODE_MWS
   //private val random = new Random()
@@ -152,12 +152,29 @@ final class MRFState private(val mrf: MRF, parAtoms: ParArray[GroundAtom], parCo
   def apply(aid: Int): Boolean = state(aid)
 
   /**
-   * Change inference mode (MaxWalkSAT and SampleSAT).
+   * Change inference mode (MaxWalkSAT or SampleSAT).
    * @param mode inference mode
    */
   def setInferenceMode(mode: Int) {
     parConstraints.foreach(_.mode = mode)
     this.mode = mode
+  }
+
+  /**
+   * TODO: used for ILP
+   * @param atomID
+   * @return
+   */
+  def computeDelta(atomID: Int): Double = {
+    var delta = 0.0
+    for(i <- 0 until Unsatisfied.size) {
+      val constraint = Unsatisfied.get(i).get
+      if(constraint.literals.contains(atomID))
+        delta += constraint.weight
+      else if(constraint.literals.contains(-atomID))
+        delta -= constraint.weight
+    }
+    delta
   }
 
   /**
@@ -170,18 +187,16 @@ final class MRFState private(val mrf: MRF, parAtoms: ParArray[GroundAtom], parCo
    * <ul>
    */
   def printMRFStateStats() {
-    //evaluateState()
     info("Stats:")
-    info("Total bad: " + lowUnsat)
-    info("UnSat Clauses: " + Unsatisfied.size + "/" + totalActive)
-    var cNeg = 0
+    info("Unsatisfied clauses: " + lowUnsat + "/" + totalActive)
+    var countNeg = 0
     for(i <- 0 until Unsatisfied.size) {
-      if(Unsatisfied(i).weight < 0) cNeg += 1
+      if(Unsatisfied(i).weight < 0) countNeg += 1
     }
-    info("UnSat negative constraints: " + cNeg + "/" + Unsatisfied.size)
-    info("UnSat positive constraints: " + (Unsatisfied.size-Unsatisfied.numOfHard-cNeg) + "/" + Unsatisfied.size)
-    info("UnSat hard constraints: " + Unsatisfied.numOfHard + "/" + Unsatisfied.size)
-    info("Total Cost: " + totalCost)
+    info("Unsatisfied negative constraints: " + countNeg + "/" + lowUnsat)
+    info("Unsatisfied positive constraints: " + (Unsatisfied.size-Unsatisfied.numOfHard-countNeg) + "/" + lowUnsat)
+    info("Unsatisfied hard constraints: " + Unsatisfied.numOfHard + "/" + lowUnsat)
+    info("Total cost: " + totalCost)
 
     var likelihood, likelihoodUB = 0.0
 
@@ -197,9 +212,12 @@ final class MRFState private(val mrf: MRF, parAtoms: ParArray[GroundAtom], parCo
   }
 
   /**
-   * Randomises the state and re-evaluates the MRF
+   * Randomises the state and re-evaluates the MRF.
+   *
+   * @param tabuLength the tabu length used for tabu search heuristic
+   * @param unitPropagation enables/disables unit propagation
    */
-  def reset(tabuLength:Int = 5, unitPropagation: Boolean = false) {
+  def reset(tabuLength:Int = 10, unitPropagation: Boolean = false) {
     if (unitPropagation) _unitPropagation()
 
     parAtoms.foreach {
@@ -218,8 +236,8 @@ final class MRFState private(val mrf: MRF, parAtoms: ParArray[GroundAtom], parCo
     dirtyAtoms = new mutable.HashSet[GroundAtom]()
     priorityBuffer = new ArrayBuffer[Constraint]()
 
-    info("[Reset] Total cost: " + totalCost)
-    info("[Reset] Number of bad: " + lowUnsat)
+    debug("[Reset] Total cost: " + lowCost)
+    debug("[Reset] Unsatisfied: " + lowUnsat)
   }
 
   // -----------------------------------
@@ -231,6 +249,20 @@ final class MRFState private(val mrf: MRF, parAtoms: ParArray[GroundAtom], parCo
    */
   def randomise() {
     parAtoms.foreach(atom => if (atom.fixedValue == 0) atom.state = ThreadLocalRandom.current().nextBoolean())
+  }
+
+  /**
+   * Counts the number of unfixed atoms in the current state.
+   * @return number of unfixed atoms
+   */
+  def countUnfixAtoms(): Int = {
+    var count = 0
+    val iterator = mrf.atoms.iterator()
+    while(iterator.hasNext) {
+      iterator.advance()
+      if(iterator.value().fixedValue == 0) count += 1
+    }
+    count
   }
 
   /**
@@ -321,15 +353,6 @@ final class MRFState private(val mrf: MRF, parAtoms: ParArray[GroundAtom], parCo
       }
     }
 
-    val iter = mrf.atoms.iterator()
-    var count = 0
-    while(iter.hasNext) {
-      iter.advance()
-      if(iter.value().fixedValue != 0)
-        count += 1
-    }
-    info("UP: Number of fixed atoms: " + count)
-    info("UP: Number of unfixed atoms: "+ (mrf.atoms.size()-count))
   }
 
   // -----------------------------------
@@ -412,11 +435,11 @@ final class MRFState private(val mrf: MRF, parAtoms: ParArray[GroundAtom], parCo
   }
 
   /**
-   * Evaluates the current state. Computes satisfied and unsatisfied constraints
-   * and the total cost of the unsatisfied.
+   * Evaluates the current state. Finds satisfied and unsatisfied constraints
+   * and computes the total cost of the unsatisfied ones.
    * @return total cost after evaluation
    */
-  def evaluateState(): Double = {
+  def evaluateState(ignoreInactive: Boolean = false): BigDecimal = {
     totalCost = 0.0
     Unsatisfied.clear()
 
@@ -434,8 +457,7 @@ final class MRFState private(val mrf: MRF, parAtoms: ParArray[GroundAtom], parCo
       iterator.advance()
       currentConstraint = iterator.value()
 
-      if(!currentConstraint.inactive && !currentConstraint.isSatisfiedByFixed) {
-
+      if( !ignoreInactive || (ignoreInactive && !currentConstraint.inactive) ) {
         // --- Compute the number literals that satisfy the current constraint
         nsat = 0 // Reset
         idx = 0 // Reset
@@ -451,7 +473,6 @@ final class MRFState private(val mrf: MRF, parAtoms: ParArray[GroundAtom], parCo
         if (currentConstraint.cost > 0) Unsatisfied += currentConstraint
       }
     }
-    lowUnsat = Unsatisfied.size
 
     // return total cost
     totalCost
@@ -464,12 +485,13 @@ final class MRFState private(val mrf: MRF, parAtoms: ParArray[GroundAtom], parCo
   // -----------------------------------
 
   /**
-   * Evaluates the current state, calculates the total cost for unsatisfied constraints and
-   * the number of unsatisfied constraints.
+   * Evaluates the current state, finds satisfied and unsatisfied constraints
+   * and computes the total cost of the unsatisfied ones. Furthermore it computes
+   * the initial break and make cost of each atom.
    *
    * @return the total cost of the current state
    */
-  def evaluateCosts(): Double = {
+  def evaluateCosts(): BigDecimal = {
     totalCost = 0.0
     Unsatisfied.clear()
 
@@ -552,13 +574,19 @@ final class MRFState private(val mrf: MRF, parAtoms: ParArray[GroundAtom], parCo
   }
 
   /**
-   * New flip
-   * @param atom
-   * @param iteration
+   * Flips the given atom, updates the sets of satisfied/unsatisfied constraints and
+   * the break and make costs of the corresponding atoms. Also updates the total cost
+   * of the new state produced by flipping the given atom and checks if the state is
+   * better than the previous low state.
+   * @param atom atom to flip
+   * @param iteration current iteration of the inference algorithm
    */
   def flip(atom: GroundAtom, iteration: Int) {
 
     val pickedID = atom.id
+
+    debug(decodeAtom(pickedID)(mrf.mln).get)
+    debug("= = = =\nTotal cost: " + totalCost + "\nbreakCost: "+atom.breakCost + " makeCost: "+atom.makeCost)
 
     // --- Flip that atom.
     atom.state = !atom.state
@@ -627,8 +655,8 @@ final class MRFState private(val mrf: MRF, parAtoms: ParArray[GroundAtom], parCo
             // 2. The current constraint is additionally satisfied by some other atom.
             //    Therefore, we need to find it and simply define that if we flip it
             //    the cost will remain unchanged.
-            //atoms.get(constraint.watchLit1).revokeUnsatPotential(constraint)
-            //constraint.watchLit2 = pickedID
+//            atoms.get(constraint.watchLit1).revokeUnsatPotential(constraint)
+//            constraint.watchLit2 = pickedID
 
 
             var idx = 0
@@ -647,8 +675,6 @@ final class MRFState private(val mrf: MRF, parAtoms: ParArray[GroundAtom], parCo
               }
               idx += 1
             }
-
-
 
 
           }
@@ -707,8 +733,8 @@ final class MRFState private(val mrf: MRF, parAtoms: ParArray[GroundAtom], parCo
             //    we have to find it and simply define that if it will be flipped, then the
             //    current constraint will become satisfied.
 
-            //if(constraint.watchLit1 == pickedID) constraint.watchLit1 = constraint.watchLit2
-            //atoms.get(constraint.watchLit1).assignUnsatPotential(constraint)
+//            if(constraint.watchLit1 == pickedID) constraint.watchLit1 = constraint.watchLit2
+//            atoms.get(constraint.watchLit1).assignUnsatPotential(constraint)
             var idx = 0
             var currentLiteral = -1
             var currentID = -1
@@ -730,7 +756,7 @@ final class MRFState private(val mrf: MRF, parAtoms: ParArray[GroundAtom], parCo
             }
 
           }
-          /*else {
+         /* else {
             if(constraint.watchLit1 == pickedID) {
               var idx = 0
               var currentLiteral = -1
@@ -769,13 +795,14 @@ final class MRFState private(val mrf: MRF, parAtoms: ParArray[GroundAtom], parCo
     //     store this state as low-state.
     if (totalCost < lowCost) saveLowState(totalCost)
 
+    debug("breakCost: "+atom.breakCost + " makeCost: "+atom.makeCost + "\nTotal cost: " + totalCost + "\n= = = =")
   }
 
   /**
    * Save current state of atoms as the optimum state.
    * @param cost cost to be saved as the lowest cost
    */
-  def saveLowState(cost: Double) {
+  def saveLowState(cost: BigDecimal) {
     lowCost = cost
     lowUnsat = Unsatisfied.size
     if (dirtyAtoms.nonEmpty) {
@@ -816,13 +843,13 @@ final class MRFState private(val mrf: MRF, parAtoms: ParArray[GroundAtom], parCo
    * Get total cost of unsatisfied constraints in the current state.
    * @return total cost
    */
-  def getCost: Double = totalCost
+  def getCost: BigDecimal = totalCost
 
   /**
    * Get low cost of the current state.
    * @return low cost
    */
-  def getLowCost: Double = lowCost
+  def getLowCost: BigDecimal = lowCost
 
   /**
    * Get total active atoms in the current state.

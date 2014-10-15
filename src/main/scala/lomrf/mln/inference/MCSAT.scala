@@ -204,10 +204,11 @@ final class MCSAT(mrf: MRF, pBest: Double = 0.5, pSA: Double = 0.1, maxFlips: In
     }
 
     initialise()
+    state.evaluateState(ignoreInactive = true)
+    state.printMRFStateStats()
 
     state.selectAllConstraints()
-    state.evaluateCosts()
-    state.printMRFStateStats()
+    state.evaluateState()
 
     state.setInferenceMode(MRF.MODE_SAMPLE_SAT)
 
@@ -240,13 +241,12 @@ final class MCSAT(mrf: MRF, pBest: Double = 0.5, pSA: Double = 0.1, maxFlips: In
 
         }
         numTry += 1
-
-      } //while (numTry < maxTries)
+      }
 
       //-----------------------------------------------------
       state.restoreLowState()
-      //state.evaluateState()
-      //state.printMRFStateStats()
+      state.evaluateState()
+
       state.count()
       //-----------------------------------------------------
       samplesCounter += 1

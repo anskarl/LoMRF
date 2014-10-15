@@ -100,7 +100,7 @@ final class Constraint(val weight: Double, val literals: Array[Int], val isHardC
     if(mode == MRF.MODE_MWS) {
       if(isPositive && nsat == 0) weight
       else if (!isPositive && nsat > 0) -weight
-      else 0
+      else 0.0
     }
     else {
       if (isPositive && nsat == 0) 1

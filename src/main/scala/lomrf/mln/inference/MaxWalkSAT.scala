@@ -68,8 +68,8 @@ import lomrf.util.{Utilities, Logging}
  * @author Anastasios Skarlatidis
  * @author Vagelis Michelioudakis
  */
-final class MaxWalkSAT(mrf: MRF, pBest: Double = 0.5, maxFlips: Int = 100000, maxTries: Int = 1, targetCost: Double = 0.001,
-                       outputAll: Boolean = true, satHardUnit: Boolean = false, satHardPriority: Boolean = false, tabuLength: Int = 5) extends Logging {
+final class MaxWalkSAT(mrf: MRF, pBest: Double = 0.5, maxFlips: Int = 1000000, maxTries: Int = 1, targetCost: Double = 0.001,
+                       outputAll: Boolean = true, satHardUnit: Boolean = false, satHardPriority: Boolean = false, tabuLength: Int = 10) extends Logging {
 
   private val TARGET_COST = targetCost + 0.0001
   //private val random = new Random()
@@ -89,6 +89,8 @@ final class MaxWalkSAT(mrf: MRF, pBest: Double = 0.5, maxFlips: Int = 100000, ma
     val startTime = System.currentTimeMillis()
     val state = infer(MRFState(mrf, satHardUnit, satHardPriority))
     val endTime = System.currentTimeMillis()
+    state.evaluateState()
+    state.printMRFStateStats()
     info(Utilities.msecTimeToText("Total Max-WalkSAT time: ", endTime - startTime))
 
     //return the best state
@@ -232,7 +234,6 @@ final class MaxWalkSAT(mrf: MRF, pBest: Double = 0.5, maxFlips: Int = 100000, ma
       numTry += 1
     }
     state.restoreLowState()
-    state.printMRFStateStats()
 
     //return best state
     state

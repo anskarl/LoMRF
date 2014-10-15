@@ -88,16 +88,16 @@ object InferenceCLI extends OptionParser with Logging {
   private var _samples = 1000
 
   // The probability to perform a simulated annealing step.
-  private var _pSA = 0.1
+  private var _pSA = 0.5
 
   // The probability to perform a greedy search.
   private var _pBest = 0.5
 
   // Temperature (0,1] for the simulated annealing step in MC-SAT.
-  private var _saTemperature = 0.1
+  private var _saTemperature = 0.8
 
   // The maximum number of flips taken to reach a solution.
-  private var _maxFlips = 100000
+  private var _maxFlips = 1000000
 
   // The maximum number of attempts taken to find a solution.
   private var _maxTries = 1
@@ -106,7 +106,7 @@ object InferenceCLI extends OptionParser with Logging {
   private var _targetCost = 0.0001
 
   // Minimum number of flips between flipping the same atom when using MaxWalkSAT.
-  private var _tabuLength = 5
+  private var _tabuLength = 10
 
   // Give the n-th solution (i.e. cost < target cost) in MC-SAT.
   private var _numSolutions = 10
@@ -210,8 +210,12 @@ object InferenceCLI extends OptionParser with Logging {
   booleanOpt("satHardPriority", "sat-hard-priority", "Priority to hard constrained clauses (default is " + _satHardPriority + ")" +
     " in MaxWalkSAT.", _satHardPriority = _)
 
-  intOpt("ilpRounding", "ilp-rounding", "Rounding algorithm for ILP 1: RoundUp 2: MaxWalkSAT (default is " + _ilpRounding + ").", {
-    v: Int => if (v != 1 || v != 2) fatal("The rounding value must be 1 or 2, but you gave: " + v) else _ilpRounding = v
+  opt("ilpRounding", "ilp-rounding", "<roundup | mws>", "Rounding algorithm for ILP (default is RoundUp).", {
+    v: String => v.trim.toLowerCase match {
+      case "roundup" => _ilpRounding = 1
+      case "mws" => _ilpRounding = 2
+      case _ => fatal("Unknown parameter for ILP rounding type '" + v + "'.")
+    }
   })
 
   intOpt("samples", "num-samples", "Number of samples to take (default is " + _samples + ").", _samples = _)
@@ -303,7 +307,7 @@ object InferenceCLI extends OptionParser with Logging {
       + "\n\t(all) Show 0/1 results for all query atoms: " + _mapOutputAll
       + "\n\t(satHardUnit) Trivially satisfy hard constrained unit clauses: " + _satHardUnit
       + "\n\t(satHardPriority) Satisfiability priority to hard constrained clauses: " + _satHardPriority
-      + "\n\t(ilpRounding) Rounding algorithm used in ILP map inference: " + _ilpRounding
+      + "\n\t(ilpRounding) Rounding algorithm used in ILP map inference: " + ( if(_ilpRounding == 1) "RoundUp" else "MaxWalkSAT" )
       + "\n\t(samples) Number of samples to take: " + _samples
       + "\n\t(pSA) Probability to perform simulated annealing: " + _pSA
       + "\n\t(pBest) Probability to perform a greedy search: " + _pBest
