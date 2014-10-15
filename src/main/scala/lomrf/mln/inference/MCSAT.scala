@@ -51,12 +51,12 @@ import lomrf.util.{Utilities, Logging}
  *
  * @param mrf The ground Markov network
  * @param pBest The probability to perform a greedy search (default is 0.5).
- * @param pSA The probability to perform a simulated annealing step (default is 0.1).
- * @param maxFlips The maximum number of flips taken to reach a solution (default is 100000).
+ * @param pSA The probability to perform a simulated annealing step (default is 0.5).
+ * @param maxFlips The maximum number of flips taken to reach a solution (default is 1000000).
  * @param maxTries The maximum number of attempts taken to find a solution (default is 1).
  * @param targetCost  Any possible world having cost below this threshold is considered as a solution (default is 0.0001)
  * @param numSolutions Give the n-th solution (i.e. cost < target cost) in MCSAT (default is 10).
- * @param saTemperature Temperature (0,1] for the simulated annealing step in MCSAT (default is 0.1).
+ * @param saTemperature Temperature (0,1] for the simulated annealing step in MCSAT (default is 0.8).
  * @param samples Maximum number of samples to take
  * @param lateSA When its true, simulated annealing step is performed only when MC-SAT reaches a plateau.
  * @param unitPropagation Perform unit-propagation (default is true)

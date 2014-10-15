@@ -57,13 +57,13 @@ import lomrf.util.{Utilities, Logging}
  *
  * @param mrf The ground Markov network
  * @param pBest The probability to perform a greedy search (default is 0.5).
- * @param maxFlips The maximum number of flips taken to reach a solution (default is 100000).
+ * @param maxFlips The maximum number of flips taken to reach a solution (default is 1000000).
  * @param maxTries The maximum number of attempts taken to find a solution (default is 1).
  * @param targetCost Any possible world having cost below this threshold is considered as a solution (default is 0.0001)
  * @param outputAll Show 0/1 results for all query atoms (default is true)
  * @param satHardUnit Trivially satisfy hard constrained unit clauses (default is true)
  * @param satHardPriority Satisfiability priority to hard constrained clauses (default is true)
- * @param tabuLength Minimum number of flips between flipping the same atom
+ * @param tabuLength Minimum number of flips between flipping the same atom (default is 10)
  *
  * @author Anastasios Skarlatidis
  * @author Vagelis Michelioudakis
