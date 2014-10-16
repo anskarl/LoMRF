@@ -57,7 +57,7 @@ class ClauseGrounderImpl(
                           cliqueRegisters: Array[ActorRef],
                           atomSignatures: Set[AtomSignature],
                           atomsDB: Array[TIntSet],
-                          noNegWeights: Boolean = false) extends Logging{
+                          noNegWeights: Boolean = false) extends ClauseGrounder with Logging{
 
   require(!clause.weight.isNaN, "Found a clause with not a valid weight value (NaN).")
 
@@ -176,7 +176,7 @@ class ClauseGrounderImpl(
 
   private val length = clause.literals.count(l => mln.isTriState(l.sentence.signature))
 
-  val collectedSignatures = clause.literals.map(_.sentence.signature) -- atomSignatures
+  def collectedSignatures = clause.literals.map(_.sentence.signature) -- atomSignatures
 
   def getVariableDomains = variableDomains
 

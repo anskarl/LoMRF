@@ -251,6 +251,27 @@ package object logic extends Logging {
     result
   }
 
+  def uniqueOrderedVariablesIn(atom: AtomicFormula): List[Variable] = {
+    val stack = mutable.Stack[Term]()
+
+    var variables = Set[Variable]()
+    var result = List[Variable]()
+
+    stack.pushAll(atom.terms)
+
+    while (stack.nonEmpty) stack.pop() match {
+      case v: Variable if !variables.contains(v) =>
+        variables += v
+        result ::= v
+      case f: TermFunction => stack.pushAll(f.terms)
+      case _ => //do nothing
+    }
+
+
+
+    result
+  }
+
 
   /**
    * Collects all variables from a given list of term lists.

@@ -115,19 +115,20 @@ final class AtomIdentityFunction private(
    * encoding function, as it doesn't need to perform any lookup to the ConstantsSet for fetching
    * the id of the constant.
    *
+   * @param indexes the array which its elements are pointing to the correct position in constantIds
    * @param constantIds the array of constant ids (assumed to have the correct ordering)
    * @return encoded number that uniquely corresponds to a grounding of the atom
    */
-  def encode(constantIds: Array[Int]): Int = {
+  def encode(indexes: Array[Int], constantIds: Array[Int]): Int = {
     var sum = startID
-    var idx = 0
-    while (idx < constantIds.length) {
-      val constantID = constantIds(idx)
+    var i = 0
+    while (i < indexes.length) {
+      val constantID = constantIds(indexes(i))
       if (constantID == ConstantsSet.NO_ENTRY)
         return IDENTITY_NOT_EXIST
-      val offset = constantID * constantsAndStep(idx)._2 // offset = id * step
+      val offset = constantID * constantsAndStep(indexes(i))._2 // offset = id * step
       sum += (offset + constantID)
-      idx += 1
+      i += 1
     }
 
     sum
