@@ -41,11 +41,11 @@ import lomrf.logic._
  * @author Anastasios Skarlatidis
  */
 final class AtomIdentityFunction private(
-                                    val signature: AtomSignature,
-                                    val startID: Int,
-                                    val constantsAndStep: Array[(ConstantsSet, Int, Int, String)],
-                                    val length: Int,
-                                    val schema: Seq[String]) {
+                                          val signature: AtomSignature,
+                                          val startID: Int,
+                                          val constantsAndStep: Array[(ConstantsSet, Int, Int, String)],
+                                          val length: Int,
+                                          val schema: Seq[String]) {
 
   import AtomIdentityFunction.IDENTITY_NOT_EXIST
 
@@ -105,6 +105,30 @@ final class AtomIdentityFunction private(
       val offset = constantID * step
       sum += (offset + constantID)
       idx += 1
+    }
+
+    sum
+  }
+
+  /**
+   * Gives the ID (positive integer) of the corresponding constant ids. This is the fastest
+   * encoding function, as it doesn't need to perform any lookup to the ConstantsSet for fetching
+   * the id of the constant.
+   *
+   * @param indexes the array which its elements are pointing to the correct position in constantIds
+   * @param constantIds the array of constant ids (assumed to have the correct ordering)
+   * @return encoded number that uniquely corresponds to a grounding of the atom
+   */
+  def encode(indexes: Array[Int], constantIds: Array[Int]): Int = {
+    var sum = startID
+    var i = 0
+    while (i < indexes.length) {
+      val constantID = constantIds(indexes(i))
+      if (constantID == ConstantsSet.NO_ENTRY)
+        return IDENTITY_NOT_EXIST
+      val offset = constantID * constantsAndStep(indexes(i))._2 // offset = id * step
+      sum += (offset + constantID)
+      i += 1
     }
 
     sum
@@ -217,6 +241,7 @@ final class AtomIdentityFunction private(
 
 
   private class MatchingIDsIterator(rangesMap: Map[Int, Range], iteratorsMap: mutable.Map[Int, Iterator[Int]], values: Array[Int]) extends Iterator[Int] {
+
     import scalaxy.loops._
 
 

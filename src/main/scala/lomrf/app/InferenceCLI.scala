@@ -135,6 +135,8 @@ object InferenceCLI extends OptionParser with Logging {
 
   private var _domainPartition = false
 
+  private var _experimentalGrounder = false
+
 
   private def addQueryAtom(atom: String) {
     parseAtomSignature(atom) match {
@@ -269,6 +271,11 @@ object InferenceCLI extends OptionParser with Logging {
     path: String => if (!path.isEmpty) _implPaths = Some(path.split(','))
   })
 
+  flagOpt("XG", "experimental-grounder", "Enable experimental grounder",{
+    _experimentalGrounder = true
+    warn("THIS RUN WILL USE THE EXPERIMENTAL GROUNDER!!!")
+  })
+
   flagOpt("f:dpart", "flag:domain-partition", "Try to partition the domain and create several smaller MLNs.", {
     _domainPartition = true
   })
@@ -343,7 +350,7 @@ object InferenceCLI extends OptionParser with Logging {
     if(isDebugEnabled) mln.clauses.zipWithIndex.foreach{case (c, idx) => debug(idx+": "+c)}
 
     info("Creating MRF...")
-    val mrfBuilder = new MRFBuilder(mln, noNegWeights = _noNeg, eliminateNegatedUnit = _eliminateNegatedUnit)
+    val mrfBuilder = new MRFBuilder(mln, noNegWeights = _noNeg, eliminateNegatedUnit = _eliminateNegatedUnit, experimentalGrounder = _experimentalGrounder)
     val mrf = mrfBuilder.buildNetwork
 
     if (_marginalInference) { // Marginal inference methods

@@ -46,7 +46,7 @@ final class AtomSpecTest extends FunSpec with Matchers {
     AtomSignature("walking", 1) ->("event", List("id"))
   )
 
-  private val parser = new ExtendedKBParser(predicateSchema, functionsSchema)
+  private val parser = new KBParser(predicateSchema, functionsSchema)
 
 
   /**

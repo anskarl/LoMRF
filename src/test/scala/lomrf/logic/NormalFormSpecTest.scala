@@ -90,7 +90,7 @@ final class NormalFormSpecTest extends FunSpec with Matchers{
   )
 
 
-  private val kbParser = new ExtendedKBParser(predicateSchema, functionsSchema)
+  private val kbParser = new KBParser(predicateSchema, functionsSchema)
 
 
   describe("Formula 'InitiatedAt(Fight,t) => Happens(Abrupt, t).'"){

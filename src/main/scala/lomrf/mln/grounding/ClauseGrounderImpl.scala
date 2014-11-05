@@ -58,7 +58,7 @@ class ClauseGrounderImpl(
                           atomSignatures: Set[AtomSignature],
                           atomsDB: Array[TIntSet],
                           noNegWeights: Boolean = false,
-                          eliminateNegatedUnit: Boolean = false) extends Logging{
+                          eliminateNegatedUnit: Boolean = false) extends ClauseGrounder with Logging{
 
   require(!clause.weight.isNaN, "Found a clause with not a valid weight value (NaN).")
 
@@ -72,7 +72,7 @@ class ClauseGrounderImpl(
 
   private val groundIterator =
     try {
-      Cartesian.CartesianIteratorMap(variableDomains)
+      Cartesian.CartesianIterator(variableDomains)
     } catch {
       case ex: NoSuchElementException =>
         fatal("Failed to initialise CartesianIterator for clause: " +
@@ -177,7 +177,7 @@ class ClauseGrounderImpl(
 
   private val length = clause.literals.count(l => mln.isTriState(l.sentence.signature))
 
-  val collectedSignatures = clause.literals.map(_.sentence.signature) -- atomSignatures
+  def collectedSignatures = clause.literals.map(_.sentence.signature) -- atomSignatures
 
   def getVariableDomains = variableDomains
 

@@ -30,28 +30,45 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package lomrf.mln.grounding
+package lomrf.util
 
-import akka.actor.{Actor, ActorRef}
-import lomrf.mln.model.MLN
-import lomrf.util.Logging
+import lomrf.util.Cartesian.CartesianIteratorArithmeticImpl
+import org.scalatest.{Matchers, FunSpec}
 
 /**
  * @author Anastasios Skarlatidis
  */
-private final class GroundingWorker(mln: MLN, cliqueRegisters: Array[ActorRef], noNegWeights: Boolean, eliminateNegatedUnit: Boolean, experimentalGrounder: Boolean = false) extends Actor with Logging {
+class CartesianSpecTest extends FunSpec with Matchers {
 
-  def receive = {
-    case Ground(clause, atomSignatures, atomsDB) =>
-      val grounder =
-        if(experimentalGrounder) new ClauseGrounderImplNew(clause, mln, cliqueRegisters, atomSignatures, atomsDB, noNegWeights)
-        else new ClauseGrounderImpl(clause, mln, cliqueRegisters, atomSignatures, atomsDB, noNegWeights, eliminateNegatedUnit)
-      grounder.computeGroundings()
-      debug("Grounding completed for clause " + clause)
-      sender ! ClauseGroundingCompleted(clause, grounder.collectedSignatures)
+  // Note: the given domains should always be above zero
+  private val domainList = List(
+    Array(10,5,2),
+    Array(10,1,2),
+    Array(1,1,10),
+    Array(1,10),
+    Array(5,10),
+    Array(10),
+    Array(1)
+  )
 
-    case msg => fatal("GroundingWorker --- Received an unknown message '" + msg + "' from " + sender)
+  require(domainList.forall(_.forall(_ > 0)))
+
+  for( domain <- domainList; (l, iteration) <- domain.permutations.zipWithIndex){
+    val elements = l.map(_ - 1)
+    describe("Cartesian product of domains ["+elements.map(_.toString).reduceLeft(_ + ", "+ _)+"]"){
+      val expectedIterations = l.product // this is the correct number of products
+      val iterator = new CartesianIteratorArithmeticImpl(elements)
+      val result = iterator.map(_.toString).toSet
+
+      info("iteration: "+iteration+"\n" +
+        "\telements = ["+elements.map(_.toString).reduceLeft(_ + ", "+ _)+"]\n" +
+        "\texpected = " + expectedIterations+"\n" +
+        "\tproduced = " + result.size)
+
+      it("produces "+expectedIterations+" distinct Cartesian products"){
+        assert(expectedIterations == result.size)
+      }
+    }
   }
-
 
 }

@@ -39,12 +39,10 @@ import gnu.trove.set.TIntSet
 import lomrf.logic._
 import lomrf.mln.model.MLN
 import lomrf.util.AtomIdentityFunction.IDENTITY_NOT_EXIST
+import lomrf.util.Cartesian.CartesianIterator
 import lomrf.util.{Logging, AtomIdentityFunction, Cartesian}
 
 import scala.collection._
-import scala.concurrent.ExecutionContext.Implicits.global
-import scala.concurrent._
-import scala.concurrent.duration.Duration
 import scala.language.postfixOps
 import scalaxy.loops._
 
@@ -59,7 +57,7 @@ class ClauseGrounderImplNew(
                           cliqueRegisters: Array[ActorRef],
                           atomSignatures: Set[AtomSignature],
                           atomsDB: Array[TIntSet],
-                          noNegWeights: Boolean = false) extends Logging{
+                          noNegWeights: Boolean = false) extends ClauseGrounder with Logging{
 
   require(!clause.weight.isNaN, "Found a clause with not a valid weight value (NaN).")
 
@@ -73,7 +71,7 @@ class ClauseGrounderImplNew(
 
   private val groundIterator =
     try {
-      Cartesian.CartesianIteratorMap(variableDomains)
+      Cartesian.CartesianIterator(variableDomains)
     } catch {
       case ex: NoSuchElementException =>
         fatal("Failed to initialise CartesianIterator for clause: " +
@@ -178,35 +176,45 @@ class ClauseGrounderImplNew(
 
   private val length = clause.literals.count(l => mln.isTriState(l.sentence.signature))
 
-  val collectedSignatures = clause.literals.map(_.sentence.signature) -- atomSignatures
+  def collectedSignatures = clause.literals.map(_.sentence.signature) -- atomSignatures
 
   def getVariableDomains = variableDomains
 
 
   def computeGroundings() {
 
-   /* debug("The ordering of literals in clause: " + clause + "\n\t" +
-          "changed to: " + orderedLiterals.map(_.toString()).reduceLeft(_ + " v " + _))*/
+    debug("The ordering of literals in clause: " + clause + "\n\t" +
+          "changed to: " + orderedLiterals.map(_.toString()).reduceLeft(_ + " v " + _))
+
+    val orderedConstantSets =
+      uniqueOrderedVariablesIn(orderedLiterals.map(_._1))
+        .map(v => mln.constants(v.domain))
 
 
+    val V2IDX: Map[Variable, Int] = (for((v, idx) <- uniqueOrderedVariablesIn(orderedLiterals.map(_._1)).zipWithIndex)
+      yield v -> idx)(breakOut)
 
-    val steps = new Array[Int](orderedLiterals.length)
-    var countedVariables = Set[Variable]()
-    //val variableOrder = Array()
-    var _idx = 0
-    for((literal, _) <- orderedLiterals){
-      val prevSize = countedVariables.size
-      countedVariables ++= literal.sentence.variables
-      steps(_idx) += countedVariables.size - prevSize
-      _idx += 1
+    val atom2TermIndexes = new Array[Array[Int]](orderedLiterals.size)
+
+    var atomIdx =0
+    for( (atom, _) <- orderedLiterals) {
+      val atomVars = uniqueOrderedVariablesIn(atom.sentence).toArray
+      val indexes = new Array[Int](atomVars.size)
+
+      for(i <- (0 until atomVars.length).optimized){
+        indexes(i) = V2IDX(atomVars(i))
+      }
+
+      atom2TermIndexes(atomIdx) = indexes
+      atomIdx += 1
     }
 
-    debug("CLAUSE: "+orderedLiterals.map(_._1.toText).reduceLeft(_ + " v " + _)+
-      "\n\t S = ["+steps.map(_.toString).reduceLeft(_ +", " +_ )+"]")
+    val ffIterator = CartesianIterator(orderedConstantSets)
 
-    sys.exit()
 
-    def performGrounding(theta: Map[Variable, String] = Map.empty[Variable, String]): Int = {
+
+
+    def performGrounding(substitution: Array[Int] ): Int = {
 
 
       var sat = 0
@@ -216,7 +224,7 @@ class ClauseGrounderImplNew(
       val currentVariables = new Array[Int](length)
 
       // partial function for substituting terms w.r.t the given theta
-      val substitution = substituteTerm(theta) _
+      //val substitution = substituteTerm(theta) _
       var idx = 0 //literal position index in the currentVariables array
 
       var literalIdx = 0 // current position in orderedLiterals
@@ -225,11 +233,13 @@ class ClauseGrounderImplNew(
         val (literal, idf) = orderedLiterals(literalIdx)
         // When the literal is a dynamic atom, then invoke its truth state dynamically
         if (literal.sentence.isDynamic) {
-          if (literal.isPositive == dynamicAtoms(idx)(literal.sentence.terms.map(substitution))) literalIdx = DROP
+          //TODO:
+          //if (literal.isPositive == dynamicAtoms(idx)(literal.sentence.terms.map(substitution))) literalIdx = DROP
+          sys.error("Dynamic atoms are not supported!")
         }
         else {
           // Otherwise, invoke its state from the evidence
-          val atomID = idf.encode(literal.sentence, substitution)
+          val atomID = idf.encode(atom2TermIndexes(literalIdx), substitution)
 
           if (atomID == IDENTITY_NOT_EXIST) {
             // Due to closed-world assumption in the evidence atoms or in the function mappings,
@@ -318,6 +328,10 @@ class ClauseGrounderImplNew(
 
       counter
     }
+
+    //if(clause.isGround) performGrounding()
+    //else
+    while(ffIterator.hasNext) performGrounding(ffIterator.next())
 
     /*if (clause.isGround) performGrounding()
     else while (groundIterator.hasNext) performGrounding(theta = groundIterator.next())*/
