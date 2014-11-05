@@ -76,25 +76,28 @@ object InferenceCLI extends OptionParser with Logging {
   private var _mapOutputAll = true
 
   // Trivially satisfy hard constrained unit clauses
-  private var _satHardUnit = true
+  private var _satHardUnit = false
 
   // Satisfiability priority to hard constrained clauses
-  private var _satHardPriority = true
+  private var _satHardPriority = false
+
+  // Rounding algorithm for ILP map inference
+  private var _ilpRounding = 1
 
   // Maximum number of samples to take
   private var _samples = 1000
 
   // The probability to perform a simulated annealing step.
-  private var _pSA = 0.1
+  private var _pSA = 0.5
 
   // The probability to perform a greedy search.
   private var _pBest = 0.5
 
   // Temperature (0,1] for the simulated annealing step in MC-SAT.
-  private var _saTemperature = 0.1
+  private var _saTemperature = 0.8
 
   // The maximum number of flips taken to reach a solution.
-  private var _maxFlips = 100000
+  private var _maxFlips = 1000000
 
   // The maximum number of attempts taken to find a solution.
   private var _maxTries = 1
@@ -103,7 +106,7 @@ object InferenceCLI extends OptionParser with Logging {
   private var _targetCost = 0.0001
 
   // Minimum number of flips between flipping the same atom when using MaxWalkSAT.
-  private var _tabuLength = 5
+  private var _tabuLength = 10
 
   // Give the n-th solution (i.e. cost < target cost) in MC-SAT.
   private var _numSolutions = 10
@@ -119,6 +122,11 @@ object InferenceCLI extends OptionParser with Logging {
   // 1 !A(x)
   // 1 !B(x)
   private var _noNeg = false
+
+  // Eliminate negated unit clauses
+  // For example:
+  // 2 !A(x) becomes -2 A(x)
+  private var _eliminateNegatedUnit = false
 
   // Perform unit-propagation (only for MC-SAT)
   private var _unitProp = true
@@ -204,6 +212,14 @@ object InferenceCLI extends OptionParser with Logging {
   booleanOpt("satHardPriority", "sat-hard-priority", "Priority to hard constrained clauses (default is " + _satHardPriority + ")" +
     " in MaxWalkSAT.", _satHardPriority = _)
 
+  opt("ilpRounding", "ilp-rounding", "<roundup | mws>", "Rounding algorithm for ILP (default is RoundUp).", {
+    v: String => v.trim.toLowerCase match {
+      case "roundup" => _ilpRounding = 1
+      case "mws" => _ilpRounding = 2
+      case _ => fatal("Unknown parameter for ILP rounding type '" + v + "'.")
+    }
+  })
+
   intOpt("samples", "num-samples", "Number of samples to take (default is " + _samples + ").", _samples = _)
 
   doubleOpt("pSA", "probability-simulated-annealing", "Specify the probability to perform a simulated annealing step (default is " + _pSA + "), " +
@@ -249,6 +265,8 @@ object InferenceCLI extends OptionParser with Logging {
 
   booleanOpt("noNeg", "eliminate-negative-weights", "Eliminate negative weight values from ground clauses (default is " + _noNeg + ").", _noNeg = _)
 
+  booleanOpt("noNegatedUnit", "eliminate-negated-unit", "Eliminate negated unit ground clauses (default is " + _eliminateNegatedUnit + ").", _eliminateNegatedUnit = _)
+
   opt("dynamic", "dynamic-implementations", "<string>", "Comma separated paths to search recursively for dynamic predicates/functions implementations (*.class and *.jar files).", {
     path: String => if (!path.isEmpty) _implPaths = Some(path.split(','))
   })
@@ -258,15 +276,15 @@ object InferenceCLI extends OptionParser with Logging {
     warn("THIS RUN WILL USE THE EXPERIMENTAL GROUNDER!!!")
   })
 
-  flagOpt("h", "help", "Print usage options.", {
-    println(usage)
-    sys.exit(0)
+  flagOpt("f:dpart", "flag:domain-partition", "Try to partition the domain and create several smaller MLNs.", {
+    _domainPartition = true
   })
 
   flagOpt("v", "version", "Print LoMRF version.", sys.exit(0))
 
-  flagOpt("f:dpart", "flag:domain-partition", "Try to partition the domain and create several smaller MLNs.", {
-    _domainPartition = true
+  flagOpt("h", "help", "Print usage options.", {
+    println(usage)
+    sys.exit(0)
   })
 
   def main(args: Array[String]) {
@@ -296,6 +314,7 @@ object InferenceCLI extends OptionParser with Logging {
       + "\n\t(all) Show 0/1 results for all query atoms: " + _mapOutputAll
       + "\n\t(satHardUnit) Trivially satisfy hard constrained unit clauses: " + _satHardUnit
       + "\n\t(satHardPriority) Satisfiability priority to hard constrained clauses: " + _satHardPriority
+      + "\n\t(ilpRounding) Rounding algorithm used in ILP map inference: " + ( if(_ilpRounding == 1) "RoundUp" else "MaxWalkSAT" )
       + "\n\t(samples) Number of samples to take: " + _samples
       + "\n\t(pSA) Probability to perform simulated annealing: " + _pSA
       + "\n\t(pBest) Probability to perform a greedy search: " + _pBest
@@ -307,6 +326,7 @@ object InferenceCLI extends OptionParser with Logging {
       + "\n\t(numSolutions) Number of solutions in MC-SAT: " + _numSolutions
       + "\n\t(lateSA) Simulated annealing is performed only when MC-SAT reaches a plateau: " + _lateSA
       + "\n\t(noNeg) Eliminate negative weights: " + _noNeg
+      + "\n\t(noNegatedUnit) Eliminate negated ground unit clauses: " + _eliminateNegatedUnit
       + "\n\t(unitProp) Perform unit-propagation: " + _unitProp
     )
 
@@ -330,7 +350,7 @@ object InferenceCLI extends OptionParser with Logging {
     if(isDebugEnabled) mln.clauses.zipWithIndex.foreach{case (c, idx) => debug(idx+": "+c)}
 
     info("Creating MRF...")
-    val mrfBuilder = new MRFBuilder(mln, _noNeg, experimentalGrounder = _experimentalGrounder)
+    val mrfBuilder = new MRFBuilder(mln, noNegWeights = _noNeg, eliminateNegatedUnit = _eliminateNegatedUnit, experimentalGrounder = _experimentalGrounder)
     val mrf = mrfBuilder.buildNetwork
 
     if (_marginalInference) { // Marginal inference methods
@@ -349,9 +369,9 @@ object InferenceCLI extends OptionParser with Logging {
         solver.writeResults(resultsWriter)
       }
       else {
-        val solver = new ILP2(mrf)
+        val solver = new ILP(mrf, ilpRounding = _ilpRounding)
         solver.infer(resultsWriter)
-        solver.writeResults(resultsWriter)
+        /*solver.writeResults(resultsWriter)*/
       }
     }
   }

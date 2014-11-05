@@ -51,12 +51,12 @@ import lomrf.util.{Utilities, Logging}
  *
  * @param mrf The ground Markov network
  * @param pBest The probability to perform a greedy search (default is 0.5).
- * @param pSA The probability to perform a simulated annealing step (default is 0.1).
- * @param maxFlips The maximum number of flips taken to reach a solution (default is 100000).
+ * @param pSA The probability to perform a simulated annealing step (default is 0.5).
+ * @param maxFlips The maximum number of flips taken to reach a solution (default is 1000000).
  * @param maxTries The maximum number of attempts taken to find a solution (default is 1).
  * @param targetCost  Any possible world having cost below this threshold is considered as a solution (default is 0.0001)
  * @param numSolutions Give the n-th solution (i.e. cost < target cost) in MCSAT (default is 10).
- * @param saTemperature Temperature (0,1] for the simulated annealing step in MCSAT (default is 0.1).
+ * @param saTemperature Temperature (0,1] for the simulated annealing step in MCSAT (default is 0.8).
  * @param samples Maximum number of samples to take
  * @param lateSA When its true, simulated annealing step is performed only when MC-SAT reaches a plateau.
  * @param unitPropagation Perform unit-propagation (default is true)
@@ -68,7 +68,8 @@ import lomrf.util.{Utilities, Logging}
  * @todo perform optimisations to improve the performance.
  */
 final class MCSAT(mrf: MRF, pBest: Double = 0.5, pSA: Double = 0.1, maxFlips: Int = 100000, maxTries: Int = 1, targetCost: Double = 0.001,
-                      numSolutions: Int = 10, saTemperature: Double = 0.1, samples: Int = 1000, lateSA: Boolean = true, unitPropagation: Boolean = true, tabuLength: Int = 5) extends Logging {
+                      numSolutions: Int = 10, saTemperature: Double = 0.1, samples: Int = 1000, lateSA: Boolean = true,
+                      unitPropagation: Boolean = true, tabuLength: Int = 5) extends Logging {
 
   private val TARGET_COST = targetCost + 0.0001
   //private val random = new Random()
@@ -104,9 +105,8 @@ final class MCSAT(mrf: MRF, pBest: Double = 0.5, pSA: Double = 0.1, maxFlips: In
     @inline def simulatedAnnealingStep() {
       currentAtom = state.getRandomAtom
       currentDelta = currentAtom.delta
-      if (!currentAtom.isCritical
+      if (!currentAtom.isFixed && !currentAtom.breaksHardConstraint
         && ((currentDelta <= 0) || (ThreadLocalRandom.current().nextDouble() <= math.exp(-currentDelta / saTemperature)))) state.flip(currentAtom, iteration)
-
     }
 
     @inline def maxWalkSATStep() {
@@ -129,8 +129,7 @@ final class MCSAT(mrf: MRF, pBest: Double = 0.5, pSA: Double = 0.1, maxFlips: In
             while (idx < literals.length) {
               currentAtom = fetchAtom(literals(idx))
               currentDelta = currentAtom.delta
-              //if (!currentAtom.isFixed && !currentAtom.breaksHardConstraint) {
-              if (!currentAtom.isCritical && (currentAtom.brakeCost == 0 || tabuLength < (iteration - currentAtom.lastFlip))) {
+              if (!currentAtom.isFixed && (currentAtom.breakCost == 0 || tabuLength < (iteration - currentAtom.lastFlip))) {
                 if (currentDelta < bestDelta) {
                   bestDelta = currentDelta
                   bufferAtoms(0) = currentAtom
@@ -150,8 +149,8 @@ final class MCSAT(mrf: MRF, pBest: Double = 0.5, pSA: Double = 0.1, maxFlips: In
             while (idx < literals.length) {
               currentAtom = fetchAtom(literals(idx))
               currentDelta = currentAtom.delta
-              //if (!currentAtom.isFixed && !currentAtom.breaksHardConstraint && ((literals(idx) > 0) == currentAtom.state)) {
-              if (!currentAtom.isCritical && ((literals(idx) > 0) == currentAtom.state) && (currentAtom.brakeCost == 0 || tabuLength < (iteration - currentAtom.lastFlip))) {
+              if (!currentAtom.isFixed && ((literals(idx) > 0) == currentAtom.state)
+                && (currentAtom.breakCost == 0 || tabuLength < (iteration - currentAtom.lastFlip))) {
                 if (currentDelta < bestDelta) {
                   bestDelta = currentDelta
                   bufferAtoms(0) = currentAtom
@@ -176,7 +175,7 @@ final class MCSAT(mrf: MRF, pBest: Double = 0.5, pSA: Double = 0.1, maxFlips: In
             while (idx < literals.length) {
               currentAtom = fetchAtom(literals(idx))
               if (!currentAtom.isFixed
-                && (currentAtom.brakeCost == 0 || tabuLength < (iteration - currentAtom.lastFlip))) {
+                && (currentAtom.breakCost == 0 || tabuLength < (iteration - currentAtom.lastFlip))) {
                 bufferAtoms(bufferIdx) = currentAtom
                 bufferIdx += 1
               }
@@ -189,7 +188,7 @@ final class MCSAT(mrf: MRF, pBest: Double = 0.5, pSA: Double = 0.1, maxFlips: In
             while (idx < literals.length) {
               currentAtom = fetchAtom(literals(idx))
               if (!currentAtom.isFixed && ((literals(idx) > 0) == currentAtom.state)
-                && (currentAtom.brakeCost == 0 || tabuLength < (iteration - currentAtom.lastFlip))) {
+                && (currentAtom.breakCost == 0 || tabuLength < (iteration - currentAtom.lastFlip))) {
                 bufferAtoms(bufferIdx) = currentAtom
                 bufferIdx += 1
               }
@@ -204,22 +203,15 @@ final class MCSAT(mrf: MRF, pBest: Double = 0.5, pSA: Double = 0.1, maxFlips: In
       }
     }
 
-    @inline def changeMode(mode: Int) {
-      val iterator = mrf.constraints.iterator()
-      while(iterator.hasNext) {
-        iterator.advance()
-        iterator.value().mode = mode
-      }
-    }
-
     initialise()
-
-    state.selectAllConstraints()
-    state.evaluate()
+    state.evaluateState(ignoreInactive = true)
     state.printMRFStateStats()
 
-    println("MC-SAT BEGINS...")
-    changeMode(1)
+    state.selectAllConstraints()
+    state.evaluateState()
+
+    state.setInferenceMode(MRF.MODE_SAMPLE_SAT)
+
     var samplesCounter = 1
 
     val mcsatStartTime = System.currentTimeMillis()
@@ -242,8 +234,6 @@ final class MCSAT(mrf: MRF, pBest: Double = 0.5, pSA: Double = 0.1, maxFlips: In
           if ((state.getCost <= TARGET_COST) || (!lateSA && (ThreadLocalRandom.current().nextDouble() < pSA))) simulatedAnnealingStep()
           else maxWalkSATStep()
 
-
-
           if ((solutionsCounter < numSolutions) && (state.getCost <= TARGET_COST)) {
             solutionsCounter += 1
             if (solutionsCounter == numSolutions) iteration = maxFlips
@@ -251,13 +241,12 @@ final class MCSAT(mrf: MRF, pBest: Double = 0.5, pSA: Double = 0.1, maxFlips: In
 
         }
         numTry += 1
-
-
-      } //while (numTry < maxTries)
+      }
 
       //-----------------------------------------------------
       state.restoreLowState()
-      state.printMRFStateStats()
+      state.evaluateState()
+
       state.count()
       //-----------------------------------------------------
       samplesCounter += 1

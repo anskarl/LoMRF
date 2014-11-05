@@ -1,0 +1,95 @@
+// Predicate definitions
+Happens(event,time)
+StartTime(time)
+Next(time,time)
+OrientationMove(id,id,time)
+Close(id,id,dist,time)
+HoldsAt(fluent,time)
+
+// Function definitions
+event exit(id)
+fluent meet(id,id)
+event walking(id)
+event active(id)
+event enter(id)
+event running(id)
+event inactive(id)
+
+
+
+// Clauses
+
+// Source formula: 0.16166 Happens(a1,a2) v !Happens(a3,a2) v !Next(a4,a2) v !Close(a5,a6,25,a2) v HoldsAt(a7,a4) v !ReturnValueOfactive(a3,a5) v !ReturnValueOfmeet(a7,a5,a6) v !ReturnValueOfrunning(a1,a6)
+0.16166 !Close(a5,a6,25,a2) v !Next(a4,a2) v !Happens(active(a5),a2) v Happens(running(a6),a2) v HoldsAt(meet(a5, a6),a4)
+
+// Source formula: 0.00503408 Happens(a1,a2) v Happens(a3,a2) v !Happens(a4,a2) v !Next(a5,a2) v !Close(a6,a7,25,a2) v HoldsAt(a8,a5) v !ReturnValueOfactive(a1,a7) v !ReturnValueOfmeet(a8,a6,a7) v !ReturnValueOfrunning(a3,a7) v !ReturnValueOfinactive(a4,a6)
+0.00503408 Happens(active(a7),a2) v !Happens(inactive(a6),a2) v !Next(a5,a2) v !Close(a6,a7,25,a2) v HoldsAt(meet(a6, a7),a5) v Happens(running(a7),a2)
+
+// Source formula: 0.187568 !Happens(a1,a2) v !Next(a3,a2) v Close(a4,a5,34,a2) v !HoldsAt(a6,a3) v !ReturnValueOfmeet(a6,a4,a5) v !ReturnValueOfwalking(a1,a4)
+0.187568 Close(a4,a5,34,a2) v !Next(a3,a2) v !HoldsAt(meet(a4, a5),a3) v !Happens(walking(a4),a2)
+
+// Source formula: 0.220093 !Happens(a1,a2) v !Next(a3,a2) v Close(a4,a5,34,a2) v !HoldsAt(a6,a3) v !ReturnValueOfmeet(a6,a5,a4) v !ReturnValueOfwalking(a1,a4)
+0.220093 Close(a4,a5,34,a2) v !Next(a3,a2) v !HoldsAt(meet(a5, a4),a3) v !Happens(walking(a4),a2)
+
+// Source formula: 0.0 !Happens(a1,a2) v !Next(a3,a2) v !HoldsAt(a4,a3) v !ReturnValueOfmeet(a4,a5,a6) v !ReturnValueOfrunning(a1,a5)
+0 !HoldsAt(meet(a5, a6),a3) v !Next(a3,a2) v !Happens(running(a5),a2)
+
+// Source formula: 0.0 !Happens(a1,a2) v !Next(a3,a2) v !HoldsAt(a4,a3) v !ReturnValueOfmeet(a4,a5,a6) v !ReturnValueOfrunning(a1,a6)
+0 !HoldsAt(meet(a5, a6),a3) v !Next(a3,a2) v !Happens(running(a6),a2)
+
+// Source formula: !Happens(a1,a2) v !Next(a3,a2) v !HoldsAt(a4,a3) v !ReturnValueOfmeet(a4,a5,a6) v !ReturnValueOfexit(a1,a5).
+!HoldsAt(meet(a5, a6),a3) v !Next(a3,a2) v !Happens(exit(a5),a2).
+
+// Source formula: !Happens(a1,a2) v !Next(a3,a2) v !HoldsAt(a4,a3) v !ReturnValueOfmeet(a4,a5,a6) v !ReturnValueOfexit(a1,a6).
+!HoldsAt(meet(a5, a6),a3) v !Next(a3,a2) v !Happens(exit(a6),a2).
+
+// Source formula: Happens(a1,a2) v Happens(a3,a2) v Happens(a4,a2) v Happens(a5,a2) v Happens(a6,a2) v Happens(a7,a2) v !Next(a8,a2) v HoldsAt(a9,a8) v !HoldsAt(a9,a2) v !ReturnValueOfmeet(a9,a10,a11) v !ReturnValueOfrunning(a3,a11) v !ReturnValueOfrunning(a5,a10) v !ReturnValueOfwalking(a1,a10) v !ReturnValueOfwalking(a6,a11) v !ReturnValueOfexit(a4,a10) v !ReturnValueOfexit(a7,a11).
+Happens(running(a11),a2) v HoldsAt(meet(a10, a11),a8) v Happens(walking(a10),a2) v !Next(a8,a2) v !HoldsAt(meet(a10, a11),a2) v Happens(running(a10),a2) v Happens(walking(a11),a2) v Happens(exit(a11),a2) v Happens(exit(a10),a2).
+
+// Source formula: Happens(a1,a2) v Happens(a3,a2) v Happens(a4,a2) v Happens(a5,a2) v Happens(a6,a2) v !Next(a7,a2) v !Close(a8,a9,34,a2) v HoldsAt(a10,a7) v !HoldsAt(a10,a2) v !ReturnValueOfmeet(a10,a9,a8) v !ReturnValueOfrunning(a3,a8) v !ReturnValueOfrunning(a6,a9) v !ReturnValueOfwalking(a1,a9) v !ReturnValueOfexit(a4,a9) v !ReturnValueOfexit(a5,a8).
+Happens(walking(a9),a2) v !HoldsAt(meet(a9, a8),a2) v HoldsAt(meet(a9, a8),a7) v Happens(exit(a8),a2) v !Close(a8,a9,34,a2) v !Next(a7,a2) v Happens(exit(a9),a2) v Happens(running(a9),a2) v Happens(running(a8),a2).
+
+// Source formula: Happens(a1,a2) v Happens(a3,a2) v Happens(a4,a2) v Happens(a5,a2) v Happens(a6,a2) v !Next(a7,a2) v !Close(a8,a9,34,a2) v HoldsAt(a10,a7) v !HoldsAt(a10,a2) v !ReturnValueOfmeet(a10,a8,a9) v !ReturnValueOfrunning(a4,a9) v !ReturnValueOfrunning(a6,a8) v !ReturnValueOfwalking(a3,a9) v !ReturnValueOfexit(a1,a8) v !ReturnValueOfexit(a5,a9).
+Happens(walking(a9),a2) v !HoldsAt(meet(a8, a9),a2) v Happens(exit(a8),a2) v !Close(a8,a9,34,a2) v !Next(a7,a2) v Happens(exit(a9),a2) v Happens(running(a9),a2) v Happens(running(a8),a2) v HoldsAt(meet(a8, a9),a7).
+
+// Source formula: Happens(a1,a2) v Happens(a3,a2) v Happens(a4,a2) v Happens(a5,a2) v !Next(a6,a2) v !Close(a7,a8,34,a2) v !Close(a8,a7,34,a2) v HoldsAt(a9,a6) v !HoldsAt(a9,a2) v !ReturnValueOfmeet(a9,a7,a8) v !ReturnValueOfrunning(a3,a7) v !ReturnValueOfrunning(a4,a8) v !ReturnValueOfexit(a1,a7) v !ReturnValueOfexit(a5,a8).
+!Close(a8,a7,34,a2) v !HoldsAt(meet(a7, a8),a2) v Happens(running(a7),a2) v Happens(exit(a8),a2) v Happens(exit(a7),a2) v !Close(a7,a8,34,a2) v !Next(a6,a2) v HoldsAt(meet(a7, a8),a6) v Happens(running(a8),a2).
+
+// Source formula: !Happens(a1,a2) v !Next(a3,a2) v Close(a4,a5,25,a2) v HoldsAt(a6,a2) v !HoldsAt(a6,a3) v !ReturnValueOfmeet(a6,a4,a5) v !ReturnValueOfrunning(a1,a5).
+!HoldsAt(meet(a4, a5),a3) v !Happens(running(a5),a2) v Close(a4,a5,25,a2) v HoldsAt(meet(a4, a5),a2) v !Next(a3,a2).
+
+// Source formula: Happens(a1,a2) v Happens(a3,a2) v !Next(a4,a2) v HoldsAt(a5,a2) v !HoldsAt(a5,a4) v !ReturnValueOfactive(a3,a6) v !ReturnValueOfmeet(a5,a6,a7) v !ReturnValueOfinactive(a1,a6).
+!HoldsAt(meet(a6, a7),a4) v !Next(a4,a2) v HoldsAt(meet(a6, a7),a2) v Happens(active(a6),a2) v Happens(inactive(a6),a2).
+
+// Source formula: !Happens(a1,a2) v !Next(a3,a2) v Close(a4,a5,25,a2) v HoldsAt(a6,a2) v !HoldsAt(a6,a3) v !ReturnValueOfactive(a1,a5) v !ReturnValueOfmeet(a6,a4,a5).
+!HoldsAt(meet(a4, a5),a3) v !Happens(active(a5),a2) v Close(a4,a5,25,a2) v HoldsAt(meet(a4, a5),a2) v !Next(a3,a2).
+
+// Source formula: Happens(a1,a2) v !Next(a3,a2) v Close(a4,a5,25,a2) v HoldsAt(a6,a2) v !HoldsAt(a6,a3) v !ReturnValueOfmeet(a6,a4,a5) v !ReturnValueOfinactive(a1,a4).
+Happens(inactive(a4),a2) v !HoldsAt(meet(a4, a5),a3) v Close(a4,a5,25,a2) v HoldsAt(meet(a4, a5),a2) v !Next(a3,a2).
+
+// Source formula: Happens(a1,a2) v !Next(a3,a2) v Close(a4,a5,25,a2) v HoldsAt(a6,a2) v !HoldsAt(a6,a3) v !ReturnValueOfactive(a1,a4) v !ReturnValueOfmeet(a6,a4,a5).
+!HoldsAt(meet(a4, a5),a3) v Close(a4,a5,25,a2) v HoldsAt(meet(a4, a5),a2) v Happens(active(a4),a2) v !Next(a3,a2).
+
+// Source formula: !Happens(a1,a2) v !Next(a3,a2) v HoldsAt(a4,a2) v !HoldsAt(a4,a3) v !ReturnValueOfmeet(a4,a5,a6) v !ReturnValueOfrunning(a1,a6).
+HoldsAt(meet(a5, a6),a2) v !HoldsAt(meet(a5, a6),a3) v !Next(a3,a2) v !Happens(running(a6),a2).
+
+// Source formula: Happens(a1,a2) v !Happens(a3,a2) v !Next(a4,a2) v HoldsAt(a5,a2) v !HoldsAt(a5,a4) v !ReturnValueOfmeet(a5,a6,a7) v !ReturnValueOfrunning(a3,a7) v !ReturnValueOfinactive(a1,a6).
+!HoldsAt(meet(a6, a7),a4) v !Next(a4,a2) v HoldsAt(meet(a6, a7),a2) v Happens(inactive(a6),a2) v !Happens(running(a7),a2).
+
+// Source formula: Happens(a1,a2) v !Happens(a3,a2) v !Next(a4,a2) v HoldsAt(a5,a2) v !HoldsAt(a5,a4) v !ReturnValueOfactive(a1,a7) v !ReturnValueOfactive(a3,a6) v !ReturnValueOfmeet(a5,a7,a6).
+Happens(active(a7),a2) v !Happens(active(a6),a2) v !Next(a4,a2) v HoldsAt(meet(a7, a6),a2) v !HoldsAt(meet(a7, a6),a4).
+
+// Source formula: !Next(a1,a2) v Close(a3,a4,25,a2) v HoldsAt(a5,a2) v !HoldsAt(a5,a1) v !ReturnValueOfmeet(a5,a3,a4).
+HoldsAt(meet(a3, a4),a2) v !HoldsAt(meet(a3, a4),a1) v !Next(a1,a2) v Close(a3,a4,25,a2).
+
+// Source formula: Happens(a1,a2) v !Happens(a3,a2) v !Next(a4,a2) v HoldsAt(a5,a2) v !HoldsAt(a5,a4) v !ReturnValueOfactive(a1,a6) v !ReturnValueOfmeet(a5,a6,a7) v !ReturnValueOfrunning(a3,a7).
+!HoldsAt(meet(a6, a7),a4) v !Next(a4,a2) v HoldsAt(meet(a6, a7),a2) v Happens(active(a6),a2) v !Happens(running(a7),a2).
+
+// Source formula: !Happens(a1,a2) v !Happens(a3,a2) v !Next(a4,a2) v HoldsAt(a5,a2) v !HoldsAt(a5,a4) v !ReturnValueOfactive(a1,a6) v !ReturnValueOfmeet(a5,a7,a6) v !ReturnValueOfrunning(a3,a6).
+!Happens(active(a6),a2) v !Next(a4,a2) v HoldsAt(meet(a7, a6),a2) v !HoldsAt(meet(a7, a6),a4) v !Happens(running(a6),a2).
+
+// Source formula: !StartTime(a1) v !HoldsAt(a2,a1).
+!StartTime(a1) v !HoldsAt(a2,a1).
+
+// Source formula: !HoldsAt(a1,a2) v !ReturnValueOfmeet(a1,a3,a3).
+!HoldsAt(meet(a3, a3),a2).

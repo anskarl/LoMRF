@@ -44,13 +44,19 @@ final class GroundAtom(val id: Int, weightHard: Double) {
   // Mutable information: accessible only from classes of inference package.
   // ----------------------------------------------------------------
 
-  // Keeps track the last time that this atom is flipped
+  /**
+   * Keeps track of the last time that this atom was flipped.
+   */
   private[mln] var lastFlip = 0
 
-  // Determines whether the state is fixed to some value (1 = true, -1 false) or not (=0)
+  /**
+   * Determines whether the state is fixed to some value (1 = true, -1 = false) or not (= 0).
+   */
   private[mln] var fixedValue = 0
 
-  // The current truth state of this particular ground atom
+  /**
+   * The current truth state of this particular ground atom.
+   */
   private[mln] var state = false
 
   /**
@@ -59,40 +65,56 @@ final class GroundAtom(val id: Int, weightHard: Double) {
    */
   private[mln] var lowState = false
 
-  // Keep track how many times this atom had true state
+  /**
+   * Keeps track how many times this atom had a true state.
+   */
   private[mln] var truesCounter = 0
 
-  // The cost that will increase after flipping
-  private[mln] var brakeCost = 0.0
+  /**
+   * The cost that will increase after flipping.
+   */
+  private[mln] var breakCost = 0.0
 
-  // The cost that will decrease after flipping
+  /**
+   * The cost that will decrease after flipping.
+   */
   private[mln] var makeCost = 0.0
 
   // ----------------------------------------------------------------
   // Publicly accessible functions
   // ----------------------------------------------------------------
 
+  /**
+   * Checks if this atom is fixed to some value (true or false).
+   * @return true if the atom is fixed; otherwise false
+   */
   def isFixed: Boolean = fixedValue != 0
 
   /**
+   * Returns the current state of this atom.
    * @return true if the current state is true; otherwise false
    */
   def getState: Boolean = state
 
   /**
-   * @return true when it breaks at least one hard-constrained clause
+   * Checks if by flipping this particular atom at least one hard
+   * constraint breaks.
+   * @return true when it breaks at least one hard constraint
    */
-  def breaksHardConstraint = brakeCost >= weightHard // TODO In mode sampleSAT is problematic
+  def breaksHardConstraint = breakCost >= weightHard
 
   /**
-   * This atom is either fixed or it will break at least one hard-constraint if it is flipped
+   * Computes the cost produced by flipping this atom. In case it breaks
+   * at least one hard-constraint by flipping it, the cost becomes equal an
+   * infinite value.
+   * @return the cost when this atom is flipped
    */
-  def isCritical: Boolean = (fixedValue != 0) || (brakeCost >= weightHard)
-
-  /**
-   * @return the cost when this atom is flipped.
-   */
-  def delta = brakeCost - makeCost
+  def delta = {
+    if(breaksHardConstraint)
+      Double.MaxValue
+    else
+      breakCost - makeCost
+  }
 
   /**
    * @return the number of times that this atom have been appeared as true in the generated samples
@@ -110,31 +132,24 @@ final class GroundAtom(val id: Int, weightHard: Double) {
   // ----------------------------------------------------------------
 
   /**
-   * Flips the state of this atom, swaps make cost with brake cost and returns the delta cost
-   *
-   * @return delta cost
+   * Saves current atom truth state as low state.
    */
-  private[mln] def flip: Double = {
-    state = !state
-    // invert delta:
-    val tmp = brakeCost
-    brakeCost = makeCost
-    makeCost = tmp
-
-    //its the invert of "delta", because the make cost and brake costs are swapped
-    makeCost - brakeCost
-  }
-
   private[mln] def saveAsLowState() {
     lowState = state
   }
 
+  /**
+   * Restore previously saved low state as current state.
+   */
   private[mln] def restoreLowState() {
     state = lowState
   }
 
+  /**
+   * Resets brake cost and make cost of this atom.
+   */
   private[mln] def resetDelta() {
-    brakeCost = 0.0
+    breakCost = 0.0
     makeCost = 0.0
   }
 
@@ -142,14 +157,14 @@ final class GroundAtom(val id: Int, weightHard: Double) {
    * The given constraint will become satisfied when this atom is flipped (UNSAT -> SAT).
    */
   private[mln] def assignSatPotential(constraint: Constraint) {
-    if(constraint.mode == 0) {
+    if(constraint.mode == MRF.MODE_MWS) {
       if (constraint.isPositive) makeCost += constraint.weight
-      else brakeCost -= constraint.weight
+      else breakCost -= constraint.weight
     }
     else {
       val v = if(constraint.weight > 0) 1 else -1
       if (constraint.isPositive) makeCost += v
-      else brakeCost -= v
+      else breakCost -= v
     }
   }
 
@@ -157,13 +172,13 @@ final class GroundAtom(val id: Int, weightHard: Double) {
    * The given constraint will become unsatisfied when this atom is flipped (SAT -> UNSAT).
    */
   private[mln] def assignUnsatPotential(constraint: Constraint) {
-    if(constraint.mode == 0) {
-      if (constraint.isPositive) brakeCost += constraint.weight
+    if(constraint.mode == MRF.MODE_MWS) {
+      if (constraint.isPositive) breakCost += constraint.weight
       else makeCost -= constraint.weight
     }
     else {
       val v = if(constraint.weight > 0) 1 else -1
-      if (constraint.isPositive) brakeCost += v
+      if (constraint.isPositive) breakCost += v
       else makeCost -= v
     }
   }
@@ -172,14 +187,14 @@ final class GroundAtom(val id: Int, weightHard: Double) {
    * The given constraint will no longer becomes unsatisfied when this atom is flipped.
    */
   private[mln] def revokeSatPotential(constraint: Constraint) {
-    if(constraint.mode == 0) {
+    if(constraint.mode == MRF.MODE_MWS) {
       if (constraint.isPositive) makeCost -= constraint.weight
-      else brakeCost += constraint.weight
+      else breakCost += constraint.weight
     }
     else {
       val v = if(constraint.weight > 0) 1 else -1
       if (constraint.isPositive) makeCost -= v
-      else brakeCost += v
+      else breakCost += v
     }
   }
 
@@ -187,14 +202,14 @@ final class GroundAtom(val id: Int, weightHard: Double) {
    * The given constraint will no longer becomes satisfied when this atom is flipped.
    */
   private[mln] def revokeUnsatPotential(constraint: Constraint) {
-    if(constraint.mode == 0) {
-      if (constraint.isPositive) brakeCost -= constraint.weight
-      else brakeCost += constraint.weight
+    if(constraint.mode == MRF.MODE_MWS) {
+      if (constraint.isPositive) breakCost -= constraint.weight
+      else makeCost += constraint.weight
     }
     else {
       val v = if(constraint.weight > 0) 1 else -1
-      if (constraint.isPositive) brakeCost -= v
-      else brakeCost += v
+      if (constraint.isPositive) breakCost -= v
+      else makeCost += v
     }
   }
 

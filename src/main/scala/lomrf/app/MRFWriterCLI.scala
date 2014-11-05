@@ -41,7 +41,6 @@ import lomrf.mln.grounding.MRFBuilder
 import lomrf.mln.model.MLN
 import lomrf.mln.model.mrf.MRF
 import lomrf.util._
-import scala.Some
 
 /**
  * Commandline tool for exporting ground MRF into various formats.
@@ -72,7 +71,7 @@ object MRFWriterCLI extends Logging {
 
 
       val outputFilePath = opt.outputFileName.getOrElse(fatal("Please specify an output file"))
-      val builder = new MRFBuilder(mln)
+      val builder = new MRFBuilder(mln = mln, noNegWeights = opt._noNeg, eliminateNegatedUnit = opt._eliminateNegatedUnit)
       val mrf = builder.buildNetwork
       opt.outputType match {
         case DIMACS => writeDIMACS(mrf, outputFilePath)
@@ -242,6 +241,18 @@ object MRFWriterCLI extends Logging {
     var owa = Set[AtomSignature]()
     var cwa = Set[AtomSignature]()
 
+    // Eliminate negative weights, i.e. convert the clause:
+    // -2 A(x) v B(x)
+    // into the following two clauses:
+    // 1 !A(x)
+    // 1 !B(x)
+    var _noNeg = false
+
+    // Eliminate negated unit clauses
+    // For example:
+    // 2 !A(x) becomes -2 A(x)
+    var _eliminateNegatedUnit = false
+
     var implPaths: Option[Array[String]] = None
 
     opt("i", "input", "<mln filename>", "Input Markov Logic file", {
@@ -272,6 +283,10 @@ object MRFWriterCLI extends Logging {
         case _ => fatal("Unknown output format type")
       }
     })
+
+    booleanOpt("noNeg", "eliminate-negative-weights", "Eliminate negative weight values from ground clauses (default is " + _noNeg + ").", _noNeg = _)
+
+    booleanOpt("noNegatedUnit", "eliminate-negated-unit", "Eliminate negated unit ground clauses (default is " + _eliminateNegatedUnit + ").", _eliminateNegatedUnit = _)
 
     opt("dynamic", "dynamic-implementations", "<string>", "Comma separated paths to search recursively for dynamic predicates/functions implementations (*.class and *.jar files).", {
       path: String => if (!path.isEmpty) implPaths = Some(path.split(','))

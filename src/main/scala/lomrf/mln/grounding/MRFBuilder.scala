@@ -75,6 +75,11 @@ import scalaxy.loops._
  *     1 !C
  * }}}
  * </li>
+ * <li>Optionally, negated unit clauses can be eliminated by inverting their weights. For example, the ground unit clause
+ * {{{ 3 !A }}}
+ * will be transformed into the following ground clause:
+ * {{{ -3 A }}}
+ * </li>
  * </ul>
  * </li>
  * <li>The produced cliques (i.e. ground clauses clauses) are distributed across the available processors and
@@ -85,10 +90,11 @@ import scalaxy.loops._
  *
  * @param mln the input MLN to ground
  * @param noNegWeights transform negative weighted clauses into (possibly several) positive weighted clauses (default is false, since the inference algorithms support negative weights).
+ * @param eliminateNegatedUnit eliminate negated unit clauses by transforming them into negative positive unit clauses.
  *
  * @author Anastasios Skarlatidis
  */
-final class MRFBuilder(val mln: MLN, noNegWeights: Boolean = false, unitWeights: Boolean = false, experimentalGrounder: Boolean = false) extends Logging {
+final class MRFBuilder(val mln: MLN, noNegWeights: Boolean = false, eliminateNegatedUnit: Boolean = false, experimentalGrounder: Boolean = false) extends Logging {
 
   private val mcSatParam = 1
 
@@ -102,7 +108,7 @@ final class MRFBuilder(val mln: MLN, noNegWeights: Boolean = false, unitWeights:
     val latch = new CountDownLatch(1)
 
     val startTime = System.currentTimeMillis()
-    val masterActor = system.actorOf(Props(new GroundingMaster(mln, latch, noNegWeights, experimentalGrounder)), name = "master")
+    val masterActor = system.actorOf(Props(new GroundingMaster(mln, latch, noNegWeights, eliminateNegatedUnit, experimentalGrounder)), name = "master")
     latch.await()
     val endTime = System.currentTimeMillis()
     val result = Await.result((masterActor ? REQUEST_RESULTS).mapTo[Result], timeout.duration)
@@ -113,9 +119,11 @@ final class MRFBuilder(val mln: MLN, noNegWeights: Boolean = false, unitWeights:
 
     var weightHard = 10.0
     for (clause <- mln.clauses; if !clause.isHard && clause.variables.nonEmpty) {
-      weightHard += (math.abs(clause.weight) * clause.variables.map(v => mln.constants(v.domain).size).reduceLeft(_ * _))
+      val productOfVarDomains = clause.variables.iterator.map(v => mln.constants(v.domain).size).reduceLeftOption(_ * _)
+      val productOfFuncDomains = clause.functions.iterator.map(f => mln.constants(f.domain).size).reduceLeftOption(_ * _)
+
+      weightHard += (math.abs(clause.weight) * productOfVarDomains.getOrElse(0) * productOfFuncDomains.getOrElse(1))
     }
-    weightHard = math.ceil(weightHard)
     info("Hard weight value is set to: " + weightHard)
 
     // Conversion to flat version
@@ -145,21 +153,11 @@ final class MRFBuilder(val mln: MLN, noNegWeights: Boolean = false, unitWeights:
           val clique = clausesIterator.value()
           require(!clique.weight.isNaN, "Found a clause with weight == NaN (possible bug?).")
 
-          if (unitWeights) {
-            if (clique.weight.isInfinite)
-              constraints.put(clausesIterator.key(), new Constraint(1, clique.variables, true, 1.0, clausesIterator.key()))
-            else if (clique.weight != 0)
-              constraints.put(clausesIterator.key(),
-                new Constraint(if (clique.weight < 0) -1 else 1, clique.variables, false,
-                  1 - math.exp(-math.abs(clique.weight) * mcSatParam), clausesIterator.key()))
-          }
-          else {
-            if (clique.weight.isInfinite)
-              constraints.put(clausesIterator.key(), new Constraint(weightHard, clique.variables, true, 1.0, clausesIterator.key()))
-            else if (clique.weight != 0)
-              constraints.put(clausesIterator.key(), new Constraint(clique.weight, clique.variables, false,
-                1 - math.exp(-math.abs(clique.weight) * mcSatParam), clausesIterator.key()))
-          }
+          if (clique.weight.isInfinite)
+            constraints.put(clausesIterator.key(), new Constraint(weightHard, clique.variables, true, 1.0, clausesIterator.key()))
+          else if (clique.weight != 0)
+            constraints.put(clausesIterator.key(), new Constraint(clique.weight, clique.variables, false,
+              1 - math.exp(-math.abs(clique.weight) * mcSatParam), clausesIterator.key()))
 
           // println(constraint.weight+" "+constraint.literals.mkString(" "))
 

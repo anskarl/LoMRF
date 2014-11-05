@@ -57,7 +57,8 @@ class ClauseGrounderImpl(
                           cliqueRegisters: Array[ActorRef],
                           atomSignatures: Set[AtomSignature],
                           atomsDB: Array[TIntSet],
-                          noNegWeights: Boolean = false) extends ClauseGrounder with Logging{
+                          noNegWeights: Boolean = false,
+                          eliminateNegatedUnit: Boolean = false) extends ClauseGrounder with Logging{
 
   require(!clause.weight.isNaN, "Found a clause with not a valid weight value (NaN).")
 
@@ -282,10 +283,20 @@ class ClauseGrounderImpl(
             }
           }
           else {
-            // store as it is
-            if (cliqueVariables.length > 1) jutil.Arrays.sort(cliqueVariables)
 
-            store(clause.weight, cliqueVariables)
+            // store as it is
+           /* if (cliqueVariables.length > 1) jutil.Arrays.sort(cliqueVariables)
+            store(clause.weight, cliqueVariables)*/
+
+            var www = clause.weight
+            if (cliqueVariables.length > 1) jutil.Arrays.sort(cliqueVariables)
+            else if(eliminateNegatedUnit && cliqueVariables.length == 1 && cliqueVariables(0) < 0){
+                cliqueVariables(0) = -cliqueVariables(0)
+                www = -www
+              }
+
+            store(www, cliqueVariables)
+
             counter += 1
           }
           counter = 1
