@@ -39,7 +39,6 @@ import oscar.algebra._
 import java.io.PrintStream
 import gnu.trove.map.TIntObjectMap
 import gnu.trove.map.hash.{TIntDoubleHashMap, TIntObjectHashMap}
-import scala.annotation.switch
 import scalaxy.loops._
 import scala.language.postfixOps
 import lomrf.util.TroveImplicits._
@@ -64,32 +63,42 @@ import lomrf.util.TroveConversions._
  * </ul>
  *
  * @param mrf The ground Markov network
- * @param ilpRounding The rounding algorithm selection option
+ * @param ilpRounding The rounding algorithm selection option (default is RoundUp)
+ * @param outputAll Show 0/1 results for all query atoms (default is true)
  *
  * @author Anastasios Skarlatidis
  * @author Vagelis Michelioudakis
  */
-final class ILP(mrf: MRF, ilpRounding: Int) extends LPModel(LPSolverLib.lp_solve) with Logging {
+final class ILP(mrf: MRF, outputAll: Boolean = true, ilpRounding: Int = RoundingScheme.ROUNDUP,
+                lossFunction: Int = LossFunction.HAMMING, lossAugmented: Boolean = false)
+                extends LPModel(LPSolverLib.lp_solve) with Logging {
 
   implicit val mln = mrf.mln
 
-  def infer(out: PrintStream = System.out) {
+  /**
+   * Fetch atom given its id
+   * @param atomID id of the atom
+   * @return the ground atom which corresponds to the given id
+   */
+  @inline private def fetchAtom(atomID: Int) = mrf.atoms.get(atomID)
 
-    /* Hash maps containing pairs of unique literal keys to LD variables [y]
-     * and unique clause ids to LD variables [z].
+  def infer() {
+
+    /* Hash maps containing pairs of unique literal keys to LP variables [y]
+     * and unique clause ids to LP variables [z].
      */
-    val literalLDVars = new TIntObjectHashMap[LPFloatVar]()
-    val clauseLDVars = new TIntObjectHashMap[LPFloatVar]()
+    val literalLPVars = new TIntObjectHashMap[LPFloatVar]()
+    val clauseLPVars = new TIntObjectHashMap[LPFloatVar]()
 
     /**
      * A collection of expressions of the equation that we aim to maximize.
      * Each expression has the following form:
      *
-     * {{{ weight * LD variable}}}
+     * {{{ weight * LP variable}}}
      */
     var expressions = List[LinearExpression]()
 
-    var constraintsIterator = mrf.constraints.iterator()
+    val constraintsIterator = mrf.constraints.iterator()
 
     while (constraintsIterator.hasNext) {
       constraintsIterator.advance()
@@ -109,8 +118,8 @@ final class ILP(mrf: MRF, ilpRounding: Int) extends LPModel(LPSolverLib.lp_solve
       // Step 1: Introduce variables for each ground atom and create possible constraints
       for (literal <- constraint.literals) {
         val atomID = math.abs(literal)
-        literalLDVars.putIfAbsent(atomID, LPFloatVar("y" + atomID, 0, 1))
-        val floatVar = literalLDVars.get(atomID)
+        literalLPVars.putIfAbsent(atomID, LPFloatVar("y" + atomID, 0, 1))
+        val floatVar = literalLPVars.get(atomID)
 
         if ((constraint.weight > 0 || constraint.weight.isInfinite || constraint.weight.isNaN ||
           constraint.weight == mrf.weightHard) && literal > 0)
@@ -133,13 +142,13 @@ final class ILP(mrf: MRF, ilpRounding: Int) extends LPModel(LPSolverLib.lp_solve
 
         if (constraint.isUnit) {
           expressions ::= {
-            if (constraint.literals(0) > 0) constraint.weight * literalLDVars.get(math.abs(constraint.literals(0)))
-            else -constraint.weight * literalLDVars.get(math.abs(constraint.literals(0)))
+            if (constraint.literals(0) > 0) constraint.weight * literalLPVars.get(math.abs(constraint.literals(0)))
+            else -constraint.weight * literalLPVars.get(math.abs(constraint.literals(0)))
           }
         }
         else {
-          clauseLDVars.putIfAbsent(cid, LPFloatVar("z" + cid, 0, 1))
-          expressions ::= math.abs(constraint.weight) * clauseLDVars.get(cid)
+          clauseLPVars.putIfAbsent(cid, LPFloatVar("z" + cid, 0, 1))
+          expressions ::= math.abs(constraint.weight) * clauseLPVars.get(cid)
         }
 
       }
@@ -152,7 +161,7 @@ final class ILP(mrf: MRF, ilpRounding: Int) extends LPModel(LPSolverLib.lp_solve
         debug(constraints.mkString(" + ") + " >= 1")
       }
       else if (!constraint.isUnit) {
-        val clauseVar = clauseLDVars.get(cid)
+        val clauseVar = clauseLPVars.get(cid)
         if (constraint.weight > 0) {
           add(sum(constraints) >= clauseVar)
           debug(constraints.mkString(" + ") + " >= " + clauseVar.name)
@@ -168,8 +177,8 @@ final class ILP(mrf: MRF, ilpRounding: Int) extends LPModel(LPSolverLib.lp_solve
 
     info(
         "\nGround Atoms: " + mrf.numberOfAtoms +
-        "\nAtom Variables: " + literalLDVars.size + " + Clauses Variables: " + clauseLDVars.size +
-        " = " + (literalLDVars.size + clauseLDVars.size))
+        "\nAtom Variables: " + literalLPVars.size + " + Clauses Variables: " + clauseLPVars.size +
+        " = " + (literalLPVars.size + clauseLPVars.size))
 
 
     // Step 4: Optimize function subject to the constraints introduced
@@ -185,138 +194,70 @@ final class ILP(mrf: MRF, ilpRounding: Int) extends LPModel(LPSolverLib.lp_solve
 
 
     whenDebug {
-      literalLDVars.iterator.foreach{ case (k: Int, v: LPFloatVar) => debug(v.name + " = " + v.value.get)}
-      clauseLDVars.iterator.foreach{ case (k: Int, v: LPFloatVar) => debug(v.name + " = " + v.value.get)}
+      literalLPVars.iterator.foreach{ case (k: Int, v: LPFloatVar) => debug(v.name + " = " + v.value.get)}
+      clauseLPVars.iterator.foreach{ case (k: Int, v: LPFloatVar) => debug(v.name + " = " + v.value.get)}
     }
 
-    val solution = new TIntDoubleHashMap(literalLDVars.size())
+    val solution = new TIntDoubleHashMap(literalLPVars.size())
+    var fractionalSolutions = List[(Int, Double)]()
 
     var nonIntegralSolutionsCounter = 0
-    for ((k, v) <- literalLDVars.iterator()) {
-      val p = v.value.get
-      if (p != 0.0 && p != 1.0) nonIntegralSolutionsCounter += 1
-      solution.put(k, p)
+    for ((id, lpVar) <- literalLPVars.iterator()) {
+      val value = if (lpVar.value.get > 1.0) 1.0 else lpVar.value.get
+      if (value != 0.0 && value != 1.0) {
+        nonIntegralSolutionsCounter += 1
+        fractionalSolutions ::= ((id, value))
+      }
+      else {
+        fetchAtom(id).fixedValue = if(value == 0.0) -1 else 1
+        fetchAtom(id).state = if(value == 0.0) false else true
+      }
+      solution.put(id, value)
     }
 
-    // TODO: At this point LDVar hash maps are useless, so should we destroy them?
+    val state = MRFState(mrf)
 
     info("Number of non-integral solutions: " + nonIntegralSolutionsCounter)
+    assert(state.countUnfixAtoms() == nonIntegralSolutionsCounter)
 
-    /*if (nonIntegralSolutionsCounter > 0) {
-      val clauses = new TIntObjectHashMap[Constraint]()
-      clauses.putAll(mrf.constraints)
-      roundup(solution, clauses)
+    if(nonIntegralSolutionsCounter > 0) {
+
+      // 1. RoundUp algorithm
+      if(ilpRounding == RoundingScheme.ROUNDUP) {
+        state.evaluateState()
+        whenDebug { state.printMRFStateStats() }
+        for (i <- (0 until fractionalSolutions.size).optimized) {
+          val id = fractionalSolutions(i)._1
+          if(state.computeDelta(id) > 0) {
+            fetchAtom(id).fixedValue = 1
+            fetchAtom(id).state = true
+          }
+          else {
+            fetchAtom(id).fixedValue = -1
+            fetchAtom(id).state = false
+          }
+          state.evaluateState()
+          whenDebug { state.printMRFStateStats() }
+        }
+      }
+      else {
+        // TODO MaxWalkSAT (under testing)
+        val sat = new MaxWalkSAT(mrf)
+        sat.infer(state)
+      }
+
     }
+    debug("Unfixed atoms: " + state.countUnfixAtoms())
 
-    var w = 0.0
-    var wNAll = 0
-    constraintsIterator = mrf.constraints.iterator()
-    while (constraintsIterator.hasNext) {
-      constraintsIterator.advance()
-      val constraint = constraintsIterator.value()
-      if (constraint.weight.isInfinite || constraint.weight.isNaN || constraint.weight == mrf.weightHard) w += mrf.weightHard
-      else if (constraint.weight > 0) w += constraint.weight
-      else wNAll += 1
-    }
-
-    info("Number of clauses with negative weights: " + wNAll + "/" + mrf.constraints.size())
-    info("Likelihood upper bound: e^" + w)*/
-
-    val solutionIterator = solution.iterator()
-    while(solutionIterator.hasNext){
-      solutionIterator.advance()
-      out.println(decodeLiteral(solutionIterator.key()).get + " " + solutionIterator.value())
-    }
-
+    state.printMRFStateStats()
   }
 
-  def roundup(solution: TIntDoubleHashMap, groundClauses: TIntObjectMap[Constraint]) {
-    var fractionalSolutions = List[(Double, Int, Double)]()
 
-    val unsatConstraints = new TIntObjectHashMap[Constraint]()
-
-    val clausesIterator = groundClauses.iterator()
-
-    while(clausesIterator.hasNext){
-      clausesIterator.advance()
-
-      val constraint = clausesIterator.value()
-      var idx = 0
-      var sat = false
-
-      while(sat | idx < constraint.literals.length){
-        val literal = constraint.literals(idx)
-        val solutionForAtom = solution.get(math.abs(literal))
-        if(solutionForAtom == 0.0 && literal < 0 || solutionForAtom == 1.0 && literal > 0) sat = true
-        idx += 1
-      }
-
-      if(!sat) unsatConstraints.put(clausesIterator.key(), constraint)
-    }
-
-    info("Number of fractional solutions: " + fractionalSolutions.size)
-    info("Number of unsatisfied clauses: " + unsatConstraints.size())
-
-    for (i <- (0 until fractionalSolutions.size).optimized) {
-      val k = fractionalSolutions(i)._2
-      val v = fractionalSolutions(i)._3
-
-      var delta = 0.0
-
-      val constraintsIterator = unsatConstraints.iterator()
-
-      while (constraintsIterator.hasNext) {
-        constraintsIterator.advance()
-        val constraint = constraintsIterator.value()
-
-        if (constraint.literals.contains(k))
-          delta += constraint.weight
-        else if (constraint.literals.contains(-k))
-          delta -= constraint.weight
-      }
-
-      val y = if (delta > 0) 1.0 else 0.0
-      solution.put(k, y)
-
-      (v: @switch) match {
-        case 1.0 => unsatConstraints.retainEntries((a: Int, b: Constraint) => b.literals.contains(-k))
-        case 0.0 => unsatConstraints.retainEntries((a: Int, b: Constraint) => b.literals.contains(k))
-        case _ => fractionalSolutions ::= ((0.0, k, v))
-      }
-
-      info("\titeration: " + i + ", number of unsatisfied clauses: " + unsatConstraints.size() + ", solution: " + y)
-    }
-
-    var wNUnSat = 0
-    var constraintsIterator = unsatConstraints.iterator()
-
-    while (constraintsIterator.hasNext) {
-      constraintsIterator.advance()
-
-      val key = constraintsIterator.key()
-      val constraint = constraintsIterator.value()
-      groundClauses.remove(key)
-
-      if (constraint.weight < 0) wNUnSat += 1
-    }
-
-    var w = 0.0
-    constraintsIterator = groundClauses.iterator()
-
-    while (constraintsIterator.hasNext) {
-      constraintsIterator.advance()
-      val constraint = constraintsIterator.value()
-      w += (if (constraint.isHardConstraint) mrf.weightHard else constraint.weight)
-    }
-
-    info(
-      "\n#SAT Clauses: " + (groundClauses.size() - unsatConstraints.size()) +
-      "\n#UnSAT clauses with negative weights: " + wNUnSat + "/" + unsatConstraints.size() +
-      "\nLikelihood of the solution is: e^" + w)
-
-  }
-
-  /*def writeResults(out: PrintStream = System.out) {
+  /**
+   * Write the results of inference into the selected output stream
+   * @param out Chosen output stream (default is console)
+   */
+  def writeResults(out: PrintStream = System.out) {
     import lomrf.util.decodeAtom
 
     implicit val mln = mrf.mln
@@ -328,7 +269,7 @@ final class ILP(mrf: MRF, ilpRounding: Int) extends LPModel(LPSolverLib.lp_solve
       if (atomID >= mln.queryStartID && atomID <= mln.queryEndID) {
         val groundAtom = iterator.value()
         val state = if(groundAtom.getState) 1 else 0
-        if(showAll) {
+        if(outputAll) {
           decodeAtom(iterator.key()) match {
             case Some(txtAtom) => out.println(txtAtom + " " + state)
             case _ => error("failed to decode id:" + atomID)
@@ -342,6 +283,15 @@ final class ILP(mrf: MRF, ilpRounding: Int) extends LPModel(LPSolverLib.lp_solve
         }
       }
     }
-  }*/
+  }
 
+}
+
+object RoundingScheme {
+  val ROUNDUP = 1
+  val MWS = 2
+}
+
+object LossFunction {
+  val HAMMING = 1
 }

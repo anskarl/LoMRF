@@ -82,7 +82,7 @@ object InferenceCLI extends OptionParser with Logging {
   private var _satHardPriority = false
 
   // Rounding algorithm for ILP map inference
-  private var _ilpRounding = 1
+  private var _ilpRounding = RoundingScheme.ROUNDUP
 
   // Maximum number of samples to take
   private var _samples = 1000
@@ -212,8 +212,8 @@ object InferenceCLI extends OptionParser with Logging {
 
   opt("ilpRounding", "ilp-rounding", "<roundup | mws>", "Rounding algorithm for ILP (default is RoundUp).", {
     v: String => v.trim.toLowerCase match {
-      case "roundup" => _ilpRounding = 1
-      case "mws" => _ilpRounding = 2
+      case "roundup" => _ilpRounding = RoundingScheme.ROUNDUP
+      case "mws" => _ilpRounding = RoundingScheme.MWS
       case _ => fatal("Unknown parameter for ILP rounding type '" + v + "'.")
     }
   })
@@ -307,7 +307,7 @@ object InferenceCLI extends OptionParser with Logging {
       + "\n\t(all) Show 0/1 results for all query atoms: " + _mapOutputAll
       + "\n\t(satHardUnit) Trivially satisfy hard constrained unit clauses: " + _satHardUnit
       + "\n\t(satHardPriority) Satisfiability priority to hard constrained clauses: " + _satHardPriority
-      + "\n\t(ilpRounding) Rounding algorithm used in ILP map inference: " + ( if(_ilpRounding == 1) "RoundUp" else "MaxWalkSAT" )
+      + "\n\t(ilpRounding) Rounding algorithm used in ILP map inference: " + ( if(_ilpRounding == RoundingScheme.ROUNDUP) "RoundUp" else "MaxWalkSAT")
       + "\n\t(samples) Number of samples to take: " + _samples
       + "\n\t(pSA) Probability to perform simulated annealing: " + _pSA
       + "\n\t(pBest) Probability to perform a greedy search: " + _pBest
@@ -362,9 +362,9 @@ object InferenceCLI extends OptionParser with Logging {
         solver.writeResults(resultsWriter)
       }
       else {
-        val solver = new ILP(mrf, ilpRounding = _ilpRounding)
-        solver.infer(resultsWriter)
-        /*solver.writeResults(resultsWriter)*/
+        val solver = new ILP(mrf, outputAll = _mapOutputAll, ilpRounding = _ilpRounding)
+        solver.infer()
+        solver.writeResults(resultsWriter)
       }
     }
   }

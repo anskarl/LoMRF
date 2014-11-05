@@ -161,7 +161,7 @@ final class MRFState private(val mrf: MRF, parAtoms: ParArray[GroundAtom], parCo
   }
 
   /**
-   * TODO: used for ILP
+   * TODO: Documentation
    * @param atomID
    * @return
    */
@@ -188,14 +188,15 @@ final class MRFState private(val mrf: MRF, parAtoms: ParArray[GroundAtom], parCo
    */
   def printMRFStateStats() {
     info("Stats:")
-    info("Unsatisfied clauses: " + lowUnsat + "/" + totalActive)
+    val unsatisfied = Unsatisfied.size
+    info("Unsatisfied clauses: " + unsatisfied + "/" + totalActive)
     var countNeg = 0
-    for(i <- 0 until Unsatisfied.size) {
+    for(i <- 0 until unsatisfied) {
       if(Unsatisfied(i).weight < 0) countNeg += 1
     }
-    info("Unsatisfied negative constraints: " + countNeg + "/" + lowUnsat)
-    info("Unsatisfied positive constraints: " + (Unsatisfied.size-Unsatisfied.numOfHard-countNeg) + "/" + lowUnsat)
-    info("Unsatisfied hard constraints: " + Unsatisfied.numOfHard + "/" + lowUnsat)
+    info("Unsatisfied negative constraints: " + countNeg + "/" + unsatisfied)
+    info("Unsatisfied positive constraints: " + (unsatisfied-Unsatisfied.numOfHard-countNeg) + "/" + unsatisfied)
+    info("Unsatisfied hard constraints: " + Unsatisfied.numOfHard + "/" + unsatisfied)
     info("Total cost: " + totalCost)
 
     var likelihood, likelihoodUB = 0.0
