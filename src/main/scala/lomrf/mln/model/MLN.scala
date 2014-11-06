@@ -308,4 +308,67 @@ object MLN extends Logging {
       evidence.queryEndID)
   }
 
+
+  def forLearning(mlnFileName: String,
+            evidenceFileNames: List[String],
+            nonEvidenceAtoms: collection.Set[AtomSignature],
+            pcm: PredicateCompletionMode = Decomposed,
+            dynamicDefinitions: Option[ImplFinder.ImplementationsMap] = None): (MLN, Map[AtomSignature, AtomEvidenceDB]) = {
+
+    info(
+      "Stage 0: Loading an MLN instance from data..." +
+        "\n\tInput MLN file: " + mlnFileName +
+        "\n\tInput evidence file(s): " + (if (evidenceFileNames.nonEmpty) evidenceFileNames.reduceLeft(_+", "+_) else ""))
+
+
+    //parse knowledge base (.mln)
+    val kb = KB(mlnFileName, pcm, dynamicDefinitions)
+
+    val atomSignatures: collection.Set[AtomSignature] = kb.predicateSchema.keySet
+
+    /**
+     * Check if the schema of all Non-Evidence atoms is defined in the MLN file
+     */
+    nonEvidenceAtoms.find(s => !atomSignatures.contains(s)) match {
+      case Some(x) => fatal("The predicate " + x + " that appears in the query, is not defined in the mln file.")
+      case None => // do nothing
+    }
+
+    val evidenceAtoms = atomSignatures -- nonEvidenceAtoms
+
+    //parse the evidence database (.db)
+    val evidence: Evidence = Evidence(kb, Set.empty[AtomSignature], Set.empty[AtomSignature], evidenceFileNames)
+
+
+    var functionMapperz = evidence.functionMappers
+    for ((signature, func) <- kb.dynamicFunctions) {
+      functionMapperz += (signature -> FunctionMapper(func))
+    }
+
+    var (annotationDB, atomStateDB) = evidence.atomsEvDB.partition(e => nonEvidenceAtoms.contains(e._1))
+
+
+    for (signature <- annotationDB.keysIterator)
+      atomStateDB += (signature -> AtomEvidenceDB(evidence.identities(signature), kb.predicateSchema(signature).zipWithIndex.toMap, UNKNOWN))
+
+    for (signature <- nonEvidenceAtoms; if !annotationDB.contains(signature)){
+      warn("Annotation was not given in the training file(s) for predicate '"+signature+"', assuming FALSE state for all its groundings.")
+      annotationDB += (signature -> AtomEvidenceDB(evidence.identities(signature), kb.predicateSchema(signature).zipWithIndex.toMap, FALSE))
+    }
+
+
+    val probabilisticAtoms = Set.empty[AtomSignature]
+    val queryAtoms = nonEvidenceAtoms
+    val finalCWA = evidenceAtoms
+    val finalOWA = nonEvidenceAtoms
+    val triStateAtoms = Set.empty[AtomSignature]
+
+
+
+    (new MLN(kb.formulas, kb.predicateSchema, kb.functionSchema, kb.dynamicPredicates, kb.dynamicFunctions,
+      evidence.constants, functionMapperz, queryAtoms, finalCWA, finalOWA, probabilisticAtoms, triStateAtoms, evidence.identities,
+      atomStateDB, evidence.orderedStartIDs, evidence.orderedAtomSignatures, evidence.queryStartID,
+      evidence.queryEndID), annotationDB)
+  }
+
 }
