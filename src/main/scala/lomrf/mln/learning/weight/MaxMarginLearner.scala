@@ -1,4 +1,4 @@
-package lomrf.mln.wlearning
+package lomrf.mln.learning.weight
 
 import lomrf.util.Logging
 
