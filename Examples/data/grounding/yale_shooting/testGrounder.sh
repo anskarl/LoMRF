@@ -2,7 +2,7 @@
 
 infile="theory.mln"
 evfile="narrative.db"
-outputFile="ground-network.txt"
+outputFile="ground-network.result"
 
 CWA="Happens/2,Next/2"
 OWA="InitiatedAt/2,TerminatedAt/2"
