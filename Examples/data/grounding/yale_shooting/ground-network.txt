@@ -1,0 +1,305 @@
+// weighted ground clauses
+
+!InitiatedAt(Loaded,11).
+!TerminatedAt(Dead,6).
+2 InitiatedAt(Loaded,9)
+!TerminatedAt(Alive,3).
+!TerminatedAt(Loaded,9).
+!InitiatedAt(Alive,13).
+!InitiatedAt(Alive,5).
+!TerminatedAt(Loaded,1).
+!InitiatedAt(Dead,0).
+!HoldsAt(Alive,10) v HoldsAt(Alive,11) v TerminatedAt(Alive,10).
+!HoldsAt(Alive,4) v HoldsAt(Alive,5) v TerminatedAt(Alive,4).
+!HoldsAt(Dead,13) v HoldsAt(Dead,14) v TerminatedAt(Dead,13).
+!HoldsAt(Dead,7) v HoldsAt(Dead,8) v TerminatedAt(Dead,7).
+!HoldsAt(Loaded,10) v HoldsAt(Loaded,11) v TerminatedAt(Loaded,10).
+!HoldsAt(Loaded,2) v HoldsAt(Loaded,3) v TerminatedAt(Loaded,2).
+!HoldsAt(Alive,3) v HoldsAt(Alive,2) v InitiatedAt(Alive,2).
+!HoldsAt(Dead,12) v HoldsAt(Dead,11) v InitiatedAt(Dead,11).
+!HoldsAt(Dead,6) v HoldsAt(Dead,5) v InitiatedAt(Dead,5).
+!HoldsAt(Loaded,9) v HoldsAt(Loaded,8) v InitiatedAt(Loaded,8).
+2 !HoldsAt(Loaded,8) v TerminatedAt(Alive,8)
+2 !HoldsAt(Loaded,11) v TerminatedAt(Loaded,11)
+!TerminatedAt(Alive,13) v HoldsAt(Loaded,13).
+!TerminatedAt(Alive,9) v HoldsAt(Loaded,9).
+!TerminatedAt(Alive,5) v HoldsAt(Loaded,5).
+!TerminatedAt(Loaded,12) v HoldsAt(Loaded,12).
+!TerminatedAt(Loaded,8) v HoldsAt(Loaded,8).
+!TerminatedAt(Alive,1) v HoldsAt(Loaded,1).
+!TerminatedAt(Loaded,4) v HoldsAt(Loaded,4).
+!HoldsAt(Loaded,1) v HoldsAt(Loaded,0) v InitiatedAt(Loaded,0).
+!TerminatedAt(Loaded,0) v HoldsAt(Loaded,0).
+!TerminatedAt(Dead,12).
+!TerminatedAt(Dead,4).
+!InitiatedAt(Loaded,1).
+!TerminatedAt(Alive,9).
+!InitiatedAt(Dead,14).
+!TerminatedAt(Alive,1).
+!InitiatedAt(Dead,6).
+!TerminatedAt(Loaded,7).
+!InitiatedAt(Alive,11).
+!InitiatedAt(Alive,3).
+!HoldsAt(Alive,6) v HoldsAt(Alive,7) v TerminatedAt(Alive,6).
+!HoldsAt(Dead,11) v HoldsAt(Dead,12) v TerminatedAt(Dead,11).
+!HoldsAt(Dead,9) v HoldsAt(Dead,10) v TerminatedAt(Dead,9).
+!HoldsAt(Dead,1) v HoldsAt(Dead,2) v TerminatedAt(Dead,1).
+!HoldsAt(Loaded,4) v HoldsAt(Loaded,5) v TerminatedAt(Loaded,4).
+!HoldsAt(Alive,5) v HoldsAt(Alive,4) v InitiatedAt(Alive,4).
+!HoldsAt(Dead,8) v HoldsAt(Dead,7) v InitiatedAt(Dead,7).
+!HoldsAt(Loaded,13) v HoldsAt(Loaded,12) v InitiatedAt(Loaded,12).
+2 !HoldsAt(Loaded,11) v TerminatedAt(Alive,11)
+!HoldsAt(Loaded,3) v HoldsAt(Loaded,2) v InitiatedAt(Loaded,2).
+!TerminatedAt(Alive,14) v HoldsAt(Loaded,14).
+!TerminatedAt(Alive,10) v HoldsAt(Loaded,10).
+!TerminatedAt(Alive,6) v HoldsAt(Loaded,6).
+!TerminatedAt(Loaded,13) v HoldsAt(Loaded,13).
+!TerminatedAt(Alive,2) v HoldsAt(Loaded,2).
+!TerminatedAt(Loaded,9) v HoldsAt(Loaded,9).
+!TerminatedAt(Loaded,5) v HoldsAt(Loaded,5).
+!TerminatedAt(Loaded,1) v HoldsAt(Loaded,1).
+2 !HoldsAt(Loaded,2) v TerminatedAt(Loaded,2)
+!InitiatedAt(Loaded,13).
+!InitiatedAt(Loaded,5).
+!TerminatedAt(Dead,8).
+!TerminatedAt(Alive,13).
+!TerminatedAt(Dead,0).
+2 InitiatedAt(Loaded,3)
+!InitiatedAt(Dead,10).
+!InitiatedAt(Alive,7).
+!TerminatedAt(Loaded,3).
+!HoldsAt(Alive,12) v HoldsAt(Alive,13) v TerminatedAt(Alive,12).
+!HoldsAt(Alive,2) v HoldsAt(Alive,3) v TerminatedAt(Alive,2).
+!HoldsAt(Dead,5) v HoldsAt(Dead,6) v TerminatedAt(Dead,5).
+!HoldsAt(Loaded,8) v HoldsAt(Loaded,9) v TerminatedAt(Loaded,8).
+!HoldsAt(Loaded,0) v HoldsAt(Loaded,1) v TerminatedAt(Loaded,0).
+!HoldsAt(Alive,11) v HoldsAt(Alive,10) v InitiatedAt(Alive,10).
+!HoldsAt(Alive,9) v HoldsAt(Alive,8) v InitiatedAt(Alive,8).
+!HoldsAt(Alive,1) v HoldsAt(Alive,0) v InitiatedAt(Alive,0).
+!HoldsAt(Dead,14) v HoldsAt(Dead,13) v InitiatedAt(Dead,13).
+!HoldsAt(Dead,4) v HoldsAt(Dead,3) v InitiatedAt(Dead,3).
+!HoldsAt(Loaded,7) v HoldsAt(Loaded,6) v InitiatedAt(Loaded,6).
+2 !HoldsAt(Loaded,5) v TerminatedAt(Alive,5)
+2 !HoldsAt(Loaded,8) v TerminatedAt(Loaded,8)
+!TerminatedAt(Alive,12) v HoldsAt(Loaded,12).
+!TerminatedAt(Alive,8) v HoldsAt(Loaded,8).
+!TerminatedAt(Alive,4) v HoldsAt(Loaded,4).
+!TerminatedAt(Loaded,11) v HoldsAt(Loaded,11).
+!TerminatedAt(Loaded,7) v HoldsAt(Loaded,7).
+!TerminatedAt(Loaded,3) v HoldsAt(Loaded,3).
+!TerminatedAt(Alive,0) v HoldsAt(Loaded,0).
+!InitiatedAt(Loaded,6).
+!TerminatedAt(Dead,9).
+!TerminatedAt(Alive,14).
+!TerminatedAt(Dead,1).
+!TerminatedAt(Alive,6).
+!TerminatedAt(Loaded,12).
+!InitiatedAt(Alive,8).
+!InitiatedAt(Dead,3).
+!TerminatedAt(Loaded,4).
+!InitiatedAt(Alive,0).
+!HoldsAt(Alive,13) v HoldsAt(Alive,14) v TerminatedAt(Alive,13).
+!HoldsAt(Alive,9) v HoldsAt(Alive,10) v TerminatedAt(Alive,9).
+!HoldsAt(Alive,1) v HoldsAt(Alive,2) v TerminatedAt(Alive,1).
+!HoldsAt(Dead,4) v HoldsAt(Dead,5) v TerminatedAt(Dead,4).
+!HoldsAt(Loaded,11) v HoldsAt(Loaded,12) v TerminatedAt(Loaded,11).
+!HoldsAt(Loaded,7) v HoldsAt(Loaded,8) v TerminatedAt(Loaded,7).
+!HoldsAt(Alive,12) v HoldsAt(Alive,11) v InitiatedAt(Alive,11).
+!InitiatedAt(Alive,13) v HoldsAt(Alive,14).
+!HoldsAt(Alive,8) v HoldsAt(Alive,7) v InitiatedAt(Alive,7).
+!InitiatedAt(Alive,9) v HoldsAt(Alive,10).
+!InitiatedAt(Alive,5) v HoldsAt(Alive,6).
+!InitiatedAt(Alive,1) v HoldsAt(Alive,2).
+!InitiatedAt(Dead,12) v HoldsAt(Dead,13).
+!InitiatedAt(Dead,8) v HoldsAt(Dead,9).
+!InitiatedAt(Dead,4) v HoldsAt(Dead,5).
+!HoldsAt(Dead,3) v HoldsAt(Dead,2) v InitiatedAt(Dead,2).
+!InitiatedAt(Dead,0) v HoldsAt(Dead,1).
+!InitiatedAt(Loaded,11) v HoldsAt(Loaded,12).
+!InitiatedAt(Loaded,7) v HoldsAt(Loaded,8).
+!HoldsAt(Loaded,6) v HoldsAt(Loaded,5) v InitiatedAt(Loaded,5).
+HoldsAt(Alive,0).
+2 !HoldsAt(Loaded,8) v InitiatedAt(Dead,8)
+!InitiatedAt(Loaded,3) v HoldsAt(Loaded,4).
+!InitiatedAt(Dead,14) v HoldsAt(Loaded,14).
+!InitiatedAt(Dead,10) v HoldsAt(Loaded,10).
+!InitiatedAt(Dead,6) v HoldsAt(Loaded,6).
+!InitiatedAt(Dead,2) v HoldsAt(Loaded,2).
+!InitiatedAt(Loaded,12).
+!TerminatedAt(Dead,7).
+!InitiatedAt(Loaded,4).
+!TerminatedAt(Alive,12).
+!TerminatedAt(Alive,4).
+!TerminatedAt(Loaded,10).
+!InitiatedAt(Dead,9).
+!InitiatedAt(Alive,6).
+!InitiatedAt(Dead,1).
+!HoldsAt(Alive,11) v HoldsAt(Alive,12) v TerminatedAt(Alive,11).
+!HoldsAt(Alive,3) v HoldsAt(Alive,4) v TerminatedAt(Alive,3).
+!HoldsAt(Dead,6) v HoldsAt(Dead,7) v TerminatedAt(Dead,6).
+!HoldsAt(Loaded,9) v HoldsAt(Loaded,10) v TerminatedAt(Loaded,9).
+!HoldsAt(Loaded,1) v HoldsAt(Loaded,2) v TerminatedAt(Loaded,1).
+!HoldsAt(Alive,10) v HoldsAt(Alive,9) v InitiatedAt(Alive,9).
+!InitiatedAt(Alive,10) v HoldsAt(Alive,11).
+!InitiatedAt(Alive,6) v HoldsAt(Alive,7).
+!HoldsAt(Alive,2) v HoldsAt(Alive,1) v InitiatedAt(Alive,1).
+!InitiatedAt(Alive,2) v HoldsAt(Alive,3).
+!HoldsAt(Dead,13) v HoldsAt(Dead,12) v InitiatedAt(Dead,12).
+!InitiatedAt(Dead,13) v HoldsAt(Dead,14).
+!InitiatedAt(Dead,9) v HoldsAt(Dead,10).
+!HoldsAt(Dead,5) v HoldsAt(Dead,4) v InitiatedAt(Dead,4).
+!InitiatedAt(Dead,5) v HoldsAt(Dead,6).
+!InitiatedAt(Dead,1) v HoldsAt(Dead,2).
+!InitiatedAt(Loaded,12) v HoldsAt(Loaded,13).
+!InitiatedAt(Loaded,8) v HoldsAt(Loaded,9).
+!HoldsAt(Loaded,8) v HoldsAt(Loaded,7) v InitiatedAt(Loaded,7).
+2 !HoldsAt(Loaded,11) v InitiatedAt(Dead,11)
+!InitiatedAt(Loaded,4) v HoldsAt(Loaded,5).
+!InitiatedAt(Dead,11) v HoldsAt(Loaded,11).
+!InitiatedAt(Dead,7) v HoldsAt(Loaded,7).
+!InitiatedAt(Dead,3) v HoldsAt(Loaded,3).
+!InitiatedAt(Loaded,0) v HoldsAt(Loaded,1).
+!InitiatedAt(Loaded,7).
+!TerminatedAt(Dead,10).
+!TerminatedAt(Dead,2).
+!TerminatedAt(Alive,7).
+!TerminatedAt(Loaded,13).
+!InitiatedAt(Dead,12).
+!InitiatedAt(Alive,9).
+!InitiatedAt(Dead,4).
+!InitiatedAt(Alive,1).
+!HoldsAt(Alive,8) v HoldsAt(Alive,9) v TerminatedAt(Alive,8).
+!HoldsAt(Alive,0) v HoldsAt(Alive,1) v TerminatedAt(Alive,0).
+!HoldsAt(Dead,3) v HoldsAt(Dead,4) v TerminatedAt(Dead,3).
+!HoldsAt(Loaded,12) v HoldsAt(Loaded,13) v TerminatedAt(Loaded,12).
+!HoldsAt(Loaded,6) v HoldsAt(Loaded,7) v TerminatedAt(Loaded,6).
+!HoldsAt(Alive,13) v HoldsAt(Alive,12) v InitiatedAt(Alive,12).
+!HoldsAt(Alive,7) v HoldsAt(Alive,6) v InitiatedAt(Alive,6).
+!HoldsAt(Dead,10) v HoldsAt(Dead,9) v InitiatedAt(Dead,9).
+!HoldsAt(Dead,2) v HoldsAt(Dead,1) v InitiatedAt(Dead,1).
+!HoldsAt(Loaded,11) v HoldsAt(Loaded,10) v InitiatedAt(Loaded,10).
+!HoldsAt(Loaded,5) v HoldsAt(Loaded,4) v InitiatedAt(Loaded,4).
+!HoldsAt(Dead,0).
+2 !HoldsAt(Loaded,5) v TerminatedAt(Loaded,5)
+!TerminatedAt(Alive,11) v HoldsAt(Loaded,11).
+!TerminatedAt(Alive,7) v HoldsAt(Loaded,7).
+!TerminatedAt(Loaded,14) v HoldsAt(Loaded,14).
+!TerminatedAt(Alive,3) v HoldsAt(Loaded,3).
+!TerminatedAt(Loaded,10) v HoldsAt(Loaded,10).
+!TerminatedAt(Loaded,6) v HoldsAt(Loaded,6).
+!TerminatedAt(Loaded,2) v HoldsAt(Loaded,2).
+2 !HoldsAt(Loaded,2) v TerminatedAt(Alive,2)
+!InitiatedAt(Loaded,10).
+!TerminatedAt(Dead,13).
+!InitiatedAt(Loaded,2).
+!TerminatedAt(Dead,5).
+!TerminatedAt(Alive,10).
+!InitiatedAt(Dead,7).
+!InitiatedAt(Alive,12).
+!InitiatedAt(Alive,4).
+!TerminatedAt(Loaded,0).
+!HoldsAt(Alive,5) v HoldsAt(Alive,6) v TerminatedAt(Alive,5).
+!HoldsAt(Dead,12) v HoldsAt(Dead,13) v TerminatedAt(Dead,12).
+!HoldsAt(Dead,8) v HoldsAt(Dead,9) v TerminatedAt(Dead,8).
+!HoldsAt(Dead,0) v HoldsAt(Dead,1) v TerminatedAt(Dead,0).
+!HoldsAt(Loaded,3) v HoldsAt(Loaded,4) v TerminatedAt(Loaded,3).
+!TerminatedAt(Alive,13) v !HoldsAt(Alive,14).
+!TerminatedAt(Alive,12) v !HoldsAt(Alive,13).
+!TerminatedAt(Alive,11) v !HoldsAt(Alive,12).
+!TerminatedAt(Alive,10) v !HoldsAt(Alive,11).
+!TerminatedAt(Alive,9) v !HoldsAt(Alive,10).
+!TerminatedAt(Alive,8) v !HoldsAt(Alive,9).
+!TerminatedAt(Alive,7) v !HoldsAt(Alive,8).
+!InitiatedAt(Alive,11) v HoldsAt(Alive,12).
+!TerminatedAt(Alive,6) v !HoldsAt(Alive,7).
+!TerminatedAt(Alive,5) v !HoldsAt(Alive,6).
+!TerminatedAt(Alive,4) v !HoldsAt(Alive,5).
+!TerminatedAt(Alive,3) v !HoldsAt(Alive,4).
+!InitiatedAt(Alive,7) v HoldsAt(Alive,8).
+!TerminatedAt(Alive,2) v !HoldsAt(Alive,3).
+!HoldsAt(Alive,4) v HoldsAt(Alive,3) v InitiatedAt(Alive,3).
+!TerminatedAt(Alive,1) v !HoldsAt(Alive,2).
+!TerminatedAt(Alive,0) v !HoldsAt(Alive,1).
+!InitiatedAt(Alive,3) v HoldsAt(Alive,4).
+!TerminatedAt(Dead,13) v !HoldsAt(Dead,14).
+!TerminatedAt(Dead,12) v !HoldsAt(Dead,13).
+!TerminatedAt(Dead,11) v !HoldsAt(Dead,12).
+!TerminatedAt(Dead,10) v !HoldsAt(Dead,11).
+!TerminatedAt(Dead,9) v !HoldsAt(Dead,10).
+!HoldsAt(Dead,11) v HoldsAt(Dead,10) v InitiatedAt(Dead,10).
+!TerminatedAt(Dead,8) v !HoldsAt(Dead,9).
+!InitiatedAt(Dead,10) v HoldsAt(Dead,11).
+!TerminatedAt(Dead,7) v !HoldsAt(Dead,8).
+!TerminatedAt(Dead,6) v !HoldsAt(Dead,7).
+!TerminatedAt(Dead,5) v !HoldsAt(Dead,6).
+!HoldsAt(Dead,7) v HoldsAt(Dead,6) v InitiatedAt(Dead,6).
+!TerminatedAt(Dead,4) v !HoldsAt(Dead,5).
+!TerminatedAt(Dead,3) v !HoldsAt(Dead,4).
+!InitiatedAt(Dead,6) v HoldsAt(Dead,7).
+!TerminatedAt(Dead,2) v !HoldsAt(Dead,3).
+!TerminatedAt(Dead,1) v !HoldsAt(Dead,2).
+!TerminatedAt(Dead,0) v !HoldsAt(Dead,1).
+!TerminatedAt(Loaded,13) v !HoldsAt(Loaded,14).
+!InitiatedAt(Dead,2) v HoldsAt(Dead,3).
+!TerminatedAt(Loaded,12) v !HoldsAt(Loaded,13).
+!TerminatedAt(Loaded,11) v !HoldsAt(Loaded,12).
+!HoldsAt(Loaded,14) v HoldsAt(Loaded,13) v InitiatedAt(Loaded,13).
+!TerminatedAt(Loaded,10) v !HoldsAt(Loaded,11).
+!InitiatedAt(Loaded,13) v HoldsAt(Loaded,14).
+!TerminatedAt(Loaded,9) v !HoldsAt(Loaded,10).
+!TerminatedAt(Loaded,8) v !HoldsAt(Loaded,9).
+!TerminatedAt(Loaded,7) v !HoldsAt(Loaded,8).
+!HoldsAt(Loaded,10) v HoldsAt(Loaded,9) v InitiatedAt(Loaded,9).
+!TerminatedAt(Loaded,6) v !HoldsAt(Loaded,7).
+!InitiatedAt(Loaded,9) v HoldsAt(Loaded,10).
+!TerminatedAt(Loaded,5) v !HoldsAt(Loaded,6).
+!TerminatedAt(Loaded,4) v !HoldsAt(Loaded,5).
+!TerminatedAt(Loaded,3) v !HoldsAt(Loaded,4).
+!TerminatedAt(Loaded,2) v !HoldsAt(Loaded,3).
+!InitiatedAt(Loaded,5) v HoldsAt(Loaded,6).
+!TerminatedAt(Loaded,1) v !HoldsAt(Loaded,2).
+!TerminatedAt(Loaded,0) v !HoldsAt(Loaded,1).
+2 !HoldsAt(Loaded,2) v InitiatedAt(Dead,2)
+!InitiatedAt(Dead,12) v HoldsAt(Loaded,12).
+!InitiatedAt(Dead,8) v HoldsAt(Loaded,8).
+!InitiatedAt(Dead,4) v HoldsAt(Loaded,4).
+!InitiatedAt(Loaded,1) v HoldsAt(Loaded,2).
+!HoldsAt(Loaded,2) v HoldsAt(Loaded,1) v InitiatedAt(Loaded,1).
+!InitiatedAt(Dead,0) v HoldsAt(Loaded,0).
+!HoldsAt(Loaded,0).
+!InitiatedAt(Loaded,8).
+!TerminatedAt(Dead,11).
+!TerminatedAt(Dead,3).
+!TerminatedAt(Loaded,14).
+!InitiatedAt(Dead,13).
+!TerminatedAt(Alive,0).
+!InitiatedAt(Alive,10).
+!TerminatedAt(Loaded,6).
+!InitiatedAt(Alive,2).
+!InitiatedAt(Loaded,0).
+!HoldsAt(Alive,7) v HoldsAt(Alive,8) v TerminatedAt(Alive,7).
+!HoldsAt(Dead,10) v HoldsAt(Dead,11) v TerminatedAt(Dead,10).
+!HoldsAt(Dead,2) v HoldsAt(Dead,3) v TerminatedAt(Dead,2).
+!HoldsAt(Loaded,13) v HoldsAt(Loaded,14) v TerminatedAt(Loaded,13).
+!HoldsAt(Loaded,5) v HoldsAt(Loaded,6) v TerminatedAt(Loaded,5).
+!HoldsAt(Alive,14) v HoldsAt(Alive,13) v InitiatedAt(Alive,13).
+!InitiatedAt(Alive,12) v HoldsAt(Alive,13).
+!InitiatedAt(Alive,8) v HoldsAt(Alive,9).
+!HoldsAt(Alive,6) v HoldsAt(Alive,5) v InitiatedAt(Alive,5).
+!InitiatedAt(Alive,4) v HoldsAt(Alive,5).
+!InitiatedAt(Alive,0) v HoldsAt(Alive,1).
+!InitiatedAt(Dead,11) v HoldsAt(Dead,12).
+!HoldsAt(Dead,9) v HoldsAt(Dead,8) v InitiatedAt(Dead,8).
+!InitiatedAt(Dead,7) v HoldsAt(Dead,8).
+!InitiatedAt(Dead,3) v HoldsAt(Dead,4).
+!HoldsAt(Dead,1) v HoldsAt(Dead,0) v InitiatedAt(Dead,0).
+!HoldsAt(Loaded,12) v HoldsAt(Loaded,11) v InitiatedAt(Loaded,11).
+!InitiatedAt(Loaded,10) v HoldsAt(Loaded,11).
+!InitiatedAt(Loaded,6) v HoldsAt(Loaded,7).
+2 !HoldsAt(Loaded,5) v InitiatedAt(Dead,5)
+!HoldsAt(Loaded,4) v HoldsAt(Loaded,3) v InitiatedAt(Loaded,3).
+!InitiatedAt(Dead,13) v HoldsAt(Loaded,13).
+!InitiatedAt(Dead,9) v HoldsAt(Loaded,9).
+!InitiatedAt(Loaded,2) v HoldsAt(Loaded,3).
+!InitiatedAt(Dead,5) v HoldsAt(Loaded,5).
+!InitiatedAt(Dead,1) v HoldsAt(Loaded,1).
