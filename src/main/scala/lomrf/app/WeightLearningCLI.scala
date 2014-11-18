@@ -1,10 +1,11 @@
 package lomrf.app
 
 import java.io.{FileOutputStream, PrintStream}
-
 import lomrf.logic.AtomSignature
+import lomrf.mln.grounding.MRFBuilder
 import lomrf.mln.inference.LossFunction
 import lomrf.mln.model.MLN
+import lomrf.mln.wlearning.MaxMarginLearner
 import lomrf.util.{Logging, OptionParser, parseAtomSignature}
 
 /**
@@ -22,16 +23,13 @@ object WeightLearningCLI extends OptionParser with Logging {
   private var _outputFileName: Option[String] = None
 
   // Input training file(s) (path)
-  private var _trainingFileName: Option[String] = None
+  private var _trainingFileName: Option[List[String]] = None
 
   // The set of non evidence atoms (in the form of AtomName/Arity)
   private var _nonEvidenceAtoms = Set[AtomSignature]()
 
   // Add unit clauses to the MLN output file
   private var _noAddUnitClauses = false
-
-  // Write out MLNs after 1, 2, 5, 10, 20, 50, etc. iterations
-  private var _periodicMLNs = false
 
   // Regularization parameter
   private var _C = 1e+3
@@ -60,7 +58,21 @@ object WeightLearningCLI extends OptionParser with Logging {
   // Print the learned weights for each iteration
   private var _printLearnedWeightsPerIteration = false
 
+  // Eliminate negative weights, i.e. convert the clause:
+  // -2 A(x) v B(x)
+  // into the following two clauses:
+  // 1 !A(x)
+  // 1 !B(x)
+  private var _noNeg = false
+
+  // Eliminate negated unit clauses
+  // For example:
+  // 2 !A(x) becomes -2 A(x)
+  private var _eliminateNegatedUnit = false
+
   private var _implPaths: Option[Array[String]] = None
+
+  private var _experimentalGrounder = false
 
   private def addNonEvidenceAtom(atom: String) {
     parseAtomSignature(atom) match {
@@ -78,7 +90,7 @@ object WeightLearningCLI extends OptionParser with Logging {
   })
 
   opt("t", "training", "<training file>", "Training database file", {
-    v: String => _trainingFileName = Some(v)
+    v: String => _trainingFileName = Some(v.split(',').toList)
   })
 
   opt("ne", "non-evidence atoms", "<string>", "Comma separated non-evidence atoms. "
@@ -87,9 +99,6 @@ object WeightLearningCLI extends OptionParser with Logging {
 
   booleanOpt("noAddUnitClauses", "no-add-unit-clauses", "If specified, unit clauses are not included in the output MLN file" +
     " (default is " + _noAddUnitClauses + ").", _noAddUnitClauses = _)
-
-  /*booleanOpt("periodic", "periodic-MLNs", "Write out MLNs after 1, 2, 5, 10, 20, 50, etc. iterations." +
-    " (default is " + _periodicMLNs + ")", _periodicMLNs = _)*/
 
   doubleOpt("C", "C", "Regularization parameter (default is " + _C + ").", {
     v: Double => _C = v
@@ -126,6 +135,15 @@ object WeightLearningCLI extends OptionParser with Logging {
 
   flagOpt("nonMarginRescaling", "non-margin-rescaling", "Don't scale the margin by the loss.", {_nonMarginRescaling = true})
 
+  booleanOpt("noNeg", "eliminate-negative-weights", "Eliminate negative weight values from ground clauses (default is " + _noNeg + ").", _noNeg = _)
+
+  booleanOpt("noNegatedUnit", "eliminate-negated-unit", "Eliminate negated unit ground clauses (default is " + _eliminateNegatedUnit + ").", _eliminateNegatedUnit = _)
+
+  flagOpt("XG", "experimental-grounder", "Enable experimental grounder",{
+    _experimentalGrounder = true
+    warn("THIS RUN WILL USE THE EXPERIMENTAL GROUNDER!!!")
+  })
+
   flagOpt("v", "version", "Print LoMRF version.", sys.exit(0))
 
   flagOpt("h", "help", "Print usage options.", {
@@ -139,10 +157,10 @@ object WeightLearningCLI extends OptionParser with Logging {
     println(lomrf.BuildVersion)
 
     if (args.length == 0) println(usage)
-    else if (parse(args)) wlearn()
+    else if (parse(args)) weightLearn()
   }
 
-  def wlearn() = {
+  def weightLearn() = {
 
     val strMLNFileName = _mlnFileName.getOrElse(fatal("Please specify an input MLN file."))
     val strTrainingFileNames = _trainingFileName.getOrElse(fatal("Please specify input training file(s)."))
@@ -152,7 +170,22 @@ object WeightLearningCLI extends OptionParser with Logging {
       case None => System.out
     }
 
-    val (mln, annotationDB) = MLN.forLearning(strMLNFileName, List(strTrainingFileNames), _nonEvidenceAtoms)
+    info("Parameters:"
+      + "\n\t(ne) Non-evidence predicate(s): " + _nonEvidenceAtoms.map(_.toString).reduceLeft((left, right) => left + "," + right)
+      + "\n\t(noAddUnitClauses) Include unit clauses in the output MLN file: " + _noAddUnitClauses
+      + "\n\t(C) Regularization parameter: " + _C
+      + "\n\t(epsilon) Stopping parameter: " + _epsilon
+      + "\n\t(lossScale) Scale the loss value by: " + _lossScale
+      + "\n\t(iterations) Number of iterations for learning: " + _iterations
+      + "\n\t(L1Regularization) Use L1 regularization instead of L2: " + _L1Regularization
+      + "\n\t(printLearnedWeightsPerIteration) Print learned weights for each iteration: " + _printLearnedWeightsPerIteration
+      + "\n\t(lossAugmented) Perform loss augmented inference: " + _lossAugmented
+      + "\n\t(nonMarginRescaling) Don't scale the margin by the loss: " + _nonMarginRescaling
+      + "\n\t(noNeg) Eliminate negative weights: " + _noNeg
+      + "\n\t(noNegatedUnit) Eliminate negated ground unit clauses: " + _eliminateNegatedUnit
+    )
+
+    val (mln, annotationDB) = MLN.forLearning(strMLNFileName, strTrainingFileNames, _nonEvidenceAtoms)
 
     info("Markov Logic:"
       + "\n\tConstant domains   : " + mln.constants.size
@@ -165,7 +198,17 @@ object WeightLearningCLI extends OptionParser with Logging {
       +"\n\tAtoms with annotations: " + annotationDB.keys.map(_.toString).reduceLeft((left, right) => left + "," + right)
     )
 
+    info("Number of CNF clauses = " + mln.clauses.size)
+    debug("List of CNF clauses: ")
+    if(isDebugEnabled) mln.clauses.zipWithIndex.foreach{case (c, idx) => debug(idx+": "+c)}
 
+    info("Creating MRF...")
+    val mrfBuilder = new MRFBuilder(mln, noNegWeights = _noNeg, eliminateNegatedUnit = _eliminateNegatedUnit, experimentalGrounder = _experimentalGrounder)
+    val mrf = mrfBuilder.buildNetwork
+
+    val learner = new MaxMarginLearner(mrf, annotationDB)
+    learner.learn()
+    learner.writeResults(outputWriter)
   }
 }
 

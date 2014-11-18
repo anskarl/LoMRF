@@ -310,7 +310,7 @@ object MLN extends Logging {
 
 
   def forLearning(mlnFileName: String,
-            evidenceFileNames: List[String],
+            trainingFileNames: List[String],
             nonEvidenceAtoms: collection.Set[AtomSignature],
             pcm: PredicateCompletionMode = Decomposed,
             dynamicDefinitions: Option[ImplFinder.ImplementationsMap] = None): (MLN, Map[AtomSignature, AtomEvidenceDB]) = {
@@ -318,8 +318,7 @@ object MLN extends Logging {
     info(
       "Stage 0: Loading an MLN instance from data..." +
         "\n\tInput MLN file: " + mlnFileName +
-        "\n\tInput evidence file(s): " + (if (evidenceFileNames.nonEmpty) evidenceFileNames.reduceLeft(_+", "+_) else ""))
-
+        "\n\tInput training file(s): " + (if (trainingFileNames.nonEmpty) trainingFileNames.reduceLeft(_+", "+_) else ""))
 
     //parse knowledge base (.mln)
     val kb = KB(mlnFileName, pcm, dynamicDefinitions)
@@ -337,8 +336,7 @@ object MLN extends Logging {
     val evidenceAtoms = atomSignatures -- nonEvidenceAtoms
 
     //parse the evidence database (.db)
-    val evidence: Evidence = Evidence(kb, Set.empty[AtomSignature], Set.empty[AtomSignature], evidenceFileNames)
-
+    val evidence: Evidence = Evidence(kb, Set.empty[AtomSignature], Set.empty[AtomSignature], trainingFileNames)
 
     var functionMapperz = evidence.functionMappers
     for ((signature, func) <- kb.dynamicFunctions) {
@@ -346,7 +344,6 @@ object MLN extends Logging {
     }
 
     var (annotationDB, atomStateDB) = evidence.atomsEvDB.partition(e => nonEvidenceAtoms.contains(e._1))
-
 
     for (signature <- annotationDB.keysIterator)
       atomStateDB += (signature -> AtomEvidenceDB(evidence.identities(signature), kb.predicateSchema(signature).zipWithIndex.toMap, UNKNOWN))
@@ -356,14 +353,11 @@ object MLN extends Logging {
       annotationDB += (signature -> AtomEvidenceDB(evidence.identities(signature), kb.predicateSchema(signature).zipWithIndex.toMap, FALSE))
     }
 
-
     val probabilisticAtoms = Set.empty[AtomSignature]
     val queryAtoms = nonEvidenceAtoms
     val finalCWA = evidenceAtoms
     val finalOWA = nonEvidenceAtoms
     val triStateAtoms = Set.empty[AtomSignature]
-
-
 
     (new MLN(kb.formulas, kb.predicateSchema, kb.functionSchema, kb.dynamicPredicates, kb.dynamicFunctions,
       evidence.constants, functionMapperz, queryAtoms, finalCWA, finalOWA, probabilisticAtoms, triStateAtoms, evidence.identities,
