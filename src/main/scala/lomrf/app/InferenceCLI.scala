@@ -271,7 +271,7 @@ object InferenceCLI extends OptionParser with Logging {
     path: String => if (!path.isEmpty) _implPaths = Some(path.split(','))
   })
 
-  flagOpt("XG", "experimental-grounder", "Enable experimental grounder",{
+  flagOpt("f:XG", "experimental-grounder", "Enable experimental grounder",{
     _experimentalGrounder = true
     warn("THIS RUN WILL USE THE EXPERIMENTAL GROUNDER!!!")
   })

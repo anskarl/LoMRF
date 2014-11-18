@@ -71,7 +71,7 @@ object MRFWriterCLI extends Logging {
 
 
       val outputFilePath = opt.outputFileName.getOrElse(fatal("Please specify an output file"))
-      val builder = new MRFBuilder(mln = mln, noNegWeights = opt._noNeg, eliminateNegatedUnit = opt._eliminateNegatedUnit)
+      val builder = new MRFBuilder(mln = mln, noNegWeights = opt._noNeg, eliminateNegatedUnit = opt._eliminateNegatedUnit, experimentalGrounder = opt._experimentalGrounder)
       val mrf = builder.buildNetwork
       opt.outputType match {
         case DIMACS => writeDIMACS(mrf, outputFilePath)
@@ -255,6 +255,8 @@ object MRFWriterCLI extends Logging {
 
     var implPaths: Option[Array[String]] = None
 
+    var _experimentalGrounder = false
+
     opt("i", "input", "<mln filename>", "Input Markov Logic file", {
       v: String => mlnFileName = Some(v)
     })
@@ -292,6 +294,11 @@ object MRFWriterCLI extends Logging {
       path: String => if (!path.isEmpty) implPaths = Some(path.split(','))
     })
 
+    flagOpt("f:XG", "experimental-grounder", "Enable experimental grounder",{
+      _experimentalGrounder = true
+      warn("THIS RUN WILL USE THE EXPERIMENTAL GROUNDER!!!")
+    })
+
     flagOpt("h", "help", "Print usage options.", {
       println(usage)
       sys.exit(0)
@@ -299,24 +306,15 @@ object MRFWriterCLI extends Logging {
 
 
     private def addQueryAtom(atom: String) {
-      parseAtomSignature(atom) match {
-        case Some(s) => query += s
-        case None => fatal("Cannot parse the arity of query atom: " + atom)
-      }
+      query += parseAtomSignature(atom).getOrElse(fatal("Cannot parse the arity of query atom: " + atom))
     }
 
     private def addCWA(atom: String) {
-      parseAtomSignature(atom) match {
-        case Some(s) => cwa += s
-        case None => fatal("Cannot parse the arity of CWA atom: " + atom)
-      }
+      cwa += parseAtomSignature(atom).getOrElse(fatal("Cannot parse the arity of CWA atom: " + atom))
     }
 
     private def addOWA(atom: String) {
-      parseAtomSignature(atom) match {
-        case Some(s) => owa += s
-        case None => fatal("Cannot parse the arity of OWA atom: " + atom)
-      }
+      owa += parseAtomSignature(atom).getOrElse(fatal("Cannot parse the arity of OWA atom: " + atom))
     }
   }
 
