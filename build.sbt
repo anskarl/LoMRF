@@ -79,6 +79,11 @@ libraryDependencies ++= Seq(
 
 libraryDependencies += "com.nativelibs4java" %% "scalaxy-loops" % "0.1.1" % "provided"
 
+
+libraryDependencies += "com.vividsolutions" % "jts" % "1.13"
+
+
+
 // todo: add abide support (see https://github.com/scala/scala-abide)
 // libraryDependencies += "com.typesafe" %% "abide-core" % "0.1-SNAPSHOT" % "abide"
 

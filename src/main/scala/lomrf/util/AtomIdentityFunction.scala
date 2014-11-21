@@ -110,6 +110,21 @@ final class AtomIdentityFunction private(
     sum
   }
 
+  /*def encode(constantIds: Array[Int]): Int = {
+    var sum = startID
+    var idx = 0
+    while (idx < constantIds.length) {
+      val constantID = constantIds(idx)
+      if (constantID == ConstantsSet.NO_ENTRY)
+        return IDENTITY_NOT_EXIST
+      val offset = constantID * constantsAndStep(idx)._2 // offset = id * step
+      sum += (offset + constantID)
+      idx += 1
+    }
+
+    sum
+  }*/
+
   /**
    * Gives the ID (positive integer) of the corresponding constant ids. This is the fastest
    * encoding function, as it doesn't need to perform any lookup to the ConstantsSet for fetching
