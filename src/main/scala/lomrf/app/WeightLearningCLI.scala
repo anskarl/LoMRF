@@ -5,7 +5,7 @@ import lomrf.logic.AtomSignature
 import lomrf.mln.grounding.MRFBuilder
 import lomrf.mln.inference.LossFunction
 import lomrf.mln.model.MLN
-import lomrf.mln.wlearning.MaxMarginLearner
+import lomrf.mln.learning.weight.MaxMarginLearner
 import lomrf.util.{Logging, OptionParser, parseAtomSignature}
 
 /**

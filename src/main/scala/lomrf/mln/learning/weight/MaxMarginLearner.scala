@@ -11,7 +11,7 @@ import lomrf.mln.model.mrf._
  */
 final class MaxMarginLearner(mrf: MRF, annotationDB: Map[AtomSignature, AtomEvidenceDB]) extends Logging {
 
-  val state = MRFState(mrf)
+  /*val state = MRFState(mrf)
 
   val annotation = annotationDB.get(AtomSignature("HoldsAt", 2)).get
 
@@ -25,7 +25,7 @@ final class MaxMarginLearner(mrf: MRF, annotationDB: Map[AtomSignature, AtomEvid
     else atom.state = false
   }
 
-  state.evaluateState()
+  state.evaluateState()*/
 
   def learn() = ???
 

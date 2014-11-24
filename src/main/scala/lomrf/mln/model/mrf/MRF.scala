@@ -170,9 +170,9 @@ final class MRFState private(val mrf: MRF, parAtoms: ParArray[GroundAtom], parCo
     for(i <- 0 until Unsatisfied.size) {
       val constraint = Unsatisfied.get(i).get
       if(constraint.literals.contains(atomID))
-        delta += constraint.weight
+        delta += ( if(constraint.weight > 1000) 1000 else constraint.weight )
       else if(constraint.literals.contains(-atomID))
-        delta -= constraint.weight
+        delta -= ( if(constraint.weight > 1000) 1000 else constraint.weight )
     }
     delta
   }
