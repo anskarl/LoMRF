@@ -36,7 +36,6 @@ import java.io.{FileOutputStream, PrintStream}
 
 import lomrf.logic.AtomSignature
 import lomrf.mln.grounding.MRFBuilder
-import lomrf.mln.inference.{MCSAT, MaxWalkSAT}
 import lomrf.mln.model.MLN
 import lomrf.util.Utilities.io._
 import org.scalatest.{Matchers, FunSpec}

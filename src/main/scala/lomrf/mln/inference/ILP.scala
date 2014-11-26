@@ -43,7 +43,6 @@ import scalaxy.loops._
 import scala.language.postfixOps
 import lomrf.util.TroveImplicits._
 import lomrf.util.TroveConversions._
-import spire.syntax.cfor._
 
 /**
  * This is an implementation of an approximate MAP inference algorithm for MLNs using Integer Linear Programming.
@@ -73,12 +72,12 @@ import spire.syntax.cfor._
 final class ILP(mrf: MRF, outputAll: Boolean = true, ilpRounding: Int = RoundingScheme.ROUNDUP, ilpSolver: Int = Solver.GUROBI,
                 lossFunction: Int = LossFunction.HAMMING, lossAugmented: Boolean = false) extends Logging {
 
+  // Select the appropriate linear programming solver
   implicit val lp =
   if(ilpSolver == Solver.GUROBI)
     LPSolver(LPSolverLib.gurobi)
   else
     LPSolver(LPSolverLib.lp_solve)
-
 
   implicit val mln = mrf.mln
 
@@ -125,12 +124,7 @@ final class ILP(mrf: MRF, outputAll: Boolean = true, ilpRounding: Int = Rounding
             .reduceLeft(_ + " v " + _))
 
       // Step 1: Introduce variables for each ground atom and create possible constraints
-      //cfor(0)(_ < constraint.literals.size, _ + 1) { i =>
-
       for (literal <- constraint.literals) {
-        //val literal = constraint.literals(i)
-
-
         val atomID = math.abs(literal)
         literalLPVars.putIfAbsent(atomID, LPFloatVar("y" + atomID, 0, 1))
         val floatVar = literalLPVars.get(atomID)
@@ -234,7 +228,6 @@ final class ILP(mrf: MRF, outputAll: Boolean = true, ilpRounding: Int = Rounding
     info("Number of non-integral solutions: " + nonIntegralSolutionsCounter)
     assert(state.countUnfixAtoms() == nonIntegralSolutionsCounter)
 
-    //val endTime = System.currentTimeMillis()
     if(nonIntegralSolutionsCounter > 0) {
 
       // 1. RoundUp algorithm

@@ -32,12 +32,19 @@
 
 package lomrf.mln.model.mrf
 
+import com.vividsolutions.jts.math.DD
+
 final class Constraint(val weight: Double, val literals: Array[Int], val isHardConstraint: Boolean, val threshold: Double,
                        val id: Int = -1, var mode: Int = MRF.MODE_MWS) {
 
   // ----------------------------------------------------------------
   // Mutable information: accessible only from classes of model package.
   // ----------------------------------------------------------------
+
+  /**
+   * High precision weight used for inference computations.
+   */
+  private[mln] lazy val hpWeight = new DD(weight)
 
   /**
    * Number of literals satisfying the constraint.
