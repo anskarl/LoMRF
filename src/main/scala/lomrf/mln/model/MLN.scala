@@ -35,6 +35,7 @@ package lomrf.mln.model
 import lomrf.logic._
 import lomrf.util._
 import scala.collection
+import scala.collection.breakOut
 
 /**
  * A Markov Logic Networks knowledge base and evidence data.
@@ -80,7 +81,7 @@ class MLN(
   /**
    * The set of ground clauses
    */
-  lazy val clauses = formulas.par.foldRight(Set[Clause]())((a, b) => a.toCNF(constants) ++ b)
+  lazy val clauses = formulas.par.foldRight(Set[Clause]())((a, b) => a.toCNF(constants) ++ b).toVector
 
   /**
    * The set of hidden atoms, those that are not query and not evidence.
