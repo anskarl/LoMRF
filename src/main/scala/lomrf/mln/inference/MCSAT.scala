@@ -60,6 +60,8 @@ import lomrf.util.{Utilities, Logging}
  * @param samples Maximum number of samples to take
  * @param lateSA When its true, simulated annealing step is performed only when MC-SAT reaches a plateau.
  * @param unitPropagation Perform unit-propagation (default is true)
+ * @param satHardPriority Satisfiability priority to hard constrained clauses (default is true)
+ * @param tabuLength Minimum number of flips between flipping the same atom (default is 10)
  *
  * @author Anastasios Skarlatidis
  * @author Vagelis Michelioudakis
@@ -69,7 +71,7 @@ import lomrf.util.{Utilities, Logging}
  */
 final class MCSAT(mrf: MRF, pBest: Double = 0.5, pSA: Double = 0.1, maxFlips: Int = 100000, maxTries: Int = 1, targetCost: Double = 0.001,
                       numSolutions: Int = 10, saTemperature: Double = 0.1, samples: Int = 1000, lateSA: Boolean = true,
-                      unitPropagation: Boolean = true, tabuLength: Int = 5) extends Logging {
+                      unitPropagation: Boolean = true, satHardPriority: Boolean = false, tabuLength: Int = 10) extends Logging {
 
   private val TARGET_COST = targetCost + 0.0001
   //private val random = new Random()
@@ -78,7 +80,7 @@ final class MCSAT(mrf: MRF, pBest: Double = 0.5, pSA: Double = 0.1, maxFlips: In
   @inline private def fetchAtom(literal: Int) = mrf.atoms.get(math.abs(literal))
 
   def infer(): MRFState = {
-    val state = MRFState(mrf)
+    val state = MRFState(mrf, satHardPriority)
 
     val bufferAtoms = new Array[GroundAtom](mrf.maxNumberOfLiterals)
     var bufferIdx = 0
@@ -205,7 +207,7 @@ final class MCSAT(mrf: MRF, pBest: Double = 0.5, pSA: Double = 0.1, maxFlips: In
 
     initialise()
     state.evaluateState(ignoreInactive = true)
-    state.printMRFStateStats()
+    state.printStatistics()
 
     state.selectAllConstraints()
     state.evaluateState()

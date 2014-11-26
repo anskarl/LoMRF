@@ -62,7 +62,7 @@ import lomrf.util.{Utilities, Logging}
  * @param targetCost Any possible world having cost below this threshold is considered as a solution (default is 0.0001)
  * @param outputAll Show 0/1 results for all query atoms (default is true)
  * @param satHardUnit Trivially satisfy hard constrained unit clauses (default is true)
- * @param satHardPriority Satisfiability priority to hard constrained clauses (default is true)
+ * @param satHardPriority Satisfiability priority to hard constrained clauses (default is false)
  * @param tabuLength Minimum number of flips between flipping the same atom (default is 10)
  *
  * @author Anastasios Skarlatidis
@@ -90,7 +90,7 @@ final class MaxWalkSAT(mrf: MRF, pBest: Double = 0.5, maxFlips: Int = 1000000, m
     val state = infer(MRFState(mrf, satHardUnit, satHardPriority))
     val endTime = System.currentTimeMillis()
     state.evaluateState()
-    state.printMRFStateStats()
+    state.printStatistics()
     info(Utilities.msecTimeToText("Total Max-WalkSAT time: ", endTime - startTime))
 
     //return the best state
@@ -213,7 +213,7 @@ final class MaxWalkSAT(mrf: MRF, pBest: Double = 0.5, maxFlips: Int = 1000000, m
 
 
     while (numTry < maxTries) {
-      state.reset(tabuLength, unitPropagation = false)
+      state.reset(tabuLength, withUnitPropagation = false)
       iteration = 0
       var chosenAtom = NO_ATOM
 

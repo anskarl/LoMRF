@@ -225,7 +225,7 @@ final class ILP(mrf: MRF, outputAll: Boolean = true, ilpRounding: Int = Rounding
       // 1. RoundUp algorithm
       if(ilpRounding == RoundingScheme.ROUNDUP) {
         state.evaluateState()
-        whenDebug { state.printMRFStateStats() }
+        whenDebug { state.printStatistics() }
         for (i <- (0 until fractionalSolutions.size).optimized) {
           val id = fractionalSolutions(i)._1
           if(state.computeDelta(id) > 0) {
@@ -237,7 +237,7 @@ final class ILP(mrf: MRF, outputAll: Boolean = true, ilpRounding: Int = Rounding
             fetchAtom(id).state = false
           }
           state.evaluateState()
-          whenDebug { state.printMRFStateStats() }
+          whenDebug { state.printStatistics() }
         }
       }
       else {
@@ -249,7 +249,7 @@ final class ILP(mrf: MRF, outputAll: Boolean = true, ilpRounding: Int = Rounding
     }
     debug("Unfixed atoms: " + state.countUnfixAtoms())
 
-    state.printMRFStateStats()
+    state.printStatistics()
   }
 
 
