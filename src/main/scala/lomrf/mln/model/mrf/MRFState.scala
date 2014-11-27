@@ -198,6 +198,7 @@ final class MRFState private(val mrf: MRF,
 
   /**
    * Counts the number of unfixed atoms in the current state.
+   *
    * @return number of unfixed atoms
    */
   def countUnfixAtoms(): Int = {
@@ -221,14 +222,17 @@ final class MRFState private(val mrf: MRF,
 
 
   /**
-   *
+   * Performs unit propagation across the constraints in order to trivially
+   * satisfy as many as possible. It is required by MCSAT in order to minimize
+   * the search space and increase sampling performance and accuracy.
    */
   private def unitPropagation() {
 
     /**
+     * Fixes an atom to the given state, if the atom is currently unfixed.
      *
-     * @param atomID
-     * @param state
+     * @param atomID the atom id
+     * @param state the desired state
      */
     @inline def fixAtom(atomID: Int, state: Boolean) {
       val atom = atoms.get(atomID)
@@ -244,8 +248,9 @@ final class MRFState private(val mrf: MRF,
     }
 
     /**
+     * Updates satisfied constraints by fixed atoms.
      *
-     * @param atomID
+     * @param atomID the fixed atom id
      */
     @inline def updateSatisfiedByFix(atomID: Int) {
 
@@ -341,7 +346,6 @@ final class MRFState private(val mrf: MRF,
       else constraint.inactive = true
     }
 
-    //return
     totalActive
   }
 
@@ -358,7 +362,6 @@ final class MRFState private(val mrf: MRF,
     }
     totalActive = mrf.numberOfConstraints
 
-    //return
     totalActive
   }
 
@@ -370,18 +373,6 @@ final class MRFState private(val mrf: MRF,
    * @return total active constraints
    */
   def selectSomeSatConstraints(): Int = {
-
-    /*totalActive = parConstraints.aggregate(0)((x, constraint) => x + (
-      if ( constraint.isHardConstraint || ( constraint.isSatisfied && (random.nextDouble() < constraint.threshold))) {
-        constraint.inactive = false
-        1
-      }
-      else {
-        constraint.inactive = true
-        0
-      }
-      ), _ + _)*/
-
     totalActive = 0
     val iterator = mrf.constraints.iterator()
     while (iterator.hasNext) {
@@ -440,7 +431,6 @@ final class MRFState private(val mrf: MRF,
         if (currentConstraint.cost.isPositive) Unsatisfied += currentConstraint
       }
     }
-
     totalCost
   }
 
@@ -551,7 +541,6 @@ final class MRFState private(val mrf: MRF,
 
     val pickedID = atom.id
 
-
     whenDebug {
       decodeAtom(pickedID)(mrf.mln) match{
         case Some(atomStr) => debug("Flipping atom: '"+atomStr+"'")
@@ -632,7 +621,6 @@ final class MRFState private(val mrf: MRF,
             //            atoms.get(constraint.watchLit1).revokeUnsatPotential(constraint)
             //            constraint.watchLit2 = pickedID
 
-
             var idx = 0
             var currentLiteral = -1
             var currentID = -1
@@ -650,7 +638,6 @@ final class MRFState private(val mrf: MRF,
               }
               idx += 1
             }
-
 
           }
         }
@@ -710,7 +697,6 @@ final class MRFState private(val mrf: MRF,
             // 2. The current constraint remains satisfied from another literal. As a result,
             //    we have to find it and simply define that if it will be flipped, then the
             //    current constraint will become satisfied.
-
             //            if(constraint.watchLit1 == pickedID) constraint.watchLit1 = constraint.watchLit2
             //            atoms.get(constraint.watchLit1).assignUnsatPotential(constraint)
             var idx = 0
@@ -719,7 +705,6 @@ final class MRFState private(val mrf: MRF,
             var atom = MRF.NO_ATOM
 
             while (idx < literals.length) {
-
               currentLiteral = literals(idx)
               currentID = atomID(currentLiteral)
 
@@ -727,14 +712,46 @@ final class MRFState private(val mrf: MRF,
                 atom = atoms.get(currentID)
                 if ((currentLiteral > 0) == atom.state) {
                   atom.assignUnsatPotential(constraint)
-                  idx = literals.length //we have found the literal, no need to search further :)
+                  idx = literals.length // we have found the literal, no need to search further :)
                 }
               }
               idx += 1
             }
-
           }
+          /*else {
+            if(constraint.watchLit1 == pickedID) {
+              var idx = 0
+              var currentLiteral = -1
+              var currentID = -1
 
+              while (idx < literals.length) {
+                currentLiteral = literals(idx)
+                currentID = atomID(currentLiteral)
+                if(isTrueLiteral(currentLiteral) && currentID != constraint.watchLit1 && currentID != constraint.watchLit2) {
+                constraint.watchLit1 = currentID
+                idx = literals.length
+                }
+                idx += 1
+              }
+
+            }
+            else if(constraint.watchLit2 == pickedID) {
+              var idx = 0
+              var currentLiteral = -1
+              var currentID = -1
+
+              while (idx < literals.length) {
+                currentLiteral = literals(idx)
+                currentID = atomID(currentLiteral)
+                if(isTrueLiteral(currentLiteral) && currentID != constraint.watchLit1 && currentID != constraint.watchLit2) {
+                  constraint.watchLit2 = currentID
+                  idx = literals.length
+                }
+                idx += 1
+              }
+
+            }
+          }*/
 
         }
       }
@@ -844,30 +861,15 @@ final class MRFState private(val mrf: MRF,
    */
   def getRandomUnsatConstraint: Constraint = {
 
-    if(Unsatisfied.isEmpty)
-      assert(priorityBuffer.isEmpty) // TODO: should be tested and deleted
+    whenDebug {
+      if (Unsatisfied.isEmpty)
+        assert(priorityBuffer.isEmpty)
+    }
 
     if(Unsatisfied.isEmpty) MRF.NO_CONSTRAINT
     else if (satHardPriority && priorityBuffer.size > 0) priorityBuffer.remove(0)
     else if (satHardPriority &&  Unsatisfied.numOfHard > 0) Unsatisfied.getRandomHardConstraint
     else Unsatisfied(ThreadLocalRandom.current().nextInt(Unsatisfied.size))
-
-    /*var constraint = MRF.NO_CONSTRAINT
-
-    if(!satHardPriority && Unsatisfied.size > 0)
-      constraint = Unsatisfied(ThreadLocalRandom.current().nextInt(Unsatisfied.size))
-    else if(satHardPriority) {
-      if(priorityBuffer.size > 0) constraint = priorityBuffer.remove(0)
-      else if(Unsatisfied.size > 0) {
-        constraint =
-          if (Unsatisfied.numOfHard > 0)
-            Unsatisfied.getRandomHardConstraint
-          else
-            Unsatisfied(ThreadLocalRandom.current().nextInt(Unsatisfied.size))
-      }
-    }
-
-    constraint*/
   }
 
   /**
@@ -945,23 +947,35 @@ final class MRFState private(val mrf: MRF,
 
     def numOfHard = _numOfHard
   }
-
 }
 
 /**
+ * MRFState companion object.
+ *
  * @author Anastasios Skarlatidis
  */
 object MRFState {
 
+  /**
+   * Creates parallel arrays for constraints and atoms of the grounded Markov network and
+   * trivially satisfy unit hard constrained clauses if requested.
+   *
+   * @param mrf The ground Markov network
+   * @param satHardUnit Trivially satisfy hard constrained unit clauses (default is true)
+   * @param satHardPriority Satisfiability priority to hard constrained clauses (default is false)
+   *
+   * @return new MRFState object
+   */
   def apply(mrf: MRF, satHardUnit: Boolean = false, satHardPriority: Boolean = false): MRFState = {
 
     @inline def fixLiteral(literal: Int) {
       val atom = mrf.atoms.get(math.abs(literal))
       val state = literal > 0
+
       // check for contradiction
-      if (atom.fixedValue == 1 && !state || atom.fixedValue == -1 && state) {
+      if (atom.fixedValue == 1 && !state || atom.fixedValue == -1 && state)
         sys.error("Contradiction found for atomID " + math.abs(literal))
-      }
+
       if (atom.fixedValue == 0) {
         atom.fixedValue = if (state) 1 else -1
         atom.state = state

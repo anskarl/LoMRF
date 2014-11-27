@@ -321,7 +321,7 @@ object InferenceCLI extends OptionParser with Logging {
       + "\n\t(cwa) Closed-world assumption predicate(s): " + (if (_cwa.isEmpty) "empty" else _cwa.map(_.toString).reduceLeft((left, right) => left + "," + right))
       + "\n\t(owa) Open-world assumption predicate(s): " + (if (_owa.isEmpty) "empty" else _owa.map(_.toString).reduceLeft((left, right) => left + "," + right))
       + "\n\t(marginal) Perform marginal inference: " + _marginalInference
-      + "\n\t(mws) Perform MAP inference using MaxWalkSAt: " + _mws
+      + "\n\t(mws) Perform MAP inference using MaxWalkSAT: " + _mws
       + "\n\t(all) Show 0/1 results for all query atoms: " + _mapOutputAll
       + "\n\t(satHardUnit) Trivially satisfy hard constrained unit clauses: " + _satHardUnit
       + "\n\t(satHardPriority) Satisfiability priority to hard constrained clauses: " + _satHardPriority

@@ -17,6 +17,14 @@ object LongDoubleConversions {
   final val ONE = DD.valueOf(1.0)
   final val MAXVALUE =  DD.valueOf(Double.MaxValue)
 
+  /**
+   * According to Scala specification, value classes are not able to
+   * define a equals or hashCode method.
+   *
+   * @see http://docs.scala-lang.org/overviews/core/value-classes.html
+   *
+   * @param number LongDouble value
+   */
   implicit class LongDoubleConversions(val number: LongDouble) extends AnyVal {
 
     def +(other: LongDouble) = number.add(other)
@@ -25,7 +33,7 @@ object LongDoubleConversions {
     def /(other: LongDouble) = number.divide(other)
     def unary_- = number.negate()
 
-    def ==(other: LongDouble) = number.equals(other)
+    def ===(other: LongDouble) = number.equals(other)
     def >(other: LongDouble) = number.gt(other)
     def >=(other: LongDouble) = number.ge(other)
     def <(other: LongDouble) = number.lt(other)
