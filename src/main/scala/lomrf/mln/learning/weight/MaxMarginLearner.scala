@@ -1,11 +1,13 @@
 package lomrf.mln.learning.weight
 
 import java.io.PrintStream
-import lomrf.logic.{TRUE, AtomSignature}
+import lomrf.logic.AtomSignature
 import lomrf.util.{AtomEvidenceDB, Logging}
 import lomrf.mln.model.mrf._
 
 /**
+ * Under development
+ *
  * @author Anastasios Skarlatidis
  * @author Vagelis Michelioudakis
  */

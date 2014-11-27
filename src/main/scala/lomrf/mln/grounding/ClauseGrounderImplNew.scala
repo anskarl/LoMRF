@@ -210,7 +210,7 @@ class ClauseGrounderImplNew(
       atomIdx += 1
     }
 
-    val ffIterator = CartesianIterator(orderedConstantSets)
+    val ffIterator = CartesianIterator.apply2(orderedConstantSets)
 
 
 

@@ -368,7 +368,7 @@ object InferenceCLI extends OptionParser with Logging {
     if (_marginalInference) { // Marginal inference methods
       val solver = new MCSAT(
         mrf, pBest = _pBest, pSA = _pSA, maxFlips = _maxFlips, maxTries = _maxTries, targetCost = _targetCost, numSolutions = _numSolutions,
-        saTemperature = _saTemperature, samples = _samples, lateSA = _lateSA, unitPropagation = _unitProp
+        saTemperature = _saTemperature, samples = _samples, lateSA = _lateSA, unitPropagation = _unitProp, satHardPriority = _satHardPriority, tabuLength = _tabuLength
       )
       solver.infer()
       solver.writeResults(resultsWriter)
@@ -376,7 +376,7 @@ object InferenceCLI extends OptionParser with Logging {
     else { // MAP inference methods
       if(_mws) {
         val solver = new MaxWalkSAT(mrf, pBest = _pBest, maxFlips = _maxFlips, maxTries = _maxTries, targetCost = _targetCost,
-                                    outputAll = _mapOutputAll, satHardUnit = _satHardUnit, satHardPriority = _satHardPriority)
+                                    outputAll = _mapOutputAll, satHardUnit = _satHardUnit, satHardPriority = _satHardPriority, tabuLength = _tabuLength)
         solver.infer()
         solver.writeResults(resultsWriter)
       }

@@ -37,11 +37,9 @@ import lomrf.util._
 import oscar.linprog.modeling._
 import oscar.algebra._
 import java.io.PrintStream
-import gnu.trove.map.TIntObjectMap
 import gnu.trove.map.hash.{TIntDoubleHashMap, TIntObjectHashMap}
 import scalaxy.loops._
 import scala.language.postfixOps
-import lomrf.util.TroveImplicits._
 import lomrf.util.TroveConversions._
 
 /**
@@ -63,8 +61,11 @@ import lomrf.util.TroveConversions._
  * </ul>
  *
  * @param mrf The ground Markov network
- * @param ilpRounding The rounding algorithm selection option (default is RoundUp)
  * @param outputAll Show 0/1 results for all query atoms (default is true)
+ * @param ilpRounding Rounding algorithm selection option (default is RoundUp)
+ * @param ilpSolver Solver type selection option (default is LPSolve)
+ * @param lossFunction Loss function type (default is hamming distance)
+ * @param lossAugmented Perform loss augmented inference (default is false)
  *
  * @author Anastasios Skarlatidis
  * @author Vagelis Michelioudakis
@@ -82,7 +83,8 @@ final class ILP(mrf: MRF, outputAll: Boolean = true, ilpRounding: Int = Rounding
   implicit val mln = mrf.mln
 
   /**
-   * Fetch atom given its id
+   * Fetch atom given its id.
+   *
    * @param atomID id of the atom
    * @return the ground atom which corresponds to the given id
    */
@@ -90,7 +92,7 @@ final class ILP(mrf: MRF, outputAll: Boolean = true, ilpRounding: Int = Rounding
 
   def infer() {
 
-    val startTime = System.currentTimeMillis()
+    val startILPTime = System.currentTimeMillis()
 
     /* Hash maps containing pairs of unique literal keys to LP variables [y]
      * and unique clause ids to LP variables [z].
@@ -188,7 +190,6 @@ final class ILP(mrf: MRF, outputAll: Boolean = true, ilpRounding: Int = Rounding
         "\nAtom Variables: " + literalLPVars.size + " + Clauses Variables: " + clauseLPVars.size +
         " = " + (literalLPVars.size + clauseLPVars.size))
 
-
     // Step 4: Optimize function subject to the constraints introduced
     maximize(sum(expressions))
     start()
@@ -233,7 +234,7 @@ final class ILP(mrf: MRF, outputAll: Boolean = true, ilpRounding: Int = Rounding
       // 1. RoundUp algorithm
       if(ilpRounding == RoundingScheme.ROUNDUP) {
         state.evaluateState()
-        whenDebug { state.printMRFStateStats() }
+        whenDebug { state.printStatistics() }
         for (i <- (0 until fractionalSolutions.size).optimized) {
           val id = fractionalSolutions(i)._1
           if(state.computeDelta(id) > 0) {
@@ -245,11 +246,11 @@ final class ILP(mrf: MRF, outputAll: Boolean = true, ilpRounding: Int = Rounding
             fetchAtom(id).state = false
           }
           state.evaluateState()
-          whenDebug { state.printMRFStateStats() }
+          whenDebug { state.printStatistics() }
         }
       }
+      // 2. MaxWalkSAT algorithm
       else {
-        // TODO MaxWalkSAT (under testing)
         val sat = new MaxWalkSAT(mrf)
         sat.infer(state)
       }
@@ -257,15 +258,16 @@ final class ILP(mrf: MRF, outputAll: Boolean = true, ilpRounding: Int = Rounding
     }
     debug("Unfixed atoms: " + state.countUnfixAtoms())
 
-    val endTime = System.currentTimeMillis()
-    //state.printMRFStateStats()
-    info(Utilities.msecTimeToText("Total ILP time: ", endTime - startTime))
+    val endILPTime = System.currentTimeMillis()
+    state.printStatistics()
+    info(Utilities.msecTimeToText("Total ILP time: ", endILPTime - startILPTime))
   }
 
 
   /**
-   * Write the results of inference into the selected output stream
-   * @param out Chosen output stream (default is console)
+   * Write the results of inference into the selected output stream.
+   *
+   * @param out Selected output stream (default is console)
    */
   def writeResults(out: PrintStream = System.out) {
     import lomrf.util.decodeAtom
@@ -297,16 +299,25 @@ final class ILP(mrf: MRF, outputAll: Boolean = true, ilpRounding: Int = Rounding
 
 }
 
+/**
+ * Object holding constants for rounding type.
+ */
 object RoundingScheme {
   val ROUNDUP = 1
   val MWS = 2
 }
 
+/**
+ * Object holding constants for solver type.
+ */
 object Solver {
   val GUROBI = 1
   val LPSOLVE = 2
 }
 
+/**
+ * Object holding constants for loss function type.
+ */
 object LossFunction {
   val HAMMING = 1
 }

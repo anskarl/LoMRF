@@ -108,13 +108,6 @@ object WeightLearningCLI extends OptionParser with Logging {
     v: Double => _epsilon = v
   })
 
-  /*opt("lossFunction", "loss-function", "<string>", "Loss function (default is Hamming).", {
-    v: String => v.trim.toLowerCase match {
-      case "hamming" => _lossFunction = LossFunction.HAMMING
-      case _ => fatal("Unknown parameter for ILP rounding type '" + v + "'.")
-    }
-  })*/
-
   doubleOpt("lossScale", "loss-scale", "The loss value will be multiplied by this number (default is " + _lossScale + ").", {
     v: Double => _lossScale = v
   })
