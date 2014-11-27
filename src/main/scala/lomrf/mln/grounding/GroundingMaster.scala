@@ -67,7 +67,8 @@ private final class GroundingMaster(mln: MLN, latch: CountDownLatch, noNegWeight
   private var workerIdx = 0
   private var cliqueStartID = 0
   private var groundingIterations = 1
-  private var remainingClauses: Set[Clause] = mln.clauses
+  //private var remainingClauses: Set[Clause] = mln.clauses
+  private var remainingClauses: Vector[Clause] = mln.clauses
   private var atomSignatures: Set[AtomSignature] = mln.queryAtoms.toSet
 
 
@@ -100,14 +101,15 @@ private final class GroundingMaster(mln: MLN, latch: CountDownLatch, noNegWeight
         mln.schema(signature).view.zipWithIndex.map {
           case (argType: String, idx: Int) => Variable("v" + idx, argType, idx)
         }.toList
-      remainingClauses += Clause(0, AtomicFormula(signature.symbol, terms))
+      //remainingClauses += Clause(0, AtomicFormula(signature.symbol, terms))
+      remainingClauses :+= Clause(0, AtomicFormula(signature.symbol, terms))
     }
 
     performGrounding()
   }
 
   private def performGrounding() {
-    var remaining = Set[Clause]()
+    var remaining = Vector[Clause]()
     var counter = 0
     clauseCounter = 0
     for (clause <- remainingClauses) {
@@ -116,13 +118,13 @@ private final class GroundingMaster(mln: MLN, latch: CountDownLatch, noNegWeight
         workerIdx = if (workerIdx == clauseGroundingWorkers.length - 1) 0 else workerIdx + 1
         counter += 1
       }
-      else remaining = remaining + clause
+      else remaining :+= clause
+
 
     }
 
     debug("(MASTER) Grounding iteration " + groundingIterations + " --- total " + counter + " clause(s) selected to ground.")
     groundingIterations += 1
-
 
     remainingClauses = remaining
     clausesBatchSize = counter
