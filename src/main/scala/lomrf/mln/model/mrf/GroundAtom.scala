@@ -32,6 +32,8 @@
 
 package lomrf.mln.model.mrf
 
+import scala.annotation.switch
+
 /**
  * This class contains the information of a ground atom in the generated MRF.
  *
@@ -157,14 +159,12 @@ final class GroundAtom(val id: Int, weightHard: Double) {
    * The given constraint will become satisfied when this atom is flipped (UNSAT -> SAT).
    */
   private[mln] def assignSatPotential(constraint: Constraint) {
-    if(constraint.mode == MRF.MODE_MWS) {
-      if (constraint.isPositive) makeCost += constraint.weight
-      else breakCost -= constraint.weight
-    }
-    else {
-      val v = if(constraint.weight > 0) 1 else -1
-      if (constraint.isPositive) makeCost += v
-      else breakCost -= v
+    (constraint.mode: @switch) match {
+      case MRF.MODE_MWS =>
+        if(constraint.isPositive) makeCost += constraint.weight else breakCost -= constraint.weight
+      case MRF.MODE_SAMPLE_SAT =>
+        val unit = if(constraint.weight > 0) 1 else -1
+        if(constraint.isPositive) makeCost += unit else breakCost -= unit
     }
   }
 
@@ -172,14 +172,12 @@ final class GroundAtom(val id: Int, weightHard: Double) {
    * The given constraint will become unsatisfied when this atom is flipped (SAT -> UNSAT).
    */
   private[mln] def assignUnsatPotential(constraint: Constraint) {
-    if(constraint.mode == MRF.MODE_MWS) {
-      if (constraint.isPositive) breakCost += constraint.weight
-      else makeCost -= constraint.weight
-    }
-    else {
-      val v = if(constraint.weight > 0) 1 else -1
-      if (constraint.isPositive) breakCost += v
-      else makeCost -= v
+    (constraint.mode: @switch) match {
+      case MRF.MODE_MWS =>
+        if(constraint.isPositive) breakCost += constraint.weight else makeCost -= constraint.weight
+      case MRF.MODE_SAMPLE_SAT =>
+        val unit = if(constraint.weight > 0) 1 else -1
+        if(constraint.isPositive) breakCost += unit else makeCost -= unit
     }
   }
 
@@ -187,14 +185,12 @@ final class GroundAtom(val id: Int, weightHard: Double) {
    * The given constraint will no longer becomes unsatisfied when this atom is flipped.
    */
   private[mln] def revokeSatPotential(constraint: Constraint) {
-    if(constraint.mode == MRF.MODE_MWS) {
-      if (constraint.isPositive) makeCost -= constraint.weight
-      else breakCost += constraint.weight
-    }
-    else {
-      val v = if(constraint.weight > 0) 1 else -1
-      if (constraint.isPositive) makeCost -= v
-      else breakCost += v
+    (constraint.mode: @switch) match {
+      case MRF.MODE_MWS =>
+        if(constraint.isPositive) makeCost -= constraint.weight else breakCost += constraint.weight
+      case MRF.MODE_SAMPLE_SAT =>
+        val unit = if(constraint.weight > 0) 1 else -1
+        if(constraint.isPositive) makeCost -= unit else breakCost += unit
     }
   }
 
@@ -202,14 +198,12 @@ final class GroundAtom(val id: Int, weightHard: Double) {
    * The given constraint will no longer becomes satisfied when this atom is flipped.
    */
   private[mln] def revokeUnsatPotential(constraint: Constraint) {
-    if(constraint.mode == MRF.MODE_MWS) {
-      if (constraint.isPositive) breakCost -= constraint.weight
-      else makeCost += constraint.weight
-    }
-    else {
-      val v = if(constraint.weight > 0) 1 else -1
-      if (constraint.isPositive) breakCost -= v
-      else makeCost += v
+    (constraint.mode: @switch) match {
+      case MRF.MODE_MWS =>
+        if(constraint.isPositive) breakCost -= constraint.weight else makeCost += constraint.weight
+      case MRF.MODE_SAMPLE_SAT =>
+        val unit = if(constraint.weight > 0) 1 else -1
+        if(constraint.isPositive) breakCost -= unit else makeCost += unit
     }
   }
 

@@ -37,7 +37,7 @@ import java.text.DecimalFormat
 import java.util.concurrent.ThreadLocalRandom
 import lomrf.mln.model.mrf.{GroundAtom, MRFState, MRF}
 import lomrf.util.{Utilities, Logging}
-
+import lomrf.util.LongDoubleConversions._
 
 /**
  * This is an implementation of the MC-SAT sampling algorithm for marginal inference in the presence
@@ -73,12 +73,22 @@ final class MCSAT(mrf: MRF, pBest: Double = 0.5, pSA: Double = 0.1, maxFlips: In
                       numSolutions: Int = 10, saTemperature: Double = 0.1, samples: Int = 1000, lateSA: Boolean = true,
                       unitPropagation: Boolean = true, satHardPriority: Boolean = false, tabuLength: Int = 10) extends Logging {
 
-  private val TARGET_COST = targetCost + 0.0001
+  private val TARGET_COST = new LongDouble(targetCost + 0.0001)
   //private val random = new Random()
 
-
+  /**
+   * Fetch atom given its literal code.
+   *
+   * @param literal Code of the literal
+   * @return The ground atom which corresponds to the given literal code
+   */
   @inline private def fetchAtom(literal: Int) = mrf.atoms.get(math.abs(literal))
 
+  /**
+   * Runs marginal inference using MCSAT.
+   *
+   * @return The MRFState after inference procedure is complete
+   */
   def infer(): MRFState = {
     val state = MRFState(mrf, satHardPriority)
 
@@ -90,6 +100,10 @@ final class MCSAT(mrf: MRF, pBest: Double = 0.5, pSA: Double = 0.1, maxFlips: In
 
     var mwsatTime = 0L
 
+    /**
+     * Initialization of MCSAT by selecting all hard constraints and try to satisfy
+     * all of them by running the MaxWalkSAT algorithm.
+     */
     @inline def initialise() {
       info("Initialising MC-SAT for marginal inference.")
       val noHard = state.selectOnlyHardConstraints()
@@ -104,6 +118,12 @@ final class MCSAT(mrf: MRF, pBest: Double = 0.5, pSA: Double = 0.1, maxFlips: In
       }
     }
 
+    /**
+     * Simulated annealing step which performs greedy moves, according to a temperature change
+     * over time, in order to select the next atom to flip.
+     *
+     * @return The ground atom that was chosen to flip
+     */
     @inline def simulatedAnnealingStep() {
       currentAtom = state.getRandomAtom
       currentDelta = currentAtom.delta
@@ -111,6 +131,12 @@ final class MCSAT(mrf: MRF, pBest: Double = 0.5, pSA: Double = 0.1, maxFlips: In
         && ((currentDelta <= 0) || (ThreadLocalRandom.current().nextDouble() <= math.exp(-currentDelta / saTemperature)))) state.flip(currentAtom, iteration)
     }
 
+    /**
+     * MaxWalkSAT step which performs noisy and greedy moves, according to a probability, in order
+     * to select the next atom to flip.
+     *
+     * @return The ground atom that was chosen to flip
+     */
     @inline def maxWalkSATStep() {
       val lucky = state.getRandomUnsatConstraint
 
@@ -257,12 +283,17 @@ final class MCSAT(mrf: MRF, pBest: Double = 0.5, pSA: Double = 0.1, maxFlips: In
     info(Utilities.msecTimeToText("Total MC-SAT time: ", mcsatTime))
     info(Utilities.msecTimeToText("Total inference time: ", mcsatTime + mwsatTime))
 
-    //return the best state
+    // return the best state
     state
   }
 
 
-  def writeResults(outStream: PrintStream = System.out) {
+  /**
+   * Write the results of inference into the selected output stream.
+   *
+   * @param out Selected output stream (default is console)
+   */
+  def writeResults(out: PrintStream = System.out) {
     import lomrf.util.decodeAtom
     val numFormat = new DecimalFormat("0.0######")
 
@@ -278,7 +309,7 @@ final class MCSAT(mrf: MRF, pBest: Double = 0.5, pSA: Double = 0.1, maxFlips: In
         // Add Gaussian noise for P=0.0 and P=1.0. Also reformat the displayed probability result in order to have at maximum 7 floating point decimals
         //val txtProbability = if (probability == 0.0) "4.9995e-05" else if(probability == 1.0) "0.99995" else numFormat.format(probability)
         decodeAtom(iterator.key()) match {
-          case Some(txtAtom) => outStream.println(txtAtom + " " + numFormat.format(probability))
+          case Some(txtAtom) => out.println(txtAtom + " " + numFormat.format(probability))
           case _ => error("failed to decode id:" + atomID)
         }
       }

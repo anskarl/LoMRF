@@ -84,6 +84,9 @@ object InferenceCLI extends OptionParser with Logging {
   // Rounding algorithm for ILP map inference
   private var _ilpRounding = RoundingScheme.ROUNDUP
 
+  // Solver used by ILP map inference
+  private var _ilpSolver = Solver.LPSOLVE
+
   // Maximum number of samples to take
   private var _samples = 1000
 
@@ -220,6 +223,14 @@ object InferenceCLI extends OptionParser with Logging {
     }
   })
 
+  opt("ilpSolver", "ilp-solver", "<gurobi | lpsolve>", "Solver used by ILP (default is LPSolve).", {
+    v: String => v.trim.toLowerCase match {
+      case "gurobi" => _ilpSolver = Solver.GUROBI
+      case "lpsolve" => _ilpSolver = Solver.LPSOLVE
+      case _ => fatal("Unknown parameter for ILP solver type '" + v + "'.")
+    }
+  })
+
   intOpt("samples", "num-samples", "Number of samples to take (default is " + _samples + ").", _samples = _)
 
   doubleOpt("pSA", "probability-simulated-annealing", "Specify the probability to perform a simulated annealing step (default is " + _pSA + "), " +
@@ -310,11 +321,12 @@ object InferenceCLI extends OptionParser with Logging {
       + "\n\t(cwa) Closed-world assumption predicate(s): " + (if (_cwa.isEmpty) "empty" else _cwa.map(_.toString).reduceLeft((left, right) => left + "," + right))
       + "\n\t(owa) Open-world assumption predicate(s): " + (if (_owa.isEmpty) "empty" else _owa.map(_.toString).reduceLeft((left, right) => left + "," + right))
       + "\n\t(marginal) Perform marginal inference: " + _marginalInference
-      + "\n\t(mws) Perform MAP inference using MaxWalkSAt: " + _mws
+      + "\n\t(mws) Perform MAP inference using MaxWalkSAT: " + _mws
       + "\n\t(all) Show 0/1 results for all query atoms: " + _mapOutputAll
       + "\n\t(satHardUnit) Trivially satisfy hard constrained unit clauses: " + _satHardUnit
       + "\n\t(satHardPriority) Satisfiability priority to hard constrained clauses: " + _satHardPriority
       + "\n\t(ilpRounding) Rounding algorithm used in ILP map inference: " + ( if(_ilpRounding == RoundingScheme.ROUNDUP) "RoundUp" else "MaxWalkSAT")
+      + "\n\t(ilpSolver) Solver used by ILP map inference: " + ( if(_ilpSolver == Solver.GUROBI) "Gurobi" else "LPSolve")
       + "\n\t(samples) Number of samples to take: " + _samples
       + "\n\t(pSA) Probability to perform simulated annealing: " + _pSA
       + "\n\t(pBest) Probability to perform a greedy search: " + _pBest
@@ -369,7 +381,7 @@ object InferenceCLI extends OptionParser with Logging {
         solver.writeResults(resultsWriter)
       }
       else {
-        val solver = new ILP(mrf, outputAll = _mapOutputAll, ilpRounding = _ilpRounding)
+        val solver = new ILP(mrf, outputAll = _mapOutputAll, ilpRounding = _ilpRounding, ilpSolver = _ilpSolver)
         solver.infer()
         solver.writeResults(resultsWriter)
       }

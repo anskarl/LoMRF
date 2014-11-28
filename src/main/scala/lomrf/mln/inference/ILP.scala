@@ -37,11 +37,9 @@ import lomrf.util._
 import oscar.linprog.modeling._
 import oscar.algebra._
 import java.io.PrintStream
-import gnu.trove.map.TIntObjectMap
 import gnu.trove.map.hash.{TIntDoubleHashMap, TIntObjectHashMap}
 import scalaxy.loops._
 import scala.language.postfixOps
-import lomrf.util.TroveImplicits._
 import lomrf.util.TroveConversions._
 
 /**
@@ -63,26 +61,38 @@ import lomrf.util.TroveConversions._
  * </ul>
  *
  * @param mrf The ground Markov network
- * @param ilpRounding The rounding algorithm selection option (default is RoundUp)
  * @param outputAll Show 0/1 results for all query atoms (default is true)
+ * @param ilpRounding Rounding algorithm selection option (default is RoundUp)
+ * @param ilpSolver Solver type selection option (default is LPSolve)
+ * @param lossFunction Loss function type (default is hamming distance)
+ * @param lossAugmented Perform loss augmented inference (default is false)
  *
  * @author Anastasios Skarlatidis
  * @author Vagelis Michelioudakis
  */
-final class ILP(mrf: MRF, outputAll: Boolean = true, ilpRounding: Int = RoundingScheme.ROUNDUP,
-                lossFunction: Int = LossFunction.HAMMING, lossAugmented: Boolean = false)
-                extends LPModel(LPSolverLib.lp_solve) with Logging {
+final class ILP(mrf: MRF, outputAll: Boolean = true, ilpRounding: Int = RoundingScheme.ROUNDUP, ilpSolver: Int = Solver.GUROBI,
+                lossFunction: Int = LossFunction.HAMMING, lossAugmented: Boolean = false) extends Logging {
+
+  // Select the appropriate linear programming solver
+  implicit val lp =
+  if(ilpSolver == Solver.GUROBI)
+    LPSolver(LPSolverLib.gurobi)
+  else
+    LPSolver(LPSolverLib.lp_solve)
 
   implicit val mln = mrf.mln
 
   /**
-   * Fetch atom given its id
+   * Fetch atom given its id.
+   *
    * @param atomID id of the atom
    * @return the ground atom which corresponds to the given id
    */
   @inline private def fetchAtom(atomID: Int) = mrf.atoms.get(atomID)
 
   def infer() {
+
+    val sTranslation = System.currentTimeMillis()
 
     /* Hash maps containing pairs of unique literal keys to LP variables [y]
      * and unique clause ids to LP variables [z].
@@ -175,16 +185,23 @@ final class ILP(mrf: MRF, outputAll: Boolean = true, ilpRounding: Int = Rounding
       }
     }
 
+    val eTranslation = System.currentTimeMillis()
+    info(Utilities.msecTimeToText("Total translation time: ", eTranslation - sTranslation))
+
     info(
         "\nGround Atoms: " + mrf.numberOfAtoms +
         "\nAtom Variables: " + literalLPVars.size + " + Clauses Variables: " + clauseLPVars.size +
         " = " + (literalLPVars.size + clauseLPVars.size))
 
+    val sSolver = System.currentTimeMillis()
 
     // Step 4: Optimize function subject to the constraints introduced
     maximize(sum(expressions))
     start()
     release()
+
+    val eSolver = System.currentTimeMillis()
+    info(Utilities.msecTimeToText("Total solver time: ", eSolver - sSolver))
 
     info(
         "\n=========================== Solution ===========================" +
@@ -201,6 +218,7 @@ final class ILP(mrf: MRF, outputAll: Boolean = true, ilpRounding: Int = Rounding
     val solution = new TIntDoubleHashMap(literalLPVars.size())
     var fractionalSolutions = List[(Int, Double)]()
 
+    // Search for fractional solutions and fix atom values of non fractional solutions
     var nonIntegralSolutionsCounter = 0
     for ((id, lpVar) <- literalLPVars.iterator()) {
       val value = if (lpVar.value.get > 1.0) 1.0 else lpVar.value.get
@@ -215,16 +233,21 @@ final class ILP(mrf: MRF, outputAll: Boolean = true, ilpRounding: Int = Rounding
       solution.put(id, value)
     }
 
+    // create MRF state
     val state = MRFState(mrf)
 
     info("Number of non-integral solutions: " + nonIntegralSolutionsCounter)
     assert(state.countUnfixAtoms() == nonIntegralSolutionsCounter)
 
+    val sRoundUp = System.currentTimeMillis()
+
+    // Should be executed here!
+    state.evaluateState()
+
     if(nonIntegralSolutionsCounter > 0) {
 
       // 1. RoundUp algorithm
       if(ilpRounding == RoundingScheme.ROUNDUP) {
-        state.evaluateState()
         whenDebug { state.printStatistics() }
         for (i <- (0 until fractionalSolutions.size).optimized) {
           val id = fractionalSolutions(i)._1
@@ -240,8 +263,8 @@ final class ILP(mrf: MRF, outputAll: Boolean = true, ilpRounding: Int = Rounding
           whenDebug { state.printStatistics() }
         }
       }
+      // 2. MaxWalkSAT algorithm
       else {
-        // TODO MaxWalkSAT (under testing)
         val sat = new MaxWalkSAT(mrf)
         sat.infer(state)
       }
@@ -249,13 +272,22 @@ final class ILP(mrf: MRF, outputAll: Boolean = true, ilpRounding: Int = Rounding
     }
     debug("Unfixed atoms: " + state.countUnfixAtoms())
 
+    val eRoundUp = System.currentTimeMillis()
+    info(Utilities.msecTimeToText("Total roundup time: ", eRoundUp - sRoundUp))
+
     state.printStatistics()
+    info(Utilities.msecTimeToText("Total ILP time: ", (eTranslation - sTranslation) +
+                                                      (eSolver - sSolver) +
+                                                      (eRoundUp - sRoundUp)
+    ))
+
   }
 
 
   /**
-   * Write the results of inference into the selected output stream
-   * @param out Chosen output stream (default is console)
+   * Write the results of inference into the selected output stream.
+   *
+   * @param out Selected output stream (default is console)
    */
   def writeResults(out: PrintStream = System.out) {
     import lomrf.util.decodeAtom
@@ -287,11 +319,25 @@ final class ILP(mrf: MRF, outputAll: Boolean = true, ilpRounding: Int = Rounding
 
 }
 
+/**
+ * Object holding constants for rounding type.
+ */
 object RoundingScheme {
   val ROUNDUP = 1
   val MWS = 2
 }
 
+/**
+ * Object holding constants for solver type.
+ */
+object Solver {
+  val GUROBI = 1
+  val LPSOLVE = 2
+}
+
+/**
+ * Object holding constants for loss function type.
+ */
 object LossFunction {
   val HAMMING = 1
 }

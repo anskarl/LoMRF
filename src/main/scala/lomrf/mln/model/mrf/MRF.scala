@@ -81,13 +81,14 @@ object MRF {
 
   /**
    *
-   * @param mln
-   * @param constraints
-   * @param atoms
-   * @param weightHard
-   * @param queryAtomStartID
-   * @param queryAtomEndID
-   * @return
+   * @param mln the source Markov Logic.
+   * @param constraints the indexed collection of ground clauses.
+   * @param atoms a indexed collection of ground atoms.
+   * @param weightHard the estimated weight for all hard-constrained ground clauses.
+   * @param queryAtomStartID the id (integer) of the first query atom.
+   * @param queryAtomEndID the id (integer) of the last query atom.
+   *
+   * @return a new MRF object
    */
   def apply(mln: MLN, constraints: TIntObjectMap[Constraint], atoms: TIntObjectMap[GroundAtom], weightHard: Double, queryAtomStartID: Int, queryAtomEndID: Int): MRF = {
 
@@ -129,7 +130,6 @@ object MRF {
       queryAtomStartID, queryAtomEndID, weightHard, maxNumberOfLiterals)
   }
 }
-
 
 
 

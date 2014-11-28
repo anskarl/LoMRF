@@ -1,5 +1,4 @@
 import com.typesafe.sbt.SbtNativePackager._
-import NativePackagerKeys._
 
 /** Project */
 name := "LoMRF"
@@ -25,7 +24,6 @@ scalacOptions ++= Seq(
 	"-optimise",
 	"-Yclosure-elim",
 	"-Yinline",
-	//"-nowarn",
 	"-feature",
 	"-target:jvm-1.7",
 	"-language:implicitConversions"
@@ -60,7 +58,6 @@ libraryDependencies ++= Seq(
 	"com.typesafe.akka" %% "akka-slf4j"  % "2.2.4"
 )
 
-
 // Logging with slf4j and logback
 libraryDependencies ++= Seq(
 	"ch.qos.logback" % "logback-classic" % "1.1.2",
@@ -77,15 +74,13 @@ libraryDependencies ++= Seq(
 	"org.scalatest" %% "scalatest" % "2.2.1" % "test"
 )
 
+// Optimized Range foreach loops
 libraryDependencies += "com.nativelibs4java" %% "scalaxy-loops" % "0.1.1" % "provided"
 
-
+// JTS Topology API for modelling and manipulating 2-dimensional linear geometry
 libraryDependencies += "com.vividsolutions" % "jts" % "1.13"
 
-
-
-// todo: add abide support (see https://github.com/scala/scala-abide)
-// libraryDependencies += "com.typesafe" %% "abide-core" % "0.1-SNAPSHOT" % "abide"
+// TODO: add abide support (see https://github.com/scala/scala-abide)
 
 // Include utility BASH scripts in the 'bin' directory
 mappings in Universal <++= (packageBin in Compile) map { jar =>

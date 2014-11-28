@@ -32,12 +32,20 @@
 
 package lomrf.mln.model.mrf
 
+import lomrf.util.LongDoubleConversions._
+import scala.annotation.switch
+
 final class Constraint(val weight: Double, val literals: Array[Int], val isHardConstraint: Boolean, val threshold: Double,
                        val id: Int = -1, var mode: Int = MRF.MODE_MWS) {
 
   // ----------------------------------------------------------------
   // Mutable information: accessible only from classes of model package.
   // ----------------------------------------------------------------
+
+  /**
+   * High precision weight used for inference computations.
+   */
+  private[mln] lazy val hpWeight = new LongDouble(weight)
 
   /**
    * Number of literals satisfying the constraint.
@@ -96,17 +104,14 @@ final class Constraint(val weight: Double, val literals: Array[Int], val isHardC
    *
    * @return the cost of violating this constraint
    */
-  def cost: Double = {
-    if(mode == MRF.MODE_MWS) {
-      if(isPositive && nsat == 0) weight
-      else if (!isPositive && nsat > 0) -weight
-      else 0.0
+  def cost: LongDouble = {
+    if( (isPositive && nsat == 0) || (!isPositive && nsat > 0) ) {
+      (mode: @switch) match {
+        case MRF.MODE_MWS => hpWeight.abs()
+        case MRF.MODE_SAMPLE_SAT => ONE
+      }
     }
-    else {
-      if (isPositive && nsat == 0) 1
-      else if (!isPositive && nsat > 0) 1
-      else 0
-    }
+    else ZERO
   }
 
   /**

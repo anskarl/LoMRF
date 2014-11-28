@@ -32,7 +32,6 @@
 
 package lomrf.mln.model.mrf
 
-
 import java.util
 import java.util.concurrent.ThreadLocalRandom
 import gnu.trove.list.array.TIntArrayList
@@ -43,13 +42,13 @@ import scala.collection.mutable
 import scala.collection.parallel.mutable.ParArray
 import scalaxy.loops._
 
-
 /**
+ * This class represents the MRF state.
  *
- * @param mrf
- * @param parAtoms
- * @param parConstraints
- * @param satHardPriority
+ * @param mrf the source MRF
+ * @param parAtoms parallel array holding the ground atoms
+ * @param parConstraints parallel array holding the constraints
+ * @param satHardPriority Satisfiability priority to hard constrained clauses (default is false)
  *
  * @author Anastasios Skarlatidis
  */
@@ -58,12 +57,14 @@ final class MRFState private(val mrf: MRF,
                              parConstraints: ParArray[Constraint],
                              satHardPriority: Boolean = false) extends Logging {
 
+  import lomrf.util.LongDoubleConversions._
+
   private val atoms = mrf.atoms
   private var dirtyAtoms = new mutable.HashSet[GroundAtom]()
   private var priorityBuffer = new ArrayBuffer[Constraint]()
 
-  private var totalCost = BigDecimal.double2bigDecimal(Double.MaxValue)
-  private var lowCost = BigDecimal.double2bigDecimal(Double.MaxValue)
+  private var totalCost = MAXVALUE
+  private var lowCost = MAXVALUE
   private var lowUnsat = Int.MaxValue
   private var totalActive = mrf.numberOfConstraints
 
@@ -78,7 +79,8 @@ final class MRFState private(val mrf: MRF,
   def apply(aid: Int): Boolean = state(aid)
 
   /**
-   * Change inference mode (MaxWalkSAT or SampleSAT).
+   * Set inference mode (MaxWalkSAT or SampleSAT). Used for inference in order
+   * to change cost into unit.
    *
    * @param mode inference mode
    */
@@ -88,10 +90,12 @@ final class MRFState private(val mrf: MRF,
   }
 
   /**
-   * TODO: Documentation
+   * Computes the sum of the unsatisfied clauses where atom appears as a positive
+   * literal minus the sum of the unsatisfied clauses where atom appears as a
+   * negative literal.
    *
-   * @param atomID
-   * @return
+   * @param atomID atom id
+   * @return delta cost
    */
   def computeDelta(atomID: Int): Double = {
     var delta = 0.0
@@ -125,15 +129,15 @@ final class MRFState private(val mrf: MRF,
     for(i <- (0 until unsatisfied).optimized)
       if(Unsatisfied(i).weight < 0) countNeg += 1
 
-    var likelihood, likelihoodUB = 0.0
+    var likelihood, likelihoodUB = ZERO
 
     val iterator = mrf.constraints.iterator()
 
     while(iterator.hasNext) {
       iterator.advance()
       val c = iterator.value()
-      if(c.isSatisfied) likelihood += c.weight
-      if(c.weight > 0 || c.isHardConstraint) likelihoodUB += c.weight
+      if(c.isSatisfied) likelihood += c.hpWeight
+      if(c.weight > 0 || c.isHardConstraint) likelihoodUB += c.hpWeight
     }
 
     info {
@@ -146,7 +150,6 @@ final class MRFState private(val mrf: MRF,
         "\tLikelihood is e^" + likelihood + "\n" +
         "\tLikelihood upper bound is e^" + likelihoodUB
     }
-
   }
 
   /**
@@ -195,6 +198,7 @@ final class MRFState private(val mrf: MRF,
 
   /**
    * Counts the number of unfixed atoms in the current state.
+   *
    * @return number of unfixed atoms
    */
   def countUnfixAtoms(): Int = {
@@ -218,14 +222,17 @@ final class MRFState private(val mrf: MRF,
 
 
   /**
-   *
+   * Performs unit propagation across the constraints in order to trivially
+   * satisfy as many as possible. It is required by MCSAT in order to minimize
+   * the search space and increase sampling performance and accuracy.
    */
   private def unitPropagation() {
 
     /**
+     * Fixes an atom to the given state, if the atom is currently unfixed.
      *
-     * @param atomID
-     * @param state
+     * @param atomID the atom id
+     * @param state the desired state
      */
     @inline def fixAtom(atomID: Int, state: Boolean) {
       val atom = atoms.get(atomID)
@@ -241,8 +248,9 @@ final class MRFState private(val mrf: MRF,
     }
 
     /**
+     * Updates satisfied constraints by fixed atoms.
      *
-     * @param atomID
+     * @param atomID the fixed atom id
      */
     @inline def updateSatisfiedByFix(atomID: Int) {
 
@@ -338,7 +346,6 @@ final class MRFState private(val mrf: MRF,
       else constraint.inactive = true
     }
 
-    //return
     totalActive
   }
 
@@ -355,7 +362,6 @@ final class MRFState private(val mrf: MRF,
     }
     totalActive = mrf.numberOfConstraints
 
-    //return
     totalActive
   }
 
@@ -367,18 +373,6 @@ final class MRFState private(val mrf: MRF,
    * @return total active constraints
    */
   def selectSomeSatConstraints(): Int = {
-
-    /*totalActive = parConstraints.aggregate(0)((x, constraint) => x + (
-      if ( constraint.isHardConstraint || ( constraint.isSatisfied && (random.nextDouble() < constraint.threshold))) {
-        constraint.inactive = false
-        1
-      }
-      else {
-        constraint.inactive = true
-        0
-      }
-      ), _ + _)*/
-
     totalActive = 0
     val iterator = mrf.constraints.iterator()
     while (iterator.hasNext) {
@@ -401,8 +395,8 @@ final class MRFState private(val mrf: MRF,
    * and computes the total cost of the unsatisfied ones.
    * @return total cost after evaluation
    */
-  def evaluateState(ignoreInactive: Boolean = false): BigDecimal = {
-    totalCost = 0.0
+  def evaluateState(ignoreInactive: Boolean = false): LongDouble = {
+    totalCost = ZERO
     Unsatisfied.clear()
 
     // Recompute delta costs:
@@ -434,10 +428,9 @@ final class MRFState private(val mrf: MRF,
         // --- --- --- --- --- --- --- --- --- ---
 
         totalCost += currentConstraint.cost
-        if (currentConstraint.cost > 0) Unsatisfied += currentConstraint
+        if (currentConstraint.cost.isPositive) Unsatisfied += currentConstraint
       }
     }
-
     totalCost
   }
 
@@ -454,8 +447,8 @@ final class MRFState private(val mrf: MRF,
    *
    * @return the total cost of the current state
    */
-  def evaluateCosts(): BigDecimal = {
-    totalCost = 0.0
+  def evaluateCosts(): LongDouble = {
+    totalCost = ZERO
     Unsatisfied.clear()
 
     // Recompute delta costs:
@@ -505,7 +498,7 @@ final class MRFState private(val mrf: MRF,
         // --- --- --- --- --- --- --- --- --- ---
 
         totalCost += currentConstraint.cost
-        if (currentConstraint.cost > 0) Unsatisfied += currentConstraint
+        if (currentConstraint.cost.isPositive) Unsatisfied += currentConstraint
 
         if (nsat == 0) {
           // 1. Since the constraint is not satisfied, we define for each corresponding atom
@@ -532,7 +525,6 @@ final class MRFState private(val mrf: MRF,
       // --- --- --- --- --- --- --- --- --- --- --- --- --- ---
     }
 
-    // return total cost
     totalCost
   }
 
@@ -541,13 +533,13 @@ final class MRFState private(val mrf: MRF,
    * the break and make costs of the corresponding atoms. Also updates the total cost
    * of the new state produced by flipping the given atom and checks if the state is
    * better than the previous low state.
+   *
    * @param atom atom to flip
    * @param iteration current iteration of the inference algorithm
    */
   def flip(atom: GroundAtom, iteration: Int) {
 
     val pickedID = atom.id
-
 
     whenDebug {
       decodeAtom(pickedID)(mrf.mln) match{
@@ -602,12 +594,12 @@ final class MRFState private(val mrf: MRF,
             //       only when it is positive, otherwise do the opposite.
             if (constraint.weight > 0) {
               Unsatisfied -= constraint
-              totalCost -= (if(mode == MRF.MODE_MWS) math.abs(constraint.weight) else 1)
+              totalCost -= (if(mode == MRF.MODE_MWS) constraint.hpWeight.abs() else ONE)
               if(constraint.isHardConstraint && priorityBuffer.contains(constraint)) priorityBuffer -= constraint
             }
             else {
               Unsatisfied += constraint
-              totalCost += (if(mode == MRF.MODE_MWS) math.abs(constraint.weight) else 1)
+              totalCost += (if(mode == MRF.MODE_MWS) constraint.hpWeight.abs() else ONE)
             }
 
             //    b. Since the given atom satisfies this constraint, the state of the rest
@@ -629,7 +621,6 @@ final class MRFState private(val mrf: MRF,
             //            atoms.get(constraint.watchLit1).revokeUnsatPotential(constraint)
             //            constraint.watchLit2 = pickedID
 
-
             var idx = 0
             var currentLiteral = -1
             var currentID = -1
@@ -647,7 +638,6 @@ final class MRFState private(val mrf: MRF,
               }
               idx += 1
             }
-
 
           }
         }
@@ -683,12 +673,12 @@ final class MRFState private(val mrf: MRF,
             //       only when it is positive, otherwise do the opposite
             if (constraint.weight > 0) {
               Unsatisfied += constraint
-              totalCost += (if(mode == MRF.MODE_MWS) math.abs(constraint.weight) else 1)
+              totalCost += (if(mode == MRF.MODE_MWS) constraint.hpWeight.abs() else ONE)
               if(constraint.isHardConstraint) priorityBuffer += constraint
             }
             else {
               Unsatisfied -= constraint
-              totalCost -= (if(mode == MRF.MODE_MWS) math.abs(constraint.weight) else 1)
+              totalCost -= (if(mode == MRF.MODE_MWS) constraint.hpWeight.abs() else ONE)
             }
 
             //    b. Since the current constraint is now unsatisfied, specify that by
@@ -707,7 +697,6 @@ final class MRFState private(val mrf: MRF,
             // 2. The current constraint remains satisfied from another literal. As a result,
             //    we have to find it and simply define that if it will be flipped, then the
             //    current constraint will become satisfied.
-
             //            if(constraint.watchLit1 == pickedID) constraint.watchLit1 = constraint.watchLit2
             //            atoms.get(constraint.watchLit1).assignUnsatPotential(constraint)
             var idx = 0
@@ -716,7 +705,6 @@ final class MRFState private(val mrf: MRF,
             var atom = MRF.NO_ATOM
 
             while (idx < literals.length) {
-
               currentLiteral = literals(idx)
               currentID = atomID(currentLiteral)
 
@@ -724,14 +712,46 @@ final class MRFState private(val mrf: MRF,
                 atom = atoms.get(currentID)
                 if ((currentLiteral > 0) == atom.state) {
                   atom.assignUnsatPotential(constraint)
-                  idx = literals.length //we have found the literal, no need to search further :)
+                  idx = literals.length // we have found the literal, no need to search further :)
                 }
               }
               idx += 1
             }
-
           }
+          /*else {
+            if(constraint.watchLit1 == pickedID) {
+              var idx = 0
+              var currentLiteral = -1
+              var currentID = -1
 
+              while (idx < literals.length) {
+                currentLiteral = literals(idx)
+                currentID = atomID(currentLiteral)
+                if(isTrueLiteral(currentLiteral) && currentID != constraint.watchLit1 && currentID != constraint.watchLit2) {
+                constraint.watchLit1 = currentID
+                idx = literals.length
+                }
+                idx += 1
+              }
+
+            }
+            else if(constraint.watchLit2 == pickedID) {
+              var idx = 0
+              var currentLiteral = -1
+              var currentID = -1
+
+              while (idx < literals.length) {
+                currentLiteral = literals(idx)
+                currentID = atomID(currentLiteral)
+                if(isTrueLiteral(currentLiteral) && currentID != constraint.watchLit1 && currentID != constraint.watchLit2) {
+                  constraint.watchLit2 = currentID
+                  idx = literals.length
+                }
+                idx += 1
+              }
+
+            }
+          }*/
 
         }
       }
@@ -746,9 +766,10 @@ final class MRFState private(val mrf: MRF,
 
   /**
    * Save current state of atoms as the optimum state.
+   *
    * @param cost cost to be saved as the lowest cost
    */
-  def saveLowState(cost: BigDecimal) {
+  def saveLowState(cost: LongDouble) {
     lowCost = cost
     lowUnsat = Unsatisfied.size
     if (dirtyAtoms.nonEmpty) {
@@ -787,36 +808,42 @@ final class MRFState private(val mrf: MRF,
 
   /**
    * Get total cost of unsatisfied constraints in the current state.
+   *
    * @return total cost
    */
-  def getCost: BigDecimal = totalCost
+  def getCost: LongDouble = totalCost
 
   /**
    * Get low cost of the current state.
+   *
    * @return low cost
    */
-  def getLowCost: BigDecimal = lowCost
+  def getLowCost: LongDouble = lowCost
 
   /**
    * Get total active atoms in the current state.
+   *
    * @return total active atoms
    */
   def getTotalAlive: Int = totalActive
 
   /**
    * Get the number of unsatisfied constraints in the current state.
+   *
    * @return number of unsatisfied constraints
    */
   def getNumberOfUnsatisfied: Int = Unsatisfied.size
 
   /**
    * Get a randomly selected ground atom.
+   *
    * @return randomly selected ground atom
    */
   def getRandomAtom: GroundAtom = parAtoms(ThreadLocalRandom.current().nextInt(parAtoms.length))
 
   /**
    * Get a randomly selected ground atom, using a custom random generator.
+   *
    * @param rand custom random generator
    * @return randomly selected ground atom
    */
@@ -834,32 +861,15 @@ final class MRFState private(val mrf: MRF,
    */
   def getRandomUnsatConstraint: Constraint = {
 
-    if(Unsatisfied.isEmpty)
-      assert(priorityBuffer.isEmpty)
+    whenDebug {
+      if (Unsatisfied.isEmpty)
+        assert(priorityBuffer.isEmpty)
+    }
 
     if(Unsatisfied.isEmpty) MRF.NO_CONSTRAINT
     else if (satHardPriority && priorityBuffer.size > 0) priorityBuffer.remove(0)
     else if (satHardPriority &&  Unsatisfied.numOfHard > 0) Unsatisfied.getRandomHardConstraint
     else Unsatisfied(ThreadLocalRandom.current().nextInt(Unsatisfied.size))
-
-
-
-    /*var constraint = MRF.NO_CONSTRAINT
-
-    if(!satHardPriority && Unsatisfied.size > 0)
-      constraint = Unsatisfied(ThreadLocalRandom.current().nextInt(Unsatisfied.size))
-    else if(satHardPriority) {
-      if(priorityBuffer.size > 0) constraint = priorityBuffer.remove(0)
-      else if(Unsatisfied.size > 0) {
-        constraint =
-          if (Unsatisfied.numOfHard > 0)
-            Unsatisfied.getRandomHardConstraint
-          else
-            Unsatisfied(ThreadLocalRandom.current().nextInt(Unsatisfied.size))
-      }
-    }
-
-    constraint*/
   }
 
   /**
@@ -937,23 +947,35 @@ final class MRFState private(val mrf: MRF,
 
     def numOfHard = _numOfHard
   }
-
 }
 
 /**
+ * MRFState companion object.
+ *
  * @author Anastasios Skarlatidis
  */
 object MRFState {
 
+  /**
+   * Creates parallel arrays for constraints and atoms of the grounded Markov network and
+   * trivially satisfy unit hard constrained clauses if requested.
+   *
+   * @param mrf The ground Markov network
+   * @param satHardUnit Trivially satisfy hard constrained unit clauses (default is true)
+   * @param satHardPriority Satisfiability priority to hard constrained clauses (default is false)
+   *
+   * @return new MRFState object
+   */
   def apply(mrf: MRF, satHardUnit: Boolean = false, satHardPriority: Boolean = false): MRFState = {
 
     @inline def fixLiteral(literal: Int) {
       val atom = mrf.atoms.get(math.abs(literal))
       val state = literal > 0
+
       // check for contradiction
-      if (atom.fixedValue == 1 && !state || atom.fixedValue == -1 && state) {
+      if (atom.fixedValue == 1 && !state || atom.fixedValue == -1 && state)
         sys.error("Contradiction found for atomID " + math.abs(literal))
-      }
+
       if (atom.fixedValue == 0) {
         atom.fixedValue = if (state) 1 else -1
         atom.state = state

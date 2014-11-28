@@ -37,6 +37,7 @@ import MRF.{NO_ATOM, NO_CONSTRAINT, NO_ATOM_ID}
 import java.io.PrintStream
 import java.util.concurrent.ThreadLocalRandom
 import lomrf.util.{Utilities, Logging}
+import lomrf.util.LongDoubleConversions._
 
 /**
  * This is an implementation of the MaxWalkSAT local-search algorithm with tabu search for weighed satisfiability solving.
@@ -69,20 +70,23 @@ import lomrf.util.{Utilities, Logging}
  * @author Vagelis Michelioudakis
  */
 final class MaxWalkSAT(mrf: MRF, pBest: Double = 0.5, maxFlips: Int = 1000000, maxTries: Int = 1, targetCost: Double = 0.001,
-                       outputAll: Boolean = true, satHardUnit: Boolean = false, satHardPriority: Boolean = false, tabuLength: Int = 10) extends Logging {
+                       outputAll: Boolean = true, satHardUnit: Boolean = false, satHardPriority: Boolean = false,
+                       tabuLength: Int = 10) extends Logging {
 
-  private val TARGET_COST = targetCost + 0.0001
+  private val TARGET_COST = new LongDouble(targetCost + 0.0001)
   //private val random = new Random()
 
   /**
-   * Fetch atom given its literal code
+   * Fetch atom given its literal code.
+   *
    * @param literal Code of the literal
    * @return The ground atom which corresponds to the given literal code
    */
   @inline private def fetchAtom(literal: Int) = mrf.atoms.get(math.abs(literal))
 
   /**
-   * Runs MAP inference using MaxWalkSAT
+   * Runs MAP inference using MaxWalkSAT.
+   *
    * @return The MRFState after inference procedure is complete
    */
   def infer(): MRFState = {
@@ -93,12 +97,13 @@ final class MaxWalkSAT(mrf: MRF, pBest: Double = 0.5, maxFlips: Int = 1000000, m
     state.printStatistics()
     info(Utilities.msecTimeToText("Total Max-WalkSAT time: ", endTime - startTime))
 
-    //return the best state
+    // return the best state
     state
   }
 
   /**
-   * Runs MAP inference using MaxWalkSAT
+   * Runs MAP inference using MaxWalkSAT.
+   *
    * @param state The current MRFState
    * @return The MRFState after inference procedure is complete
    */
@@ -115,6 +120,7 @@ final class MaxWalkSAT(mrf: MRF, pBest: Double = 0.5, maxFlips: Int = 1000000, m
     /**
      * MaxWalkSAT step which performs noisy and greedy moves, according to a probability, in order
      * to select the next atom to flip.
+     *
      * @return The ground atom that was chosen to flip
      */
     @inline def maxWalkSATStep(): GroundAtom = {
@@ -240,8 +246,9 @@ final class MaxWalkSAT(mrf: MRF, pBest: Double = 0.5, maxFlips: Int = 1000000, m
   }
 
   /**
-   * Write the results of inference into the selected output stream
-   * @param out Chosen output stream (default is console)
+   * Write the results of inference into the selected output stream.
+   *
+   * @param out Selected output stream (default is console)
    */
   def writeResults(out: PrintStream = System.out) {
     import lomrf.util.decodeAtom
