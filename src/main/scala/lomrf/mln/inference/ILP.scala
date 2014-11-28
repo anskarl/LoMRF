@@ -92,7 +92,7 @@ final class ILP(mrf: MRF, outputAll: Boolean = true, ilpRounding: Int = Rounding
 
   def infer() {
 
-    val startILPTime = System.currentTimeMillis()
+    val sTranslation = System.currentTimeMillis()
 
     /* Hash maps containing pairs of unique literal keys to LP variables [y]
      * and unique clause ids to LP variables [z].
@@ -185,15 +185,23 @@ final class ILP(mrf: MRF, outputAll: Boolean = true, ilpRounding: Int = Rounding
       }
     }
 
+    val eTranslation = System.currentTimeMillis()
+    info(Utilities.msecTimeToText("Total translation time: ", eTranslation - sTranslation))
+
     info(
         "\nGround Atoms: " + mrf.numberOfAtoms +
         "\nAtom Variables: " + literalLPVars.size + " + Clauses Variables: " + clauseLPVars.size +
         " = " + (literalLPVars.size + clauseLPVars.size))
 
+    val sSolver = System.currentTimeMillis()
+
     // Step 4: Optimize function subject to the constraints introduced
     maximize(sum(expressions))
     start()
     release()
+
+    val eSolver = System.currentTimeMillis()
+    info(Utilities.msecTimeToText("Total solver time: ", eSolver - sSolver))
 
     info(
         "\n=========================== Solution ===========================" +
@@ -210,6 +218,7 @@ final class ILP(mrf: MRF, outputAll: Boolean = true, ilpRounding: Int = Rounding
     val solution = new TIntDoubleHashMap(literalLPVars.size())
     var fractionalSolutions = List[(Int, Double)]()
 
+    // Search for fractional solutions and fix atom values of non fractional solutions
     var nonIntegralSolutionsCounter = 0
     for ((id, lpVar) <- literalLPVars.iterator()) {
       val value = if (lpVar.value.get > 1.0) 1.0 else lpVar.value.get
@@ -224,16 +233,21 @@ final class ILP(mrf: MRF, outputAll: Boolean = true, ilpRounding: Int = Rounding
       solution.put(id, value)
     }
 
+    // create MRF state
     val state = MRFState(mrf)
 
     info("Number of non-integral solutions: " + nonIntegralSolutionsCounter)
     assert(state.countUnfixAtoms() == nonIntegralSolutionsCounter)
 
+    val sRoundUp = System.currentTimeMillis()
+
+    // Should be executed here!
+    state.evaluateState()
+
     if(nonIntegralSolutionsCounter > 0) {
 
       // 1. RoundUp algorithm
       if(ilpRounding == RoundingScheme.ROUNDUP) {
-        state.evaluateState()
         whenDebug { state.printStatistics() }
         for (i <- (0 until fractionalSolutions.size).optimized) {
           val id = fractionalSolutions(i)._1
@@ -258,9 +272,15 @@ final class ILP(mrf: MRF, outputAll: Boolean = true, ilpRounding: Int = Rounding
     }
     debug("Unfixed atoms: " + state.countUnfixAtoms())
 
-    val endILPTime = System.currentTimeMillis()
+    val eRoundUp = System.currentTimeMillis()
+    info(Utilities.msecTimeToText("Total roundup time: ", eRoundUp - sRoundUp))
+
     state.printStatistics()
-    info(Utilities.msecTimeToText("Total ILP time: ", endILPTime - startILPTime))
+    info(Utilities.msecTimeToText("Total ILP time: ", (eTranslation - sTranslation) +
+                                                      (eSolver - sSolver) +
+                                                      (eRoundUp - sRoundUp)
+    ))
+
   }
 
 

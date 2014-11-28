@@ -15,7 +15,7 @@ object LongDoubleConversions {
 
   final val ZERO = DD.valueOf(0.0)
   final val ONE = DD.valueOf(1.0)
-  final val MAXVALUE =  DD.valueOf(Double.MaxValue)
+  final val MAXVALUE =  DD.valueOf(9.9999999999999999E300) // Do not used DD.valueOf(Double.MaxValue)
 
   /**
    * According to Scala specification, value classes are not able to
