@@ -35,7 +35,7 @@ package lomrf.mln.model.mrf
 import lomrf.util.LongDoubleConversions._
 import scala.annotation.switch
 
-final class Constraint(val weight: Double, val literals: Array[Int], val isHardConstraint: Boolean, val threshold: Double,
+final class Constraint(private[mln] var weight: Double, val literals: Array[Int], val isHardConstraint: Boolean, val threshold: Double,
                        val id: Int = -1, var mode: Int = MRF.MODE_MWS) {
 
   // ----------------------------------------------------------------
@@ -118,6 +118,11 @@ final class Constraint(val weight: Double, val literals: Array[Int], val isHardC
    * Returns the number of literals satisfying this constraint.
    */
   def getNSat: Int = nsat
+
+  /**
+   * Returns the weight of the constraint
+   */
+  def getWeight: Double = weight
 
   override def hashCode() = id
 

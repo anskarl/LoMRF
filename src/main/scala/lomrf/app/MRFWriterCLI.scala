@@ -97,7 +97,7 @@ object MRFWriterCLI extends Logging {
       val constraint = constraintsIterator.value()
       out.write(
         numFormat.format(
-          if (constraint.weight == Double.PositiveInfinity) mrf.weightHard else constraint.weight
+          if (constraint.getWeight == Double.PositiveInfinity) mrf.weightHard else constraint.getWeight
         )
       )
       out.write(" ")
@@ -119,7 +119,7 @@ object MRFWriterCLI extends Logging {
       constraintsIterator.advance()
       val constraint = constraintsIterator.value()
       //begin -- write weight value (if the feature is soft-constrained)
-      if (!constraint.weight.isInfinite && !constraint.weight.isNaN && constraint.weight != mrf.weightHard) out.write(numFormat.format(constraint.weight) + " ")
+      if (!constraint.getWeight.isInfinite && !constraint.getWeight.isNaN && constraint.getWeight != mrf.weightHard) out.write(numFormat.format(constraint.getWeight) + " ")
       //write ground literals
       val clause = constraint.literals.map {
         literal =>
@@ -130,7 +130,7 @@ object MRFWriterCLI extends Logging {
       }.reduceLeft(_ + " v " + _)
       out.write(clause)
 
-      if (constraint.weight.isInfinite || constraint.weight == mrf.weightHard) out.write(".")
+      if (constraint.getWeight.isInfinite || constraint.getWeight == mrf.weightHard) out.write(".")
       //end -- change line
       out.newLine()
     }
@@ -153,7 +153,7 @@ object MRFWriterCLI extends Logging {
       constraintsIterator.advance()
       val constraint = constraintsIterator.value()
       val literals = constraint.literals
-      val weight = constraint.weight
+      val weight = constraint.getWeight
       require(!weight.isNaN && !weight.isInfinite)
 
       // write ground clause as comment for evaluation

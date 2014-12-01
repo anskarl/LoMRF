@@ -158,14 +158,14 @@ package object util {
   def decodeFeature(feature: Constraint, hardWeight: Double = 0)(implicit mln: MLN): Option[String] ={
     val buffer = new StringBuilder()
 
-    feature.weight match {
+    feature.getWeight match {
       case Double.NaN =>
       case Double.PositiveInfinity =>
         if(hardWeight != 0) buffer.append(hardWeight.toString)
 
         buffer.append(' ')
       case _ =>
-        buffer.append(feature.weight.toString)
+        buffer.append(feature.getWeight.toString)
         buffer.append(' ')
     }
 
@@ -178,7 +178,7 @@ package object util {
       }
     }
 
-    if(feature.weight.isInfinite && hardWeight != 0) buffer.append('.')
+    if(feature.getWeight.isInfinite && hardWeight != 0) buffer.append('.')
 
 
     Some(buffer.result())

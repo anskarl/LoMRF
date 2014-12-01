@@ -34,6 +34,7 @@ package lomrf.mln.model.mrf
 
 import java.util
 import java.util.concurrent.ThreadLocalRandom
+import java.util.concurrent.atomic.AtomicBoolean
 import gnu.trove.list.array.TIntArrayList
 import gnu.trove.map.hash.TIntIntHashMap
 import lomrf.util._
@@ -240,10 +241,12 @@ final class MRFState private(val mrf: MRF,
       if (atom.fixedValue == 1 && !state || atom.fixedValue == -1 && state)
         sys.error("Contradiction found for atomID " + atomID)
 
-      if (atom.fixedValue == 0) {
-        atom.fixedValue = if (state) 1 else -1
-        atom.state = state
-        updateSatisfiedByFix(atomID)
+      synchronized {
+        if (atom.fixedValue == 0) {
+          atom.fixedValue = if (state) 1 else -1
+          atom.state = state
+          updateSatisfiedByFix(atomID)
+        }
       }
     }
 
@@ -279,15 +282,18 @@ final class MRFState private(val mrf: MRF,
     }
 
     // 3. Process positive constraints.
-    var done = false
+    //var done = false
+    val done = new AtomicBoolean(false)
 
-    while (!done) {
-      done = true
-      val pIterator = mrf.constraints.iterator()
+    while (/*!done*/ !done.get()) {
+      //done = true
+      done.set(true)
+      parConstraints.foreach { constraint =>
+      /*val pIterator = mrf.constraints.iterator()
 
       while (pIterator.hasNext) {
         pIterator.advance()
-        val constraint = pIterator.value()
+        val constraint = pIterator.value()*/
         if (!constraint.inactive && constraint.isPositive && !constraint.isSatisfiedByFixed) {
 
           var numOfNonFixedAtoms = 0
@@ -315,7 +321,8 @@ final class MRFState private(val mrf: MRF,
           if(isSat) constraint.isSatisfiedByFixed = true
           else if(numOfNonFixedAtoms == 1) {
             fixAtom(math.abs(nonFixedLiteral), nonFixedLiteral > 0)
-            done = false
+            //done = false
+            done.set(false)
           }
         }
       }
