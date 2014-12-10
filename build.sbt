@@ -3,7 +3,7 @@ import com.typesafe.sbt.SbtNativePackager._
 /** Project */
 name := "LoMRF"
 
-version := "0.2.3-beta_201410"
+version := "0.3.0-beta_201412"
 
 organization := "com.github.anskarl"
 
@@ -53,15 +53,15 @@ libraryDependencies ++= Seq(
 
 // Akka.io
 libraryDependencies ++= Seq(
-	"com.typesafe.akka" %% "akka-actor"  % "2.2.4",
-	"com.typesafe.akka" %% "akka-remote" % "2.2.4",
-	"com.typesafe.akka" %% "akka-slf4j"  % "2.2.4"
+	"com.typesafe.akka" %% "akka-actor"  % "2.3.7",
+	"com.typesafe.akka" %% "akka-remote" % "2.3.7",
+	"com.typesafe.akka" %% "akka-slf4j"  % "2.3.7"
 )
 
 // Logging with slf4j and logback
 libraryDependencies ++= Seq(
-	"ch.qos.logback" % "logback-classic" % "1.1.2",
-	"ch.qos.logback" % "logback-core" % "1.1.2",
+	"ch.qos.logback" % "logback-classic" % "1.1.13",
+	"ch.qos.logback" % "logback-core" % "1.1.13",
 	"org.slf4j" % "slf4j-api" % "1.7.7"
 )
 
@@ -70,12 +70,12 @@ libraryDependencies += "net.sf.trove4j" % "trove4j" % "3.0.3"
 
 // Unit testing
 libraryDependencies ++= Seq(
-	"junit" % "junit" % "4.11" % "test",
+	"junit" % "junit" % "4.12" % "test",
 	"org.scalatest" %% "scalatest" % "2.2.1" % "test"
 )
 
 // Optimized Range foreach loops
-libraryDependencies += "com.nativelibs4java" %% "scalaxy-loops" % "0.1.1" % "provided"
+libraryDependencies += "com.nativelibs4java" %% "scalaxy-loops" % "0.3.3" % "provided"
 
 // JTS Topology API for modelling and manipulating 2-dimensional linear geometry
 libraryDependencies += "com.vividsolutions" % "jts" % "1.13"
