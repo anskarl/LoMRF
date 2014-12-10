@@ -32,6 +32,9 @@
 
 package lomrf.mln.inference
 
+import lomrf.mln.inference.LossFunction.LossFunction
+import lomrf.mln.inference.RoundingScheme.RoundingScheme
+import lomrf.mln.inference.Solver.Solver
 import lomrf.mln.model.mrf._
 import lomrf.util._
 import oscar.linprog.modeling._
@@ -70,15 +73,12 @@ import lomrf.util.TroveConversions._
  * @author Anastasios Skarlatidis
  * @author Vagelis Michelioudakis
  */
-final class ILP(mrf: MRF, outputAll: Boolean = true, ilpRounding: Int = RoundingScheme.ROUNDUP, ilpSolver: Int = Solver.GUROBI,
-                lossFunction: Int = LossFunction.HAMMING, lossAugmented: Boolean = false) extends Logging {
+final case class ILP(mrf: MRF, outputAll: Boolean = true, ilpRounding: RoundingScheme = RoundingScheme.ROUNDUP,
+                ilpSolver: Solver = Solver.GUROBI, lossFunction: LossFunction = LossFunction.HAMMING,
+                lossAugmented: Boolean = false) extends Logging {
 
   // Select the appropriate linear programming solver
-  implicit val lp =
-  if(ilpSolver == Solver.GUROBI)
-    LPSolver(LPSolverLib.gurobi)
-  else
-    LPSolver(LPSolverLib.lp_solve)
+  implicit val lp = if(ilpSolver == Solver.GUROBI) LPSolver(LPSolverLib.gurobi) else LPSolver(LPSolverLib.lp_solve)
 
   implicit val mln = mrf.mln
 
@@ -128,6 +128,7 @@ final class ILP(mrf: MRF, outputAll: Boolean = true, ilpRounding: Int = Rounding
       // Step 1: Introduce variables for each ground atom and create possible constraints
       for (literal <- constraint.literals) {
         val atomID = math.abs(literal)
+
         literalLPVars.putIfAbsent(atomID, LPFloatVar("y" + atomID, 0, 1))
         val floatVar = literalLPVars.get(atomID)
 
@@ -221,7 +222,7 @@ final class ILP(mrf: MRF, outputAll: Boolean = true, ilpRounding: Int = Rounding
     // Search for fractional solutions and fix atom values of non fractional solutions
     var nonIntegralSolutionsCounter = 0
     for ((id, lpVar) <- literalLPVars.iterator()) {
-      val value = if (lpVar.value.get > 1.0) 1.0 else lpVar.value.get
+      val value = math.min(lpVar.value.getOrElse(fatal("The value of LPVar with id '"+id+"' cannot be empty.")), 1.0)
       if (value != 0.0 && value != 1.0) {
         nonIntegralSolutionsCounter += 1
         fractionalSolutions ::= ((id, value))
@@ -244,13 +245,15 @@ final class ILP(mrf: MRF, outputAll: Boolean = true, ilpRounding: Int = Rounding
     // Should be executed here!
     state.evaluateState()
 
-    if(nonIntegralSolutionsCounter > 0) {
+    if(nonIntegralSolutionsCounter > 0) ilpRounding match {
 
-      // 1. RoundUp algorithm
-      if(ilpRounding == RoundingScheme.ROUNDUP) {
-        whenDebug { state.printStatistics() }
+      // 1. RoundUp algorithm (see Huynh and Mooney, 2011)
+      case RoundingScheme.ROUNDUP =>
+        whenDebug(state.printStatistics())
         for (i <- (0 until fractionalSolutions.size).optimized) {
+
           val id = fractionalSolutions(i)._1
+
           if(state.computeDelta(id) > 0) {
             fetchAtom(id).fixedValue = 1
             fetchAtom(id).state = true
@@ -260,15 +263,11 @@ final class ILP(mrf: MRF, outputAll: Boolean = true, ilpRounding: Int = Rounding
             fetchAtom(id).state = false
           }
           state.evaluateState()
-          whenDebug { state.printStatistics() }
+          whenDebug(state.printStatistics())
         }
-      }
-      // 2. MaxWalkSAT algorithm
-      else {
-        val sat = new MaxWalkSAT(mrf)
-        sat.infer(state)
-      }
 
+      // 2. MaxWalkSAT algorithm
+      case RoundingScheme.MWS => MaxWalkSAT(mrf).infer(state)
     }
     debug("Unfixed atoms: " + state.countUnfixAtoms())
 
@@ -301,17 +300,14 @@ final class ILP(mrf: MRF, outputAll: Boolean = true, ilpRounding: Int = Rounding
       if (atomID >= mln.queryStartID && atomID <= mln.queryEndID) {
         val groundAtom = iterator.value()
         val state = if(groundAtom.getState) 1 else 0
-        if(outputAll) {
-          decodeAtom(iterator.key()) match {
-            case Some(txtAtom) => out.println(txtAtom + " " + state)
-            case _ => error("failed to decode id:" + atomID)
-          }
+
+        if(outputAll) decodeAtom(iterator.key()) match {
+          case Some(txtAtom) => out.println(txtAtom + " " + state)
+          case _ => error("failed to decode id:" + atomID)
         }
-        else {
-          if(state == 1) decodeAtom(iterator.key()) match {
-            case Some(txtAtom) => out.println(txtAtom + " " + state)
-            case _ => error("failed to decode id:" + atomID)
-          }
+        else if(state == 1) decodeAtom(iterator.key()) match {
+          case Some(txtAtom) => out.println(txtAtom + " " + state)
+          case _ => error("failed to decode id:" + atomID)
         }
       }
     }
@@ -322,22 +318,23 @@ final class ILP(mrf: MRF, outputAll: Boolean = true, ilpRounding: Int = Rounding
 /**
  * Object holding constants for rounding type.
  */
-object RoundingScheme {
-  val ROUNDUP = 1
-  val MWS = 2
+object RoundingScheme extends Enumeration {
+  type RoundingScheme = Value
+  val ROUNDUP, MWS = Value
 }
 
 /**
  * Object holding constants for solver type.
  */
-object Solver {
-  val GUROBI = 1
-  val LPSOLVE = 2
+object Solver extends Enumeration {
+  type Solver = Value
+  val GUROBI, LPSOLVE = Value
 }
 
 /**
  * Object holding constants for loss function type.
  */
-object LossFunction {
-  val HAMMING = 1
+object LossFunction extends Enumeration {
+  type LossFunction = Value
+  val HAMMING = Value
 }

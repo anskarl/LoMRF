@@ -69,7 +69,7 @@ import lomrf.util.LongDoubleConversions._
  * @author Anastasios Skarlatidis
  * @author Vagelis Michelioudakis
  */
-final class MaxWalkSAT(mrf: MRF, pBest: Double = 0.5, maxFlips: Int = 1000000, maxTries: Int = 1, targetCost: Double = 0.001,
+final case class MaxWalkSAT(mrf: MRF, pBest: Double = 0.5, maxFlips: Int = 1000000, maxTries: Int = 1, targetCost: Double = 0.001,
                        outputAll: Boolean = true, satHardUnit: Boolean = false, satHardPriority: Boolean = false,
                        tabuLength: Int = 10) extends Logging {
 
