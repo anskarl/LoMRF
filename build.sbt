@@ -60,8 +60,8 @@ libraryDependencies ++= Seq(
 
 // Logging with slf4j and logback
 libraryDependencies ++= Seq(
-	"ch.qos.logback" % "logback-classic" % "1.1.13",
-	"ch.qos.logback" % "logback-core" % "1.1.13",
+	"ch.qos.logback" % "logback-classic" % "1.1.2",
+	"ch.qos.logback" % "logback-core" % "1.1.2",
 	"org.slf4j" % "slf4j-api" % "1.7.7"
 )
 
