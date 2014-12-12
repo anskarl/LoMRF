@@ -176,9 +176,30 @@ object Cartesian {
   }
 
 
-  private[util] class CartesianIteratorArithmeticImpl(initialElements: Iterable[Int]) extends Iterator[Array[Int]] {
+  /**
+   * Prototype implementation for fast and lightweight Cartesian products over domain indexes (represented by
+   * inverted counters).
+   *
+   * <p>
+   * Each entry in the '''elementDomainSizes''' represents is the size of the corresponding domain. Consider,
+   * for example, that the domain of persons is '''persons={Anna, Bob}''' and the domain of time is '''time={1,...,10}'''. 
+   * Assume that the ordering of the elements is {persons, time}. The initial elements will be '''{2, 10}''', since the
+   * sizes of the domains 'persons' and 'time' are 2 and 10, respectively.
+   * </p>
+   *
+   * <p>
+   * Beginning from the index of the last entry of each element in the  '''elementDomainSizes''', i.e., size - 1, the
+   * iterator gives an array of indexes. In the above example, the first iteration will give the array '''{1, 9}'''. The
+   * second iteration will give the array '''{0,9}''', the third '''{1,8}''' and the last will always an array of zeroes
+   * '''{0,0}'''.
+   * </p>
+   *
+   * 
+   * @param elementDomainSizes The domain size of each individual element.
+   */
+  private[util] class CartesianIteratorArithmeticImpl(elementDomainSizes: Iterable[Int]) extends Iterator[Array[Int]] {
 
-    private val lengths = initialElements.toArray
+    private val lengths = elementDomainSizes.toArray
     private val elements = util.Arrays.copyOf(lengths, lengths.length)
     private var has_next = true
 

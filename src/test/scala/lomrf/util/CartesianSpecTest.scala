@@ -55,8 +55,10 @@ class CartesianSpecTest extends FunSpec with Matchers {
 
   for( domain <- domainList; (l, iteration) <- domain.permutations.zipWithIndex){
     val elements = l.map(_ - 1)
+    val expectedIterations = l.product // this is the correct number of products
+
     describe("Cartesian product of domains ["+elements.map(_.toString).reduceLeft(_ + ", "+ _)+"]"){
-      val expectedIterations = l.product // this is the correct number of products
+
       val iterator = new CartesianIteratorArithmeticImpl(elements)
       val result = iterator.map(_.toString).toSet
 

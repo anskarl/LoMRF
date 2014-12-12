@@ -70,15 +70,12 @@ class ClauseGrounderImplNew(
     else (for (v <- clause.variables) yield v -> mln.constants(v.domain))(breakOut)
   }
 
-  private val groundIterator =
-    try {
+  /*private val groundIterator = try {
       Cartesian.CartesianIterator(variableDomains)
     } catch {
       case ex: NoSuchElementException =>
-        fatal("Failed to initialise CartesianIterator for clause: " +
-          clause.toString + " --- domain = " +
-          variableDomains)
-    }
+        fatal("Failed to initialise CartesianIterator for clause: " + clause.toString + " --- domain = " +  variableDomains)
+    }*/
 
 
   private val identities: Map[AtomSignature, AtomIdentityFunction] =
@@ -197,23 +194,20 @@ class ClauseGrounderImplNew(
 
     val atom2TermIndexes = new Array[Array[Int]](orderedLiterals.size)
 
-    var atomIdx =0
-    for( (atom, _) <- orderedLiterals) {
+    var atomIdx = 0
+    for( (atom, _ ) <- orderedLiterals) {
       val atomVars = uniqueOrderedVariablesIn(atom.sentence).toArray
       val indexes = new Array[Int](atomVars.size)
 
-      for(i <- (0 until atomVars.length).optimized){
+      for(i <- (0 until atomVars.length).optimized)
         indexes(i) = V2IDX(atomVars(i))
-      }
+
 
       atom2TermIndexes(atomIdx) = indexes
       atomIdx += 1
     }
 
     val ffIterator = CartesianIterator.apply2(orderedConstantSets)
-
-
-
 
     def performGrounding(substitution: Array[Int] ): Int = {
 
@@ -228,15 +222,20 @@ class ClauseGrounderImplNew(
       //val substitution = substituteTerm(theta) _
       var idx = 0 //literal position index in the currentVariables array
 
-      var literalIdx = 0 // current position in orderedLiterals
-      val DROP = orderedLiterals.length + 1 //utility position to indicate whether to keep or not the current ground clause
+      // current position in orderedLiterals
+      var literalIdx = 0
+
+      //utility position to indicate whether to keep or not the current ground clause
+      val DROP = orderedLiterals.length + 1
+
       while (literalIdx < orderedLiterals.length) {
         val (literal, idf) = orderedLiterals(literalIdx)
+
         // When the literal is a dynamic atom, then invoke its truth state dynamically
         if (literal.sentence.isDynamic) {
           //TODO:
           //if (literal.isPositive == dynamicAtoms(idx)(literal.sentence.terms.map(substitution))) literalIdx = DROP
-          sys.error("Dynamic atoms are not supported!")
+          sys.error("Dynamic atoms are not supported yet!")
         }
         else {
           // Otherwise, invoke its state from the evidence
@@ -348,7 +347,7 @@ class ClauseGrounderImplNew(
     else while (groundIterator.hasNext) performGrounding(theta = groundIterator.next())*/
   }
 
-  private def substituteTerm(theta: collection.Map[Variable, String])(term: Term): String = term match {
+  /*private def substituteTerm(theta: collection.Map[Variable, String])(term: Term): String = term match {
     case c: Constant => c.symbol
     case v: Variable => theta(v)
     case f: TermFunction =>
@@ -356,7 +355,7 @@ class ClauseGrounderImplNew(
         case Some(m) => m(f.terms.map(a => substituteTerm(theta)(a)))
         case None => fatal("Cannot apply substitution using theta: " + theta + " in function " + f.signature)
       }
-  }
+  }*/
 
   private def store(weight: Double, variables: Array[Int]) {
     var hashKey = jutil.Arrays.hashCode(variables)
