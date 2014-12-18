@@ -40,34 +40,34 @@ import lomrf.logic.{Term, AtomSignature, TermFunction}
 
 trait DynamicFunctionBuilder {
   def signature: AtomSignature
-  def resultFunction: (List[String] => String)
-  def apply(terms: List[Term], resultDomain: String): TermFunction
-  def apply(terms: List[Term]): TermFunction
+  def resultFunction: (Vector[String] => String)
+  def apply(terms: Vector[Term], resultDomain: String): TermFunction
+  def apply(terms: Vector[Term]): TermFunction
 }
 
 final class DynSuccFunctionBuilder extends DynamicFunctionBuilder {
 
   def signature = AtomSignature("succ", 1)
 
-  def resultFunction = (constants: List[String]) => (constants.head.toInt + 1).toString //successive (n+1)
+  def resultFunction = (constants: Vector[String]) => (constants.head.toInt + 1).toString //successive (n+1)
 
-  def apply(terms: List[Term], resultDomain: String) = {
+  def apply(terms: Vector[Term], resultDomain: String) = {
     require(terms.size == 1)
     new TermFunction("succ", terms, resultDomain)
   }
 
-  def apply(terms: List[Term]) = {
+  def apply(terms: Vector[Term]) = {
     require(terms.size == 1)
     new TermFunction("succ", terms)
   }
 
 
   def apply(term: Term, resultDomain: String) = {
-    new TermFunction("succ", term :: Nil, resultDomain)
+    new TermFunction("succ", Vector(term), resultDomain)
   }
 
   def apply(term: Term) = {
-    new TermFunction("succ", term :: Nil)
+    new TermFunction("succ", Vector(term))
   }
 
 }
@@ -80,24 +80,24 @@ final class DynPrecFunctionBuilder extends DynamicFunctionBuilder {
 
   def signature = AtomSignature("prec", 1)
 
-  def resultFunction = (constants: List[String]) => (constants.head.toInt - 1).toString  //preceding  (n-1)
+  def resultFunction = (constants: Vector[String]) => (constants.head.toInt - 1).toString  //preceding  (n-1)
 
-  def apply(terms: List[Term], resultDomain: String) = {
+  def apply(terms: Vector[Term], resultDomain: String) = {
     require(terms.size == 1)
     new TermFunction("prec", terms, resultDomain)
   }
 
-  def apply(terms: List[Term]) = {
+  def apply(terms: Vector[Term]) = {
     require(terms.size == 1)
     new TermFunction("prec", terms)
   }
 
   def apply(term: Term, resultDomain: String) = {
-    new TermFunction("prec", term :: Nil, resultDomain)
+    new TermFunction("prec", Vector(term), resultDomain)
   }
 
   def apply(term: Term) = {
-    new TermFunction("prec", term :: Nil)
+    new TermFunction("prec", Vector(term))
   }
 }
 
@@ -110,24 +110,24 @@ final class DynPlusFunctionBuilder extends DynamicFunctionBuilder {
 
   def signature = AtomSignature("plus", 2)
 
-  def resultFunction = (constants: List[String]) => (constants.head.toInt + constants.last.toInt).toString
+  def resultFunction = (constants: Vector[String]) => (constants.head.toInt + constants.last.toInt).toString
 
-  def apply(terms: List[Term], resultDomain: String) = {
+  def apply(terms: Vector[Term], resultDomain: String) = {
     require(terms.size == 2)
     new TermFunction("plus", terms, resultDomain)
   }
 
-  def apply(terms: List[Term]) = {
+  def apply(terms: Vector[Term]) = {
     require(terms.size == 2)
     new TermFunction("plus", terms)
   }
 
   def apply(term: Term, term2: Term, resultDomain: String) = {
-    new TermFunction("plus", term :: term2 :: Nil, resultDomain)
+    new TermFunction("plus", Vector(term, term2), resultDomain)
   }
 
   def apply(term: Term, term2: Term) = {
-    new TermFunction("plus", term :: term2 :: Nil)
+    new TermFunction("plus", Vector(term, term2))
   }
 }
 
@@ -140,24 +140,24 @@ final class DynMinusFunctionBuilder extends DynamicFunctionBuilder {
 
   def signature = AtomSignature("minus", 2)
 
-  def resultFunction = (constants: List[String]) => (constants.head.toInt - constants.last.toInt).toString
+  def resultFunction = (constants: Vector[String]) => (constants.head.toInt - constants.last.toInt).toString
 
-  def apply(terms: List[Term], resultDomain: String) = {
+  def apply(terms: Vector[Term], resultDomain: String) = {
     require(terms.size == 2)
     new TermFunction("minus", terms, resultDomain)
   }
 
-  def apply(terms: List[Term]) = {
+  def apply(terms: Vector[Term]) = {
     require(terms.size == 2)
     new TermFunction("minus", terms)
   }
 
   def apply(term: Term, term2: Term, resultDomain: String) = {
-    new TermFunction("minus", term :: term2 :: Nil, resultDomain)
+    new TermFunction("minus", Vector(term, term2), resultDomain)
   }
 
   def apply(term: Term, term2: Term) = {
-    new TermFunction("minus", term :: term2 :: Nil)
+    new TermFunction("minus", Vector(term, term2))
   }
 }
 
@@ -170,24 +170,24 @@ final class DynTimesFunctionBuilder extends DynamicFunctionBuilder {
 
   def signature = AtomSignature("times", 2)
 
-  def resultFunction = (constants: List[String]) => (constants.head.toInt * constants.last.toInt).toString
+  def resultFunction = (constants: Vector[String]) => (constants.head.toInt * constants.last.toInt).toString
 
-  def apply(terms: List[Term], resultDomain: String) = {
+  def apply(terms: Vector[Term], resultDomain: String) = {
     require(terms.size == 2)
     new TermFunction("times", terms, resultDomain)
   }
 
-  def apply(terms: List[Term]) = {
+  def apply(terms: Vector[Term]) = {
     require(terms.size == 2)
     new TermFunction("times", terms)
   }
 
   def apply(term: Term, term2: Term, resultDomain: String) = {
-    new TermFunction("times", term :: term2 :: Nil, resultDomain)
+    new TermFunction("times", Vector(term, term2), resultDomain)
   }
 
   def apply(term: Term, term2: Term) = {
-    new TermFunction("times", term :: term2 :: Nil)
+    new TermFunction("times", Vector(term, term2))
   }
 }
 
@@ -199,24 +199,24 @@ final class DynDividedByFunctionBuilder extends DynamicFunctionBuilder {
 
   def signature = AtomSignature("dividedBy", 2)
 
-  def resultFunction = (constants: List[String]) => (constants.head.toInt / constants.last.toInt).toString
+  def resultFunction = (constants: Vector[String]) => (constants.head.toInt / constants.last.toInt).toString
 
-  def apply(terms: List[Term], resultDomain: String) = {
+  def apply(terms: Vector[Term], resultDomain: String) = {
     require(terms.size == 2)
     new TermFunction("dividedBy", terms, resultDomain)
   }
 
-  def apply(terms: List[Term]) = {
+  def apply(terms: Vector[Term]) = {
     require(terms.size == 2)
     new TermFunction("dividedBy", terms)
   }
 
   def apply(term: Term, term2: Term, resultDomain: String) = {
-    new TermFunction("dividedBy", term :: term2 :: Nil, resultDomain)
+    new TermFunction("dividedBy", Vector(term, term2), resultDomain)
   }
 
   def apply(term: Term, term2: Term) = {
-    new TermFunction("dividedBy", term :: term2 :: Nil)
+    new TermFunction("dividedBy", Vector(term, term2))
   }
 }
 
@@ -228,24 +228,24 @@ final class DynModFunctionBuilder extends DynamicFunctionBuilder {
 
   def signature = AtomSignature("mod", 2)
 
-  def resultFunction = (constants: List[String]) => (constants.head.toInt % constants.last.toInt).toString
+  def resultFunction = (constants: Vector[String]) => (constants.head.toInt % constants.last.toInt).toString
 
-  def apply(terms: List[Term], resultDomain: String) = {
+  def apply(terms: Vector[Term], resultDomain: String) = {
     require(terms.size == 2)
     new TermFunction("mod", terms, resultDomain)
   }
 
-  def apply(terms: List[Term]) = {
+  def apply(terms: Vector[Term]) = {
     require(terms.size == 2)
     new TermFunction("mod", terms)
   }
 
   def apply(term: Term, term2: Term, resultDomain: String) = {
-    new TermFunction("mod", term :: term2 :: Nil, resultDomain)
+    new TermFunction("mod", Vector(term, term2), resultDomain)
   }
 
   def apply(term: Term, term2: Term) = {
-    new TermFunction("mod", term :: term2 :: Nil)
+    new TermFunction("mod", Vector(term, term2))
   }
 }
 
@@ -258,24 +258,24 @@ final class DynConcatFunctionBuilder extends DynamicFunctionBuilder {
 
   def signature = AtomSignature("concat", 2)
 
-  def resultFunction = (constants: List[String]) => constants.head.concat(constants.last)
+  def resultFunction = (constants: Vector[String]) => constants.head.concat(constants.last)
 
-  def apply(terms: List[Term], resultDomain: String) = {
+  def apply(terms: Vector[Term], resultDomain: String) = {
     require(terms.size == 2)
     new TermFunction("concat", terms, resultDomain)
   }
 
-  def apply(terms: List[Term]) = {
+  def apply(terms: Vector[Term]) = {
     require(terms.size == 2)
     new TermFunction("concat", terms)
   }
 
   def apply(term: Term, term2: Term, resultDomain: String) = {
-    new TermFunction("concat", term :: term2 :: Nil, resultDomain)
+    new TermFunction("concat", Vector(term, term2), resultDomain)
   }
 
   def apply(term: Term, term2: Term) = {
-    new TermFunction("concat", term :: term2 :: Nil)
+    new TermFunction("concat", Vector(term, term2))
   }
 }
 

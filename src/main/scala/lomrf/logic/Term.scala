@@ -165,9 +165,9 @@ sealed case class Constant(override val symbol: String) extends Term {
  * @param terms function's arguments (Terms, i.e. constants, variables or other functions)
  * @param domain the domain of resulting constant (e.g. persons, object, numbers, etc.)
  */
-sealed case class TermFunction(override val symbol: String, terms: List[_ <: Term], domain: String) extends Term {
+sealed case class TermFunction(override val symbol: String, terms: Vector[_ <: Term], domain: String) extends Term {
 
-  def this(symbol: String, terms: List[Term]) = this(symbol, terms, "_?")
+  def this(symbol: String, terms: Vector[Term]) = this(symbol, terms, "_?")
 
   lazy val signature = AtomSignature(symbol, terms.size)
 
@@ -230,5 +230,5 @@ object TermFunction {
    * @param args the terms of the function
    * @return a new instance of function
    */
-  def apply(symbol: String, args: List[Term]) = new TermFunction(symbol, args, UNDEFINED_RETURN_TYPE)
+  def apply(symbol: String, args: Vector[Term]) = new TermFunction(symbol, args, UNDEFINED_RETURN_TYPE)
 }

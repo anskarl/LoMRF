@@ -250,7 +250,7 @@ object KBCompilerCLI extends Logging {
                 fMap.get(function) match {
                   case None =>
                     val functionVar = functionVarPrefix + functionCounter
-                    val terms = Variable(functionVar, function.domain) :: function.terms
+                    val terms = Vector(Variable(functionVar, function.domain)) ++:  function.terms
                     val functionLiteral = NegativeLiteral(AtomicFormula(functionPrefix + function.symbol, terms))
                     fMap += (function ->(functionVar, functionLiteral))
                     functionCounter += 1

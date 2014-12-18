@@ -61,9 +61,9 @@ import scala.collection.breakOut
 class MLN(
            val formulas: collection.Set[Formula],
            val schema: collection.Map[AtomSignature, collection.Seq[String]],
-           val functionSchema: collection.Map[AtomSignature, (String, List[String])],
-           val dynamicAtoms: Map[AtomSignature, List[String] => Boolean],
-           val dynamicFunctions: Map[AtomSignature, List[String] => String],
+           val functionSchema: collection.Map[AtomSignature, (String, Vector[String])],
+           val dynamicAtoms: Map[AtomSignature, Vector[String] => Boolean],
+           val dynamicFunctions: Map[AtomSignature, Vector[String] => String],
            val constants: Map[String, ConstantsSet],
            val functionMappers: Map[AtomSignature, FunctionMapper],
            val queryAtoms: collection.Set[AtomSignature],

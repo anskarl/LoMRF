@@ -41,45 +41,45 @@ final class UnificationSpecTest extends FunSpec with Matchers {
   private val typePerson = "person"
   private val typeTime = "time"
   private val typeFluent = "fluent"
-  private implicit val predicateSchema = Map[AtomSignature, List[String]](AtomSignature("InitiatedAt", 2) -> List(typeFluent, typeTime))
-  private implicit val functionSchema = Map[AtomSignature, (String, List[String])](AtomSignature("meet", 2) ->(typeFluent, List(typePerson, typePerson)))
+  private implicit val predicateSchema = Map[AtomSignature, Vector[String]](AtomSignature("InitiatedAt", 2) -> Vector(typeFluent, typeTime))
+  private implicit val functionSchema = Map[AtomSignature, (String, Vector[String])](AtomSignature("meet", 2) -> (typeFluent, Vector(typePerson, typePerson)))
 
 
-  val k1 = AtomicFormula("Knows", List[Term](Constant("John"), Variable("x", typePerson)))
-  val k2 = AtomicFormula("Knows", List[Term](Constant("John"), Constant("Jane")))
+  val k1 = AtomicFormula("Knows", Vector[Term](Constant("John"), Variable("x", typePerson)))
+  val k2 = AtomicFormula("Knows", Vector[Term](Constant("John"), Constant("Jane")))
   checkUnify(k1, k2)
   checkUnify(k2, k1)
 
-  val k3 = AtomicFormula("Knows", List[Term](Variable("y", typePerson), Constant("Bill")))
+  val k3 = AtomicFormula("Knows", Vector[Term](Variable("y", typePerson), Constant("Bill")))
   checkUnify(k1, k3)
   checkUnify(k3, k1)
 
-  val k4 = AtomicFormula("Knows", List[Term](Variable("y", typePerson),
-    TermFunction("motherOf", List[Term](Variable("y", typePerson)), typePerson)))
+  val k4 = AtomicFormula("Knows", Vector[Term](Variable("y", typePerson),
+    TermFunction("motherOf", Vector[Term](Variable("y", typePerson)), typePerson)))
   checkUnify(k1, k4)
   checkUnify(k4, k1)
 
-  val k5 = AtomicFormula("Knows", List[Term](Variable("x", typePerson), Constant("Elizabeth")))
+  val k5 = AtomicFormula("Knows", Vector[Term](Variable("x", typePerson), Constant("Elizabeth")))
   checkUnify(k1, k5, expected = false)
   checkUnify(k5, k1, expected = false)
 
-  val k6 = AtomicFormula("Knows", List[Term](Variable("y", typePerson),
-    TermFunction("parentOf", List[Term](
-      TermFunction("motherOf", List[Term](Variable("y", typePerson)), typePerson)), typePerson)))
+  val k6 = AtomicFormula("Knows", Vector[Term](Variable("y", typePerson),
+    TermFunction("parentOf", Vector[Term](
+      TermFunction("motherOf", Vector[Term](Variable("y", typePerson)), typePerson)), typePerson)))
   checkUnify(k1, k6)
   checkUnify(k6, k1)
 
-  val k7 = AtomicFormula("Knows", List[Term](Variable("y", typePerson),
-    TermFunction("parentOf", List[Term](
-      TermFunction("motherOf", List[Term](Variable("x", typePerson)), typePerson)), typePerson)))
+  val k7 = AtomicFormula("Knows", Vector[Term](Variable("y", typePerson),
+    TermFunction("parentOf", Vector[Term](
+      TermFunction("motherOf", Vector[Term](Variable("x", typePerson)), typePerson)), typePerson)))
   checkUnify(k1, k7, expected = false)
   checkUnify(k7, k1, expected = false)
 
-  val k8 = AtomicFormula("Knows", List[Term](Variable("y", typePerson),
+  val k8 = AtomicFormula("Knows", Vector[Term](Variable("y", typePerson),
     TermFunction("functionOf",
-      List[Term](
-        TermFunction("motherOf", List[Term](Variable("y", typePerson)), typePerson),
-        TermFunction("fatherOf", List[Term](Variable("y", typePerson)), typePerson),
+      Vector[Term](
+        TermFunction("motherOf", Vector[Term](Variable("y", typePerson)), typePerson),
+        TermFunction("fatherOf", Vector[Term](Variable("y", typePerson)), typePerson),
         Variable("y", typePerson),
         Constant("Something")
       ), typePerson)))
@@ -88,15 +88,15 @@ final class UnificationSpecTest extends FunSpec with Matchers {
 
 
   val k9 = AtomicFormula("InitiatedAt",
-    List[Term](
+    Vector[Term](
       TermFunction(
         "meet",
-        List[Term](Variable("x", typePerson), Variable("y", typePerson)),
+        Vector[Term](Variable("x", typePerson), Variable("y", typePerson)),
         typeFluent),
       Variable("t", typeTime)
     ))
 
-  val k10 = AtomicFormula("InitiatedAt", List[Term](
+  val k10 = AtomicFormula("InitiatedAt", Vector[Term](
     Variable("f", typeFluent),
     Variable("t", typeTime)
   ))
@@ -105,35 +105,35 @@ final class UnificationSpecTest extends FunSpec with Matchers {
 
 
   val k11 = AtomicFormula("Alpha",
-    List[Term](
+    Vector[Term](
       Variable("x", typeTime),
       Variable("y", typeTime)
     ))
   val k12 = AtomicFormula("Alpha",
-    List[Term](
-      TermFunction("func", List[Term](Variable("y", typeTime)), typeTime),
+    Vector[Term](
+      TermFunction("func", Vector[Term](Variable("y", typeTime)), typeTime),
       Constant("10")
     ))
   checkUnify(k11, k12)
 
 
   // k1 = InitiatedAt(meet(x,y),t)
-  val ka1 = AtomicFormula("InitiatedAt", List[Term](TermFunction("meet", List[Term](Variable("x", typePerson), Variable("y", typePerson)), typeFluent), Variable("t", typeTime)))
+  val ka1 = AtomicFormula("InitiatedAt", Vector[Term](TermFunction("meet", Vector[Term](Variable("x", typePerson), Variable("y", typePerson)), typeFluent), Variable("t", typeTime)))
 
   // k2 = InitiatedAt(meet(A,y),t)
-  val ka2 = AtomicFormula("InitiatedAt", List[Term](TermFunction("meet", List[Term](Constant("A"), Variable("y", typePerson)), typeFluent), Variable("t", typeTime)))
+  val ka2 = AtomicFormula("InitiatedAt", Vector[Term](TermFunction("meet", Vector[Term](Constant("A"), Variable("y", typePerson)), typeFluent), Variable("t", typeTime)))
 
   // k3 = InitiatedAt(meet(A,B),t)
-  val ka3 = AtomicFormula("InitiatedAt", List[Term](TermFunction("meet", List[Term](Constant("A"), Constant("B")), typeFluent), Variable("t", typeTime)))
+  val ka3 = AtomicFormula("InitiatedAt", Vector[Term](TermFunction("meet", Vector[Term](Constant("A"), Constant("B")), typeFluent), Variable("t", typeTime)))
 
   // k4 = InitiatedAt(meet(x,B),t)
-  val ka4 = AtomicFormula("InitiatedAt", List[Term](TermFunction("meet", List[Term](Variable("x", typePerson), Constant("B")), typeFluent), Variable("t", typeTime)))
+  val ka4 = AtomicFormula("InitiatedAt", Vector[Term](TermFunction("meet", Vector[Term](Variable("x", typePerson), Constant("B")), typeFluent), Variable("t", typeTime)))
 
   //k5 = InitiatedAt(meet(C,B),t)
-  val ka5 = AtomicFormula("InitiatedAt", List[Term](TermFunction("meet", List[Term](Constant("C"), Constant("B")), typeFluent), Variable("t", typeTime)))
+  val ka5 = AtomicFormula("InitiatedAt", Vector[Term](TermFunction("meet", Vector[Term](Constant("C"), Constant("B")), typeFluent), Variable("t", typeTime)))
 
   // g = InitiatedAt(f,t)
-  val g = AtomicFormula("InitiatedAt", List[Term](Variable("f", typeFluent), Variable("t", typeTime)))
+  val g = AtomicFormula("InitiatedAt", Vector[Term](Variable("f", typeFluent), Variable("t", typeTime)))
 
   //Test 1 mgp(InitiatedAt(meet(x,y),t), InitiatedAt(f,t)) = InitiatedAt(f,t)
   checkMGP(ka1, g, g)

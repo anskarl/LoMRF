@@ -57,36 +57,36 @@ final class NormalFormSpecTest extends FunSpec with Matchers{
     "b" -> ConstantsSet("B1", "B2")
   )
 
-  private val predicateSchema = Map[AtomSignature, List[String]](
-    AtomSignature("InitiatedAt", 2) -> List("fluent", "time"),
-    AtomSignature("TerminatedAt", 2) -> List("fluent", "time"),
-    AtomSignature("Initiates", 3) -> List("event", "fluent", "time"),
-    AtomSignature("Terminates", 3) -> List("event", "fluent", "time"),
-    AtomSignature("Happens", 2) -> List("event", "time"),
-    AtomSignature("HoldsAt", 2) -> List("fluent", "time"),
-    AtomSignature("Next", 2) -> List("time", "time"),
-    AtomSignature("Close", 2) -> List("dist", "time"),
-    AtomSignature("Close", 4) -> List("id", "id", "dist", "time"),
-    AtomSignature("OrientationMove", 1) -> List("time"),
-    AtomSignature("StartedAt", 3) -> List("event", "fluent", "time"),
-    AtomSignature("StoppedAt", 3) -> List("event", "fluent", "time"),
+  private val predicateSchema = Map[AtomSignature, Vector[String]](
+    AtomSignature("InitiatedAt", 2) -> Vector("fluent", "time"),
+    AtomSignature("TerminatedAt", 2) -> Vector("fluent", "time"),
+    AtomSignature("Initiates", 3) -> Vector("event", "fluent", "time"),
+    AtomSignature("Terminates", 3) -> Vector("event", "fluent", "time"),
+    AtomSignature("Happens", 2) -> Vector("event", "time"),
+    AtomSignature("HoldsAt", 2) -> Vector("fluent", "time"),
+    AtomSignature("Next", 2) -> Vector("time", "time"),
+    AtomSignature("Close", 2) -> Vector("dist", "time"),
+    AtomSignature("Close", 4) -> Vector("id", "id", "dist", "time"),
+    AtomSignature("OrientationMove", 1) -> Vector("time"),
+    AtomSignature("StartedAt", 3) -> Vector("event", "fluent", "time"),
+    AtomSignature("StoppedAt", 3) -> Vector("event", "fluent", "time"),
 
-    AtomSignature("Predicate1", 1) -> List("a"),
-    AtomSignature("Predicate2", 2) -> List("a", "b"),
-    AtomSignature("Predicate3", 1) -> List("b")
+    AtomSignature("Predicate1", 1) -> Vector("a"),
+    AtomSignature("Predicate2", 2) -> Vector("a", "b"),
+    AtomSignature("Predicate3", 1) -> Vector("b")
   )
 
-  private val functionsSchema = Map[AtomSignature, (String, List[String])](
-    AtomSignature("walking", 1) ->("event", List("id")),
-    AtomSignature("abrupt", 1) ->("event", List("id")),
-    AtomSignature("running", 1) ->("event", List("id")),
-    AtomSignature("active", 1) ->("event", List("id")),
-    AtomSignature("inactive", 1) ->("event", List("id")),
-    AtomSignature("exit", 1) ->("event", List("id")),
-    AtomSignature("fight", 2) ->("fluent", List("id", "id")),
-    AtomSignature("move", 2) ->("fluent", List("id", "id")),
-    AtomSignature("meet", 2) ->("fluent", List("id", "id")),
-    AtomSignature("leaving_object", 2) ->("fluent", List("id", "id"))
+  private val functionsSchema = Map[AtomSignature, (String, Vector[String])](
+    AtomSignature("walking", 1) ->("event", Vector("id")),
+    AtomSignature("abrupt", 1) ->("event", Vector("id")),
+    AtomSignature("running", 1) ->("event", Vector("id")),
+    AtomSignature("active", 1) ->("event", Vector("id")),
+    AtomSignature("inactive", 1) ->("event", Vector("id")),
+    AtomSignature("exit", 1) ->("event", Vector("id")),
+    AtomSignature("fight", 2) ->("fluent", Vector("id", "id")),
+    AtomSignature("move", 2) ->("fluent", Vector("id", "id")),
+    AtomSignature("meet", 2) ->("fluent", Vector("id", "id")),
+    AtomSignature("leaving_object", 2) ->("fluent", Vector("id", "id"))
   )
 
 

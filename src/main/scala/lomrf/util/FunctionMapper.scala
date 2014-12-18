@@ -42,9 +42,9 @@ import gnu.trove.TCollections
 
 trait FunctionMapper {
 
-  def apply(args: List[String]): String
+  def apply(args: Vector[String]): String
 
-  def get(args: List[String]): Option[String]
+  def get(args: Vector[String]): Option[String]
 }
 
 object FunctionMapper {
@@ -52,17 +52,17 @@ object FunctionMapper {
 
   def apply(idf: AtomIdentityFunction, args2Value: TIntObjectMap[String]): FunctionMapper = new FunctionMapperDefaultImpl(idf, args2Value)
 
-  def apply(func: List[String] => String): FunctionMapper = new FunctionMapperSpecialImpl(func)
+  def apply(func: Vector[String] => String): FunctionMapper = new FunctionMapperSpecialImpl(func)
 }
 
 final class FunctionMapperDefaultImpl private[util](identityFunction: AtomIdentityFunction, args2Value: TIntObjectMap[String]) extends FunctionMapper {
 
-  def apply(args: List[String]): String = {
+  def apply(args: Vector[String]): String = {
     val id = identityFunction.encode(args)
     args2Value.get(id)
   }
 
-  def get(args: List[String]): Option[String] = {
+  def get(args: Vector[String]): Option[String] = {
     val id = identityFunction.encode(args)
     val result = args2Value.get(id)
     if (result eq null) None else Some(result)
@@ -77,7 +77,7 @@ final class FunctionMapperBuilder(identityFunction: AtomIdentityFunction) {
   private var dirty = false
   private var args2Value = new TIntObjectHashMap[String]()
 
-  def +=(args: List[String], value: String) {
+  def +=(args: Vector[String], value: String) {
     if (dirty) {
       //copy
       val cp_args2Value = new TIntObjectHashMap[String](args2Value.size)
@@ -100,11 +100,11 @@ final class FunctionMapperBuilder(identityFunction: AtomIdentityFunction) {
   }
 }
 
-final class FunctionMapperSpecialImpl private[util](func: List[String] => String) extends FunctionMapper {
+final class FunctionMapperSpecialImpl private[util](func: Vector[String] => String) extends FunctionMapper {
 
 
-  def apply(args: List[String]) = func(args)
+  def apply(args: Vector[String]) = func(args)
 
-  def get(args: List[String]): Option[String] = Some(func(args))
+  def get(args: Vector[String]): Option[String] = Some(func(args))
 
 }

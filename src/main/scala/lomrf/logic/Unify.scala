@@ -55,7 +55,7 @@ object Unify {
   def apply[T](x: T, y: T, theta: ThetaOpt)(implicit m: Manifest[Term]): ThetaOpt = x match{
       case p: Term => unifyTerm(p, y.asInstanceOf[Term], theta)
       case f: AtomicFormula => unifyAtomicFormula(f, y.asInstanceOf[AtomicFormula], theta)
-      case l: List[Term] => unifyTerms(l, y.asInstanceOf[List[Term]], theta)
+      case l: Vector[Term] => unifyTerms(l, y.asInstanceOf[Vector[Term]], theta)
   }
 
   def apply(x: AtomicFormula, f: Formula): ThetaOpt = unifyFormula(x,f, Some(Map[Term, Term]()))
@@ -76,12 +76,12 @@ object Unify {
   }
 
   @tailrec
-  private def unifyTerms(x: List[Term], y: List[Term], theta: ThetaOpt): ThetaOpt = theta match {
+  private def unifyTerms(x: Vector[Term], y: Vector[Term], theta: ThetaOpt): ThetaOpt = theta match {
     case None => None //failure
     case Some(m) =>
       (x,y) match {
-        case (aX :: restX, aY :: restY) => unifyTerms(restX, restY, unifyTerm(aX, aY, theta))
-        case (Nil, Nil) => theta
+        case (aX +: restX, aY +: restY) => unifyTerms(restX, restY, unifyTerm(aX, aY, theta))
+        case (IndexedSeq(), IndexedSeq()) => theta
         case _ => None
       }
   }
@@ -94,7 +94,7 @@ object Unify {
 
   @inline
   private def unifyVar(v: Variable, x:Term, theta: ThetaOpt): ThetaOpt = theta match {
-    case None => None //failure
+    case None => None // failure
     case Some(m) if m.contains(v) => apply(m(v),x, theta)
     case Some(m) => x match {
       case a: Variable if m.contains(a) => apply(v, m(a), theta)

@@ -38,6 +38,8 @@ package lomrf.logic
 
 class EvidenceParser extends CommonsMLNParser {
 
+  private implicit def list2Vector[T](src: List[T]): Vector[T] = src.toVector
+
   /**
    * A grounded term is a constant
    */
@@ -67,7 +69,7 @@ class EvidenceParser extends CommonsMLNParser {
   }
 
   def positiveAtom0: Parser[EvidenceAtom] = upperCaseID ~ opt(numDouble) ^^ {
-    case predName ~ None => EvidenceAtom(predName, List.empty[Constant], isPositive = true)
+    case predName ~ None => EvidenceAtom(predName, Vector.empty[Constant], isPositive = true)
     case atomExpression@(predName ~ Some(probability)) =>
       mkProbabilisticAtom(atomExpression.toString(), predName, List.empty[Constant], probability.toDouble, isPositive = true)
   }
@@ -79,7 +81,7 @@ class EvidenceParser extends CommonsMLNParser {
   }
 
   def negativeAtom0: Parser[EvidenceAtom] = "!" ~ upperCaseID ~ opt(numDouble) ^^ {
-    case "!" ~ predName ~ None => EvidenceAtom(predName, List.empty[Constant], isPositive = false)
+    case "!" ~ predName ~ None => EvidenceAtom(predName, Vector.empty[Constant], isPositive = false)
     case atomExpression@("!" ~ predName ~ Some(probability)) =>
       mkProbabilisticAtom(atomExpression.toString(), predName, List.empty[Constant], probability.toDouble, isPositive = false)
   }
@@ -89,7 +91,7 @@ class EvidenceParser extends CommonsMLNParser {
   }
 
   def unkAtom0: Parser[EvidenceAtom] = "?" ~ upperCaseID  ^^ {
-    case "?" ~ predName  => EvidenceAtom(predName, List.empty[Constant], UNKNOWN)
+    case "?" ~ predName  => EvidenceAtom(predName, Vector.empty[Constant], UNKNOWN)
   }
 
   def functionMapping: Parser[FunctionMapping] = upperCaseID ~ "=" ~ lowerCaseID ~ "(" ~ repsep(upperCaseID, ",") ~ ")" ^^ {

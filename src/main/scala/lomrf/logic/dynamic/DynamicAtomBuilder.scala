@@ -42,13 +42,13 @@ trait DynamicAtomBuilder {
 
   def signature: AtomSignature
 
-  def stateFunction: (List[String] => Boolean)
+  def stateFunction: (Vector[String] => Boolean)
 
-  def apply(terms: List[Term]): DynamicAtom
+  def apply(terms: Vector[Term]): DynamicAtom
 
 }
 
-private[dynamic] final class DynInfix(prefixSymbol: String, infixSymbol:String, terms:List[Term]) extends DynamicAtom(prefixSymbol, terms){
+private[dynamic] final class DynInfix(prefixSymbol: String, infixSymbol:String, terms: Vector[Term]) extends DynamicAtom(prefixSymbol, terms){
   require(terms.size == 2)
 
   override def toText: String = terms.head.toText+" "+ infixSymbol+" "+terms.last.toText
@@ -59,9 +59,9 @@ final class DynEqualsBuilder extends DynamicAtomBuilder {
 
   def signature = AtomSignature("equals", 2)
 
-  def stateFunction = (constants: List[String]) => constants.head == constants.last
+  def stateFunction = (constants: Vector[String]) => constants.head == constants.last
 
-  def apply(terms: List[Term]) = new DynInfix("equals","=", terms)
+  def apply(terms: Vector[Term]) = new DynInfix("equals","=", terms)
 
 }
 
@@ -74,9 +74,9 @@ final class DynLessThanBuilder extends DynamicAtomBuilder {
 
   def signature = AtomSignature("lessThan", 2)
 
-  def stateFunction = (constants: List[String]) => constants.head.toInt < constants.last.toInt
+  def stateFunction = (constants: Vector[String]) => constants.head.toInt < constants.last.toInt
 
-  def apply(terms: List[Term]) = new DynInfix("lessThan","<",terms)
+  def apply(terms: Vector[Term]) = new DynInfix("lessThan","<",terms)
 
 }
 
@@ -88,9 +88,9 @@ final class DynLessThanEqBuilder extends DynamicAtomBuilder {
 
   def signature = AtomSignature("lessThanEq", 2)
 
-  def stateFunction = (constants: List[String]) => constants.head.toInt <= constants.last.toInt
+  def stateFunction = (constants: Vector[String]) => constants.head.toInt <= constants.last.toInt
 
-  def apply(terms: List[Term]) = new DynInfix("lessThanEq","<=", terms)
+  def apply(terms: Vector[Term]) = new DynInfix("lessThanEq","<=", terms)
 
 }
 
@@ -103,9 +103,9 @@ final class DynGreaterThanBuilder extends DynamicAtomBuilder {
 
   def signature = AtomSignature("greaterThan", 2)
 
-  def stateFunction = (constants: List[String]) => constants.head.toInt > constants.last.toInt
+  def stateFunction = (constants: Vector[String]) => constants.head.toInt > constants.last.toInt
 
-  def apply(terms: List[Term]) = new DynInfix("greaterThan",">", terms)
+  def apply(terms: Vector[Term]) = new DynInfix("greaterThan",">", terms)
 
 }
 
@@ -118,9 +118,9 @@ final class DynGreaterThanEqBuilder extends DynamicAtomBuilder {
 
   def signature = AtomSignature("greaterThanEq", 2)
 
-  def stateFunction = (constants: List[String]) => constants.head.toInt >= constants.last.toInt
+  def stateFunction = (constants: Vector[String]) => constants.head.toInt >= constants.last.toInt
 
-  def apply(terms: List[Term]) = new DynInfix("greaterThanEq",">=", terms)
+  def apply(terms: Vector[Term]) = new DynInfix("greaterThanEq",">=", terms)
 
 }
 
@@ -132,9 +132,9 @@ object DynGreaterThanEqBuilder{
 final class DynSubstringBuilder extends DynamicAtomBuilder{
   def signature = AtomSignature("substr", 2)
 
-  def stateFunction = (constants: List[String]) => constants.last.contains(constants.head)
+  def stateFunction = (constants: Vector[String]) => constants.last.contains(constants.head)
 
-  def apply(terms: List[Term]) = {
+  def apply(terms: Vector[Term]) = {
     require(terms.size == 2)
     new DynamicAtom("substr", terms)
   }

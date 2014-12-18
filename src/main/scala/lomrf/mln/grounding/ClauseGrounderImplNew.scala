@@ -167,7 +167,7 @@ class ClauseGrounderImplNew(
   private val owaLiterals = orderedLiterals.view.map(_._1).filter(literal => mln.isTriState(literal.sentence.signature))
 
   // Collect dynamic atoms
-  private val dynamicAtoms: Map[Int, (List[String] => Boolean)] =
+  private val dynamicAtoms: Map[Int, (Vector[String] => Boolean)] =
     (for (i <- 0 until orderedLiterals.length; sentence = orderedLiterals(i)._1.sentence; if sentence.isDynamic)
     yield i -> mln.dynamicAtoms(sentence.signature))(breakOut)
 

@@ -85,11 +85,11 @@ class DomainParser extends CommonsMLNParser {
    */
 
   def atomicTypeWithArgs: Parser[AtomicType] = (upperCaseID ~ "(" ~ repsep(lowerCaseID, ",") ~ ")") ^^ {
-    case name ~ "(" ~ termArgs ~ ")" => AtomicType(name, termArgs)
+    case name ~ "(" ~ termArgs ~ ")" => AtomicType(name, termArgs.toVector)
   }
 
   def atomicTypeWithoutArgs: Parser[AtomicType] = atomTypeNoArgs ^^ {
-    case name => AtomicType(name.trim, List[String]())
+    case name => AtomicType(name.trim, Vector[String]())
   }
 
   def atomicType = atomicTypeWithArgs | atomicTypeWithoutArgs
@@ -105,7 +105,7 @@ class DomainParser extends CommonsMLNParser {
    */
   def functionType: Parser[FunctionType] =
     (lowerCaseID ~ lowerCaseID ~ "(" ~ repsep(lowerCaseID, ",") ~ ")") ^^ {
-      case retType ~ funcName ~ "(" ~ funcArgs ~ ")" => FunctionType(retType, funcName, funcArgs)
+      case retType ~ funcName ~ "(" ~ funcArgs ~ ")" => FunctionType(retType, funcName, funcArgs.toVector)
     }
 
 

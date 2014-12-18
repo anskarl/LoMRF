@@ -98,7 +98,7 @@ object PredicateCompletion extends Logging {
    * @return a logically stronger knowledge base (set of formulas)
    */
   def apply(formulas: collection.Set[Formula], definiteClauses: collection.Set[WeightedDefiniteClause])
-           (implicit predicateSchema: Map[AtomSignature, List[String]], functionSchema: Map[AtomSignature, (String, List[String])]): collection.Set[Formula] = apply(formulas, definiteClauses, PredicateCompletionMode.Simplification)
+           (implicit predicateSchema: Map[AtomSignature, Vector[String]], functionSchema: Map[AtomSignature, (String, Vector[String])]): collection.Set[Formula] = apply(formulas, definiteClauses, PredicateCompletionMode.Simplification)
 
   /**
    * Creates a logically stronger knowledge base from the given formulas, by performing predicate completion.
@@ -179,7 +179,7 @@ object PredicateCompletion extends Logging {
    * @return  a logically stronger knowledge base (set of formulas)
    */
   def apply(formulas: collection.Set[Formula], definiteClauses: collection.Set[WeightedDefiniteClause], mode: PredicateCompletionMode)
-           (implicit predicateSchema: Map[AtomSignature, List[String]], functionSchema: Map[AtomSignature, (String, List[String])]): collection.Set[Formula] = {
+           (implicit predicateSchema: Map[AtomSignature, Vector[String]], functionSchema: Map[AtomSignature, (String, Vector[String])]): collection.Set[Formula] = {
 
     if (definiteClauses.isEmpty) {
       info("No definite clauses found in the given MLN.")
@@ -248,7 +248,7 @@ object PredicateCompletion extends Logging {
 
 
   private def collectAndMerge(definiteClauses: collection.Set[WeightedDefiniteClause])
-                             (implicit predicateSchema: Map[AtomSignature, List[String]], functionSchema: Map[AtomSignature, (String, List[String])]): (Boolean, DefiniteClausesDB) = {
+                             (implicit predicateSchema: Map[AtomSignature, Vector[String]], functionSchema: Map[AtomSignature, (String, Vector[String])]): (Boolean, DefiniteClausesDB) = {
 
 
     val dcDB = mutable.HashMap[AtomSignature, mutable.HashMap[AtomicFormula, mutable.HashSet[DefiniteClauseConstruct]]]()
@@ -296,7 +296,7 @@ object PredicateCompletion extends Logging {
 
                           //Insert the additional atoms to the bodies:
                           val additionalAtomsStored =
-                            for ((v, t) <- thetaWithoutVarRenamed if v.isInstanceOf[Variable]) yield eqBuilder(List(v, t)) //yield AtomicFormula("equals", List(v, t))
+                            for ((v, t) <- thetaWithoutVarRenamed if v.isInstanceOf[Variable]) yield eqBuilder(Vector(v, t)) //yield AtomicFormula("equals", List(v, t))
 
                           additionalAtomsStored.foldLeft(bodyVarRenamed)((rest, atom) => And(atom, rest))
                         }
@@ -322,7 +322,7 @@ object PredicateCompletion extends Logging {
                         val thetaWithoutVarRenamed = thetaStored -- thetaVariablesRenaming.keys
 
                         val additionalAtomsStored =
-                          for ((v, t) <- thetaWithoutVarRenamed if v.isInstanceOf[Variable]) yield eqBuilder(List(v, t)) //yield AtomicFormula("equals", List(v, t))
+                          for ((v, t) <- thetaWithoutVarRenamed if v.isInstanceOf[Variable]) yield eqBuilder(Vector(v, t)) //yield AtomicFormula("equals", List(v, t))
 
                         val updatedBodies = bodiesVarRenamed.map(body => additionalAtomsStored.foldLeft(body)((rest, atom) => And(atom, rest)))
                         updatedBodies += currentClauseBody

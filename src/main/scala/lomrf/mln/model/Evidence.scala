@@ -192,7 +192,7 @@ private[model] object Evidence extends Logging {
     for (evidenceExpressions <- evidenceExpressionsDB; expr <- evidenceExpressions) expr match {
       case fm: FunctionMapping =>
         functionMapperBuilders.get(fm.signature) match {
-          case Some(fMappingBuilder) => fMappingBuilder +=(fm.values, fm.retValue)
+          case Some(fMappingBuilder) => fMappingBuilder += (fm.values, fm.retValue)
           case None =>
             val idFunction = AtomIdentityFunction(fm.signature, functionSchema(fm.signature)._2, constants, 1)
             val builder = new FunctionMapperBuilder(idFunction)

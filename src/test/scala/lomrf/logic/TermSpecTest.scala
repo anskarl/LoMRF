@@ -187,11 +187,11 @@ final class TermSpecTest extends FunSpec with Matchers {
    * functions description: (TermFunction instance, string representation, arity, number of constants, number of variables )
    */
   val functionsDescription = List(
-    (TermFunction("Foo", List(Constant("Bar"))), "Foo(Bar)", 1, 1, 0),
-    (TermFunction("Foo", List(Variable("x"), Constant("Bar"))), "Foo(x,Bar)", 2, 1, 1),
-    (TermFunction("Foo", List(Variable("x"), Constant("Bar"), Variable("y"))), "Foo(x,Bar,y)", 3, 1, 2),
-    (TermFunction("Foo", List(Variable("x"), Constant("Bar"), TermFunction("F", List(Variable("y"))))), "Foo(x,Bar,F(y))", 3, 1, 2),
-    (TermFunction("Foo", List(Variable("x"), Constant("Bar"), TermFunction("F", List(Variable("y"), Constant("G"))))), "Foo(x,Bar,F(y,G))", 3, 2, 2)
+    (TermFunction("Foo", Vector(Constant("Bar"))), "Foo(Bar)", 1, 1, 0),
+    (TermFunction("Foo", Vector(Variable("x"), Constant("Bar"))), "Foo(x,Bar)", 2, 1, 1),
+    (TermFunction("Foo", Vector(Variable("x"), Constant("Bar"), Variable("y"))), "Foo(x,Bar,y)", 3, 1, 2),
+    (TermFunction("Foo", Vector(Variable("x"), Constant("Bar"), TermFunction("F", Vector(Variable("y"))))), "Foo(x,Bar,F(y))", 3, 1, 2),
+    (TermFunction("Foo", Vector(Variable("x"), Constant("Bar"), TermFunction("F", Vector(Variable("y"), Constant("G"))))), "Foo(x,Bar,F(y,G))", 3, 2, 2)
   )
 
   for ((termFunction, strFunction, arity, nConstant, nVariables) <- functionsDescription) {

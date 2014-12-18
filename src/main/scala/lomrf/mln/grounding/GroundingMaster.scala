@@ -97,10 +97,9 @@ private final class GroundingMaster(mln: MLN, latch: CountDownLatch, noNegWeight
     // To make sure that all ground query predicates will be stored in the network,
     // insert all ground query predicates as zero weighted unit clauses
     for (signature <- mln.queryAtoms) {
-      val terms =
-        mln.schema(signature).view.zipWithIndex.map {
+      val terms = mln.schema(signature).view.zipWithIndex.map {
           case (argType: String, idx: Int) => Variable("v" + idx, argType, idx)
-        }.toList
+        }.toVector
       //remainingClauses += Clause(0, AtomicFormula(signature.symbol, terms))
       remainingClauses :+= Clause(0, AtomicFormula(signature.symbol, terms))
     }
