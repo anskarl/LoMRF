@@ -40,143 +40,43 @@ import lomrf.logic._
 import lomrf.mln.model.MLN
 import lomrf.util.AtomIdentityFunction.IDENTITY_NOT_EXIST
 import lomrf.util.Cartesian.CartesianIterator
-import lomrf.util.{Logging, AtomIdentityFunction, Cartesian}
+import lomrf.util.{AtomIdentityFunction, Logging}
 
 import scala.collection._
 import scala.language.postfixOps
 import scalaxy.loops._
 
 /**
- * EXPERIMENTAL
+ *
+ * Experimental implementation of efficient grounding.
+ *
  *
  * @author Anastasios Skarlatidis
  */
-class ClauseGrounderImplNew(
+class ClauseGrounderImplNew private(
                           val clause: Clause,
                           mln: MLN,
                           cliqueRegisters: Array[ActorRef],
                           atomSignatures: Set[AtomSignature],
                           atomsDB: Array[TIntSet],
-                          noNegWeights: Boolean = false,
-                          eliminateNegatedUnit: Boolean = false) extends ClauseGrounder with Logging{
+                          orderedLiterals: Array[(Literal, AtomIdentityFunction)],
+                          owaLiterals: Array[Literal],
+                          dynamicAtoms: Map[Int, (Vector[String] => Boolean)],
+                          length: Int,
+                          noNegWeights: Boolean,
+                          eliminateNegatedUnit: Boolean) extends ClauseGrounder with Logging {
 
   require(!clause.weight.isNaN, "Found a clause with not a valid weight value (NaN).")
 
+  // The number of clique batches is same with the number of clique registers, by default is the number of available
+  // virtual processors
   private val cliqueBatches = cliqueRegisters.length
+
+  // The number of atom DBs. Minimum is equal with the number of query atoms and maximum is the number of query and
+  // hidden atoms.
   private val atomsDBBatches = atomsDB.length
 
-  private val variableDomains: Map[Variable, Iterable[String]] = {
-    if (clause.isGround) Map.empty[Variable, Iterable[String]]
-    else (for (v <- clause.variables) yield v -> mln.constants(v.domain))(breakOut)
-  }
-
-  /*private val groundIterator = try {
-      Cartesian.CartesianIterator(variableDomains)
-    } catch {
-      case ex: NoSuchElementException =>
-        fatal("Failed to initialise CartesianIterator for clause: " + clause.toString + " --- domain = " +  variableDomains)
-    }*/
-
-
-  private val identities: Map[AtomSignature, AtomIdentityFunction] =
-    (for (literal <- clause.literals if !mln.isDynamicAtom(literal.sentence.signature))
-    yield literal.sentence.signature -> mln.identityFunctions(literal.sentence.signature))(breakOut)
-
-
-  /**
-   * <p> To improve the grounding speed, we change the order of clause literals according to their type
-   * (i.e. dynamic or regular predicates) and a score function.
-   * </p>
-   *
-   * <ul>
-   * <li> When both literals contain dynamic sentences (e.q. equals, lessThan, etc.), then
-   * the literal with the lowest number of Variables is placed first</li>
-   * <li> When only one literal contains a dynamic sentence, then there are two sub-cases:
-   * (1) if the other literal contains a sentence with unknown groundings, then the dynamic one
-   * is placed first. (2) Otherwise, the literal with the lowest number of Variables is placed first.</li>
-   * <li>Finally, when both literals are regular (i.e. not dynamic), then the literal with the
-   * lowest score is placed first:
-   * <br/>
-   * '''score = (number of unsatisfied - number of unknown)/(number of all groundings)'''
-   * <br/>
-   * In other words, this score value represents the fraction of tuples (i.e. constants replacing
-   * variables in the clause)  that will remain after the literal is grounded. This heuristic score function
-   * is based in the following paper:
-   * <br/>
-   * <br/>
-   * ''Shavlik, J. and Natarajan, S. Speeding Up Inference in Markov Logic Networks by pre-processing to
-   * Reduce the Size of the Resulting Grounded Network. In Proceedings of the 21th International
-   * Joint Conference on Artificial Intelligence (IJCAI), 2009.''
-   * </li>
-   * </ul>
-   *
-   *
-   */
-  private val orderedLiterals =
-    clause.literals.view.map(lit =>
-      (lit, identities.getOrElse(lit.sentence.signature, null))).toArray.sortBy(entry => entry._1)(new Ordering[Literal] {
-
-      def compare(x: Literal, y: Literal) = {
-        val xDB = mln.atomStateDB.getOrElse(x.sentence.signature, null)
-        val yDB = mln.atomStateDB.getOrElse(y.sentence.signature, null)
-
-        val scoreX =
-          if (x.sentence.isDynamic) Double.NaN
-          else {
-            val satX = if (x.isNegative) xDB.numberOfFalse else xDB.numberOfTrue
-            val unsatX = xDB.length - satX
-            (unsatX + xDB.numberOfUnknown) / xDB.length.toDouble
-          }
-
-        val scoreY =
-          if (y.sentence.isDynamic) Double.NaN
-          else {
-            val satY = if (y.isNegative) yDB.numberOfFalse else yDB.numberOfTrue
-            val unsatY = yDB.length - satY
-            (unsatY + yDB.numberOfUnknown) / yDB.length.toDouble
-          }
-
-        (scoreX, scoreY) match {
-          case (Double.NaN, Double.NaN) =>
-            val nVarX = x.sentence.variables.size
-            val nVarY = y.sentence.variables.size
-            nVarX.compare(nVarY)
-          case (Double.NaN, _) =>
-            if (yDB.numberOfUnknown > 0) -1
-            else {
-              val nVarX = x.sentence.variables.size
-              val nVarY = y.sentence.variables.size
-              nVarX.compare(nVarY)
-            }
-          case (_, Double.NaN) =>
-            if (xDB.numberOfUnknown > 0) 1
-            else {
-              val nVarX = x.sentence.variables.size
-              val nVarY = y.sentence.variables.size
-              nVarX.compare(nVarY)
-            }
-          case _ =>
-            // regular literals
-            if (scoreX < scoreY) -1
-            else if (scoreX > scoreY) 1
-            else 0
-        }
-      }
-    })
-
-  private val owaLiterals = orderedLiterals.view.map(_._1).filter(literal => mln.isTriState(literal.sentence.signature))
-
-  // Collect dynamic atoms
-  private val dynamicAtoms: Map[Int, (Vector[String] => Boolean)] =
-    (for (i <- 0 until orderedLiterals.length; sentence = orderedLiterals(i)._1.sentence; if sentence.isDynamic)
-    yield i -> mln.dynamicAtoms(sentence.signature))(breakOut)
-
-
-  private val length = clause.literals.count(l => mln.isTriState(l.sentence.signature))
-
   def collectedSignatures = clause.literals.map(_.sentence.signature) -- atomSignatures
-
-  def getVariableDomains = variableDomains
 
 
   def computeGroundings() {
@@ -210,7 +110,6 @@ class ClauseGrounderImplNew(
     val ffIterator = CartesianIterator.apply2(orderedConstantSets)
 
     def performGrounding(substitution: Array[Int] ): Int = {
-
 
       var sat = 0
       var counter = 0
@@ -363,5 +262,73 @@ class ClauseGrounderImplNew(
 
     cliqueRegisters(math.abs(hashKey % cliqueBatches)) ! CliqueEntry(hashKey, weight, variables)
   }
+
+}
+
+object ClauseGrounderImplNew {
+
+  /**
+   * @param clause the clause to ground
+   * @param mln the MLN instance
+   * @param cliqueRegisters the collection of available clique registers, to send groundings of the user specified clause.
+   * @param atomSignatures the set of required atom signatures
+   * @param atomsDB the Atoms DB, i.e., collection of integer sets that have been grounded
+   * @param noNegWeights when it is true the negative weights are eliminated, otherwise the weights remain the same.
+   * @param eliminateNegatedUnit when it is true the unit clauses with negative weights are eliminated.
+   *
+   * @return a new instance of ClauseGrounderImplNew
+   */
+  def apply(clause: Clause, mln: MLN, cliqueRegisters: Array[ActorRef], atomSignatures: Set[AtomSignature],
+            atomsDB: Array[TIntSet], noNegWeights: Boolean = false, eliminateNegatedUnit: Boolean = false): ClauseGrounderImplNew = {
+
+    /**
+     * A utility Map that associates Variables with an iterable collection with its possible instantiations (according to
+     * their given domain). For example, the predicate {{{HoldsAt(f, t)}}} has two variables, i.e., 'f' and 't'. Assume
+     * that the possible instantiations of 't', according to some given evidence, is the discrete set 1 to 100. The Map
+     * will contain as a key the {{{Variable("t")}}} and as a value the iterable collection of 1 to 100.
+     */
+    val variableDomains: Map[Variable, Iterable[String]] = {
+      if (clause.isGround) Map.empty[Variable, Iterable[String]]
+      else (for (v <- clause.variables) yield v -> mln.constants(v.domain))(breakOut)
+    }
+
+    /**
+     * A utility Map that associates AtomSignatures with AtomIdentityFunction (= Bijection of ground atoms to integers).
+     * This Map contains information only for ordinary atoms (not dynamic atoms).
+     */
+    val identities: Map[AtomSignature, AtomIdentityFunction] =
+    (for (literal <- clause.literals if !mln.isDynamicAtom(literal.sentence.signature))
+    yield literal.sentence.signature -> mln.identityFunctions(literal.sentence.signature))(breakOut)
+
+
+
+    val orderedLiterals: Array[(Literal, AtomIdentityFunction)] = clause
+      .literals
+      .view
+      .map(lit => (lit, identities.getOrElse(lit.sentence.signature, null)))
+      .toArray
+      .sortBy(entry => entry._1)(new ClauseLiteralsOrdering(mln))
+
+
+    // Collect literals with open-world assumption
+    val owaLiterals: Array[Literal] = orderedLiterals
+      .map(_._1) // get the literal instance
+      .filter(literal => mln.isTriState(literal.sentence.signature))
+
+    // Collect dynamic atoms
+    val dynamicAtoms: Map[Int, (Vector[String] => Boolean)] =
+      (for (i <- 0 until orderedLiterals.length; sentence = orderedLiterals(i)._1.sentence; if sentence.isDynamic)
+      yield i -> mln.dynamicAtoms(sentence.signature))(breakOut)
+
+
+    val length = clause.literals.count(l => mln.isTriState(l.sentence.signature))
+
+    // Create the new instance 'ClauseGrounderImplNew':
+    new ClauseGrounderImplNew(clause, mln, cliqueRegisters, atomSignatures, atomsDB, orderedLiterals,owaLiterals,
+      dynamicAtoms,length, noNegWeights, eliminateNegatedUnit)
+  }
+
+
+
 
 }

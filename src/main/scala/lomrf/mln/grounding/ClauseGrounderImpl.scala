@@ -86,86 +86,10 @@ class ClauseGrounderImpl(
     yield literal.sentence.signature -> mln.identityFunctions(literal.sentence.signature))(breakOut)
 
 
-  /**
-   * <p> To improve the grounding speed, we change the order of clause literals according to their type
-   * (i.e. dynamic or regular predicates) and a score function.
-   * </p>
-   *
-   * <ul>
-   * <li> When both literals contain dynamic sentences (e.q. equals, lessThan, etc.), then
-   * the literal with the lowest number of Variables is placed first</li>
-   * <li> When only one literal contains a dynamic sentence, then there are two sub-cases:
-   * (1) if the other literal contains a sentence with unknown groundings, then the dynamic one
-   * is placed first. (2) Otherwise, the literal with the lowest number of Variables is placed first.</li>
-   * <li>Finally, when both literals are regular (i.e. not dynamic), then the literal with the
-   * lowest score is placed first:
-   * <br/>
-   * '''score = (number of unsatisfied - number of unknown)/(number of all groundings)'''
-   * <br/>
-   * In other words, this score value represents the fraction of tuples (i.e. constants replacing
-   * variables in the clause)  that will remain after the literal is grounded. This heuristic score function
-   * is based in the following paper:
-   * <br/>
-   * <br/>
-   * ''Shavlik, J. and Natarajan, S. Speeding Up Inference in Markov Logic Networks by pre-processing to
-   * Reduce the Size of the Resulting Grounded Network. In Proceedings of the 21th International
-   * Joint Conference on Artificial Intelligence (IJCAI), 2009.''
-   * </li>
-   * </ul>
-   *
-   *
-   */
+
   private val orderedLiterals =
     clause.literals.view.map(lit =>
-      (lit, identities.getOrElse(lit.sentence.signature, null))).toArray.sortBy(entry => entry._1)(new Ordering[Literal] {
-
-      def compare(x: Literal, y: Literal) = {
-        val xDB = mln.atomStateDB.getOrElse(x.sentence.signature, null)
-        val yDB = mln.atomStateDB.getOrElse(y.sentence.signature, null)
-
-        val scoreX =
-          if (x.sentence.isDynamic) Double.NaN
-          else {
-            val satX = if (x.isNegative) xDB.numberOfFalse else xDB.numberOfTrue
-            val unsatX = xDB.length - satX
-            (unsatX + xDB.numberOfUnknown) / xDB.length.toDouble
-          }
-
-        val scoreY =
-          if (y.sentence.isDynamic) Double.NaN
-          else {
-            val satY = if (y.isNegative) yDB.numberOfFalse else yDB.numberOfTrue
-            val unsatY = yDB.length - satY
-            (unsatY + yDB.numberOfUnknown) / yDB.length.toDouble
-          }
-
-        (scoreX, scoreY) match {
-          case (Double.NaN, Double.NaN) =>
-            val nVarX = x.sentence.variables.size
-            val nVarY = y.sentence.variables.size
-            nVarX.compare(nVarY)
-          case (Double.NaN, _) =>
-            if (yDB.numberOfUnknown > 0) -1
-            else {
-              val nVarX = x.sentence.variables.size
-              val nVarY = y.sentence.variables.size
-              nVarX.compare(nVarY)
-            }
-          case (_, Double.NaN) =>
-            if (xDB.numberOfUnknown > 0) 1
-            else {
-              val nVarX = x.sentence.variables.size
-              val nVarY = y.sentence.variables.size
-              nVarX.compare(nVarY)
-            }
-          case _ =>
-            // regular literals
-            if (scoreX < scoreY) -1
-            else if (scoreX > scoreY) 1
-            else 0
-        }
-      }
-    })
+      (lit, identities.getOrElse(lit.sentence.signature, null))).toArray.sortBy(entry => entry._1)(new ClauseLiteralsOrdering(mln))
 
   private val owaLiterals = orderedLiterals.view.map(_._1).filter(literal => mln.isTriState(literal.sentence.signature))
 
