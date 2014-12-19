@@ -36,7 +36,12 @@ import scala.collection.mutable
 import lomrf.logic._
 
 /**
- * This is fast and thread-safe method for encoding ground predicates into unique integer numbers!
+ * The AtomIdentityFunction represents a bijection between the groundings of an atom and  integer numbers. It is
+ * extremely useful for encoding the entire ground Markov Network into a set of integer numbers, where each number is
+ * uniquely represent a single grounding of the specified AtomSignature.
+ *
+ * This class provides fast and thread-safe functions for encoding ground predicates of the same FOL atom into unique
+ * integer numbers, as well as for the opposite (decoding integers to ground predicates).
  *
  * @author Anastasios Skarlatidis
  */
@@ -135,18 +140,25 @@ final class AtomIdentityFunction private(
    * @return encoded number that uniquely corresponds to a grounding of the atom
    */
   def encode(indexes: Array[Int], constantIds: Array[Int]): Int = {
-    var sum = startID
+
+    var result = startID
     var i = 0
+    var constantID = ConstantsSet.NO_ENTRY
+
     while (i < indexes.length) {
-      val constantID = constantIds(indexes(i))
-      if (constantID == ConstantsSet.NO_ENTRY)
-        return IDENTITY_NOT_EXIST
+
+      constantID = constantIds(indexes(i))
+
+      if (constantID == ConstantsSet.NO_ENTRY) return IDENTITY_NOT_EXIST
+
       val offset = constantID * constantsAndStep(indexes(i))._2 // offset = id * step
-      sum += (offset + constantID)
+
+      result += (offset + constantID)
+
       i += 1
     }
 
-    sum
+    result
   }
 
   /**
@@ -274,21 +286,24 @@ final class AtomIdentityFunction private(
       if (counter < _length) {
         sum = startID
         for (idx <- (0 until values.length).optimized) {
+
           //1. encode
           val constantID = values(idx)
           val step = constantsAndStep(idx)._2
           val offset = constantID * step
           sum += (offset + constantID)
+
           //2. advance
           iteratorsMap.get(idx) match {
             case Some(currentIter) =>
-              values(idx) = if (currentIter.hasNext) {
-                currentIter.next()
-              } else {
-                val nouvaIter = rangesMap(idx).iterator
-                iteratorsMap(idx) = nouvaIter
-                nouvaIter.next()
-              }
+              values(idx) =
+                if (currentIter.hasNext) {
+                  currentIter.next()
+                } else {
+                  val nouvaIter = rangesMap(idx).iterator
+                  iteratorsMap(idx) = nouvaIter
+                  nouvaIter.next()
+                }
             case _ => //do nothing
           }
 
@@ -319,6 +334,7 @@ object AtomIdentityFunction {
     var length = 1
     val iterations = descriptor.length - 1
     var i = 0
+
     while (i <= iterations) {
       val symbol = descriptor(i)
       val currentDomain = constants(symbol)
@@ -327,14 +343,6 @@ object AtomIdentityFunction {
       n = if (n == 0) currentDomain.size else n * currentDomain.size
       i += 1
     }
-
-    /*println("------------------")
-    println(signature)
-    for ( entry<- constantsAndStep){
-      println(entry._1.size)
-    }
-    println("------------------")*/
-    //exit(0)
 
     new AtomIdentityFunction(signature, startID, constantsAndStep, length, schema)
   }

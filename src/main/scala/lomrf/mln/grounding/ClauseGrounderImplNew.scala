@@ -107,7 +107,7 @@ class ClauseGrounderImplNew private(
       atomIdx += 1
     }
 
-    val ffIterator = CartesianIterator.apply2(orderedConstantSets)
+    val ffIterator = CartesianIterator.mkArithmetic(orderedConstantSets)
 
     def performGrounding(substitution: Array[Int] ): Int = {
 
@@ -216,18 +216,15 @@ class ClauseGrounderImplNew private(
           }
           else {
 
-            // store as it is
-            /* if (cliqueVariables.length > 1) jutil.Arrays.sort(cliqueVariables)
-             store(clause.weight, cliqueVariables)*/
+            var weightToStore = clause.weight
 
-            var www = clause.weight
             if (cliqueVariables.length > 1) jutil.Arrays.sort(cliqueVariables)
             else if(eliminateNegatedUnit && cliqueVariables.length == 1 && cliqueVariables(0) < 0){
               cliqueVariables(0) = -cliqueVariables(0)
-              www = -www
+              weightToStore = -weightToStore
             }
 
-            store(www, cliqueVariables)
+            store(weightToStore, cliqueVariables)
 
             counter += 1
           }
