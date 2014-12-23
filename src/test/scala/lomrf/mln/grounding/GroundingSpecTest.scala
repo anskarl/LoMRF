@@ -1,8 +1,9 @@
 package lomrf.mln.grounding
 
-import lomrf.logic.{Literal, KBParser, AtomSignature}
+import lomrf.logic.{AtomSignature, KBParser}
 import lomrf.util.{AtomIdentityFunction, ConstantsSet}
 import org.scalatest.{FunSpec, Matchers}
+
 import scala.collection.breakOut
 
 
@@ -30,37 +31,41 @@ class GroundingSpecTest extends FunSpec with Matchers {
   )
 
   private val functionsSchema = Map[AtomSignature, (String, Vector[String])](
-    AtomSignature("walking", 1) -> ("event", Vector("id")),
-    AtomSignature("running", 1) -> ("event", Vector("id")),
-    AtomSignature("active", 1) -> ("event", Vector("id")),
-    AtomSignature("inactive", 1) -> ("event", Vector("id")),
-    AtomSignature("exit", 1) -> ("event", Vector("id")),
-    AtomSignature("move", 2) -> ("fluent", Vector("id", "id")),
-    AtomSignature("meet", 2) -> ("fluent", Vector("id", "id"))
+    AtomSignature("walking", 1) ->("event", Vector("id")),
+    AtomSignature("running", 1) ->("event", Vector("id")),
+    AtomSignature("active", 1) ->("event", Vector("id")),
+    AtomSignature("inactive", 1) ->("event", Vector("id")),
+    AtomSignature("exit", 1) ->("event", Vector("id")),
+    AtomSignature("move", 2) ->("fluent", Vector("id", "id")),
+    AtomSignature("meet", 2) ->("fluent", Vector("id", "id"))
   )
 
   val dynamicAtoms = Map[AtomSignature, Vector[String] => Boolean]()
 
-  val identityFunctions =  Map[AtomSignature, AtomIdentityFunction]()
+
+
+  val identityFunctions: Map[AtomSignature, AtomIdentityFunction] = predicateSchema.map {
+    case (signature, schema) =>
+      signature -> AtomIdentityFunction(signature, schema, schema.map(s => s -> constants(s)).toMap, 0)
+  }
 
   private val parser = new KBParser(predicateSchema, functionsSchema)
 
 
-
   val formulaStr = "Next(t,tNext) ^ HoldsAt(f,t) ^ !TerminatedAt(f,t) => HoldsAt(f,tNext)."
 
-  describe("Formula '"+formulaStr+"'"){
+  describe("Formula '" + formulaStr + "'") {
     val theory = parser.parseFormula(formulaStr)
     val clauses = theory.toCNF(constants)
 
-    it("produces a single clause"){
-      clauses.size should be (1)
+    it("produces a single clause") {
+      clauses.size should be(1)
     }
 
     val clause = clauses.head
 
-    it("contains three variables"){
-      clause.variables.size should be (3)
+    it("contains three variables") {
+      clause.variables.size should be(3)
     }
 
 
@@ -73,21 +78,15 @@ class GroundingSpecTest extends FunSpec with Matchers {
       yield literal.sentence.signature -> identityFunctions(literal.sentence.signature))(breakOut)
 
 
-   /* val orderedLiterals: Array[(Literal, AtomIdentityFunction)] = clause
-      .literals
-      .view
-      .map(lit => (lit, identities.getOrElse(lit.sentence.signature, null)))
-      .toArray
-      .sortBy(entry => entry._1)(ClauseLiteralsOrdering(mln))*/
-
-
-
+    /* val orderedLiterals: Array[(Literal, AtomIdentityFunction)] = clause
+       .literals
+       .view
+       .map(lit => (lit, identities.getOrElse(lit.sentence.signature, null)))
+       .toArray
+       .sortBy(entry => entry._1)(ClauseLiteralsOrdering(mln))*/
 
 
   }
-
-
-
 
 
 }
