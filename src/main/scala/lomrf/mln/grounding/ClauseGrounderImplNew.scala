@@ -304,7 +304,7 @@ object ClauseGrounderImplNew {
       .view
       .map(lit => (lit, identities.getOrElse(lit.sentence.signature, null)))
       .toArray
-      .sortBy(entry => entry._1)(new ClauseLiteralsOrdering(mln))
+      .sortBy(entry => entry._1)(ClauseLiteralsOrdering(mln))
 
 
     // Collect literals with open-world assumption

@@ -89,7 +89,7 @@ class ClauseGrounderImpl(
 
   private val orderedLiterals =
     clause.literals.view.map(lit =>
-      (lit, identities.getOrElse(lit.sentence.signature, null))).toArray.sortBy(entry => entry._1)(new ClauseLiteralsOrdering(mln))
+      (lit, identities.getOrElse(lit.sentence.signature, null))).toArray.sortBy(entry => entry._1)(ClauseLiteralsOrdering(mln))
 
   private val owaLiterals = orderedLiterals.view.map(_._1).filter(literal => mln.isTriState(literal.sentence.signature))
 

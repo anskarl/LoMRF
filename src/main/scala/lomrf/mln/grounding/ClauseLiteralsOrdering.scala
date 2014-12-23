@@ -32,8 +32,9 @@
 
 package lomrf.mln.grounding
 
-import lomrf.logic.Literal
+import lomrf.logic.{AtomSignature, Literal}
 import lomrf.mln.model.MLN
+import lomrf.util.AtomEvidenceDB
 
 /**
  *
@@ -67,11 +68,11 @@ import lomrf.mln.model.MLN
  *
  * @author Anastasios Skarlatidis
  */
-class ClauseLiteralsOrdering(mln: MLN) extends Ordering[Literal] {
+class ClauseLiteralsOrdering(atomStateDB: Map[AtomSignature, AtomEvidenceDB]) extends Ordering[Literal] {
 
   def compare(x: Literal, y: Literal) = {
-    val xDB = mln.atomStateDB.getOrElse(x.sentence.signature, null)
-    val yDB = mln.atomStateDB.getOrElse(y.sentence.signature, null)
+    val xDB = atomStateDB.getOrElse(x.sentence.signature, null)
+    val yDB = atomStateDB.getOrElse(y.sentence.signature, null)
 
     val scoreX =
       if (x.sentence.isDynamic) Double.NaN
@@ -118,4 +119,12 @@ class ClauseLiteralsOrdering(mln: MLN) extends Ordering[Literal] {
         else 0
     }
   }
+}
+
+
+object ClauseLiteralsOrdering {
+
+  def apply(atomStateDB: Map[AtomSignature, AtomEvidenceDB]) = new ClauseLiteralsOrdering(atomStateDB)
+
+  def apply(mln: MLN) = new ClauseLiteralsOrdering(mln.atomStateDB)
 }
