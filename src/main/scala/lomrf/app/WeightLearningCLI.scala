@@ -182,7 +182,7 @@ object WeightLearningCLI extends OptionParser with Logging {
 
     info("Markov Logic:"
       + "\n\tConstant domains   : " + mln.constants.size
-      + "\n\tSchema definitions : " + mln.schema.size
+      + "\n\tSchema definitions : " + mln.predicateSchema.size
       + "\n\tFormulas           : " + mln.formulas.size
       + "\n\tEvidence atoms     : " + mln.cwa.map(_.toString).reduceLeft((left, right) => left + "," + right)
       + "\n\tNon-evidence atoms : " + mln.owa.map(_.toString).reduceLeft((left, right) => left + "," + right))

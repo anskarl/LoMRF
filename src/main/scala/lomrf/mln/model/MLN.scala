@@ -41,9 +41,9 @@ import scala.collection.breakOut
  * A Markov Logic Networks knowledge base and evidence data.
  *
  * @param formulas the collection of (possibly weighted) formulas in First-order Logic (see [[lomrf.logic.Formula]])
- * @param schema a map that associates atom signatures with a sequence of argument types
+ * @param predicateSchema a map that associates atom signatures with a sequence of argument types
  * @param functionSchema a map that associates function signatures with a tuple of returning type and sequence of argument types
- * @param dynamicAtoms a map that associates signatures of dynamic atoms with a scala function that determines the truth state: (atoms ground arguments) => Boolean
+ * @param dynamicPredicates a map that associates signatures of dynamic atoms with a scala function that determines the truth state: (atoms ground arguments) => Boolean
  * @param dynamicFunctions a map that associates the identities of dynamic functions with a scala function that determines the function's result: (ground arguments) => Boolean
  * @param constants the collection of constant types associated with their domain (e.g. the domain time = {1,...100} has ''time'' as type and the set [1,100] as domain)
  * @param functionMappers associates identities to function mappers [[lomrf.util.FunctionMapper]]
@@ -60,9 +60,9 @@ import scala.collection.breakOut
  */
 class MLN(
            val formulas: collection.Set[Formula],
-           val schema: collection.Map[AtomSignature, collection.Seq[String]],
+           val predicateSchema: collection.Map[AtomSignature, collection.Seq[String]],
            val functionSchema: collection.Map[AtomSignature, (String, Vector[String])],
-           val dynamicAtoms: Map[AtomSignature, Vector[String] => Boolean],
+           val dynamicPredicates: Map[AtomSignature, Vector[String] => Boolean],
            val dynamicFunctions: Map[AtomSignature, Vector[String] => String],
            val constants: Map[String, ConstantsSet],
            val functionMappers: Map[AtomSignature, FunctionMapper],
@@ -136,7 +136,7 @@ class MLN(
    * @param signature the atom's signature
    * @return true if the given atom signature corresponds to a dynamic atom, otherwise false.
    */
-  def isDynamicAtom(signature: AtomSignature): Boolean = dynamicAtoms.contains(signature)
+  def isDynamicAtom(signature: AtomSignature): Boolean = dynamicPredicates.contains(signature)
 
   /**
    * Determine if the given atom signature corresponds to an evidence atom.
@@ -158,7 +158,7 @@ class MLN(
    * @param signature the atom's signature
    * @return the schema of this atom
    */
-  def getSchemaOf(signature: AtomSignature) = schema.get(signature)
+  def getSchemaOf(signature: AtomSignature) = predicateSchema.get(signature)
 
   /**
    * Gives the domain of the given type
@@ -180,7 +180,7 @@ class MLN(
   override def toString: String = {
     "Markov Logic { \n" +
       "\tConstant domains   = " + constants.size + "\n" +
-      "\tSchema definitions = " + schema.size + "\n" +
+      "\tSchema definitions = " + predicateSchema.size + "\n" +
       "\tFormulas           = " + formulas.size + "\n" +
       "}\n"
   }

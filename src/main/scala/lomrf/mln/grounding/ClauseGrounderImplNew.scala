@@ -315,7 +315,7 @@ object ClauseGrounderImplNew {
     // Collect dynamic atoms
     val dynamicAtoms: Map[Int, (Vector[String] => Boolean)] =
       (for (i <- 0 until orderedLiterals.length; sentence = orderedLiterals(i)._1.sentence; if sentence.isDynamic)
-      yield i -> mln.dynamicAtoms(sentence.signature))(breakOut)
+      yield i -> mln.dynamicPredicates(sentence.signature))(breakOut)
 
 
     val length = clause.literals.count(l => mln.isTriState(l.sentence.signature))

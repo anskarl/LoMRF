@@ -272,7 +272,7 @@ final class NormalFormSpecTest extends FunSpec with Matchers{
 
     info("Found " + mln.formulas.size + " formulas")
     info("Found " + mln.constants.size + " constant types")
-    info("Found " + mln.schema.size + " predicate schemas")
+    info("Found " + mln.predicateSchema.size + " predicate schemas")
     info("Found " + mln.functionSchema.size + " function schemas")
 
     it("should contain 14 formulas"){
@@ -291,7 +291,7 @@ final class NormalFormSpecTest extends FunSpec with Matchers{
     }
 
     it("should contain 8 predicate schemas"){
-      mln.schema.size should be (8)
+      mln.predicateSchema.size should be (8)
     }
 
     it("should contain 11 function schemas"){

@@ -53,11 +53,11 @@ object KBDifferenceCLI extends Logging {
     info(
       "\nSource KB: " + source(0) + "\n" +
         "\tFound " + mln_1.formulas.size + " formulas.\n" +
-        "\tFound " + mln_1.schema.size + " predicates.\n" +
+        "\tFound " + mln_1.predicateSchema.size + " predicates.\n" +
         "\tFound " + mln_1.functionSchema.size + " functions.\n" +
       "\nSource KB: " + source(1) + "\n" +
         "\tFound " + mln_2.formulas.size + " formulas.\n" +
-        "\tFound " + mln_2.schema.size + " predicates.\n" +
+        "\tFound " + mln_2.predicateSchema.size + " predicates.\n" +
         "\tFound " + mln_2.functionSchema.size + " functions.")
 
     val fileWriter = new FileWriter(target)
