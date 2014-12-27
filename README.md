@@ -25,7 +25,7 @@ What is missing? Many features, but most important weight learning algorithms.
 
 In order to build LoMRF from source, you need to have Java 7 and [sbt](http://www.scala-sbt.org/) installed in your system. Furthermore, LoMRF build depends on the [auxlib](https://github.com/anskarl/auxlib) (v0.1-SNAPSHOT), as well as to [lp_solve](http://lpsolve.sourceforge.net), [Gurobi](http://www.gurobi.com/) and [OscaR](http://oscarlib.bitbucket.org/).
 
-1. To clone and publish localy the auxlib project, type the following commands:
+Step 1. To clone and publish localy the auxlib project, type the following commands:
 
 ```
 $ git clone https://github.com/anskarl/auxlib.git
@@ -33,7 +33,7 @@ $ cd auxlib
 $ sbt publishLocal
 ```
 
-2. Include lp_solve, Gurobi and OscaR library dependencies to `./lib`, as it is illustrated in the tree below:
+Step 2. Include lp_solve, Gurobi and OscaR library dependencies to `./lib`, as it is illustrated in the tree below:
 
 ```
 .
@@ -65,7 +65,7 @@ $ sbt publishLocal
 
 ```
 
-3. To start building the LoMRF distributon, type the following command:
+Step 3. To start building the LoMRF distributon, type the following command:
 
 ```
 $ sbt dist
