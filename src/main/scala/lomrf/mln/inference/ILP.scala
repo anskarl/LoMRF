@@ -32,6 +32,9 @@
 
 package lomrf.mln.inference
 
+import java.io.PrintStream
+
+import auxlib.log.Logging
 import lomrf.mln.inference.LossFunction.LossFunction
 import lomrf.mln.inference.RoundingScheme.RoundingScheme
 import lomrf.mln.inference.Solver.Solver
@@ -39,29 +42,17 @@ import lomrf.mln.model.mrf._
 import lomrf.util._
 import oscar.linprog.modeling._
 import oscar.algebra._
-import java.io.PrintStream
 import gnu.trove.map.hash.{TIntDoubleHashMap, TIntObjectHashMap}
 import scalaxy.loops._
 import scala.language.postfixOps
-import lomrf.util.TroveConversions._
+import auxlib.trove.TroveConversions._
 
 /**
  * This is an implementation of an approximate MAP inference algorithm for MLNs using Integer Linear Programming.
  * The original implementation of the algorithm can be found in: [[http://alchemy.cs.washington.edu/code/]].
- * Details about the ILP algorithm can be found in the following publications:
- *
- * <ul>
- * <li> Tuyen N. Huynh and Raymond J. Mooney. Max-Margin Weight Learning for Markov Logic Networks.
- * In Proceedings of the European Conference on Machine Learning and Principles and Practice of
+ * Details about the ILP algorithm can be found in: Tuyen N. Huynh and Raymond J. Mooney. Max-Margin Weight Learning for
+ * Markov Logic Networks. In Proceedings of the European Conference on Machine Learning and Principles and Practice of
  * Knowledge Discovery in Databases (ECML-PKDD 2011), Vol. 2, pp. 81-96, 2011.
- * </li>
- *
- * <li> Jan Noessner, Mathias Niepert and Heiner Stuckenschmidt.
- * RockIt: Exploiting Parallelism and Symmetry for MAP Inference in Statistical Relational Models.
- * Proceedings of the Twenty-Seventh (AAAI) Conference on Artificial Intelligence, July 14-18, 2013.
- * Bellevue, Washington: AAAI Press
- * </li>
- * </ul>
  *
  * @param mrf The ground Markov network
  * @param outputAll Show 0/1 results for all query atoms (default is true)

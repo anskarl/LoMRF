@@ -39,7 +39,9 @@ import lomrf.logic.dynamic.{DynamicFunctionBuilder, DynamicAtomBuilder}
 import lomrf.mln.grounding.MRFBuilder
 import lomrf.mln.inference._
 import lomrf.mln.model.MLN
-import lomrf.util.{OptionParser, Logging, ImplFinder, parseAtomSignature}
+import lomrf.util.{ImplFinder, parseAtomSignature}
+import auxlib.opt.OptionParser
+import auxlib.log.Logging
 
 /**
  * Command-line tool for inference.

@@ -32,8 +32,8 @@
 
 package lomrf.logic
 
+import auxlib.log.Logging
 import lomrf.logic.dynamic.{DynamicFunctionBuilder, DynamicAtomBuilder}
-import lomrf.util.Logging
 import scala.collection.breakOut
 
 /**

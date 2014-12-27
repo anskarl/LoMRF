@@ -32,6 +32,7 @@
 
 package lomrf.mln.model
 
+import auxlib.log.Logging
 import lomrf.logic._
 import lomrf.util._
 import scala.collection

@@ -35,13 +35,13 @@ package lomrf.mln.grounding
 import java.util.concurrent.CountDownLatch
 
 import akka.actor.{Actor, ActorRef, PoisonPill, Props}
+import auxlib.log.Logging
 import gnu.trove.map.TIntObjectMap
 import gnu.trove.set.TIntSet
 import gnu.trove.set.hash.TIntHashSet
 import lomrf._
 import lomrf.logic.{AtomSignature, AtomicFormula, Clause, Variable}
 import lomrf.mln.model.MLN
-import lomrf.util.Logging
 
 import scala.collection.breakOut
 

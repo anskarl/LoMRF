@@ -1,8 +1,9 @@
 package lomrf.mln.learning.weight
 
 import java.io.PrintStream
+import auxlib.log.Logging
 import lomrf.logic.AtomSignature
-import lomrf.util.{AtomEvidenceDB, Logging}
+import lomrf.util.AtomEvidenceDB
 import lomrf.mln.model.mrf._
 
 /**

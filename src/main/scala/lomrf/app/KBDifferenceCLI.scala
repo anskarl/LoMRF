@@ -1,6 +1,8 @@
 package lomrf.app
 
-import lomrf.util.{Logging, OptionParser}
+
+import auxlib.log.Logging
+import auxlib.opt.OptionParser
 import lomrf.mln.model.MLN
 import lomrf.logic.AtomSignature
 import java.io.FileWriter

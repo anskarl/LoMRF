@@ -80,6 +80,13 @@ libraryDependencies += "com.nativelibs4java" %% "scalaxy-loops" % "0.3.3" % "pro
 // JTS Topology API for modelling and manipulating 2-dimensional linear geometry
 libraryDependencies += "com.vividsolutions" % "jts" % "1.13"
 
+// add auxlib-* requires local publishing (for details see https://github.com/anskarl/auxlib)
+libraryDependencies ++= Seq(
+	"com.github.anskarl" %% "auxlib-log" % "0.1-SNAPSHOT",
+	"com.github.anskarl" %% "auxlib-opt" % "0.1-SNAPSHOT",
+	"com.github.anskarl" %% "auxlib-trove" % "0.1-SNAPSHOT"
+)
+
 // TODO: add abide support (see https://github.com/scala/scala-abide)
 
 // Include utility BASH scripts in the 'bin' directory

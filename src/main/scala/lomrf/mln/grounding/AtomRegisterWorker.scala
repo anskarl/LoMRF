@@ -33,10 +33,10 @@
 package lomrf.mln.grounding
 
 import akka.actor.{Actor, ActorRef}
+import auxlib.log.Logging
 import gnu.trove.list.array.TIntArrayList
 import gnu.trove.map.hash.TIntObjectHashMap
 import gnu.trove.set.hash.TIntHashSet
-import lomrf.util.Logging
 
 /**
  * @author Anastasios Skarlatidis

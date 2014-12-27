@@ -35,8 +35,9 @@ package lomrf.mln.inference
 import java.io.PrintStream
 import java.text.DecimalFormat
 import java.util.concurrent.ThreadLocalRandom
+import auxlib.log.Logging
 import lomrf.mln.model.mrf.{GroundAtom, MRFState, MRF}
-import lomrf.util.{Utilities, Logging}
+import lomrf.util.Utilities
 import lomrf.util.LongDoubleConversions._
 
 /**

@@ -33,6 +33,7 @@
 package lomrf.mln.model
 
 import java.io.{File, BufferedReader, FileReader}
+import auxlib.log.Logging
 import lomrf.logic._
 import lomrf.util._
 import scala.collection

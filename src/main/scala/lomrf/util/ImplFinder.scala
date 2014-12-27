@@ -34,6 +34,8 @@ package lomrf.util
 
 import java.io.{IOException, FilenameFilter, File}
 import java.util.jar.{JarFile, JarEntry}
+import auxlib.log.Logging
+
 import scala.Predef._
 import scala.collection.mutable
 

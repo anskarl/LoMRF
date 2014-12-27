@@ -1,12 +1,14 @@
 package lomrf.app
 
 import java.io.{FileOutputStream, PrintStream}
+import auxlib.log.Logging
+import auxlib.opt.OptionParser
 import lomrf.logic.AtomSignature
 import lomrf.mln.grounding.MRFBuilder
 import lomrf.mln.inference.LossFunction
 import lomrf.mln.model.MLN
 import lomrf.mln.learning.weight.MaxMarginLearner
-import lomrf.util.{Logging, OptionParser, parseAtomSignature}
+import lomrf.util.parseAtomSignature
 
 /**
  * Command-line tool for weight learning

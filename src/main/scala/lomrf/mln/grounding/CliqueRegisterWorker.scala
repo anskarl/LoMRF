@@ -35,10 +35,10 @@ package lomrf.mln.grounding
 import java.{util => jutil}
 
 import akka.actor.{Actor, ActorRef}
+import auxlib.log.Logging
 import gnu.trove.list.array.TIntArrayList
 import gnu.trove.map.hash.TIntObjectHashMap
 import lomrf._
-import lomrf.util.Logging
 
 import scala.language.postfixOps
 import scalaxy.loops._

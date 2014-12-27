@@ -32,6 +32,8 @@
 
 package lomrf.mln.model
 
+import auxlib.log.Logging
+
 import collection.immutable.HashMap
 import collection.mutable
 import java.io.{BufferedReader, File, FileReader}
@@ -40,7 +42,7 @@ import lomrf.debugMsg
 import lomrf.logic.PredicateCompletionMode._
 import lomrf.logic._
 import lomrf.logic.dynamic.{DynamicAtomBuilder, DynamicFunctionBuilder}
-import lomrf.util.{Logging, ImplFinder, ConstantsSetBuilder}
+import lomrf.util.{ ImplFinder, ConstantsSetBuilder}
 import scala.collection.breakOut
 
 /**

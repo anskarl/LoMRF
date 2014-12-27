@@ -33,9 +33,10 @@
 package lomrf.logic
 
 
+import auxlib.log.Logging
+
 import collection.mutable
-import lomrf.logic.dynamic.{DynEqualsBuilder, DynamicAtom}
-import lomrf.util.Logging
+import lomrf.logic.dynamic.DynEqualsBuilder
 
 
 /**

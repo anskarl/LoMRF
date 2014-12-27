@@ -34,7 +34,7 @@ package lomrf
 
 import scala.collection.mutable
 import lomrf.logic.dynamic._
-import lomrf.util.Logging
+import auxlib.log.Logging
 import scala.annotation.tailrec
 import scala.collection.breakOut
 

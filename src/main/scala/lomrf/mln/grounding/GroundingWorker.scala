@@ -33,8 +33,8 @@
 package lomrf.mln.grounding
 
 import akka.actor.{Actor, ActorRef}
+import auxlib.log.Logging
 import lomrf.mln.model.MLN
-import lomrf.util.Logging
 
 /**
  * @author Anastasios Skarlatidis

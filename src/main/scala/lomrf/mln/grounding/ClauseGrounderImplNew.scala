@@ -40,7 +40,8 @@ import lomrf.logic._
 import lomrf.mln.model.MLN
 import lomrf.util.AtomIdentityFunction.IDENTITY_NOT_EXIST
 import lomrf.util.Cartesian.CartesianIterator
-import lomrf.util.{AtomIdentityFunction, Logging}
+import lomrf.util.AtomIdentityFunction
+import auxlib.log.Logging
 
 import scala.collection._
 import scala.language.postfixOps

@@ -37,10 +37,11 @@ import java.util.concurrent.CountDownLatch
 import akka.actor._
 import akka.pattern._
 import akka.util.Timeout
+import auxlib.log.Logging
 import gnu.trove.map.hash.TIntObjectHashMap
 import lomrf.mln.model.MLN
 import lomrf.mln.model.mrf.{GroundAtom, Constraint, MRF}
-import lomrf.util.{Logging, Utilities}
+import lomrf.util.Utilities
 import lomrf.{DEFAULT_CAPACITY, DEFAULT_LOAD_FACTOR, NO_ENTRY_KEY}
 
 import scala.concurrent.Await

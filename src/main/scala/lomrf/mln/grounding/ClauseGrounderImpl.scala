@@ -35,16 +35,14 @@ package lomrf.mln.grounding
 import java.{util => jutil}
 
 import akka.actor.ActorRef
+import auxlib.log.Logging
 import gnu.trove.set.TIntSet
 import lomrf.logic._
 import lomrf.mln.model.MLN
 import lomrf.util.AtomIdentityFunction.IDENTITY_NOT_EXIST
-import lomrf.util.{Logging, AtomIdentityFunction, Cartesian}
+import lomrf.util.{AtomIdentityFunction, Cartesian}
 
 import scala.collection._
-import scala.concurrent.ExecutionContext.Implicits.global
-import scala.concurrent._
-import scala.concurrent.duration.Duration
 import scala.language.postfixOps
 import scalaxy.loops._
 

@@ -34,11 +34,13 @@ package lomrf.app
 
 import java.io.FileWriter
 import java.text.DecimalFormat
+import auxlib.log.Logging
+import auxlib.opt.OptionParser
 import lomrf.logic._
 import lomrf.logic.PredicateCompletionMode._
 import lomrf.logic.dynamic.{DynamicFunctionBuilder, DynamicAtomBuilder}
 import lomrf.mln.model.MLN
-import lomrf.util.{OptionParser, Logging, ImplFinder}
+import lomrf.util.ImplFinder
 
 /**
  * Command-line tool for knowledge compilation. In particular with this tool we can perform

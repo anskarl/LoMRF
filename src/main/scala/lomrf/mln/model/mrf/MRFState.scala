@@ -34,6 +34,7 @@ package lomrf.mln.model.mrf
 
 import java.util
 import java.util.concurrent.ThreadLocalRandom
+import auxlib.log.Logging
 import gnu.trove.list.array.TIntArrayList
 import gnu.trove.map.hash.TIntIntHashMap
 import lomrf.util._

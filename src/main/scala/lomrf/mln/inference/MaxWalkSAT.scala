@@ -32,11 +32,12 @@
 
 package lomrf.mln.inference
 
+import auxlib.log.Logging
 import lomrf.mln.model.mrf.{GroundAtom, MRFState, MRF}
 import MRF.{NO_ATOM, NO_CONSTRAINT, NO_ATOM_ID}
 import java.io.PrintStream
 import java.util.concurrent.ThreadLocalRandom
-import lomrf.util.{Utilities, Logging}
+import lomrf.util.Utilities
 import lomrf.util.LongDoubleConversions._
 
 /**

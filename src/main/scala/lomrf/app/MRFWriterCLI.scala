@@ -34,6 +34,8 @@ package lomrf.app
 
 import java.io.{FileWriter, BufferedWriter}
 import java.text.DecimalFormat
+import auxlib.log.Logging
+import auxlib.opt.OptionParser
 import lomrf.logic.AtomSignature
 import lomrf.logic.PredicateCompletionMode._
 import lomrf.logic.dynamic.{DynamicFunctionBuilder, DynamicAtomBuilder}
