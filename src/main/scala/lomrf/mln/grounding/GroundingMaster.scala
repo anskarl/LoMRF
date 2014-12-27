@@ -48,7 +48,7 @@ import scala.collection.breakOut
 /**
  * @author Anastasios Skarlatidis
  */
-private final class GroundingMaster(mln: MLN, latch: CountDownLatch, noNegWeights: Boolean, eliminateNegatedUnit: Boolean, experimentalGrounder: Boolean = false) extends Actor with Logging {
+private final class GroundingMaster(mln: MLN, latch: CountDownLatch, noNegWeights: Boolean, eliminateNegatedUnit: Boolean) extends Actor with Logging {
 
   private val _variables2Cliques = new Array[TIntObjectMap[TIntHashSet]](processors)
   private val _cliques = new Array[TIntObjectMap[CliqueEntry]](processors)
@@ -85,7 +85,7 @@ private final class GroundingMaster(mln: MLN, latch: CountDownLatch, noNegWeight
   private val clauseGroundingWorkers: Array[ActorRef] = {
     val n = mln.queryAtoms.size + mln.clauses.size
     (for (i <- 0 until (if (n <= processors) n else processors))
-      yield context.actorOf(Props(new GroundingWorker(mln, cliqueRegisters, noNegWeights, eliminateNegatedUnit, experimentalGrounder)), name = "grounding_worker-" + i))(breakOut)
+      yield context.actorOf(Props(new GroundingWorker(mln, cliqueRegisters, noNegWeights, eliminateNegatedUnit)), name = "grounding_worker-" + i))(breakOut)
   }
 
   override def preStart() {

@@ -36,7 +36,6 @@ import auxlib.log.Logging
 import lomrf.logic._
 import lomrf.util._
 import scala.collection
-import scala.collection.breakOut
 
 /**
  * A Markov Logic Networks knowledge base and evidence data.

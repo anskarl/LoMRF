@@ -1,3 +1,35 @@
+/*
+ * o                        o     o   o         o
+ * |             o          |     |\ /|         | /
+ * |    o-o o--o    o-o  oo |     | O |  oo o-o OO   o-o o   o
+ * |    | | |  | | |    | | |     |   | | | |   | \  | |  \ /
+ * O---oo-o o--O |  o-o o-o-o     o   o o-o-o   o  o o-o   o
+ *             |
+ *          o--o
+ * o--o              o               o--o       o    o
+ * |   |             |               |    o     |    |
+ * O-Oo   oo o-o   o-O o-o o-O-o     O-o    o-o |  o-O o-o
+ * |  \  | | |  | |  | | | | | |     |    | |-' | |  |  \
+ * o   o o-o-o  o  o-o o-o o o o     o    | o-o o  o-o o-o
+ *
+ * Logical Markov Random Fields.
+ *
+ * Copyright (C) 2012 Anastasios Skarlatidis.
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
 package lomrf.app
 
 import java.io.{FileOutputStream, PrintStream}
@@ -74,7 +106,6 @@ object WeightLearningCLI extends OptionParser with Logging {
 
   private var _implPaths: Option[Array[String]] = None
 
-  private var _experimentalGrounder = false
 
   private def addNonEvidenceAtom(atom: String) {
     parseAtomSignature(atom) match {
@@ -133,11 +164,6 @@ object WeightLearningCLI extends OptionParser with Logging {
   booleanOpt("noNeg", "eliminate-negative-weights", "Eliminate negative weight values from ground clauses (default is " + _noNeg + ").", _noNeg = _)
 
   booleanOpt("noNegatedUnit", "eliminate-negated-unit", "Eliminate negated unit ground clauses (default is " + _eliminateNegatedUnit + ").", _eliminateNegatedUnit = _)
-
-  flagOpt("XG", "experimental-grounder", "Enable experimental grounder",{
-    _experimentalGrounder = true
-    warn("THIS RUN WILL USE THE EXPERIMENTAL GROUNDER!!!")
-  })
 
   flagOpt("v", "version", "Print LoMRF version.", sys.exit(0))
 
@@ -198,7 +224,7 @@ object WeightLearningCLI extends OptionParser with Logging {
     if(isDebugEnabled) mln.clauses.zipWithIndex.foreach{case (c, idx) => debug(idx+": "+c)}
 
     info("Creating MRF...")
-    val mrfBuilder = new MRFBuilder(mln, noNegWeights = _noNeg, eliminateNegatedUnit = _eliminateNegatedUnit, experimentalGrounder = _experimentalGrounder)
+    val mrfBuilder = new MRFBuilder(mln, noNegWeights = _noNeg, eliminateNegatedUnit = _eliminateNegatedUnit)
     val mrf = mrfBuilder.buildNetwork
 
     val learner = new MaxMarginLearner(mrf, annotationDB)

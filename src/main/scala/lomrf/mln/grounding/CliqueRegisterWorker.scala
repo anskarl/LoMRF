@@ -51,7 +51,7 @@ private final class CliqueRegisterWorker(val index: Int, master: ActorRef, atomR
   private var hashCode2CliqueIDs = new TIntObjectHashMap[TIntArrayList]()
   private var cliques = new TIntObjectHashMap[CliqueEntry](DEFAULT_CAPACITY, DEFAULT_LOAD_FACTOR, NO_ENTRY_KEY)
 
-  // TODO: requirement for learning (issue #25)
+  // TODO: requirement for learning (see gitlab issue #25)
   //goundClause[ID:Int] -> (Clause[ID:Int] -> (Freq:Int, invertedWeight:Boolean))
   //private var cliqueDependencyMap = new TIntObjectHashMap[TIntObjectHashMap[(Int, Boolean)]]()
 
