@@ -1,12 +1,13 @@
 package lomrf.app
 
 import java.io.{FileOutputStream, PrintStream}
+import gnu.trove.map.hash.TIntObjectHashMap
 import lomrf.logic.AtomSignature
 import lomrf.mln.grounding.MRFBuilder
 import lomrf.mln.inference.LossFunction
 import lomrf.mln.model.MLN
 import lomrf.mln.learning.weight.MaxMarginLearner
-import lomrf.util.{Logging, OptionParser, parseAtomSignature}
+import lomrf.util._
 
 /**
  * Command-line tool for weight learning
@@ -38,13 +39,13 @@ object WeightLearningCLI extends OptionParser with Logging {
   private var _epsilon = 0.001
 
   // Loss function
-  private var _lossFunction = LossFunction.HAMMING
+  private val _lossFunction = LossFunction.HAMMING
 
   // The loss value will be multiplied by this number
   private var _lossScale = 1.0
 
   // Perform loss augmented inference
-  private var _lossAugmented = false
+  private var _lossAugmented = true
 
   // Don't scale the margin by the loss
   private var _nonMarginRescaling = false
@@ -192,16 +193,60 @@ object WeightLearningCLI extends OptionParser with Logging {
     )
 
     info("Number of CNF clauses = " + mln.clauses.size)
-    debug("List of CNF clauses: ")
-    if(isDebugEnabled) mln.clauses.zipWithIndex.foreach{case (c, idx) => debug(idx+": "+c)}
+    info("List of CNF clauses: ")
+    mln.clauses.zipWithIndex.foreach{case (c, idx) => info(idx+": "+c)}
 
     info("Creating MRF...")
     val mrfBuilder = new MRFBuilder(mln, noNegWeights = _noNeg, eliminateNegatedUnit = _eliminateNegatedUnit, experimentalGrounder = _experimentalGrounder)
     val mrf = mrfBuilder.buildNetwork
 
-    val learner = new MaxMarginLearner(mrf, annotationDB)
+    // -----------------------------------------------------------------------------
+    // Dummy procedure to construct a dependency map for Friends and Smokers example
+
+    val dependencyMap = new TIntObjectHashMap[TIntObjectHashMap[(Int, Boolean)]]()
+
+    val iterator = mrf.constraints.iterator()
+    while(iterator.hasNext) {
+      iterator.advance()
+      val constraint = iterator.value()
+      val counter = constraint.literals.count { literal =>
+        decodeLiteral(literal)(mln).get.contains("Smokes")
+      }
+      
+      val dependency = new TIntObjectHashMap[(Int, Boolean)]()
+      if(counter >= 2) {
+        dependency.putIfAbsent(0, (1, false))
+        dependency.putIfAbsent(1, (1, false))
+      }
+      else
+        dependency.putIfAbsent(2, (1, false))
+      
+      dependencyMap.putIfAbsent(constraint.id, dependency)
+    }
+
+    // Test dependency map
+
+    val map = dependencyMap.iterator()
+    while(map.hasNext) {
+      map.advance()
+      println(mrf.constraints.get(map.key()).literals.map {lit =>
+        decodeLiteral(lit)(mln).get
+      }.reduceLeft(_+" v "+_) + " :")
+      val dependency = map.value().iterator()
+      while(dependency.hasNext) {
+        dependency.advance()
+        println(mln.clauses(dependency.key()) + " " + dependency.value()._1 + ", " + dependency.value()._2)
+      }
+    }
+    // -----------------------------------------------------------------------------
+
+    val learner = new MaxMarginLearner(mrf = mrf, annotationDB = annotationDB, dependencyMap = dependencyMap,
+                                       nonEvidenceAtoms = _nonEvidenceAtoms, iterations = _iterations, C = _C, epsilon = _epsilon,
+                                       lossFunction = _lossFunction, lossScale = _lossScale, nonMarginRescaling = _nonMarginRescaling,
+                                       lossAugmented = _lossAugmented, printLearnedWeightsPerIteration = _printLearnedWeightsPerIteration)
+
     learner.learn()
-    learner.writeResults(outputWriter)
+    //learner.writeResults(outputWriter)
   }
 }
 

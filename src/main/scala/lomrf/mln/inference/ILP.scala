@@ -32,12 +32,13 @@
 
 package lomrf.mln.inference
 
+import lomrf.logic.{TRUE, TriState, AtomSignature}
 import lomrf.mln.model.mrf._
 import lomrf.util._
-import oscar.linprog.modeling._
-import oscar.algebra._
 import java.io.PrintStream
 import gnu.trove.map.hash.{TIntDoubleHashMap, TIntObjectHashMap}
+import optimus.algebra._
+import optimus.lqprog._
 import scalaxy.loops._
 import scala.language.postfixOps
 import lomrf.util.TroveConversions._
@@ -70,15 +71,16 @@ import lomrf.util.TroveConversions._
  * @author Anastasios Skarlatidis
  * @author Vagelis Michelioudakis
  */
-final class ILP(mrf: MRF, outputAll: Boolean = true, ilpRounding: Int = RoundingScheme.ROUNDUP, ilpSolver: Int = Solver.GUROBI,
-                lossFunction: Int = LossFunction.HAMMING, lossAugmented: Boolean = false) extends Logging {
+final class ILP(mrf: MRF, annotationDB: Map[AtomSignature, AtomEvidenceDB] = Map.empty[AtomSignature, AtomEvidenceDB], outputAll: Boolean = true,
+                ilpRounding: Int = RoundingScheme.ROUNDUP, ilpSolver: Int = Solver.LPSOLVE, lossFunction: Int = LossFunction.HAMMING,
+                lossAugmented: Boolean = false) extends Logging {
 
-  // Select the appropriate linear programming solver
-  implicit val lp =
+  // Select the appropriate mathematical programming solver
+  implicit val problem =
   if(ilpSolver == Solver.GUROBI)
-    LPSolver(LPSolverLib.gurobi)
+    new LQProblem(SolverLib.gurobi)
   else
-    LPSolver(LPSolverLib.lp_solve)
+    new LQProblem(SolverLib.lp_solve)
 
   implicit val mln = mrf.mln
 
@@ -90,15 +92,29 @@ final class ILP(mrf: MRF, outputAll: Boolean = true, ilpRounding: Int = Rounding
    */
   @inline private def fetchAtom(atomID: Int) = mrf.atoms.get(atomID)
 
+  /**
+   * Fetch annotation from database for the given atom id. Annotation
+   * exist only for non evidence atoms.
+   *
+   * @param atomID id of the atom
+   * @return annotation TriState value (TRUE, FALSE or UNKNOWN)
+   */
+  @inline private def getAnnotation(atomID: Int): TriState = {
+    val annotation = annotationDB(signatureOf(atomID)(mrf.mln))
+    annotation(atomID)
+  }
+
   def infer() {
+
+    if(lossAugmented) info("Running loss augmented inference...")
 
     val sTranslation = System.currentTimeMillis()
 
     /* Hash maps containing pairs of unique literal keys to LP variables [y]
      * and unique clause ids to LP variables [z].
      */
-    val literalLPVars = new TIntObjectHashMap[LPFloatVar]()
-    val clauseLPVars = new TIntObjectHashMap[LPFloatVar]()
+    val literalLPVars = new TIntObjectHashMap[MPFloatVar]()
+    val clauseLPVars = new TIntObjectHashMap[MPFloatVar]()
 
     /**
      * A collection of expressions of the equation that we aim to maximize.
@@ -106,14 +122,14 @@ final class ILP(mrf: MRF, outputAll: Boolean = true, ilpRounding: Int = Rounding
      *
      * {{{ weight * LP variable}}}
      */
-    var expressions = List[LinearExpression]()
+    var expressions = List[Expression]()
 
     val constraintsIterator = mrf.constraints.iterator()
 
     while (constraintsIterator.hasNext) {
       constraintsIterator.advance()
 
-      var constraints: List[LinearExpression] = Nil
+      var constraints: List[Expression] = Nil
 
       // fetch the current constraint, i.e., current weighted ground clause or clique
       val constraint = constraintsIterator.value()
@@ -128,8 +144,14 @@ final class ILP(mrf: MRF, outputAll: Boolean = true, ilpRounding: Int = Rounding
       // Step 1: Introduce variables for each ground atom and create possible constraints
       for (literal <- constraint.literals) {
         val atomID = math.abs(literal)
-        literalLPVars.putIfAbsent(atomID, LPFloatVar("y" + atomID, 0, 1))
+        val rc = literalLPVars.putIfAbsent(atomID, MPFloatVar("y" + atomID, 0, 1))
         val floatVar = literalLPVars.get(atomID)
+
+        // for each atom variable add the associated loss
+        if(lossAugmented && rc == null) {
+          val loss =  if (getAnnotation(atomID) == TRUE) -1.0 else 1.0
+          expressions ::= loss * floatVar
+        }
 
         if ((constraint.weight > 0 || constraint.weight.isInfinite || constraint.weight.isNaN ||
           constraint.weight == mrf.weightHard) && literal > 0)
@@ -153,11 +175,11 @@ final class ILP(mrf: MRF, outputAll: Boolean = true, ilpRounding: Int = Rounding
         if (constraint.isUnit) {
           expressions ::= {
             if (constraint.literals(0) > 0) constraint.weight * literalLPVars.get(math.abs(constraint.literals(0)))
-            else -constraint.weight * literalLPVars.get(math.abs(constraint.literals(0)))
+            else (-constraint.weight) * literalLPVars.get(math.abs(constraint.literals(0)))
           }
         }
         else {
-          clauseLPVars.putIfAbsent(cid, LPFloatVar("z" + cid, 0, 1))
+          clauseLPVars.putIfAbsent(cid, MPFloatVar("z" + cid, 0, 1))
           expressions ::= math.abs(constraint.weight) * clauseLPVars.get(cid)
         }
 
@@ -174,12 +196,12 @@ final class ILP(mrf: MRF, outputAll: Boolean = true, ilpRounding: Int = Rounding
         val clauseVar = clauseLPVars.get(cid)
         if (constraint.weight > 0) {
           add(sum(constraints) >= clauseVar)
-          debug(constraints.mkString(" + ") + " >= " + clauseVar.name)
+          debug(constraints.mkString(" + ") + " >= " + clauseVar.symbol)
         }
         else {
           for (c <- constraints) {
             add(c >= clauseVar)
-            debug(c + " >= " + clauseVar.name)
+            debug(c + " >= " + clauseVar.symbol)
           }
         }
       }
@@ -207,12 +229,12 @@ final class ILP(mrf: MRF, outputAll: Boolean = true, ilpRounding: Int = Rounding
         "\n=========================== Solution ===========================" +
         "\nAre constraints satisfied: " + checkConstraints() +
         "\nSolution status: " + status.toString +
-        "\nObjective = " + objectiveValue.get)
+        "\nObjective = " + objectiveValue)
 
 
     whenDebug {
-      literalLPVars.iterator.foreach{ case (k: Int, v: LPFloatVar) => debug(v.name + " = " + v.value.get)}
-      clauseLPVars.iterator.foreach{ case (k: Int, v: LPFloatVar) => debug(v.name + " = " + v.value.get)}
+      literalLPVars.iterator.foreach{ case (k: Int, v: MPFloatVar) => debug(v.symbol + " = " + v.value.get)}
+      clauseLPVars.iterator.foreach{ case (k: Int, v: MPFloatVar) => debug(v.symbol + " = " + v.value.get)}
     }
 
     val solution = new TIntDoubleHashMap(literalLPVars.size())
@@ -237,7 +259,7 @@ final class ILP(mrf: MRF, outputAll: Boolean = true, ilpRounding: Int = Rounding
     val state = MRFState(mrf)
 
     info("Number of non-integral solutions: " + nonIntegralSolutionsCounter)
-    assert(state.countUnfixAtoms() == nonIntegralSolutionsCounter)
+    //assert(state.countUnfixAtoms() == nonIntegralSolutionsCounter)
 
     val sRoundUp = System.currentTimeMillis()
 
