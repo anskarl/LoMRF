@@ -47,14 +47,30 @@ class GroundingSpecTest extends FunSpec with Matchers {
   import lomrf.tests.ECExampleDomain._
 
 
-  private var currentID = 1
+  /*private var currentID = 1
   private val orderedStartIDs = new Array[Int](predicateSchema.size)
   private val orderedAtomSignatures = new Array[AtomSignature](predicateSchema.size)
-  private var index = 0
-
-
+  private var index = 0*/
 
   private val parser = new KBParser(predicateSchema, functionsSchema)
+
+  private val atomStateDB: Map[AtomSignature, AtomEvidenceDB] = {
+
+    for( (signature, schema) <- predicateSchema) {
+
+      // determine the total number of groundings (i.e., Cartesian product of unique domain sizes)
+      val nground = schema.toSet.toArray.map(constants(_).size).product
+
+      // cwa
+      if(cwa.contains(signature)) {
+
+
+      }
+
+    }
+
+    Map.empty[AtomSignature, AtomEvidenceDB]
+  }
 
 
   val formulaStr = "Next(t,tNext) ^ HoldsAt(f,t) ^ !TerminatedAt(f,t) => HoldsAt(f,tNext)."
@@ -73,7 +89,7 @@ class GroundingSpecTest extends FunSpec with Matchers {
       clause.variables.size should be(3)
     }
 
-    val mln = new MLN(
+    /*val mln = new MLN(
       formulas = Set(formula),
       predicateSchema,
       functionsSchema,
@@ -81,9 +97,9 @@ class GroundingSpecTest extends FunSpec with Matchers {
       dynamicFunctions,
       constants,
       functionMappers,
-      queryAtoms = Set(AtomSignature("HoldsAt", 2)),
-      cwa = Set(AtomSignature("Next", 2), AtomSignature("Close", 2), AtomSignature("OrientationMove", 3)),
-      owa = Set(AtomSignature("InitiatedAt", 2), AtomSignature("TerminatedAt", 2)),
+      queryAtoms,
+      cwa,
+      owa,
       probabilisticAtoms = Set.empty[AtomSignature],
       tristateAtoms = Set.empty[AtomSignature],
       identityFunctions,
@@ -93,7 +109,7 @@ class GroundingSpecTest extends FunSpec with Matchers {
       Array[AtomSignature](),
       1,
       1
-    )
+    )*/
 
 
     /**

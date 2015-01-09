@@ -38,12 +38,10 @@ import lomrf.logic._
 import lomrf.util._
 import scala.collection
 import scala.collection.{mutable, breakOut}
-import scala.Some
 
 /**
  * @author Anastasios Skarlatidis
  */
-
 private[model] class Evidence(
                                val constants: Map[String, ConstantsSet],
                                val atomsEvDB: Map[AtomSignature, AtomEvidenceDB],
@@ -136,56 +134,8 @@ private[model] object Evidence extends Logging {
     val atomsEvDBBuilders = mutable.HashMap[AtomSignature, AtomEvidenceDBBuilder]()
 
     info("Stage 2: Creating atom unique identity functions.")
-    var identities: Map[AtomSignature, AtomIdentityFunction] = Map[AtomSignature, AtomIdentityFunction]()
-
-    var currentID = 1
-    val orderedStartIDs = new Array[Int](schema.size)
-    val orderedAtomSignatures = new Array[AtomSignature](schema.size)
-    var index = 0
-
-
-    // Query predicates
-    for ((signature, atomSchema) <- schema; if queryPredicates.contains(signature)) {
-      orderedStartIDs(index) = currentID
-      orderedAtomSignatures(index) = signature
-      index += 1
-      val idFunction = AtomIdentityFunction(signature, atomSchema, constants, currentID)
-      currentID += idFunction.length + 1
-      identities += (signature -> idFunction)
-      //println(signature + " {[" + idFunction.startID + "," + (idFunction.length + idFunction.startID) + "], length:" + idFunction.length + "}")
-    }
-
-    val queryStartID = 1
-    val queryEndID = currentID - 1
-
-
-    // Other OWA predicates
-    for ((signature, atomSchema) <- schema; if hiddenPredicates.contains(signature)) {
-      orderedStartIDs(index) = currentID
-      orderedAtomSignatures(index) = signature
-      index += 1
-      val idFunction = AtomIdentityFunction(signature, atomSchema, constants, currentID)
-      currentID += idFunction.length + 1
-      identities += (signature -> idFunction)
-      //println(signature + " {[" + idFunction.startID + "," + (idFunction.length + idFunction.startID) + "], length:" + idFunction.length + "}")
-    }
-
     val predicatesOWA = queryPredicates ++ hiddenPredicates
-
-    // CWA predicates (Evidence predicates)
-    for ((signature, atomSchema) <- schema; if !predicatesOWA.contains(signature)) {
-      orderedStartIDs(index) = currentID
-      orderedAtomSignatures(index) = signature
-      index += 1
-      val idFunction = AtomIdentityFunction(signature, atomSchema, constants, currentID)
-      currentID += idFunction.length + 1
-      identities += (signature -> idFunction)
-      //println(signature + " {[" + idFunction.startID + "," + (idFunction.length + idFunction.startID) + "], length:" + idFunction.length + "}")
-    }
-
-
-    //orderedAtomSignatures.zip(orderedStartIDs).foreach{case (sig, startid) => println(sig+" -> "+startid) }
-    //sys.exit(0)
+    val identifier = AtomIdentifier(schema, constants, queryPredicates, hiddenPredicates, predicatesOWA)
 
     info("Stage 3: Creating function mappings, and evidence atoms database.")
 
@@ -197,7 +147,7 @@ private[model] object Evidence extends Logging {
           case None =>
             val idFunction = AtomIdentityFunction(fm.signature, functionSchema(fm.signature)._2, constants, 1)
             val builder = new FunctionMapperBuilder(idFunction)
-            builder +=(fm.values, fm.retValue)
+            builder += (fm.values, fm.retValue)
             functionMapperBuilders += (fm.signature -> builder)
         }
       case atom: EvidenceAtom =>
@@ -206,18 +156,27 @@ private[model] object Evidence extends Logging {
           case None =>
             val signature = atom.signature
             val atomSchema = schema(signature)
-            val db = AtomEvidenceDBBuilder(signature, atomSchema, identities(signature), !predicatesOWA.contains(signature))
+            val db = AtomEvidenceDBBuilder(signature, atomSchema, identifier.identities(signature), !predicatesOWA.contains(signature))
             db += atom
             atomsEvDBBuilders += (signature -> db)
         }
       case _ => //ignore
     }
 
-    val atomsEvDB: Map[AtomSignature, AtomEvidenceDB] = (for ((signature, builder) <- atomsEvDBBuilders) yield signature -> builder.toAtomEvidenceDB)(breakOut)
-    val functionMappers: Map[AtomSignature, FunctionMapper] = (for ((signature, builder) <- functionMapperBuilders) yield signature -> builder.result)(breakOut)
+    val atomsEvDB: Map[AtomSignature, AtomEvidenceDB] =
+      (for ((signature, builder) <- atomsEvDBBuilders) yield signature -> builder.toAtomEvidenceDB)(breakOut)
 
-    new Evidence(constants, atomsEvDB, functionMappers, identities, orderedStartIDs, orderedAtomSignatures, queryStartID, queryEndID)
+    val functionMappers: Map[AtomSignature, FunctionMapper] =
+      (for ((signature, builder) <- functionMapperBuilders) yield signature -> builder.result)(breakOut)
+
+    Evidence(constants, atomsEvDB, functionMappers, identifier)
   }
+
+  def apply(constants: Map[String, ConstantsSet], atomsEvDB: Map[AtomSignature, AtomEvidenceDB],
+            functionMappers: Map[AtomSignature, FunctionMapper], identifier: AtomIdentifier): Evidence =
+
+    new Evidence(constants, atomsEvDB, functionMappers, identifier.identities, identifier.orderedStartIDs,
+      identifier.orderedAtomSignatures, identifier.queryStartID, identifier.queryEndID)
 
   private def emptyDBFile: File = {
     val tmpfile = File.createTempFile("mlnc_empty_" + System.currentTimeMillis(), ".db")
