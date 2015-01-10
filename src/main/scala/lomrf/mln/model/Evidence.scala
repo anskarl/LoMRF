@@ -77,6 +77,8 @@ private[model] object Evidence extends Logging {
            hiddenPredicates: collection.Set[AtomSignature],
            files: Iterable[File]): Evidence = {
 
+    def isOWA(signature: AtomSignature) = queryPredicates.contains(signature) || hiddenPredicates.contains(signature)
+
     val constantMap = kb_constants
 
     val evidenceParser = new EvidenceParser
@@ -134,10 +136,11 @@ private[model] object Evidence extends Logging {
     val atomsEvDBBuilders = mutable.HashMap[AtomSignature, AtomEvidenceDBBuilder]()
 
     info("Stage 2: Creating atom unique identity functions.")
-    val predicatesOWA = queryPredicates ++ hiddenPredicates
-    val identifier = AtomIdentifier(schema, constants, queryPredicates, hiddenPredicates, predicatesOWA)
+
+    val identifier = AtomIdentifier(schema, constants, queryPredicates, hiddenPredicates)
 
     info("Stage 3: Creating function mappings, and evidence atoms database.")
+
 
     //var currentAtomStartID = 1
     for (evidenceExpressions <- evidenceExpressionsDB; expr <- evidenceExpressions) expr match {
@@ -156,7 +159,7 @@ private[model] object Evidence extends Logging {
           case None =>
             val signature = atom.signature
             val atomSchema = schema(signature)
-            val db = AtomEvidenceDBBuilder(signature, atomSchema, identifier.identities(signature), !predicatesOWA.contains(signature))
+            val db = AtomEvidenceDBBuilder(signature, atomSchema, identifier.identities(signature), !isOWA(signature))
             db += atom
             atomsEvDBBuilders += (signature -> db)
         }

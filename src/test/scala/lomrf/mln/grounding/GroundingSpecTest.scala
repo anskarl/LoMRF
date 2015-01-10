@@ -32,48 +32,53 @@
 
 package lomrf.mln.grounding
 
+import gnu.trove.set.hash.TIntHashSet
+import lomrf.logic._
 import lomrf.logic.{Literal, AtomSignature, KBParser}
-import lomrf.mln.model.MLN
+import lomrf.mln.model.{AtomIdentifier, MLN}
 import lomrf.util.{AtomEvidenceDB, AtomIdentityFunction}
 import org.scalatest.{FunSpec, Matchers}
-
-import scala.collection.breakOut
-
+import lomrf.tests.ECExampleDomain1._
 
 /**
  * @author Anastasios Skarlatidis
  */
 class GroundingSpecTest extends FunSpec with Matchers {
-  import lomrf.tests.ECExampleDomain._
 
-
-  /*private var currentID = 1
-  private val orderedStartIDs = new Array[Int](predicateSchema.size)
-  private val orderedAtomSignatures = new Array[AtomSignature](predicateSchema.size)
-  private var index = 0*/
 
   private val parser = new KBParser(predicateSchema, functionsSchema)
 
+  private val atomIdentifier = AtomIdentifier(predicateSchema, constants, queryAtoms, hiddenAtoms)
+
+  // Manually create sample evidence
   private val atomStateDB: Map[AtomSignature, AtomEvidenceDB] = {
 
-    for( (signature, schema) <- predicateSchema) {
+    var result = Map[AtomSignature, AtomEvidenceDB]()
 
-      // determine the total number of groundings (i.e., Cartesian product of unique domain sizes)
-      val nground = schema.toSet.toArray.map(constants(_).size).product
+    // All predicates with open-world assumption have unknown state values --- i.e., HoldsAt/2, InitiatedAt/2 and TerminatedAt/2
+    for (signature <- owa)
+      result += signature -> AtomEvidenceDB.OWA(atomIdentifier.identities(signature))
 
-      // cwa
-      if(cwa.contains(signature)) {
+    // Add all positive instantiations of predicate Next/2 (for time points 1 to 100)
+    val nextSignature = AtomSignature("Next", 2)
+    val nextIDF = atomIdentifier.identities(nextSignature)
+    val nextPositives = new TIntHashSet()
+    (1 until 100).map(t => nextIDF.encode(Seq((t + 1).toString, t.toString))).foreach(nextPositives.add)
+    result += (nextSignature -> AtomEvidenceDB.CWA(nextPositives, nextIDF))
 
+    // Assume true All instantiations of predicate Happens/2 having its first argument equals with 'walking' and
+    // the rest instantiations are false.
+    val happensSignature = AtomSignature("Happens", 2)
+    val happensIDF = atomIdentifier.identities(happensSignature)
+    val happensPositives = new TIntHashSet()
+    (1 to 100).map(t => happensIDF.encode(Seq("Walking", t.toString))).foreach(happensPositives.add)
+    result += (happensSignature -> AtomEvidenceDB.CWA(happensPositives, happensIDF))
 
-      }
-
-    }
-
-    Map.empty[AtomSignature, AtomEvidenceDB]
+    result
   }
 
 
-  val formulaStr = "Next(t,tNext) ^ HoldsAt(f,t) ^ !TerminatedAt(f,t) => HoldsAt(f,tNext)."
+  val formulaStr = "HoldsAt(f,t) ^ !TerminatedAt(f,t) ^ Next(t,tNext) => HoldsAt(f,tNext)."
 
   describe("Formula '" + formulaStr + "'") {
     val formula = parser.parseFormula(formulaStr)
@@ -89,7 +94,7 @@ class GroundingSpecTest extends FunSpec with Matchers {
       clause.variables.size should be(3)
     }
 
-    /*val mln = new MLN(
+    val mln = new MLN(
       formulas = Set(formula),
       predicateSchema,
       functionsSchema,
@@ -102,32 +107,45 @@ class GroundingSpecTest extends FunSpec with Matchers {
       owa,
       probabilisticAtoms = Set.empty[AtomSignature],
       tristateAtoms = Set.empty[AtomSignature],
-      identityFunctions,
-
-      atomStateDB = Map.empty[AtomSignature, AtomEvidenceDB],
-      Array[Int](1,2,3),
-      Array[AtomSignature](),
-      1,
-      1
-    )*/
+      atomStateDB,
+      atomIdentifier
+    )
 
 
-    /**
-     * A utility Map that associates AtomSignatures with AtomIdentityFunction (= Bijection of ground atoms to integers).
-     * This Map contains information only for ordinary atoms (not dynamic atoms).
-     */
-    val identities: Map[AtomSignature, AtomIdentityFunction] =
-      (for (literal <- clause.literals if !dynamicAtoms.contains(literal.sentence.signature))
-      yield literal.sentence.signature -> identityFunctions(literal.sentence.signature))(breakOut)
+    val orderedLiterals: Array[Literal] =
+      clause
+        .literals
+        .toArray
+        .sortBy(l => l)(ClauseLiteralsOrdering(mln))
 
+    info("original sequence of literals : " + clause.literals.map(_.toString).mkString(" v ") + "\n" +
+      "ordered sequence of literals  : " + orderedLiterals.map(_.toString).mkString(" v "))
 
-    val orderedLiterals: Array[(Literal, AtomIdentityFunction)] = clause
-       .literals
-       .view
-       .map(lit => (lit, identities.getOrElse(lit.sentence.signature, null)))
-       .toArray
-       //.sortBy(entry => entry._1)(ClauseLiteralsOrdering(mln))
+    // extract the sequence of unique variables
+    info(uniqueOrderedVariablesIn(orderedLiterals).mkString(","))
 
+    // The total number of terms is the sum of all arities
+    val numTerms = orderedLiterals.map(_.arity).sum
+
+    // mask: 1 for the first time that a new variable appears, 0 otherwise.
+    val mask = new Array[Int](numTerms)
+    var uniqueVariables = Set[Variable]()
+    var index = 0
+    for (literal <- orderedLiterals; term <- literal.sentence.terms) {
+      term match {
+        case v: Variable if !uniqueVariables.contains(v) =>
+          uniqueVariables += v
+          mask(index) = 1
+
+        case c: Constant => mask(index) = 0
+
+        case _ => mask(index) = 0
+      }
+      index += 1
+
+    }
+
+    info("mask: " + mask.mkString(", "))
 
   }
 

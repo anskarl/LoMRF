@@ -37,11 +37,20 @@ import lomrf.logic.AtomSignature
 import lomrf.util.{AtomIdentityFunction, ConstantsSet}
 
 /**
+ *
+ *
+ *
+ * @param identities a map that associates atom signatures to their corresponding identity functions
+ * @param orderedAtomSignatures the order of atom signatures according to the complete domain of groundings
+ * @param orderedStartIDs the fist index for each atom in the complete domain of groundings
+ * @param queryStartID the first index of ground query atom in the MRF
+ * @param queryEndID the last index of ground query atom in the MRF
+ *
  * @author Anastasios Skarlatidis
  */
 final class AtomIdentifier private(val identities: Map[AtomSignature, AtomIdentityFunction],
-                                   val orderedStartIDs: Array[Int],
                                    val orderedAtomSignatures: Array[AtomSignature],
+                                   val orderedStartIDs: Array[Int],
                                    val queryStartID: Int,
                                    val queryEndID: Int)
 
@@ -49,11 +58,21 @@ object AtomIdentifier {
 
   private val logger = Logger(this.getClass)
 
+  /**
+   *
+   * @param schema
+   * @param constants
+   * @param queryPredicates
+   * @param hiddenPredicates
+   *
+   * @return a new instance of AtomIdentifier
+   */
   def apply(schema: Map[AtomSignature, Seq[String]],
             constants: Map[String, ConstantsSet],
             queryPredicates: collection.Set[AtomSignature],
-            hiddenPredicates: collection.Set[AtomSignature],
-            owaPredicates: collection.Set[AtomSignature]): AtomIdentifier = {
+            hiddenPredicates: collection.Set[AtomSignature]): AtomIdentifier = {
+
+    def isOWA(signature: AtomSignature) = queryPredicates.contains(signature) || hiddenPredicates.contains(signature)
 
     var identities: Map[AtomSignature, AtomIdentityFunction] = Map[AtomSignature, AtomIdentityFunction]()
 
@@ -90,7 +109,7 @@ object AtomIdentifier {
     }
 
     // CWA predicates (Evidence predicates)
-    for ((signature, atomSchema) <- schema; if !owaPredicates.contains(signature)) {
+    for ((signature, atomSchema) <- schema; if !isOWA(signature)) {
       orderedStartIDs(index) = currentID
       orderedAtomSignatures(index) = signature
       index += 1
@@ -101,10 +120,10 @@ object AtomIdentifier {
     }
 
     logger.whenDebug {
-      orderedAtomSignatures.zip(orderedStartIDs).foreach{case (sig, startid) => logger.debug(sig+" -> "+startid) }
+      orderedAtomSignatures.zip(orderedStartIDs).foreach{case (sig, startid) => logger.debug(sig + " -> " + startid) }
     }
 
 
-    new AtomIdentifier(identities, orderedStartIDs, orderedAtomSignatures, queryStartID, queryEndID)
+    new AtomIdentifier(identities, orderedAtomSignatures, orderedStartIDs, queryStartID, queryEndID)
   }
 }

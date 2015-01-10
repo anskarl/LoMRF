@@ -33,19 +33,19 @@
 package lomrf.tests
 
 import lomrf.logic.AtomSignature
-import lomrf.util.{AtomEvidenceDB, AtomIdentityFunction, FunctionMapper, ConstantsSet}
+import lomrf.util.{FunctionMapper, ConstantsSet}
 
 /**
+ * Simple function-free EC domain for testing
+ *
  * @author Anastasios Skarlatidis
  */
-object ECExampleDomain {
+object ECExampleDomain1 {
 
   lazy val constants = Map[String, ConstantsSet](
     "time" -> ConstantsSet((1 to 100).map(_.toString): _* ),
     "event" -> ConstantsSet("Walking", "Running", "Active", "Inactive", "Exit", "Enter"),
-    "fluent" -> ConstantsSet("Move", "Meet"),
-    "dist" -> ConstantsSet("24", "30", "35"),
-    "id" -> ConstantsSet("ID1", "ID2", "ID3")
+    "fluent" -> ConstantsSet("Move", "Meet")
   )
 
   lazy val predicateSchema = Map[AtomSignature, Vector[String]](
@@ -53,20 +53,10 @@ object ECExampleDomain {
     AtomSignature("TerminatedAt", 2) -> Vector("fluent", "time"),
     AtomSignature("Happens", 2) -> Vector("event", "time"),
     AtomSignature("HoldsAt", 2) -> Vector("fluent", "time"),
-    AtomSignature("Next", 2) -> Vector("time", "time"),
-    AtomSignature("Close", 2) -> Vector("dist", "time"),
-    AtomSignature("OrientationMove", 3) -> Vector("id", "id", "time")
+    AtomSignature("Next", 2) -> Vector("time", "time")
   )
 
-  lazy val functionsSchema = Map[AtomSignature, (String, Vector[String])](
-    AtomSignature("walking", 1) ->("event", Vector("id")),
-    AtomSignature("running", 1) ->("event", Vector("id")),
-    AtomSignature("active", 1) ->("event", Vector("id")),
-    AtomSignature("inactive", 1) ->("event", Vector("id")),
-    AtomSignature("exit", 1) ->("event", Vector("id")),
-    AtomSignature("move", 2) ->("fluent", Vector("id", "id")),
-    AtomSignature("meet", 2) ->("fluent", Vector("id", "id"))
-  )
+  lazy val functionsSchema = Map.empty[AtomSignature, (String, Vector[String])]
 
   lazy val dynamicAtoms = Map.empty[AtomSignature, Vector[String] => Boolean]
 
@@ -76,26 +66,15 @@ object ECExampleDomain {
 
   lazy val queryAtoms = Set(AtomSignature("HoldsAt", 2))
 
-  lazy val cwa = Set(AtomSignature("Next", 2), AtomSignature("Close", 2), AtomSignature("OrientationMove", 3))
+  lazy val hiddenAtoms = Set(AtomSignature("InitiatedAt", 2), AtomSignature("TerminatedAt", 2))
 
-  lazy val owa = Set(AtomSignature("InitiatedAt", 2), AtomSignature("TerminatedAt", 2))
+  lazy val cwa = Set(AtomSignature("Next", 2), AtomSignature("Happens", 2))
 
+  lazy val owa = Set(AtomSignature("HoldsAt", 2), AtomSignature("InitiatedAt", 2), AtomSignature("TerminatedAt", 2))
+  
   lazy val probabilisticAtoms = Set.empty[AtomSignature]
 
   lazy val tristateAtoms = Set.empty[AtomSignature]
-
-
-
-  lazy val identityFunctions: Map[AtomSignature, AtomIdentityFunction] = predicateSchema.map {
-    case (signature, schema) =>
-      signature -> AtomIdentityFunction(signature, schema, schema.map(s => s -> constants(s)).toMap, 0)
-  }
-
-
-
-
-
-
 
 
 
