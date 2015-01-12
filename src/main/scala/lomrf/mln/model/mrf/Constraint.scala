@@ -45,7 +45,8 @@ final class Constraint(private[mln] var weight: Double, val literals: Array[Int]
   /**
    * High precision weight used for inference computations.
    */
-  private[mln] lazy val hpWeight = new LongDouble(weight)
+  // TODO ???
+  private[mln] def hpWeight = new LongDouble(weight)
 
   /**
    * Number of literals satisfying the constraint.
@@ -76,15 +77,15 @@ final class Constraint(private[mln] var weight: Double, val literals: Array[Int]
   private[mln] var watchLit2: Int = 0
 
   /**
-   * Checks if the constraint is positive.
-   */
-  val isPositive: Boolean = weight > 0
-
-  /**
    * Checks if the constraint is unit, having
    * exactly one literal.
    */
   val isUnit: Boolean = literals.length == 1
+
+  /**
+   * Checks if the constraint is positive.
+   */
+  def isPositive: Boolean = weight > 0
 
   /**
    * Checks if the constraint is satisfied at the

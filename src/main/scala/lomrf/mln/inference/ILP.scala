@@ -144,14 +144,14 @@ final class ILP(mrf: MRF, annotationDB: Map[AtomSignature, AtomEvidenceDB] = Map
       // Step 1: Introduce variables for each ground atom and create possible constraints
       for (literal <- constraint.literals) {
         val atomID = math.abs(literal)
-        val rc = literalLPVars.putIfAbsent(atomID, MPFloatVar("y" + atomID, 0, 1))
-        val floatVar = literalLPVars.get(atomID)
-
-        // for each atom variable add the associated loss
-        if(lossAugmented && rc == null) {
-          val loss =  if (getAnnotation(atomID) == TRUE) -1.0 else 1.0
-          expressions ::= loss * floatVar
+        if(!literalLPVars.containsKey(atomID)) {
+          literalLPVars.put(atomID, MPFloatVar("y" + atomID, 0, 1))
+          if(lossAugmented) {
+            val loss =  if (getAnnotation(atomID) == TRUE) -1.0 else 1.0
+            expressions ::= loss * literalLPVars.get(atomID)
+          }
         }
+        val floatVar = literalLPVars.get(atomID)
 
         if ((constraint.weight > 0 || constraint.weight.isInfinite || constraint.weight.isNaN ||
           constraint.weight == mrf.weightHard) && literal > 0)
@@ -170,7 +170,7 @@ final class ILP(mrf: MRF, annotationDB: Map[AtomSignature, AtomEvidenceDB] = Map
       val cid = constraint.id
 
       // Step 2: Create expressions for objective function (only for soft constraints)
-      if (!constraint.weight.isInfinite && !constraint.weight.isNaN && constraint.weight != mrf.weightHard) {
+      if (!constraint.weight.isInfinite && !constraint.weight.isNaN && constraint.weight != mrf.weightHard && constraint.weight != 0.0) {
 
         if (constraint.isUnit) {
           expressions ::= {
@@ -187,12 +187,12 @@ final class ILP(mrf: MRF, annotationDB: Map[AtomSignature, AtomEvidenceDB] = Map
 
       debug("Expressions: [" + expressions.mkString(", ") + "]")
 
-      // Step 3: Add constraints to the solver
+      // Step 3: Add constraints to the solver (don't introduce constraint for zero weighted constraints)
       if (constraint.isHardConstraint) {
         add(sum(constraints) >= 1)
         debug(constraints.mkString(" + ") + " >= 1")
       }
-      else if (!constraint.isUnit) {
+      else if (!constraint.isUnit && constraint.weight != 0.0) {
         val clauseVar = clauseLPVars.get(cid)
         if (constraint.weight > 0) {
           add(sum(constraints) >= clauseVar)
@@ -243,7 +243,7 @@ final class ILP(mrf: MRF, annotationDB: Map[AtomSignature, AtomEvidenceDB] = Map
     // Search for fractional solutions and fix atom values of non fractional solutions
     var nonIntegralSolutionsCounter = 0
     for ((id, lpVar) <- literalLPVars.iterator()) {
-      val value = if (lpVar.value.get > 1.0) 1.0 else lpVar.value.get
+      val value = if (lpVar.value.get > 0.99) 1.0 else lpVar.value.get
       if (value != 0.0 && value != 1.0) {
         nonIntegralSolutionsCounter += 1
         fractionalSolutions ::= ((id, value))
@@ -259,7 +259,7 @@ final class ILP(mrf: MRF, annotationDB: Map[AtomSignature, AtomEvidenceDB] = Map
     val state = MRFState(mrf)
 
     info("Number of non-integral solutions: " + nonIntegralSolutionsCounter)
-    //assert(state.countUnfixAtoms() == nonIntegralSolutionsCounter)
+    assert(state.countUnfixAtoms() == nonIntegralSolutionsCounter)
 
     val sRoundUp = System.currentTimeMillis()
 
@@ -271,7 +271,7 @@ final class ILP(mrf: MRF, annotationDB: Map[AtomSignature, AtomEvidenceDB] = Map
       // 1. RoundUp algorithm
       if(ilpRounding == RoundingScheme.ROUNDUP) {
         whenDebug { state.printStatistics() }
-        for (i <- (0 until fractionalSolutions.size).optimized) {
+        for (i <- (fractionalSolutions.size - 1 to 0 by -1).optimized) {
           val id = fractionalSolutions(i)._1
           if(state.computeDelta(id) > 0) {
             fetchAtom(id).fixedValue = 1
@@ -281,7 +281,8 @@ final class ILP(mrf: MRF, annotationDB: Map[AtomSignature, AtomEvidenceDB] = Map
             fetchAtom(id).fixedValue = -1
             fetchAtom(id).state = false
           }
-          state.evaluateState()
+          state.refineState(id)
+          //state.evaluateState()
           whenDebug { state.printStatistics() }
         }
       }

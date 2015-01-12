@@ -112,6 +112,15 @@ final class MRFState private(val mrf: MRF,
     delta
   }
 
+  // EXPERIMENTAL
+  def refineState(atomID: Int): Unit = {
+    for(i <- (0 until Unsatisfied.size).optimized) {
+      val constraint = Unsatisfied.apply(i)
+      if( state(atomID) && constraint.literals.contains(atomID) || (!state(atomID) && constraint.literals.contains(-atomID)))
+        Unsatisfied -= constraint
+    }
+  }
+
   /**
    * Print MRF statistics about the current state.
    * <ul>
