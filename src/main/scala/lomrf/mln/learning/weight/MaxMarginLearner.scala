@@ -46,13 +46,13 @@ final class MaxMarginLearner(mrf: MRF, annotationDB: Map[AtomSignature, AtomEvid
   val numberOfExamples = mrf.atoms.size()
 
   // Initialise weights of the first-order clauses (default 1)
-  val weights = Array.fill[Double](numberOfClauses)(1.0)
+  val weights = Array.fill[Double](numberOfClauses)(0.0)
 
   // Create an mrf state
   val state = MRFState(mrf)
 
   // ILP solver for inference
-  val solver = new ILP(mrf, annotationDB = annotationDB, lossAugmented = lossAugmented)
+  //val solver = new ILP(mrf, annotationDB = annotationDB, lossAugmented = lossAugmented)
 
   /**
    * Fetch atom given its literal code.
@@ -147,6 +147,7 @@ final class MaxMarginLearner(mrf: MRF, annotationDB: Map[AtomSignature, AtomEvid
       iterator.advance()
       val atom = iterator.value()
       val annotation = getAnnotation(atom.id)
+      println(decodeLiteral(atom.id)(mrf.mln).get + " " + atom.state + ", annotation: " + annotation.toString)
       if( (atom.state && annotation == FALSE) || (!atom.state && annotation == TRUE) )
         totalLoss += 1.0
     }
@@ -178,6 +179,8 @@ final class MaxMarginLearner(mrf: MRF, annotationDB: Map[AtomSignature, AtomEvid
 
   @inline private def infer() = {
     updateConstraintWeights()
+    state.unfixAll()
+    val solver = new ILP(mrf, annotationDB = annotationDB, lossAugmented = lossAugmented)
     solver.infer()
     // save as low state maybe
   }
@@ -199,15 +202,16 @@ final class MaxMarginLearner(mrf: MRF, annotationDB: Map[AtomSignature, AtomEvid
     // Step 2: Create sub-expressions for objective function (quadratic problem)
     for(clauseIdx <- 0 until numberOfClauses) {
       LPVars.putIfAbsent(clauseIdx, MPFloatVar("w" + clauseIdx, Double.NegativeInfinity, Double.PositiveInfinity))
-      expressions :+= ( LPVars.get(clauseIdx) * LPVars.get(clauseIdx) )
+      expressions :+= ( 0.5 * LPVars.get(clauseIdx) * LPVars.get(clauseIdx) )
     }
     LPVars.putIfAbsent(numberOfClauses, MPFloatVar("slack")) // bounds are by default [0.0, inf]
     expressions ::= ( C * LPVars.get(numberOfClauses) )
 
     // Step 3: Sum the sub-expressions to create the final objective
     val objective = sum(expressions)
-
-    while( error > (slack + epsilon) || iteration <= iterations) {
+    info("minimize " + objective)
+    minimize(objective)
+    while( error > (slack + epsilon) && iteration <= iterations) {
 
       info("Iteration: " + iteration + "/" + iterations)
 
@@ -217,7 +221,7 @@ final class MaxMarginLearner(mrf: MRF, annotationDB: Map[AtomSignature, AtomEvid
         info("Running solver for the current QP problem...")
 
         // Optimize function subject to the constraints introduced
-        minimize(objective)
+        //minimize(objective)
         start()
         //release()
 
@@ -232,7 +236,7 @@ final class MaxMarginLearner(mrf: MRF, annotationDB: Map[AtomSignature, AtomEvid
         var nonZero = 0
         for (clauseIdx <- 0 until numberOfClauses) {
           val value = LPVars.get(clauseIdx).value.get
-
+          println("VALUE: " + value)
           // set learned weights before inference
           if(weights(clauseIdx) != value) {
             weights(clauseIdx) = value
@@ -261,7 +265,7 @@ final class MaxMarginLearner(mrf: MRF, annotationDB: Map[AtomSignature, AtomEvid
       infer()
       info("Done")
 
-      val loss = (calculateLoss() / numberOfExamples) * lossScale
+      val loss = (calculateLoss() /*/ numberOfExamples*/) * lossScale
       info("Current loss: " + loss)
 
       info("Count inferred counts")
@@ -270,12 +274,17 @@ final class MaxMarginLearner(mrf: MRF, annotationDB: Map[AtomSignature, AtomEvid
 
       // Calculate true counts minus inferred counts
       var currentError = 0.0
-      var delta = Array[Int](numberOfClauses)
+      var delta = Array[Int]()
       for (clauseIdx <- 0 until numberOfClauses) {
         if(!mrf.mln.clauses(clauseIdx).isHard)
-          delta :+= (trueCounts(clauseIdx) - inferredCounts(clauseIdx)) / numberOfExamples
+          delta :+= (trueCounts(clauseIdx) - inferredCounts(clauseIdx)) /*/ numberOfExamples*/
         currentError += weights(clauseIdx) * delta(clauseIdx)
       }
+
+      info("Delta = [" + delta.deep.mkString(", ") + "]")
+
+      info("Count difference: " + delta.sum)
+      info("Current weighted count difference: " + currentError)
 
       constraints = Nil
       // add new constraints !!!! for all -> problem
