@@ -180,52 +180,13 @@ class GroundingSpecTest extends FunSpec with Matchers {
 
     info("mask2: " + mask2.mkString(", "))
 
+    var products =  Set[Array[Int]]()
+    var productsT =  Set[Array[Int]]()
 
     //
     // Cartesian products
     //
-
-    def cart1(source: Array[Int]): Int = {
-      val indexes = util.Arrays.copyOf(source.map(_ - 1), source.length)
-      val factors = util.Arrays.copyOf(indexes, indexes.length)
-
-
-
-      var stop = false
-      var idx = 0
-      var counter = 0
-      var iterations = 0
-      var outerIterations = 0
-
-      val startTime = System.currentTimeMillis()
-      while (stop || idx != indexes.length) {
-        outerIterations += 1
-        stop = false
-        idx = 0
-        while (!stop && (idx < factors.length)) {
-          iterations += 1
-          if (factors(idx) > 0) {
-            if (idx > 0) System.arraycopy(indexes, 0, factors, 0, idx)
-            factors(idx) -= 1
-            stop = true
-          }
-          else idx += 1
-        }
-        counter += 1
-
-
-      }
-      val endTime = System.currentTimeMillis()
-      info("cart1 --- total number of groundings: " + counter)
-      info("cart1 --- total number of iterations: " + iterations)
-      info("cart1 --- total number of outer iterations: " + outerIterations)
-      info("cart1 --- total number of inner iterations: " + (iterations - outerIterations))
-      info("cart1 --- total time:" + Utilities.msecTimeToText(endTime - startTime))
-
-      counter
-    }
-
-    def cart2(source: Array[Int]): Int = {
+    def cartesianProducts(source: Array[Int]): Int = {
       // cartesian factors: current domain indexes for each unique ordered variable
       val indexes = util.Arrays.copyOf(source.map(_ - 1), source.length)
       val factors = util.Arrays.copyOf(indexes, indexes.length)
@@ -244,6 +205,9 @@ class GroundingSpecTest extends FunSpec with Matchers {
 
       val startTime = System.currentTimeMillis()
       while (idx >= 0 && (counter < MAX)) {
+
+        products += factors.clone()
+
         //println(counter + " : "+factors.mkString(", "))
         //outerIterations += 1
         stop = false
@@ -267,41 +231,92 @@ class GroundingSpecTest extends FunSpec with Matchers {
 
       }
       val endTime = System.currentTimeMillis()
-      info("cart2 --- total number of groundings: " + counter + " of " + MAX)
-      /*info("cart2 --- total number of iterations: " + iterations)
-      info("cart2 --- total number of outer iterations: " + outerIterations)
-      info("cart2 --- total number of inner iterations: " + (iterations - outerIterations))*/
-      info("cart2 --- total time:" + Utilities.msecTimeToText(endTime - startTime))
-      //info("cart2 --- total copies:" + copies)
+      info("Total number of groundings: " + counter + " of " + MAX)
+      /*info("Total number of iterations: " + iterations)
+      info("Total number of outer iterations: " + outerIterations)
+      info("Total number of inner iterations: " + (iterations - outerIterations))*/
+      info("Total time:" + Utilities.msecTimeToText(endTime - startTime))
+      //info("Total copies:" + copies)
 
       counter
     }
 
-    /*cart1(varDomains)
-    cart2(varDomains)
-    info("REVERSED CART1")
-    cart1(varDomains.reverse)
-    info("REVERSED CART2")
-    cart2(varDomains.reverse)*/
 
-    /*val iterator = CartesianIterator.mkArithmetic(varDomains.map(_ - 1))
-    val startTime = System.currentTimeMillis()
-    val total = iterator.size
-    val endTime = System.currentTimeMillis()
-    info("iterator.size:=" + total)
-    info("arithemtic iterator total time:" + Utilities.msecTimeToText(endTime - startTime))
+    def cartesianProductsT(source: Array[Int]): Int = {
+      // cartesian factors: current domain indexes for each unique ordered variable
+      val indexes = util.Arrays.copyOf(source.map(_ - 1), source.length)
+      val factors = util.Arrays.copyOf(indexes, indexes.length)
+
+      val MAX = source.product
 
 
+      val LAST_IDX = factors.length - 1
+      var stop = false
+      var idx = LAST_IDX
+      var counter = 0
+      //var iterations = 0
+      //var outerIterations = 0
+      //var copies = 0
 
-    val iteratorRev = CartesianIterator.mkArithmetic(varDomains.reverse.map(_ - 1))
-    val startTime2 = System.currentTimeMillis()
-    val totalRev = iteratorRev.size
-    val endTime2 = System.currentTimeMillis()
-    info("iterator.size:=" + totalRev)
-    info("arithemtic iterator total time:" + Utilities.msecTimeToText(endTime2 - startTime2))*/
+      val tautology = () => factors(0) == factors(1)
 
-    cart2(varDomains)
-    //cart2(varDomains.reverse)
+      val startTime = System.currentTimeMillis()
+      while (idx >= 0 && (counter < MAX)) {
+
+
+        //println(counter + " : "+factors.mkString(", "))
+        //outerIterations += 1
+        stop = false
+        if(!tautology()) {
+          idx = LAST_IDX
+          productsT += factors.clone()
+
+        }
+        /*else{
+          idx = 1 // rightest tautological index
+
+          //println(counter + " : "+factors.mkString(", "))
+        }*/
+
+        while (!stop && idx >= 0) {
+          //iterations += 1
+          if (factors(idx) > 0) {
+            factors(idx) -= 1
+            stop = true
+
+            val pos = idx + 1
+
+            if (pos <= LAST_IDX)
+              System.arraycopy(indexes, pos, factors, pos, LAST_IDX - pos + 1)
+          }
+          else idx -= 1
+        }
+        counter += 1
+
+
+      }
+      val endTime = System.currentTimeMillis()
+      info("Total number of groundings: " + counter + " of " + MAX)
+      /*info("Total number of iterations: " + iterations)
+      info("Total number of outer iterations: " + outerIterations)
+      info("Total number of inner iterations: " + (iterations - outerIterations))*/
+      info("Total time:" + Utilities.msecTimeToText(endTime - startTime))
+      //info("Total copies:" + copies)
+
+      counter
+    }
+
+
+    cartesianProducts(varDomains)
+    cartesianProductsT(varDomains)
+
+    val missing = (products -- productsT).map(a => a.mkString(",")).toArray.sorted
+    missing.foreach(println)
+
+
+    //cartesianProducts(varDomains.reverse)
+
+
 
     // Note: the given domains should always be above zero
     /*val domainList = List(
@@ -311,7 +326,9 @@ class GroundingSpecTest extends FunSpec with Matchers {
       Array(1, 10),
       Array(5, 10),
       Array(10),
-      Array(1)
+      Array(1),
+      Array(1000, 1000, 2, 1000),
+      Array(1000, 1000, 2, 2, 2, 1, 1, 2)
     )
 
     require(domainList.forall(_.forall(_ > 0)))
@@ -319,9 +336,9 @@ class GroundingSpecTest extends FunSpec with Matchers {
     for (domain <- domainList; (l, iteration) <- domain.permutations.zipWithIndex) {
       val elements = l.map(_ - 1)
       val expectedIterations = l.product // this is the correct number of products
-      describe("Cartesian product of domains [" + elements.map(_.toString).reduceLeft(_ + ", " + _) + "]") {
+      describe("Cartesian product of domains [" + elements.mkString(", ") + "]") {
 
-        val result = cart2(l)
+        val result = cartesianProducts(l)
         info("iteration: " + iteration + "\n" +
           "\telements = [" + elements.map(_.toString).reduceLeft(_ + ", " + _) + "]\n" +
           "\texpected = " + expectedIterations + "\n" +
