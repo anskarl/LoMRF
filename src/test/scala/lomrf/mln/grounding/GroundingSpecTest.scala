@@ -66,7 +66,7 @@ class GroundingSpecTest extends FunSpec with Matchers {
     val nextSignature = AtomSignature("Next", 2)
     val nextIDF = atomIdentifier.identities(nextSignature)
     val nextPositives = new TIntHashSet()
-    (1 until 10).map(t => nextIDF.encode(Seq((t + 1).toString, t.toString))).foreach(nextPositives.add)
+    (1 until LAST_TIME_POINT).map(t => nextIDF.encode(Seq((t + 1).toString, t.toString))).foreach(nextPositives.add)
     result += (nextSignature -> AtomEvidenceDB.CWA(nextPositives, nextIDF))
 
     // Assume true All instantiations of predicate Happens/2 having its first argument equals with 'walking' and
@@ -74,7 +74,7 @@ class GroundingSpecTest extends FunSpec with Matchers {
     val happensSignature = AtomSignature("Happens", 2)
     val happensIDF = atomIdentifier.identities(happensSignature)
     val happensPositives = new TIntHashSet()
-    (1 to 10).map(t => happensIDF.encode(Seq("Walking", t.toString))).foreach(happensPositives.add)
+    (1 to LAST_TIME_POINT).map(t => happensIDF.encode(Seq("Walking", t.toString))).foreach(happensPositives.add)
     result += (happensSignature -> AtomEvidenceDB.CWA(happensPositives, happensIDF))
 
     result
@@ -230,6 +230,7 @@ class GroundingSpecTest extends FunSpec with Matchers {
       val indexes = util.Arrays.copyOf(source.map(_ - 1), source.length)
       val factors = util.Arrays.copyOf(indexes, indexes.length)
 
+      val MAX = source.product
 
 
       val LAST_IDX = factors.length - 1
@@ -238,11 +239,12 @@ class GroundingSpecTest extends FunSpec with Matchers {
       var counter = 0
       //var iterations = 0
       //var outerIterations = 0
-      var copies = 0
+      //var copies = 0
 
 
       val startTime = System.currentTimeMillis()
-      while (idx >= 0) {
+      while (idx >= 0 && (counter < MAX)) {
+        //println(counter + " : "+factors.mkString(", "))
         //outerIterations += 1
         stop = false
         idx = LAST_IDX
@@ -253,27 +255,24 @@ class GroundingSpecTest extends FunSpec with Matchers {
             factors(idx) -= 1
             stop = true
 
+            val pos = idx + 1
 
-            val pos = LAST_IDX - idx - 1
-            if(pos >=0) copies += 1
-            if (pos == 0)
-              factors(LAST_IDX) = indexes(LAST_IDX)
-            else if (pos > 0)
-              System.arraycopy(indexes, pos, factors, pos, LAST_IDX)
-
+            if (pos <= LAST_IDX)
+              System.arraycopy(indexes, pos, factors, pos, LAST_IDX - pos + 1)
           }
           else idx -= 1
         }
         counter += 1
 
+
       }
       val endTime = System.currentTimeMillis()
-      /*info("cart2 --- total number of groundings: " + counter)
-      info("cart2 --- total number of iterations: " + iterations)
+      info("cart2 --- total number of groundings: " + counter + " of " + MAX)
+      /*info("cart2 --- total number of iterations: " + iterations)
       info("cart2 --- total number of outer iterations: " + outerIterations)
       info("cart2 --- total number of inner iterations: " + (iterations - outerIterations))*/
       info("cart2 --- total time:" + Utilities.msecTimeToText(endTime - startTime))
-      info("cart2 --- total copies:" + copies)
+      //info("cart2 --- total copies:" + copies)
 
       counter
     }
@@ -301,8 +300,8 @@ class GroundingSpecTest extends FunSpec with Matchers {
     info("iterator.size:=" + totalRev)
     info("arithemtic iterator total time:" + Utilities.msecTimeToText(endTime2 - startTime2))*/
 
-    //cart2(varDomains)
-    cart2(varDomains.reverse)
+    cart2(varDomains)
+    //cart2(varDomains.reverse)
 
     // Note: the given domains should always be above zero
     /*val domainList = List(

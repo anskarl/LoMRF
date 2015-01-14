@@ -42,8 +42,10 @@ import lomrf.util.{FunctionMapper, ConstantsSet}
  */
 object ECExampleDomain1 {
 
+  val LAST_TIME_POINT = 1000
+
   lazy val constants = Map[String, ConstantsSet](
-    "time" -> ConstantsSet((1 to 10).map(_.toString): _* ),
+    "time" -> ConstantsSet((1 to LAST_TIME_POINT).map(_.toString): _* ),
     "event" -> ConstantsSet("Walking", "Running", "Active", "Inactive", "Exit", "Enter"),
     "fluent" -> ConstantsSet("Move", "Meet")
   )
