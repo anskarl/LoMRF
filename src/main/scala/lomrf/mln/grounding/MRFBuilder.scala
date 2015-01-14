@@ -37,10 +37,11 @@ import java.util.concurrent.CountDownLatch
 import akka.actor._
 import akka.pattern._
 import akka.util.Timeout
+import auxlib.log.Logging
 import gnu.trove.map.hash.TIntObjectHashMap
 import lomrf.mln.model.MLN
 import lomrf.mln.model.mrf.{GroundAtom, Constraint, MRF}
-import lomrf.util.{Logging, Utilities}
+import lomrf.util.Utilities
 import lomrf.{DEFAULT_CAPACITY, DEFAULT_LOAD_FACTOR, NO_ENTRY_KEY}
 
 import scala.concurrent.Await
@@ -94,7 +95,7 @@ import scalaxy.loops._
  *
  * @author Anastasios Skarlatidis
  */
-final class MRFBuilder(val mln: MLN, noNegWeights: Boolean = false, eliminateNegatedUnit: Boolean = false, experimentalGrounder: Boolean = false) extends Logging {
+final class MRFBuilder(val mln: MLN, noNegWeights: Boolean = false, eliminateNegatedUnit: Boolean = false) extends Logging {
 
   private val mcSatParam = 1
 
@@ -108,7 +109,7 @@ final class MRFBuilder(val mln: MLN, noNegWeights: Boolean = false, eliminateNeg
     val latch = new CountDownLatch(1)
 
     val startTime = System.currentTimeMillis()
-    val masterActor = system.actorOf(Props(new GroundingMaster(mln, latch, noNegWeights, eliminateNegatedUnit, experimentalGrounder)), name = "master")
+    val masterActor = system.actorOf(Props(new GroundingMaster(mln, latch, noNegWeights, eliminateNegatedUnit)), name = "master")
     latch.await()
     val endTime = System.currentTimeMillis()
     val result = Await.result((masterActor ? REQUEST_RESULTS).mapTo[Result], timeout.duration)

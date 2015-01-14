@@ -112,7 +112,7 @@ final class Clause(val weight: Double, val literals: Set[Literal]){
   }
 }
 
-object Clause{
+object Clause {
   def apply(weight: Double, literals: Set[Literal]):Clause = new Clause(weight,literals)
   def apply(weight: Double, atom: AtomicFormula, negated: Boolean = false) = new Clause(weight, if(negated) Set(NegativeLiteral(atom)) else Set(PositiveLiteral(atom)))
 }

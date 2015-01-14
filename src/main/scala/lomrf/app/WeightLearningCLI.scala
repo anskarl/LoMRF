@@ -1,13 +1,48 @@
+/*
+ * o                        o     o   o         o
+ * |             o          |     |\ /|         | /
+ * |    o-o o--o    o-o  oo |     | O |  oo o-o OO   o-o o   o
+ * |    | | |  | | |    | | |     |   | | | |   | \  | |  \ /
+ * O---oo-o o--O |  o-o o-o-o     o   o o-o-o   o  o o-o   o
+ *             |
+ *          o--o
+ * o--o              o               o--o       o    o
+ * |   |             |               |    o     |    |
+ * O-Oo   oo o-o   o-O o-o o-O-o     O-o    o-o |  o-O o-o
+ * |  \  | | |  | |  | | | | | |     |    | |-' | |  |  \
+ * o   o o-o-o  o  o-o o-o o o o     o    | o-o o  o-o o-o
+ *
+ * Logical Markov Random Fields.
+ *
+ * Copyright (C) 2012 Anastasios Skarlatidis.
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
 package lomrf.app
 
 import java.io.{FileOutputStream, PrintStream}
 import gnu.trove.map.hash.TIntObjectHashMap
+import auxlib.log.Logging
+import auxlib.opt.OptionParser
 import lomrf.logic.AtomSignature
 import lomrf.mln.grounding.MRFBuilder
 import lomrf.mln.inference.LossFunction
 import lomrf.mln.model.MLN
 import lomrf.mln.learning.weight.MaxMarginLearner
 import lomrf.util._
+import lomrf.util.parseAtomSignature
 
 /**
  * Command-line tool for weight learning
@@ -73,7 +108,6 @@ object WeightLearningCLI extends OptionParser with Logging {
 
   private var _implPaths: Option[Array[String]] = None
 
-  private var _experimentalGrounder = false
 
   private def addNonEvidenceAtom(atom: String) {
     parseAtomSignature(atom) match {
@@ -133,11 +167,6 @@ object WeightLearningCLI extends OptionParser with Logging {
 
   booleanOpt("noNegatedUnit", "eliminate-negated-unit", "Eliminate negated unit ground clauses (default is " + _eliminateNegatedUnit + ").", _eliminateNegatedUnit = _)
 
-  flagOpt("XG", "experimental-grounder", "Enable experimental grounder",{
-    _experimentalGrounder = true
-    warn("THIS RUN WILL USE THE EXPERIMENTAL GROUNDER!!!")
-  })
-
   flagOpt("v", "version", "Print LoMRF version.", sys.exit(0))
 
   flagOpt("h", "help", "Print usage options.", {
@@ -179,11 +208,11 @@ object WeightLearningCLI extends OptionParser with Logging {
       + "\n\t(noNegatedUnit) Eliminate negated ground unit clauses: " + _eliminateNegatedUnit
     )
 
-    val (mln, annotationDB) = MLN.apply(strMLNFileName, strTrainingFileNames, _nonEvidenceAtoms)
+    val (mln, annotationDB) = MLN.apply1(strMLNFileName, strTrainingFileNames, _nonEvidenceAtoms)
 
     info("Markov Logic:"
       + "\n\tConstant domains   : " + mln.constants.size
-      + "\n\tSchema definitions : " + mln.schema.size
+      + "\n\tSchema definitions : " + mln.predicateSchema.size
       + "\n\tFormulas           : " + mln.formulas.size
       + "\n\tEvidence atoms     : " + mln.cwa.map(_.toString).reduceLeft((left, right) => left + "," + right)
       + "\n\tNon-evidence atoms : " + mln.owa.map(_.toString).reduceLeft((left, right) => left + "," + right))
@@ -197,7 +226,7 @@ object WeightLearningCLI extends OptionParser with Logging {
     mln.clauses.zipWithIndex.foreach{case (c, idx) => info(idx+": "+c)}
 
     info("Creating MRF...")
-    val mrfBuilder = new MRFBuilder(mln, noNegWeights = _noNeg, eliminateNegatedUnit = _eliminateNegatedUnit, experimentalGrounder = _experimentalGrounder)
+    val mrfBuilder = new MRFBuilder(mln, noNegWeights = _noNeg, eliminateNegatedUnit = _eliminateNegatedUnit)
     val mrf = mrfBuilder.buildNetwork
 
     // -----------------------------------------------------------------------------
@@ -242,8 +271,8 @@ object WeightLearningCLI extends OptionParser with Logging {
 
     val learner = new MaxMarginLearner(mrf = mrf, annotationDB = annotationDB, dependencyMap = dependencyMap,
                                        nonEvidenceAtoms = _nonEvidenceAtoms, iterations = _iterations, C = _C, epsilon = _epsilon,
-                                       lossFunction = _lossFunction, lossScale = _lossScale, nonMarginRescaling = _nonMarginRescaling,
-                                       lossAugmented = _lossAugmented, printLearnedWeightsPerIteration = _printLearnedWeightsPerIteration)
+                                       lossScale = _lossScale, nonMarginRescaling = _nonMarginRescaling, lossAugmented = _lossAugmented,
+                                        printLearnedWeightsPerIteration = _printLearnedWeightsPerIteration)
 
     learner.learn()
     learner.writeResults(outputWriter)

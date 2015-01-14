@@ -35,8 +35,9 @@ package lomrf.mln.inference
 import java.io.PrintStream
 import java.text.DecimalFormat
 import java.util.concurrent.ThreadLocalRandom
+import auxlib.log.Logging
 import lomrf.mln.model.mrf.{GroundAtom, MRFState, MRF}
-import lomrf.util.{Utilities, Logging}
+import lomrf.util.Utilities
 import lomrf.util.LongDoubleConversions._
 
 /**
@@ -69,7 +70,7 @@ import lomrf.util.LongDoubleConversions._
  * @todo merge duplicate duplicate code with MaxWalkSAT (= maxWalkSATStep).
  * @todo perform optimisations to improve the performance.
  */
-final class MCSAT(mrf: MRF, pBest: Double = 0.5, pSA: Double = 0.1, maxFlips: Int = 100000, maxTries: Int = 1, targetCost: Double = 0.001,
+final case class MCSAT(mrf: MRF, pBest: Double = 0.5, pSA: Double = 0.1, maxFlips: Int = 100000, maxTries: Int = 1, targetCost: Double = 0.001,
                       numSolutions: Int = 10, saTemperature: Double = 0.1, samples: Int = 1000, lateSA: Boolean = true,
                       unitPropagation: Boolean = true, satHardPriority: Boolean = false, tabuLength: Int = 10) extends Logging {
 

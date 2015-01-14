@@ -39,7 +39,9 @@ import lomrf.logic.dynamic.{DynamicFunctionBuilder, DynamicAtomBuilder}
 import lomrf.mln.grounding.MRFBuilder
 import lomrf.mln.inference._
 import lomrf.mln.model.MLN
-import lomrf.util.{OptionParser, Logging, ImplFinder, parseAtomSignature}
+import lomrf.util.{ImplFinder, parseAtomSignature}
+import auxlib.opt.OptionParser
+import auxlib.log.Logging
 
 /**
  * Command-line tool for inference.
@@ -137,8 +139,6 @@ object InferenceCLI extends OptionParser with Logging {
   private var _implPaths: Option[Array[String]] = None
 
   private var _domainPartition = false
-
-  private var _experimentalGrounder = false
 
 
   private def addQueryAtom(atom: String) {
@@ -282,10 +282,6 @@ object InferenceCLI extends OptionParser with Logging {
     path: String => if (!path.isEmpty) _implPaths = Some(path.split(','))
   })
 
-  flagOpt("f:XG", "experimental-grounder", "Enable experimental grounder",{
-    _experimentalGrounder = true
-    warn("THIS RUN WILL USE THE EXPERIMENTAL GROUNDER!!!")
-  })
 
   flagOpt("f:dpart", "flag:domain-partition", "Try to partition the domain and create several smaller MLNs.", {
     _domainPartition = true
@@ -354,7 +350,7 @@ object InferenceCLI extends OptionParser with Logging {
 
     info("Markov Logic:"
       + "\n\tConstant domains   : " + mln.constants.size
-      + "\n\tSchema definitions : " + mln.schema.size
+      + "\n\tSchema definitions : " + mln.predicateSchema.size
       + "\n\tFormulas           : " + mln.formulas.size)
 
     info("Number of CNF clauses = " + mln.clauses.size)
@@ -362,7 +358,7 @@ object InferenceCLI extends OptionParser with Logging {
     if(isDebugEnabled) mln.clauses.zipWithIndex.foreach{case (c, idx) => debug(idx+": "+c)}
 
     info("Creating MRF...")
-    val mrfBuilder = new MRFBuilder(mln, noNegWeights = _noNeg, eliminateNegatedUnit = _eliminateNegatedUnit, experimentalGrounder = _experimentalGrounder)
+    val mrfBuilder = new MRFBuilder(mln, noNegWeights = _noNeg, eliminateNegatedUnit = _eliminateNegatedUnit)
     val mrf = mrfBuilder.buildNetwork
 
     if (_marginalInference) { // Marginal inference methods

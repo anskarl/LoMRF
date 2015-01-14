@@ -51,7 +51,7 @@ sealed trait Formula extends MLNExpression {
   /**
    * Gives the sub-formulas that this formula contains
    */
-  def subFormulas: Seq[Formula] = Seq()
+  def subFormulas: Seq[Formula] = Seq.empty[Formula]
 
   /**
    * Gives the quantifiers that appear inside this formula
@@ -212,7 +212,7 @@ object WeightedDefiniteClause {
  *
  * An atomic formula in its arguments may have either constants or variables.
  */
-case class AtomicFormula(symbol: String, terms: List[Term]) extends DefiniteClauseConstruct {
+case class AtomicFormula(symbol: String, terms: Vector[Term]) extends DefiniteClauseConstruct {
 
   val isDynamic = false
   val arity = terms.size
@@ -281,36 +281,34 @@ case class AtomicFormula(symbol: String, terms: List[Term]) extends DefiniteClau
  *
  * An evidence atom is an atomic formula with a known truth value.
  */
-class EvidenceAtom(override val symbol: String, override val terms: List[Constant],
+class EvidenceAtom(override val symbol: String, override val terms: Vector[Constant],
                    val state: TriState, val probability: Double = Double.NaN) extends AtomicFormula(symbol, terms) with EvidenceExpression {
 
 
-  override lazy val variables = Set[Variable]()
+  override lazy val variables: Set[Variable] = Set.empty[Variable]
 
   override lazy val constants: Set[Constant] = terms.toSet[Constant]
 
-  override lazy val functions = Set[TermFunction]()
+  override lazy val functions: Set[TermFunction] = Set.empty[TermFunction]
 
   override def isGround = true
 
 
-  override def toText: String = {
-    state match {
-      case TRUE => symbol + "(" + constants.map(_.toText).reduceLeft((left, right) => left + "," + right) + ")"
-      case FALSE => "!" + symbol + "(" + constants.map(_.toText).reduceLeft((left, right) => left + "," + right) + ")"
-      case UNKNOWN => symbol + "(" + constants.map(_.toText).reduceLeft((left, right) => left + "," + right) + ") " + probability
-    }
+  override def toText: String = state match {
+    case TRUE => symbol + "(" + constants.map(_.toText).reduceLeft((left, right) => left + "," + right) + ")"
+    case FALSE => "!" + symbol + "(" + constants.map(_.toText).reduceLeft((left, right) => left + "," + right) + ")"
+    case UNKNOWN => symbol + "(" + constants.map(_.toText).reduceLeft((left, right) => left + "," + right) + ") " + probability
   }
+
 }
 
 object EvidenceAtom {
 
-  def apply(predicate: String, args: List[Constant], state: TriState): EvidenceAtom = new EvidenceAtom(predicate, args, state)
+  def apply(predicate: String, args: Vector[Constant], state: TriState): EvidenceAtom = new EvidenceAtom(predicate, args, state)
 
+  def apply(predicate: String, args: Vector[Constant], isPositive: Boolean): EvidenceAtom = apply(predicate, args, if (isPositive) TRUE else FALSE)
 
-  def apply(predicate: String, args: List[Constant], isPositive: Boolean): EvidenceAtom = apply(predicate, args, if (isPositive) TRUE else FALSE)
-
-  def apply(predicate: String, args: List[Constant], probability: Double): EvidenceAtom = {
+  def apply(predicate: String, args: Vector[Constant], probability: Double): EvidenceAtom = {
     require(probability <= 1.0 && probability >= 0, "The specified probability value is not in [0, 1].")
 
     if (probability == 0.0) apply(predicate, args, FALSE)
@@ -318,12 +316,12 @@ object EvidenceAtom {
     else new EvidenceAtom(predicate, args, UNKNOWN, probability)
   }
 
-  def unapply(obj: EvidenceAtom): Option[(String, List[Constant], TriState, Double)] = {
+  def unapply(obj: EvidenceAtom): Option[(String, Vector[Constant], TriState, Double)] = {
     if (obj != null) Some((obj.symbol, obj.terms, obj.state, obj.probability)) else None
   }
 }
 
-class FunctionMapping(val retValue: String, val functionSymbol: String, val values: List[String]) extends EvidenceExpression {
+class FunctionMapping(val retValue: String, val functionSymbol: String, val values: Vector[String]) extends EvidenceExpression {
   lazy val signature = AtomSignature(functionSymbol, values.size)
 
   override def toString = retValue + " = " + functionSymbol + "(" + values.map(_.toString).reduceLeft((left, right) => left + "," + right) + ")"

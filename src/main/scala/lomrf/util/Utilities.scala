@@ -34,6 +34,8 @@ package lomrf.util
 
 import java.nio.file.Path
 
+import auxlib.log.Logging
+
 import scala.collection.mutable
 import java.io.{IOException, File}
 

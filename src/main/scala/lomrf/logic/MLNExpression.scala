@@ -79,7 +79,7 @@ case class IncludeFile(filename: String) extends MLNExpression
  * @param argTypes the argument domain types (e.g. fluent, time, event, etc.)
  * @author Anastasios Skarlatidis
  */
-case class AtomicType(predicateName: String, argTypes: List[String]) extends MLNDomainExpression
+case class AtomicType(predicateName: String, argTypes: Vector[String]) extends MLNDomainExpression
 
 /**
  * Represents a function definition, with syntax:
@@ -96,7 +96,7 @@ case class AtomicType(predicateName: String, argTypes: List[String]) extends MLN
  *
  * @author Anastasios Skarlatidis
  */
-case class FunctionType(returnType: String, name: String, argTypes: List[String]) extends MLNDomainExpression
+case class FunctionType(returnType: String, name: String, argTypes: Vector[String]) extends MLNDomainExpression
 
 /**
  * MLN formula (see [[lomrf.logic.Formula]]), for example:

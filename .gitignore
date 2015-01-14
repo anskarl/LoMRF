@@ -73,3 +73,6 @@ project/target/
 # Scala-IDE specific
 .scala_dependencies
 .worksheet
+
+# ignore localy managed libraries
+lib/

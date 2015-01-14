@@ -32,6 +32,8 @@
 
 package lomrf.mln.model
 
+import auxlib.log.Logging
+
 import collection.immutable.HashMap
 import collection.mutable
 import java.io.{BufferedReader, File, FileReader}
@@ -40,7 +42,8 @@ import lomrf.debugMsg
 import lomrf.logic.PredicateCompletionMode._
 import lomrf.logic._
 import lomrf.logic.dynamic.{DynamicAtomBuilder, DynamicFunctionBuilder}
-import lomrf.util.{Logging, ImplFinder, ConstantsSetBuilder}
+import lomrf.util.{ ImplFinder, ConstantsSetBuilder}
+import scala.collection.breakOut
 
 /**
  * KB
@@ -49,10 +52,10 @@ import lomrf.util.{Logging, ImplFinder, ConstantsSetBuilder}
  */
 private[model] class KB(val constants: mutable.HashMap[String, ConstantsSetBuilder],
                         val predicateSchema: Map[AtomSignature, Seq[String]],
-                        val functionSchema: Map[AtomSignature, (String, List[String])],
+                        val functionSchema: Map[AtomSignature, (String, Vector[String])],
                         val formulas: collection.Set[Formula],
-                        val dynamicPredicates: Map[AtomSignature, List[String] => Boolean],
-                        val dynamicFunctions: Map[AtomSignature, List[String] => String]) {
+                        val dynamicPredicates: Map[AtomSignature, Vector[String] => Boolean],
+                        val dynamicFunctions: Map[AtomSignature, Vector[String] => String]) {
 
 
   override def toString: String = {
@@ -82,8 +85,8 @@ private[model] object KB extends Logging {
 
     val domainParser = new DomainParser()
     val constants = new mutable.HashMap[String, ConstantsSetBuilder]()
-    var predicateSchema = new HashMap[AtomSignature, List[String]]()
-    var functionSchema = new HashMap[AtomSignature, (String, List[String])]()
+    var predicateSchema = new HashMap[AtomSignature, Vector[String]]()
+    var functionSchema = new HashMap[AtomSignature, (String, Vector[String])]()
 
     // ---------------------------------------------------
     // Load predefined dynamic predicates and functions
@@ -171,7 +174,7 @@ private[model] object KB extends Logging {
                 constants += (symbol -> cb)
 
               case FunctionType(retType, functionName, args) =>
-                functionSchema += (AtomSignature(functionName, args.size) ->(retType, for (element <- args) yield element))
+                functionSchema += (AtomSignature(functionName, args.size) -> (retType, for (element <- args) yield element))
                 if (!constants.contains(retType)) {
                   constants += (retType -> new ConstantsSetBuilder)
                 }
@@ -207,7 +210,7 @@ private[model] object KB extends Logging {
     var definiteClauses = new mutable.LinkedHashSet[WeightedDefiniteClause]()
     val queue = mutable.Queue[IncludeFile]()
 
-    val kbExpressions: Seq[MLNExpression] = kbParser.parseAll(kbParser.mln, fileReader) match {
+    val kbExpressions: List[MLNExpression] = kbParser.parseAll(kbParser.mln, fileReader) match {
       case kbParser.Success(exprs, _) => exprs
       case x => fatal("Can't parse the following expression: " + x + " in file: " + kbFile)
     }

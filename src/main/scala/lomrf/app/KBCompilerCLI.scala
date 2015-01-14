@@ -34,11 +34,13 @@ package lomrf.app
 
 import java.io.FileWriter
 import java.text.DecimalFormat
+import auxlib.log.Logging
+import auxlib.opt.OptionParser
 import lomrf.logic._
 import lomrf.logic.PredicateCompletionMode._
 import lomrf.logic.dynamic.{DynamicFunctionBuilder, DynamicAtomBuilder}
 import lomrf.mln.model.MLN
-import lomrf.util.{OptionParser, Logging, ImplFinder}
+import lomrf.util.ImplFinder
 
 /**
  * Command-line tool for knowledge compilation. In particular with this tool we can perform
@@ -114,7 +116,7 @@ object KBCompilerCLI extends Logging {
     info(
       "\nSource MLN: " + source + "\n" +
         "\tFound " + mln.formulas.size + " formulas.\n" +
-        "\tFound " + mln.schema.size + " predicates.\n" +
+        "\tFound " + mln.predicateSchema.size + " predicates.\n" +
         "\tFound " + mln.functionSchema.size + " functions.")
 
 
@@ -132,9 +134,9 @@ object KBCompilerCLI extends Logging {
     }
 
     // write predicate definitions. In case we introduce functions do not write function predicates (beginning with function prefix)
-    if (includePredicateDefinitions && mln.schema.nonEmpty) {
+    if (includePredicateDefinitions && mln.predicateSchema.nonEmpty) {
       write("// Predicate definitions\n")
-      for ((signature, args) <- mln.schema ; if !introduceFunctions || !signature.symbol.contains(profile.functionPrefix)) {
+      for ((signature, args) <- mln.predicateSchema ; if !introduceFunctions || !signature.symbol.contains(profile.functionPrefix)) {
         val line = signature.symbol + (
           if (args.isEmpty) "\n"
           else "(" + args.map(_.toString).reduceLeft((left, right) => left + "," + right) + ")\n")
@@ -154,7 +156,7 @@ object KBCompilerCLI extends Logging {
       }
       else if(introduceFunctions) {
         write("// Function definitions\n")
-        for ((signature, args) <- mln.schema) {
+        for ((signature, args) <- mln.predicateSchema) {
           if(signature.symbol.contains(profile.functionPrefix)) {
             val function = args(0) + " " + signature.symbol.replace(profile.functionPrefix, "") + "(" + args.drop(1).map(_.toString).reduceLeft((left, right) => left + "," + right) + ")\n"
             write(function)
@@ -250,7 +252,7 @@ object KBCompilerCLI extends Logging {
                 fMap.get(function) match {
                   case None =>
                     val functionVar = functionVarPrefix + functionCounter
-                    val terms = Variable(functionVar, function.domain) :: function.terms
+                    val terms = Vector(Variable(functionVar, function.domain)) ++:  function.terms
                     val functionLiteral = NegativeLiteral(AtomicFormula(functionPrefix + function.symbol, terms))
                     fMap += (function ->(functionVar, functionLiteral))
                     functionCounter += 1

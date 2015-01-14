@@ -1,11 +1,47 @@
+/*
+ * o                        o     o   o         o
+ * |             o          |     |\ /|         | /
+ * |    o-o o--o    o-o  oo |     | O |  oo o-o OO   o-o o   o
+ * |    | | |  | | |    | | |     |   | | | |   | \  | |  \ /
+ * O---oo-o o--O |  o-o o-o-o     o   o o-o-o   o  o o-o   o
+ *             |
+ *          o--o
+ * o--o              o               o--o       o    o
+ * |   |             |               |    o     |    |
+ * O-Oo   oo o-o   o-O o-o o-O-o     O-o    o-o |  o-O o-o
+ * |  \  | | |  | |  | | | | | |     |    | |-' | |  |  \
+ * o   o o-o-o  o  o-o o-o o o o     o    | o-o o  o-o o-o
+ *
+ * Logical Markov Random Fields.
+ *
+ * Copyright (C) 2012 Anastasios Skarlatidis.
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
 package lomrf.mln.learning.weight
 
+import lomrf.mln.inference.LossFunction.LossFunction
+import lomrf.mln.inference.Solver.Solver
 import lomrf.mln.inference.{Solver, ILP, LossFunction}
 import lomrf.util._
 import java.io.PrintStream
 import gnu.trove.map.hash.TIntObjectHashMap
-import lomrf.logic.{FALSE, TriState, TRUE, AtomSignature}
-import lomrf.util.{AtomEvidenceDB, Logging}
+import lomrf.logic.{FALSE, TriState, TRUE}
+import auxlib.log.Logging
+import lomrf.logic.AtomSignature
+import lomrf.util.AtomEvidenceDB
 import lomrf.mln.model.mrf._
 import optimus.lqprog._
 import optimus.algebra._
@@ -29,8 +65,8 @@ import optimus.algebra._
 final class MaxMarginLearner(mrf: MRF, annotationDB: Map[AtomSignature, AtomEvidenceDB],
                              dependencyMap: TIntObjectHashMap[TIntObjectHashMap[(Int, Boolean)]],
                              nonEvidenceAtoms: Set[AtomSignature], iterations: Int = 1000, C: Double = 1e+3, epsilon: Double = 0.001,
-                             lossFunction: Int = LossFunction.HAMMING, lossScale: Double = 1.0, nonMarginRescaling: Boolean = false,
-                             lossAugmented: Boolean = false, ilpSolver: Int = Solver.GUROBI,
+                             lossFunction: LossFunction = LossFunction.HAMMING, lossScale: Double = 1.0, nonMarginRescaling: Boolean = false,
+                             lossAugmented: Boolean = false, ilpSolver: Solver = Solver.GUROBI,
                              printLearnedWeightsPerIteration: Boolean = false) extends Logging {
 
   // Select the appropriate mathematical programming solver

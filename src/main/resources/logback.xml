@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <configuration>
-  <conversionRule conversionWord="highlightex" converterClass="lomrf.util.LogColouredHighlighter" />
+  <conversionRule conversionWord="highlightex" converterClass="auxlib.log.LogbackColouredHighlighter" />
   <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
     <!-- On Windows machines setting withJansi to true enables ANSI
          color code interpretation by the Jansi library. This requires
@@ -9,7 +9,7 @@
          support ANSI color codes by default. -->
     <withJansi>true</withJansi>
     <encoder>
-      <pattern>%highlightex([%-5p] %m%n)</pattern>
+      <pattern>%highlightex([%-5p]) %m%n</pattern>
     </encoder>
     <!--<filter class="ch.qos.logback.classic.filter.ThresholdFilter">
       <level>INFO</level>

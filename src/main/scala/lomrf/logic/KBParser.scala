@@ -32,14 +32,15 @@
 
 package lomrf.logic
 
+import auxlib.log.Logging
 import lomrf.logic.dynamic.{DynamicFunctionBuilder, DynamicAtomBuilder}
-import lomrf.util.Logging
+import scala.collection.breakOut
 
 /**
  * @author Anastasios Skarlatidis
  */
-final class KBParser(predicateSchema: Map[AtomSignature, List[String]],
-                             functionSchema: Map[AtomSignature, (String, List[String])],
+final class KBParser(predicateSchema: Map[AtomSignature, Vector[String]],
+                             functionSchema: Map[AtomSignature, (String, Vector[String])],
                              dynamicAtomBuilders: Map[AtomSignature, DynamicAtomBuilder] = predef.dynAtomBuilders,
                              dynamicFunctionBuilders: Map[AtomSignature, DynamicFunctionBuilder] = predef.dynFunctionBuilders) extends CommonsMLNParser with Logging {
 
@@ -47,11 +48,11 @@ final class KBParser(predicateSchema: Map[AtomSignature, List[String]],
   private val minPrecedenceLevel = 1
   private val maxPrecedenceLevel = 3
 
-  private var currentTypes = List[Variable]()
+  private var currentTypes = Vector[Variable]()
 
-  private var dynamicPredicates = Map[AtomSignature, List[String] => Boolean]()
+  private var dynamicPredicates = Map[AtomSignature, Vector[String] => Boolean]()
 
-  private var dynamicFunctions = Map[AtomSignature, List[String] => String]()
+  private var dynamicFunctions = Map[AtomSignature, Vector[String] => String]()
   private var dynamicFunctionsInstances = Set[TermFunction]()
 
   def getDynamicPredicates = dynamicPredicates
@@ -98,11 +99,11 @@ final class KBParser(predicateSchema: Map[AtomSignature, List[String]],
   def softDefiniteClause: Parser[WeightedDefiniteClause] = {
     opt(numDouble) ~ definiteClause ^^ {
       case Some(weight) ~ clause =>
-        currentTypes = List[Variable]()
+        currentTypes = Vector[Variable]()
         normaliseVariableDomains(clause)
         WeightedDefiniteClause(weight.toDouble, clause)
       case None ~ clause =>
-        currentTypes = List[Variable]()
+        currentTypes = Vector[Variable]()
         normaliseVariableDomains(clause)
         WeightedDefiniteClause(Double.NaN, clause)
     }
@@ -111,7 +112,7 @@ final class KBParser(predicateSchema: Map[AtomSignature, List[String]],
   def deterministicDefiniteClause: Parser[WeightedDefiniteClause] = {
     definiteClause <~ "." ^^ {
       case clause =>
-        currentTypes = List[Variable]()
+        currentTypes = Vector[Variable]()
         normaliseVariableDomains(clause)
         WeightedDefiniteClause(Double.PositiveInfinity, clause)
     }
@@ -124,11 +125,11 @@ final class KBParser(predicateSchema: Map[AtomSignature, List[String]],
   def softFormula: Parser[WeightedFormula] = {
     opt(numDouble) ~ formula ^^ {
       case Some(weight) ~ f =>
-        currentTypes = List[Variable]()
+        currentTypes = Vector[Variable]()
         normaliseVariableDomains(f)
         WeightedFormula(weight.toDouble, f)
       case None ~ f =>
-        currentTypes = List[Variable]()
+        currentTypes = Vector[Variable]()
         normaliseVariableDomains(f)
         WeightedFormula(Double.NaN, f)
     }
@@ -140,7 +141,7 @@ final class KBParser(predicateSchema: Map[AtomSignature, List[String]],
    * a weighted (soft) formula with infinite weight.
    */
   def deterministicFormula: Parser[WeightedFormula] = {
-    currentTypes = List[Variable]()
+    currentTypes = Vector[Variable]()
     formula <~ "." ^^ {
       f => {
         normaliseVariableDomains(f)
@@ -191,31 +192,32 @@ final class KBParser(predicateSchema: Map[AtomSignature, List[String]],
 
       dynamicAtomBuilders.get(atomSignature) match {
         case Some(atomBuilder) =>
-          val termList =
-            for (element <- arguments) yield {
-              element match {
+          val termList: Vector[Term] =
+            (for (element <- arguments) yield  element match {
                 case upperCaseID(s, _*) => Constant(s)
                 case lowerCaseID(v, _*) => fetchTypedVariable(v)
                 case func: TermFunction => func
                 case _ => sys.error("Cannot parse the symbol: " + element)
-              }
-            }
+              })(breakOut)
+
           dynamicPredicates += (atomSignature -> atomBuilder.stateFunction)
           atomBuilder(termList)
         case None =>
           //the atomicFormula is a common used-defined predicate
-          val argTypes: List[String] = predicateSchema.get(atomSignature) match {
+          val argTypes: Vector[String] = predicateSchema.get(atomSignature) match {
             case Some(x) => x
             case _ => sys.error("The predicate: " + atomSignature + " is not defined.")
           }
-          val termList =
-            for ((element, argType: String) <- arguments.zip(argTypes)) yield {
-              element match {
+          val termList: Vector[Term] =
+            (for ((element, argType: String) <- arguments.zip(argTypes)) yield element match {
+
                 case upperCaseID(s, _*) => Constant(s)
+
                 case lowerCaseID(v, _*) =>
                   val variable = Variable(v, argType)
-                  currentTypes = variable :: currentTypes //NEW
+                  currentTypes = Vector(variable) ++: currentTypes
                   variable
+
                 case func: TermFunction =>
                   if (!func.isDomainDefined) {
                     val result = TermFunction(func.symbol, func.terms, argType)
@@ -224,9 +226,10 @@ final class KBParser(predicateSchema: Map[AtomSignature, List[String]],
                   }
                   else if (func.domain == argType) func
                   else sys.error("The function " + func + " returns: " + func.domain + ", while expecting: " + argType)
+
                 case _ => sys.error("Cannot parse the symbol: " + element)
               }
-            }
+            )(breakOut)
           AtomicFormula(name, termList)
       }
   }
@@ -271,14 +274,13 @@ final class KBParser(predicateSchema: Map[AtomSignature, List[String]],
         //Check this function is a special (predefined) function:
         case Some(functionBuilder) =>
           // fetch the function's terms that are defined in its arguments
-          val termList = for (term <- arguments) yield {
-            term match {
+          val termList: Vector[Term] = (for (term <- arguments) yield term match {
               case upperCaseID(s, _*) => Constant(s)
               case lowerCaseID(v, _*) => fetchTypedVariable(v)
               case func: TermFunction => func
               case _ => sys.error("Cannot parse symbol: " + term)
-            }
-          }
+            })(breakOut)
+
           //store this special function to specialFunctions HashMap
           dynamicFunctions += (functionSignature -> functionBuilder.resultFunction)
 
@@ -294,24 +296,28 @@ final class KBParser(predicateSchema: Map[AtomSignature, List[String]],
           }
           // fetch the function's terms that are defined in its arguments,
           // and check if their types match with the function argument types
-          val termList = for ((symbol, argType: String) <- arguments.zip(argTypes)) yield {
-            symbol match {
+          val termList: Vector[Term] =
+            (for ((symbol, argType: String) <- arguments.zip(argTypes)) yield symbol match {
               case upperCaseID(s, _*) => Constant(s)
+
               case lowerCaseID(v, _*) =>
                 val variable = Variable(v, argType)
-                currentTypes = variable :: currentTypes //NEW
+                currentTypes = Vector(variable) ++: currentTypes //NEW
                 variable
+
               case func: TermFunction =>
                 //if the function is user-defined (thus it has a return type),
                 //check if its return type is the same with the corresponding argument type.
                 if (func.isDomainDefined && func.domain != argType)
                   sys.error("The function " + func + " returns: " + func.domain + ", while expecting: " + argType)
 
-                //Everything seem fine, give the function.
+                // Everything seems to be fine, give the function.
                 func
+
               case _ => sys.error("Cannot parse the symbol: " + symbol)
-            }
-          }
+
+            })(breakOut)
+
           TermFunction(functionName, termList, retType)
       } //end
   }

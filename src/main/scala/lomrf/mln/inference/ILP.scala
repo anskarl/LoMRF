@@ -33,33 +33,26 @@
 package lomrf.mln.inference
 
 import lomrf.logic.{TRUE, TriState, AtomSignature}
+import java.io.PrintStream
+import auxlib.log.Logging
+import lomrf.mln.inference.LossFunction.LossFunction
+import lomrf.mln.inference.RoundingScheme.RoundingScheme
+import lomrf.mln.inference.Solver.Solver
 import lomrf.mln.model.mrf._
 import lomrf.util._
-import java.io.PrintStream
 import gnu.trove.map.hash.{TIntDoubleHashMap, TIntObjectHashMap}
 import optimus.algebra._
 import optimus.lqprog._
 import scalaxy.loops._
 import scala.language.postfixOps
-import lomrf.util.TroveConversions._
+import auxlib.trove.TroveConversions._
 
 /**
  * This is an implementation of an approximate MAP inference algorithm for MLNs using Integer Linear Programming.
  * The original implementation of the algorithm can be found in: [[http://alchemy.cs.washington.edu/code/]].
- * Details about the ILP algorithm can be found in the following publications:
- *
- * <ul>
- * <li> Tuyen N. Huynh and Raymond J. Mooney. Max-Margin Weight Learning for Markov Logic Networks.
- * In Proceedings of the European Conference on Machine Learning and Principles and Practice of
+ * Details about the ILP algorithm can be found in: Tuyen N. Huynh and Raymond J. Mooney. Max-Margin Weight Learning for
+ * Markov Logic Networks. In Proceedings of the European Conference on Machine Learning and Principles and Practice of
  * Knowledge Discovery in Databases (ECML-PKDD 2011), Vol. 2, pp. 81-96, 2011.
- * </li>
- *
- * <li> Jan Noessner, Mathias Niepert and Heiner Stuckenschmidt.
- * RockIt: Exploiting Parallelism and Symmetry for MAP Inference in Statistical Relational Models.
- * Proceedings of the Twenty-Seventh (AAAI) Conference on Artificial Intelligence, July 14-18, 2013.
- * Bellevue, Washington: AAAI Press
- * </li>
- * </ul>
  *
  * @param mrf The ground Markov network
  * @param outputAll Show 0/1 results for all query atoms (default is true)
@@ -72,7 +65,7 @@ import lomrf.util.TroveConversions._
  * @author Vagelis Michelioudakis
  */
 final class ILP(mrf: MRF, annotationDB: Map[AtomSignature, AtomEvidenceDB] = Map.empty[AtomSignature, AtomEvidenceDB], outputAll: Boolean = true,
-                ilpRounding: Int = RoundingScheme.ROUNDUP, ilpSolver: Int = Solver.LPSOLVE, lossFunction: Int = LossFunction.HAMMING,
+                ilpRounding: RoundingScheme = RoundingScheme.ROUNDUP, ilpSolver: Solver = Solver.LPSOLVE, lossFunction: LossFunction = LossFunction.HAMMING,
                 lossAugmented: Boolean = false) extends Logging {
 
   // Select the appropriate mathematical programming solver
@@ -147,7 +140,7 @@ final class ILP(mrf: MRF, annotationDB: Map[AtomSignature, AtomEvidenceDB] = Map
         if(!literalLPVars.containsKey(atomID)) {
           literalLPVars.put(atomID, MPFloatVar("y" + atomID, 0, 1))
           if(lossAugmented) {
-            val loss =  if (getAnnotation(atomID) == TRUE) -1.0 else 1.0
+            val loss = if (getAnnotation(atomID) == TRUE) -1.0 else 1.0
             expressions ::= loss * literalLPVars.get(atomID)
           }
         }
@@ -249,8 +242,8 @@ final class ILP(mrf: MRF, annotationDB: Map[AtomSignature, AtomEvidenceDB] = Map
         fractionalSolutions ::= ((id, value))
       }
       else {
-        fetchAtom(id).fixedValue = if(value == 0.0) -1 else 1
-        fetchAtom(id).state = if(value == 0.0) false else true
+        fetchAtom(id).fixedValue = if (value == 0.0) -1 else 1
+        fetchAtom(id).state = if (value == 0.0) false else true
       }
       solution.put(id, value)
     }
@@ -287,12 +280,9 @@ final class ILP(mrf: MRF, annotationDB: Map[AtomSignature, AtomEvidenceDB] = Map
         }
       }
       // 2. MaxWalkSAT algorithm
-      else {
-        val sat = new MaxWalkSAT(mrf)
-        sat.infer(state)
-      }
-
+      else MaxWalkSAT(mrf).infer(state)
     }
+
     debug("Unfixed atoms: " + state.countUnfixAtoms())
 
     val eRoundUp = System.currentTimeMillis()
@@ -303,7 +293,6 @@ final class ILP(mrf: MRF, annotationDB: Map[AtomSignature, AtomEvidenceDB] = Map
                                                       (eSolver - sSolver) +
                                                       (eRoundUp - sRoundUp)
     ))
-
   }
 
 
@@ -324,17 +313,13 @@ final class ILP(mrf: MRF, annotationDB: Map[AtomSignature, AtomEvidenceDB] = Map
       if (atomID >= mln.queryStartID && atomID <= mln.queryEndID) {
         val groundAtom = iterator.value()
         val state = if(groundAtom.getState) 1 else 0
-        if(outputAll) {
-          decodeAtom(iterator.key()) match {
-            case Some(txtAtom) => out.println(txtAtom + " " + state)
-            case _ => error("failed to decode id:" + atomID)
-          }
+        if(outputAll) decodeAtom(iterator.key()) match {
+          case Some(txtAtom) => out.println(txtAtom + " " + state)
+          case _ => error("failed to decode id:" + atomID)
         }
-        else {
-          if(state == 1) decodeAtom(iterator.key()) match {
-            case Some(txtAtom) => out.println(txtAtom + " " + state)
-            case _ => error("failed to decode id:" + atomID)
-          }
+        else if(state == 1) decodeAtom(iterator.key()) match {
+          case Some(txtAtom) => out.println(txtAtom + " " + state)
+          case _ => error("failed to decode id:" + atomID)
         }
       }
     }
@@ -345,22 +330,23 @@ final class ILP(mrf: MRF, annotationDB: Map[AtomSignature, AtomEvidenceDB] = Map
 /**
  * Object holding constants for rounding type.
  */
-object RoundingScheme {
-  val ROUNDUP = 1
-  val MWS = 2
+object RoundingScheme extends Enumeration {
+  type RoundingScheme = Value
+  val ROUNDUP, MWS = Value
 }
 
 /**
  * Object holding constants for solver type.
  */
-object Solver {
-  val GUROBI = 1
-  val LPSOLVE = 2
+object Solver extends Enumeration {
+  type Solver = Value
+  val GUROBI, LPSOLVE = Value
 }
 
 /**
  * Object holding constants for loss function type.
  */
-object LossFunction {
-  val HAMMING = 1
+object LossFunction extends Enumeration {
+  type LossFunction = Value
+  val HAMMING = Value
 }

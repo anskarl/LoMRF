@@ -35,20 +35,20 @@ package lomrf.mln.grounding
 import java.util.concurrent.CountDownLatch
 
 import akka.actor.{Actor, ActorRef, PoisonPill, Props}
+import auxlib.log.Logging
 import gnu.trove.map.TIntObjectMap
 import gnu.trove.set.TIntSet
 import gnu.trove.set.hash.TIntHashSet
 import lomrf._
 import lomrf.logic.{AtomSignature, AtomicFormula, Clause, Variable}
 import lomrf.mln.model.MLN
-import lomrf.util.Logging
 
 import scala.collection.breakOut
 
 /**
  * @author Anastasios Skarlatidis
  */
-private final class GroundingMaster(mln: MLN, latch: CountDownLatch, noNegWeights: Boolean, eliminateNegatedUnit: Boolean, experimentalGrounder: Boolean = false) extends Actor with Logging {
+private final class GroundingMaster(mln: MLN, latch: CountDownLatch, noNegWeights: Boolean, eliminateNegatedUnit: Boolean) extends Actor with Logging {
 
   private val _variables2Cliques = new Array[TIntObjectMap[TIntHashSet]](processors)
   private val _cliques = new Array[TIntObjectMap[CliqueEntry]](processors)
@@ -85,7 +85,7 @@ private final class GroundingMaster(mln: MLN, latch: CountDownLatch, noNegWeight
   private val clauseGroundingWorkers: Array[ActorRef] = {
     val n = mln.queryAtoms.size + mln.clauses.size
     (for (i <- 0 until (if (n <= processors) n else processors))
-      yield context.actorOf(Props(new GroundingWorker(mln, cliqueRegisters, noNegWeights, eliminateNegatedUnit, experimentalGrounder)), name = "grounding_worker-" + i))(breakOut)
+      yield context.actorOf(Props(new GroundingWorker(mln, cliqueRegisters, noNegWeights, eliminateNegatedUnit)), name = "grounding_worker-" + i))(breakOut)
   }
 
   override def preStart() {
@@ -97,10 +97,9 @@ private final class GroundingMaster(mln: MLN, latch: CountDownLatch, noNegWeight
     // To make sure that all ground query predicates will be stored in the network,
     // insert all ground query predicates as zero weighted unit clauses
     for (signature <- mln.queryAtoms) {
-      val terms =
-        mln.schema(signature).view.zipWithIndex.map {
+      val terms = mln.predicateSchema(signature).view.zipWithIndex.map {
           case (argType: String, idx: Int) => Variable("v" + idx, argType, idx)
-        }.toList
+        }.toVector
       //remainingClauses += Clause(0, AtomicFormula(signature.symbol, terms))
       remainingClauses :+= Clause(0, AtomicFormula(signature.symbol, terms))
     }

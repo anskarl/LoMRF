@@ -32,10 +32,11 @@
 
 package lomrf
 
-import scala.collection.{SeqLike, IterableLike, mutable}
+import scala.collection.mutable
 import lomrf.logic.dynamic._
-import lomrf.util.Logging
+import auxlib.log.Logging
 import scala.annotation.tailrec
+import scala.collection.breakOut
 
 /**
  * @author Anastasios Skarlatidis
@@ -142,7 +143,7 @@ package object logic extends Logging {
    * @return the generalisation of the given atoms
    */
   def generalisation(atom1: AtomicFormula, atom2: AtomicFormula)
-                    (implicit predicateSchema: Map[AtomSignature, List[String]], functionSchema: Map[AtomSignature, (String, List[String])]): Option[AtomicFormula] = {
+                    (implicit predicateSchema: Map[AtomSignature, Vector[String]], functionSchema: Map[AtomSignature, (String, Vector[String])]): Option[AtomicFormula] = {
 
     if (atom1.signature != atom2.signature) None //the signatures are different, thus MGP cannot be applied.
     else if (atom1 == atom2) Some(atom1) //comparing the same atom
@@ -151,11 +152,10 @@ package object logic extends Logging {
 
   @inline
   private def generalisationOf(atom1: AtomicFormula, atom2: AtomicFormula)
-                              (implicit predicateSchema: Map[AtomSignature, List[String]], functionSchema: Map[AtomSignature, (String, List[String])]): Option[AtomicFormula] = {
+                              (implicit predicateSchema: Map[AtomSignature, Vector[String]], functionSchema: Map[AtomSignature, (String, Vector[String])]): Option[AtomicFormula] = {
 
-    val generalizedArgs: List[Term] = {
-      for ((pair, idx) <- atom1.terms.zip(atom2.terms).zipWithIndex)
-      yield pair match {
+    val generalizedArgs: Vector[Term] =
+      (for ((pair, idx) <- atom1.terms.zip(atom2.terms).zipWithIndex) yield pair match {
         case (v: Variable, _) => v
         case (_, v: Variable) => v
         case (c1: Constant, c2: Constant) =>
@@ -166,17 +166,16 @@ package object logic extends Logging {
           }
         case (f1: TermFunction, f2: TermFunction) => generalisationOf(f1, f2).getOrElse(return None)
         case _ => return None
-      }
-    }
+      })(breakOut)
+
 
     Some(AtomicFormula(atom1.symbol, generalizedArgs))
   }
 
   private def generalisationOf(f1: TermFunction, f2: TermFunction, level: Int = 0)
-                              (implicit functionSchema: Map[AtomSignature, (String, List[String])]): Option[TermFunction] = {
-    val generalizedArgs: List[Term] = {
-      for ((pair, idx) <- f1.terms.zip(f2.terms).zipWithIndex)
-      yield pair match {
+                              (implicit functionSchema: Map[AtomSignature, (String, Vector[String])]): Option[TermFunction] = {
+    val generalizedArgs: Vector[Term] =
+      (for ((pair, idx) <- f1.terms.zip(f2.terms).zipWithIndex) yield pair match {
         case (v: Variable, _) => v
         case (_, v: Variable) => v
         case (c1: Constant, c2: Constant) =>
@@ -187,8 +186,8 @@ package object logic extends Logging {
           }
         case (f1: TermFunction, f2: TermFunction) => generalisationOf(f1, f2, level + 1).getOrElse(return None)
         case _ => return None
-      }
-    }
+      })(breakOut)
+
 
     Some(TermFunction(f1.symbol, generalizedArgs, f1.domain))
   }
@@ -213,14 +212,14 @@ package object logic extends Logging {
     result
   }
 
-  def variablesIn(terms: Iterable[_ <: Term]): List[Variable] = {
+  def variablesIn(terms: Iterable[_ <: Term]): Vector[Variable] = {
     val stack = mutable.Stack[Term]()
     stack.pushAll(terms)
 
-    var result = List[Variable]()
+    var result = Vector[Variable]()
 
     while (stack.nonEmpty) stack.pop() match {
-      case v: Variable => result ::= v
+      case v: Variable => result ++= Vector(v)
       case f: TermFunction => stack.pushAll(f.terms)
       case _ => //do nothing
     }
@@ -228,11 +227,11 @@ package object logic extends Logging {
     result
   }
 
-  def uniqueOrderedVariablesIn(literals: Iterable[Literal]): List[Variable] = {
+  def uniqueOrderedVariablesIn(literals: Iterable[Literal]): Vector[Variable] = {
     val stack = mutable.Stack[Term]()
 
     var variables = Set[Variable]()
-    var result = List[Variable]()
+    var result = Vector[Variable]()
 
     for (literal <- literals) {
       stack.pushAll(literal.sentence.terms)
@@ -240,7 +239,7 @@ package object logic extends Logging {
       while (stack.nonEmpty) stack.pop() match {
         case v: Variable if !variables.contains(v) =>
           variables += v
-          result ::= v
+          result ++= Vector(v)
         case f: TermFunction =>
           stack.pushAll(f.terms)
         case _ => //do nothing
@@ -251,18 +250,18 @@ package object logic extends Logging {
     result
   }
 
-  def uniqueOrderedVariablesIn(atom: AtomicFormula): List[Variable] = {
+  def uniqueOrderedVariablesIn(atom: AtomicFormula): Vector[Variable] = {
     val stack = mutable.Stack[Term]()
 
     var variables = Set[Variable]()
-    var result = List[Variable]()
+    var result = Vector[Variable]()
 
     stack.pushAll(atom.terms)
 
     while (stack.nonEmpty) stack.pop() match {
       case v: Variable if !variables.contains(v) =>
         variables += v
-        result ::= v
+        result ++= Vector(v)
       case f: TermFunction => stack.pushAll(f.terms)
       case _ => //do nothing
     }
@@ -359,7 +358,7 @@ package object logic extends Logging {
       ).map(builder => builder.signature -> builder).toMap
 
 
-    val dynAtoms: Map[AtomSignature, List[String] => Boolean] =
+    val dynAtoms: Map[AtomSignature, Vector[String] => Boolean] =
       dynAtomBuilders.map { case (signature, builder) => signature -> builder.stateFunction}
 
 
@@ -369,7 +368,7 @@ package object logic extends Logging {
         DynTimesFunctionBuilder(), DynDividedByFunctionBuilder(), DynModFunctionBuilder(), DynConcatFunctionBuilder()
       ).map(builder => builder.signature -> builder).toMap
 
-    val dynFunctions: Map[AtomSignature, List[String] => String] =
+    val dynFunctions: Map[AtomSignature, Vector[String] => String] =
       dynFunctionBuilders.map { case (signature, builder) => signature -> builder.resultFunction}
 
   }

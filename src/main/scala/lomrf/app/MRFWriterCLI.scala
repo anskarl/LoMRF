@@ -34,6 +34,8 @@ package lomrf.app
 
 import java.io.{FileWriter, BufferedWriter}
 import java.text.DecimalFormat
+import auxlib.log.Logging
+import auxlib.opt.OptionParser
 import lomrf.logic.AtomSignature
 import lomrf.logic.PredicateCompletionMode._
 import lomrf.logic.dynamic.{DynamicFunctionBuilder, DynamicAtomBuilder}
@@ -71,7 +73,7 @@ object MRFWriterCLI extends Logging {
 
 
       val outputFilePath = opt.outputFileName.getOrElse(fatal("Please specify an output file"))
-      val builder = new MRFBuilder(mln = mln, noNegWeights = opt._noNeg, eliminateNegatedUnit = opt._eliminateNegatedUnit, experimentalGrounder = opt._experimentalGrounder)
+      val builder = new MRFBuilder(mln = mln, noNegWeights = opt._noNeg, eliminateNegatedUnit = opt._eliminateNegatedUnit)
       val mrf = builder.buildNetwork
       opt.outputType match {
         case DIMACS => writeDIMACS(mrf, outputFilePath)
@@ -255,7 +257,6 @@ object MRFWriterCLI extends Logging {
 
     var implPaths: Option[Array[String]] = None
 
-    var _experimentalGrounder = false
 
     opt("i", "input", "<mln filename>", "Input Markov Logic file", {
       v: String => mlnFileName = Some(v)
@@ -294,10 +295,6 @@ object MRFWriterCLI extends Logging {
       path: String => if (!path.isEmpty) implPaths = Some(path.split(','))
     })
 
-    flagOpt("f:XG", "experimental-grounder", "Enable experimental grounder",{
-      _experimentalGrounder = true
-      warn("THIS RUN WILL USE THE EXPERIMENTAL GROUNDER!!!")
-    })
 
     flagOpt("h", "help", "Print usage options.", {
       println(usage)

@@ -80,7 +80,7 @@ final class MCSATSpecTest extends FunSpec with Matchers {
 
             info("Found " + mln.formulas.size + " formulas")
             info("Found " + mln.constants.size + " constant types")
-            info("Found " + mln.schema.size + " predicate schemas")
+            info("Found " + mln.predicateSchema.size + " predicate schemas")
             info("Found " + mln.functionSchema.size + " function schemas")
 
             it("should contain 25 formulas") {
@@ -92,7 +92,7 @@ final class MCSATSpecTest extends FunSpec with Matchers {
             }
 
             it("should contain 6 predicate schemas") {
-              mln.schema.size should be(6)
+              mln.predicateSchema.size should be(6)
             }
 
             it("should contain 7 function schemas") {

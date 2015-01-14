@@ -32,11 +32,12 @@
 
 package lomrf.mln.inference
 
+import auxlib.log.Logging
 import lomrf.mln.model.mrf.{GroundAtom, MRFState, MRF}
 import MRF.{NO_ATOM, NO_CONSTRAINT, NO_ATOM_ID}
 import java.io.PrintStream
 import java.util.concurrent.ThreadLocalRandom
-import lomrf.util.{Utilities, Logging}
+import lomrf.util.Utilities
 import lomrf.util.LongDoubleConversions._
 
 /**
@@ -69,7 +70,7 @@ import lomrf.util.LongDoubleConversions._
  * @author Anastasios Skarlatidis
  * @author Vagelis Michelioudakis
  */
-final class MaxWalkSAT(mrf: MRF, pBest: Double = 0.5, maxFlips: Int = 1000000, maxTries: Int = 1, targetCost: Double = 0.001,
+final case class MaxWalkSAT(mrf: MRF, pBest: Double = 0.5, maxFlips: Int = 1000000, maxTries: Int = 1, targetCost: Double = 0.001,
                        outputAll: Boolean = true, satHardUnit: Boolean = false, satHardPriority: Boolean = false,
                        tabuLength: Int = 10) extends Logging {
 

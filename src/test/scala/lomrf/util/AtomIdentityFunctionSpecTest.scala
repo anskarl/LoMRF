@@ -73,7 +73,7 @@ final class AtomIdentityFunctionSpecTest extends FunSpec with Matchers {
   // --------------------------------------------
   private implicit def toStr(iterable: Iterable[String]): String = "(" + iterable.map(_.toString).reduceLeft(_ + "," + _) + ")"
 
-  private def createAIF(signature: AtomSignature, mln: MLN, startID: Int): AtomIdentityFunction = {
+  private def mkAtomIdentityFunction(signature: AtomSignature, mln: MLN, startID: Int): AtomIdentityFunction = {
     val schema = mln.getSchemaOf(signature).getOrElse(sys.error("Cannot find the schema of predicate: " + signature))
     AtomIdentityFunction(signature, schema, mln.constants, startID)
   }
@@ -97,7 +97,7 @@ final class AtomIdentityFunctionSpecTest extends FunSpec with Matchers {
 
     // Create an atom identity function
     val initStartTime = currentTimeMillis
-    val identityFunction = createAIF(signature, mln, 1)
+    val identityFunction = mkAtomIdentityFunction(signature, mln, 1)
     info(Utilities.msecTimeToTextUntilNow("Identity function initialisation", initStartTime))
 
     val schema = mln.getSchemaOf(signature).getOrElse(sys.error("Cannot find signature: " + signature + " in the produced MLN."))
@@ -306,7 +306,7 @@ final class AtomIdentityFunctionSpecTest extends FunSpec with Matchers {
 
   }
 
-  describe("Encoding benchmark 1 --- Encoding/Decoding a Discrete Event Calculus Knowledge Base.") {
+  describe("Benchmark 1 --- Encoding/Decoding a Discrete Event Calculus Knowledge Base.") {
     import System._
 
     val queryAtoms = Set[AtomSignature](AtomSignature("HoldsAt", 2))
@@ -321,7 +321,7 @@ final class AtomIdentityFunctionSpecTest extends FunSpec with Matchers {
     val signature = AtomSignature("Next", 2)
 
     val initStartTime = currentTimeMillis
-    val identityFunction = createAIF(signature, mln, 1)
+    val identityFunction = mkAtomIdentityFunction(signature, mln, 1)
     info(Utilities.msecTimeToTextUntilNow("Identity function initialisation", initStartTime))
 
     val schema = mln.getSchemaOf(signature).getOrElse(sys.error("Cannot find " + signature))
@@ -331,7 +331,7 @@ final class AtomIdentityFunctionSpecTest extends FunSpec with Matchers {
 
     val cartesianIterator = Cartesian.CartesianIterator(domain)
 
-    var totalEnc = 0L
+    var totalEnc: Long = 0
     var counter = 0
 
     it("returns valid ids") {
@@ -359,7 +359,7 @@ final class AtomIdentityFunctionSpecTest extends FunSpec with Matchers {
     }
   }
 
-  describe("Encoding benchmark 2 --- Encoding/Decoding a KB with a large domain.") {
+  describe("Benchmark 2 --- Encoding/Decoding a KB with a large domain.") {
     import System._
 
     val queryAtoms = Set[AtomSignature](AtomSignature("AdvisedBy", 2))
@@ -374,7 +374,7 @@ final class AtomIdentityFunctionSpecTest extends FunSpec with Matchers {
     val signature = AtomSignature("AdvisedBy", 2)
 
     val initStartTime = currentTimeMillis
-    val identityFunction = createAIF(signature, mln, 1)
+    val identityFunction = mkAtomIdentityFunction(signature, mln, 1)
     println(Utilities.msecTimeToTextUntilNow("Identity function initialisation", initStartTime))
 
     val schema = mln.getSchemaOf(signature).getOrElse(sys.error("Cannot find " + signature))

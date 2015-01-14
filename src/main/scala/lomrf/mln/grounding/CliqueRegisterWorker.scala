@@ -35,10 +35,10 @@ package lomrf.mln.grounding
 import java.{util => jutil}
 
 import akka.actor.{Actor, ActorRef}
+import auxlib.log.Logging
 import gnu.trove.list.array.TIntArrayList
 import gnu.trove.map.hash.TIntObjectHashMap
 import lomrf._
-import lomrf.util.Logging
 
 import scala.language.postfixOps
 import scalaxy.loops._
@@ -51,7 +51,7 @@ private final class CliqueRegisterWorker(val index: Int, master: ActorRef, atomR
   private var hashCode2CliqueIDs = new TIntObjectHashMap[TIntArrayList]()
   private var cliques = new TIntObjectHashMap[CliqueEntry](DEFAULT_CAPACITY, DEFAULT_LOAD_FACTOR, NO_ENTRY_KEY)
 
-  // TODO: requirement for learning (issue #25)
+  // TODO: requirement for learning (see gitlab issue #25)
   //goundClause[ID:Int] -> (Clause[ID:Int] -> (Freq:Int, invertedWeight:Boolean))
   //private var cliqueDependencyMap = new TIntObjectHashMap[TIntObjectHashMap[(Int, Boolean)]]()
 

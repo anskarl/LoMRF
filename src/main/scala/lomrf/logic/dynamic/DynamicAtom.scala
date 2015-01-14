@@ -37,12 +37,12 @@ import lomrf.logic.{Term, AtomicFormula}
 /**
  * @author Anastasios Skarlatidis
  */
-class DynamicAtom(override val symbol: String, override val terms: List[Term]) extends AtomicFormula(symbol,terms){
+class DynamicAtom(override val symbol: String, override val terms: Vector[Term]) extends AtomicFormula(symbol,terms){
   override val isDynamic = true
 }
 
 object DynamicAtom {
-  def apply(symbol: String, terms: List[Term]) = new DynamicAtom(symbol,terms)
+  def apply(symbol: String, terms: Vector[Term]) = new DynamicAtom(symbol,terms)
 
   def unapply(obj: DynamicAtom): Option[(String, List[Term])] = obj match{
     case DynamicAtom(symbol, terms) => Some((symbol,terms))

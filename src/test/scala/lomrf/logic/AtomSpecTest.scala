@@ -38,12 +38,12 @@ import org.scalatest.{Matchers, FunSpec}
  */
 final class AtomSpecTest extends FunSpec with Matchers {
 
-  private val predicateSchema = Map[AtomSignature, List[String]](
-    AtomSignature("Happens", 2) -> List("event", "time")
+  private val predicateSchema = Map[AtomSignature, Vector[String]](
+    AtomSignature("Happens", 2) -> Vector("event", "time")
   )
 
-  private val functionsSchema = Map[AtomSignature, (String, List[String])](
-    AtomSignature("walking", 1) ->("event", List("id"))
+  private val functionsSchema = Map[AtomSignature, (String, Vector[String])](
+    AtomSignature("walking", 1) ->("event", Vector("id"))
   )
 
   private val parser = new KBParser(predicateSchema, functionsSchema)
@@ -54,7 +54,7 @@ final class AtomSpecTest extends FunSpec with Matchers {
    */
   describe("The sentence: 'HappensAt(Foo,10)'") {
     val strHappens = "Happens(Foo,10)"
-    val atomHappens = AtomicFormula("Happens", List(Constant("Foo"), Constant("10")))
+    val atomHappens = AtomicFormula("Happens", Vector(Constant("Foo"), Constant("10")))
     val result = parser.parsePredicate(strHappens)
 
     it("is an atomic formula") {
@@ -83,7 +83,7 @@ final class AtomSpecTest extends FunSpec with Matchers {
     }
 
     it("has two constants: 'Foo' and '10')") {
-      result.terms shouldEqual List(Constant("Foo"), Constant("10"))
+      result.terms shouldEqual Vector(Constant("Foo"), Constant("10"))
     }
   }
 
@@ -92,7 +92,7 @@ final class AtomSpecTest extends FunSpec with Matchers {
    */
   describe("The sentence: 'HappensAt(Foo,t)'") {
     val strHappens = "Happens(Foo,t)"
-    val atomHappens = AtomicFormula("Happens", List(Constant("Foo"), Variable("t", "time")))
+    val atomHappens = AtomicFormula("Happens", Vector(Constant("Foo"), Variable("t", "time")))
     val result = parser.parsePredicate(strHappens)
 
 
@@ -122,7 +122,7 @@ final class AtomSpecTest extends FunSpec with Matchers {
     }
 
     it("composed of constant 'Foo' and variable 't'") {
-      result.terms shouldEqual List(Constant("Foo"), Variable("t", "time"))
+      result.terms shouldEqual Vector(Constant("Foo"), Variable("t", "time"))
     }
   }
 
@@ -130,22 +130,22 @@ final class AtomSpecTest extends FunSpec with Matchers {
    * Parse an atomic formula with one function and one variable or constant
    * (term1: TermFunction, term2: variable or constant, no. of constants, no. of variables, string representation)
    */
-  val functionsToTest = List(
+  val functionsToTest = Vector(
     // Happens(walking(ID0),0) : 2 constants and 0 variables
-    (TermFunction("walking", List(Constant("ID0")), "event"), Constant("0"), 2, 0, "Happens(walking(ID0),0)"),
+    (TermFunction("walking", Vector(Constant("ID0")), "event"), Constant("0"), 2, 0, "Happens(walking(ID0),0)"),
 
     // Happens(walking(ID0),t) : 1 constant and 1 variable
-    (TermFunction("walking", List(Constant("ID0")), "event"), Variable("t", "time"), 1, 1, "Happens(walking(ID0),t)"),
+    (TermFunction("walking", Vector(Constant("ID0")), "event"), Variable("t", "time"), 1, 1, "Happens(walking(ID0),t)"),
 
     // Happens(walking(x),0) : 1 constant and 1 variable
-    (TermFunction("walking", List(Variable("x", "id")), "event"), Constant("0"), 1, 1, "Happens(walking(x),0)"),
+    (TermFunction("walking", Vector(Variable("x", "id")), "event"), Constant("0"), 1, 1, "Happens(walking(x),0)"),
 
     // Happens(walking(x),t) : 0 constants and 2 variables
-    (TermFunction("walking", List(Variable("x", "id")), "event"), Variable("t", "time"), 0, 2, "Happens(walking(x),t)")
+    (TermFunction("walking", Vector(Variable("x", "id")), "event"), Variable("t", "time"), 0, 2, "Happens(walking(x),t)")
   )
 
   for ((term1, term2, nConst, nVar, strHappens) <- functionsToTest) describe("The sentence: '" + strHappens + "'") {
-    val atomHappens = AtomicFormula("Happens", List(term1, term2))
+    val atomHappens = AtomicFormula("Happens", Vector(term1, term2))
     val result = parser.parsePredicate(strHappens)
 
     it("is an atomic formula") {
@@ -180,7 +180,7 @@ final class AtomSpecTest extends FunSpec with Matchers {
     }
 
     it("composed of '"+term1.toText+"' and '"+term2.toText+"'") {
-      result.terms shouldEqual List(term1, term2)
+      result.terms shouldEqual Vector(term1, term2)
     }
 
   }

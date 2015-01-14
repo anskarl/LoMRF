@@ -3,7 +3,7 @@ import com.typesafe.sbt.SbtNativePackager._
 /** Project */
 name := "LoMRF"
 
-version := "0.2.3-beta_201410"
+version := "0.3.0-beta_201412"
 
 organization := "com.github.anskarl"
 
@@ -53,9 +53,9 @@ libraryDependencies ++= Seq(
 
 // Akka.io
 libraryDependencies ++= Seq(
-	"com.typesafe.akka" %% "akka-actor"  % "2.2.4",
-	"com.typesafe.akka" %% "akka-remote" % "2.2.4",
-	"com.typesafe.akka" %% "akka-slf4j"  % "2.2.4"
+	"com.typesafe.akka" %% "akka-actor"  % "2.3.7",
+	"com.typesafe.akka" %% "akka-remote" % "2.3.7",
+	"com.typesafe.akka" %% "akka-slf4j"  % "2.3.7"
 )
 
 // Logging with slf4j and logback
@@ -70,15 +70,22 @@ libraryDependencies += "net.sf.trove4j" % "trove4j" % "3.0.3"
 
 // Unit testing
 libraryDependencies ++= Seq(
-	"junit" % "junit" % "4.11" % "test",
+	"junit" % "junit" % "4.12" % "test",
 	"org.scalatest" %% "scalatest" % "2.2.1" % "test"
 )
 
 // Optimized Range foreach loops
-libraryDependencies += "com.nativelibs4java" %% "scalaxy-loops" % "0.1.1" % "provided"
+libraryDependencies += "com.nativelibs4java" %% "scalaxy-loops" % "0.3.3" % "provided"
 
 // JTS Topology API for modelling and manipulating 2-dimensional linear geometry
 libraryDependencies += "com.vividsolutions" % "jts" % "1.13"
+
+// add auxlib-* requires local publishing (for details see https://github.com/anskarl/auxlib)
+libraryDependencies ++= Seq(
+	"com.github.anskarl" %% "auxlib-log" % "0.1-SNAPSHOT",
+	"com.github.anskarl" %% "auxlib-opt" % "0.1-SNAPSHOT",
+	"com.github.anskarl" %% "auxlib-trove" % "0.1-SNAPSHOT"
+)
 
 // TODO: add abide support (see https://github.com/scala/scala-abide)
 
@@ -91,9 +98,11 @@ mappings in Universal <++= (packageBin in Compile) map { jar =>
 }
 
 // Include native libraries into the 'lib' directory, should become more general
+/*
 mappings in Universal <++= (packageBin in Compile) map { jar =>
   val scriptsDir = new java.io.File("lib/native/linux/x86_64/")
   scriptsDir.listFiles.toSeq.map { f =>
     f -> ("lib/native/linux/x86_64/" + f.getName)
   }
 }
+*/
