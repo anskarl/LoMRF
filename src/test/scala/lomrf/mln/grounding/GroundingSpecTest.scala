@@ -179,13 +179,15 @@ class GroundingSpecTest extends FunSpec with Matchers {
 
     info("mask2: " + mask2.mkString(", "))
 
-    var products =  Set[Array[Int]]()
-    var productsT =  Set[Array[Int]]()
+
+
 
     //
     // Cartesian products
     //
-    def cartesianProducts(source: Array[Int]): Int = {
+    def cartesianProducts(source: Array[Int]): Set[Array[Int]] = {
+      var products =  Set[Array[Int]]()
+
       // cartesian factors: current domain indexes for each unique ordered variable
       val indexes = util.Arrays.copyOf(source.map(_ - 1), source.length)
       val factors = util.Arrays.copyOf(indexes, indexes.length)
@@ -206,6 +208,7 @@ class GroundingSpecTest extends FunSpec with Matchers {
       while (idx >= 0 && (counter < MAX)) {
 
         products += factors.clone()
+        counter += 1
 
         //println(counter + " : "+factors.mkString(", "))
         //outerIterations += 1
@@ -225,25 +228,28 @@ class GroundingSpecTest extends FunSpec with Matchers {
           }
           else idx -= 1
         }
-        counter += 1
+
 
 
       }
       val endTime = System.currentTimeMillis()
       info("Total number of groundings: " + counter + " of " + MAX)
+      info("Total number of stored groundings: " + products.size)
       /*info("Total number of iterations: " + iterations)
       info("Total number of outer iterations: " + outerIterations)
       info("Total number of inner iterations: " + (iterations - outerIterations))*/
       info("Total time:" + Utilities.msecTimeToText(endTime - startTime))
       //info("Total copies:" + copies)
 
-      counter
+      products
     }
 
     val LT_IDX = 3
     val tautology = (factors: Array[Int]) => factors(0) == factors(LT_IDX)
 
-    def cartesianProductsT(source: Array[Int]): Int = {
+    def cartesianProductsT(source: Array[Int]): Set[Array[Int]] = {
+      var products =  Set[Array[Int]]()
+
       // cartesian factors: current domain indexes for each unique ordered variable
       val indexes = util.Arrays.copyOf(source.map(_ - 1), source.length)
       val factors = util.Arrays.copyOf(indexes, indexes.length)
@@ -269,15 +275,17 @@ class GroundingSpecTest extends FunSpec with Matchers {
 
         //println(counter + " : "+factors.mkString(", "))
         //outerIterations += 1
-        stop = false
+
         if(!tautology(factors)) {
           idx = LAST_IDX
-          productsT += factors.clone()
+          products += factors.clone()
+          counter += 1
         }
         else
           idx = LT_IDX
 
-
+        //reset stop flag
+        stop = false
 
         while (!stop && idx >= 0) {
           //iterations += 1
@@ -292,24 +300,25 @@ class GroundingSpecTest extends FunSpec with Matchers {
           }
           else idx -= 1
         }
-        counter += 1
+
 
 
       }
       val endTime = System.currentTimeMillis()
       info("Total number of groundings: " + counter + " of " + MAX)
+      info("Total number of stored groundings: " + products.size)
       /*info("Total number of iterations: " + iterations)
       info("Total number of outer iterations: " + outerIterations)
       info("Total number of inner iterations: " + (iterations - outerIterations))*/
       info("Total time:" + Utilities.msecTimeToText(endTime - startTime))
       //info("Total copies:" + copies)
 
-      counter
+      products
     }
 
 
-    cartesianProducts(varDomains)
-    cartesianProductsT(varDomains)
+    val products = cartesianProducts(varDomains)
+    val productsT = cartesianProductsT(varDomains)
 
 
 
