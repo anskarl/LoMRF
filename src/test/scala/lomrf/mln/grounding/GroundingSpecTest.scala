@@ -38,7 +38,6 @@ import gnu.trove.set.hash.TIntHashSet
 import lomrf.logic._
 import lomrf.logic.{Literal, AtomSignature, KBParser}
 import lomrf.mln.model.{AtomIdentifier, MLN}
-import lomrf.util.Cartesian.CartesianIterator
 import lomrf.util.{Utilities, AtomEvidenceDB}
 import org.scalatest.{FunSpec, Matchers}
 import lomrf.tests.ECExampleDomain1._
@@ -241,6 +240,8 @@ class GroundingSpecTest extends FunSpec with Matchers {
       counter
     }
 
+    val LT_IDX = 3
+    val tautology = (factors: Array[Int]) => factors(0) == factors(LT_IDX)
 
     def cartesianProductsT(source: Array[Int]): Int = {
       // cartesian factors: current domain indexes for each unique ordered variable
@@ -258,7 +259,9 @@ class GroundingSpecTest extends FunSpec with Matchers {
       //var outerIterations = 0
       //var copies = 0
 
-      val tautology = () => factors(0) == factors(1)
+      // Last tautological index
+     /* val LT_IDX = 3
+      val tautology = () => factors(0) == factors(LT_IDX)*/
 
       val startTime = System.currentTimeMillis()
       while (idx >= 0 && (counter < MAX)) {
@@ -267,16 +270,14 @@ class GroundingSpecTest extends FunSpec with Matchers {
         //println(counter + " : "+factors.mkString(", "))
         //outerIterations += 1
         stop = false
-        if(!tautology()) {
+        if(!tautology(factors)) {
           idx = LAST_IDX
           productsT += factors.clone()
-
         }
-        /*else{
-          idx = 1 // rightest tautological index
+        else
+          idx = LT_IDX
 
-          //println(counter + " : "+factors.mkString(", "))
-        }*/
+
 
         while (!stop && idx >= 0) {
           //iterations += 1
@@ -310,9 +311,29 @@ class GroundingSpecTest extends FunSpec with Matchers {
     cartesianProducts(varDomains)
     cartesianProductsT(varDomains)
 
-    val missing = (products -- productsT).map(a => a.mkString(",")).toArray.sorted
-    missing.foreach(println)
 
+
+    val productsTStr = productsT.map(_.mkString(":"))
+    val productsStr = products.map(_.mkString(":"))
+
+    println("productsStr.size:="+productsStr.size)
+    println("productsTStr.size:="+productsTStr.size)
+
+    println("\nMISSING:")
+    val missing = productsStr -- productsTStr
+    val missingStr = missing.toArray.sorted
+
+    missingStr.foreach(x => println("\t"+x))
+
+    // ERROR 1
+    val error1 = missing.filter(x => !tautology(x.split(":").map(_.toInt)))
+    println("\nWRONG MISSING ENTRIES: "+error1.size)
+    error1.foreach(x => println("\t"+x))
+
+    // ERROR 2
+    val error2 = productsTStr.filter(x => tautology(x.split(":").map(_.toInt)))
+    println("\nWRONG COLLECTED ENTRIES: "+error2.size)
+    error2.foreach(x => println("\t"+x))
 
     //cartesianProducts(varDomains.reverse)
 
