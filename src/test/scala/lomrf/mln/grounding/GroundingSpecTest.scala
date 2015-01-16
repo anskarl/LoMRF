@@ -115,7 +115,7 @@ class GroundingSpecTest extends FunSpec with Matchers {
     )
 
 
-    val orderedLiterals: Array[Literal] =
+    val orderedLiterals =
       clause
         .literals
         .toArray
@@ -126,12 +126,10 @@ class GroundingSpecTest extends FunSpec with Matchers {
 
 
 
+
     val orderedIdentityFunctions = orderedLiterals.map(literal => mln.identityFunctions(literal.sentence.signature))
 
-    val thetaIndexes = new Array[Array[Int]](orderedLiterals.size)
-    for(literal <- orderedLiterals){
 
-    }
 
     //
     // Utility arrays:
@@ -139,6 +137,8 @@ class GroundingSpecTest extends FunSpec with Matchers {
 
     // extract the sequence of unique variables
     val uniqOrderedVars = uniqueOrderedVariablesIn(orderedLiterals)
+
+
 
     info(uniqOrderedVars.mkString(", "))
 
@@ -172,7 +172,6 @@ class GroundingSpecTest extends FunSpec with Matchers {
     info("mask1: " + mask1.mkString(", "))
 
 
-
     uniqueVariables = Set[Variable]()
     // mask 2: contains the number of new variable appearances for each literal
     val mask2 = orderedLiterals.map(
@@ -187,10 +186,11 @@ class GroundingSpecTest extends FunSpec with Matchers {
     info("mask2: " + mask2.mkString(", "))
 
 
-    def ground(substitution: Array[Int]): Array[Int] ={
+    val uvar2Idx = uniqOrderedVars.zipWithIndex.toMap
 
-      ???
-    }
+    val litLastVarIdx = orderedLiterals.map(literal => uvar2Idx(variablesIn(literal.sentence.terms).last))
+
+
 
 
     //
@@ -206,45 +206,45 @@ class GroundingSpecTest extends FunSpec with Matchers {
       val MAX = source.product
 
 
-      val LAST_IDX = factors.length - 1
-      var stop = false
-      var idx = LAST_IDX
-      var counter = 0
+      val LAST_VARIABLE_INDEX = factors.length - 1
+      var stop_inner = false
+      var variable_idx = LAST_VARIABLE_INDEX
+      var product_counter = 0
       //var iterations = 0
       //var outerIterations = 0
       //var copies = 0
 
 
       val startTime = System.currentTimeMillis()
-      while (idx >= 0 && (counter < MAX)) {
+      while (variable_idx >= 0 && (product_counter < MAX)) {
 
         products += factors.clone()
-        counter += 1
+        product_counter += 1
 
         //println(counter + " : "+factors.mkString(", "))
         //outerIterations += 1
-        stop = false
-        idx = LAST_IDX
+        stop_inner = false
+        variable_idx = LAST_VARIABLE_INDEX
 
-        while (!stop && idx >= 0) {
+        while (!stop_inner && variable_idx >= 0) {
           //iterations += 1
-          if (factors(idx) > 0) {
-            factors(idx) -= 1
-            stop = true
+          if (factors(variable_idx) > 0) {
+            factors(variable_idx) -= 1
+            stop_inner = true
 
-            val pos = idx + 1
+            val pos = variable_idx + 1
 
-            if (pos <= LAST_IDX)
-              System.arraycopy(indexes, pos, factors, pos, LAST_IDX - pos + 1)
+            if (pos <= LAST_VARIABLE_INDEX)
+              System.arraycopy(indexes, pos, factors, pos, LAST_VARIABLE_INDEX - pos + 1)
           }
-          else idx -= 1
+          else variable_idx -= 1
         }
 
 
 
       }
       val endTime = System.currentTimeMillis()
-      info("Total number of groundings: " + counter + " of " + MAX)
+      info("Total number of groundings: " + product_counter + " of " + MAX)
       info("Total number of stored groundings: " + products.size)
       /*info("Total number of iterations: " + iterations)
       info("Total number of outer iterations: " + outerIterations)
@@ -268,13 +268,13 @@ class GroundingSpecTest extends FunSpec with Matchers {
       val indexes = util.Arrays.copyOf(source.map(_ - 1), source.length)
       val factors = util.Arrays.copyOf(indexes, indexes.length)
 
-      val MAX = source.product
+      val MAX_PRODUCT = source.product
 
 
-      val LAST_IDX = factors.length - 1
-      var stop = false
-      var idx = LAST_IDX
-      var counter = 0
+      val LAST_VARIABLE_INDEX = factors.length - 1
+      var stop_inner = false
+      var variable_idx = LAST_VARIABLE_INDEX
+      var product_counter = 0
       //var iterations = 0
       //var outerIterations = 0
       //var copies = 0
@@ -284,42 +284,42 @@ class GroundingSpecTest extends FunSpec with Matchers {
       val tautology = () => factors(0) == factors(LT_IDX)*/
 
       val startTime = System.currentTimeMillis()
-      while (idx >= 0 && (counter < MAX)) {
+      while (variable_idx >= 0 && (product_counter < MAX_PRODUCT)) {
 
 
         //println(counter + " : "+factors.mkString(", "))
         //outerIterations += 1
 
         if(!tautology(factors)) {
-          idx = LAST_IDX
+          variable_idx = LAST_VARIABLE_INDEX
           products += factors.clone()
-          counter += 1
+          product_counter += 1
         }
         else
-          idx = LT_IDX
+          variable_idx = LT_IDX
 
         //reset stop flag
-        stop = false
+        stop_inner = false
 
-        while (!stop && idx >= 0) {
+        while (!stop_inner && variable_idx >= 0) {
           //iterations += 1
-          if (factors(idx) > 0) {
-            factors(idx) -= 1
-            stop = true
+          if (factors(variable_idx) > 0) {
+            factors(variable_idx) -= 1
+            stop_inner = true
 
-            val pos = idx + 1
+            val pos = variable_idx + 1
 
-            if (pos <= LAST_IDX)
-              System.arraycopy(indexes, pos, factors, pos, LAST_IDX - pos + 1)
+            if (pos <= LAST_VARIABLE_INDEX)
+              System.arraycopy(indexes, pos, factors, pos, LAST_VARIABLE_INDEX - pos + 1)
           }
-          else idx -= 1
+          else variable_idx -= 1
         }
 
 
 
       }
       val endTime = System.currentTimeMillis()
-      info("Total number of groundings: " + counter + " of " + MAX)
+      info("Total number of groundings: " + product_counter + " of " + MAX_PRODUCT)
       info("Total number of stored groundings: " + products.size)
       /*info("Total number of iterations: " + iterations)
       info("Total number of outer iterations: " + outerIterations)

@@ -33,7 +33,6 @@
 package lomrf.mln.grounding
 
 import java.{util => jutil}
-
 import akka.actor.ActorRef
 import gnu.trove.set.TIntSet
 import lomrf.logic._
@@ -60,14 +59,18 @@ class ClauseGrounderImplNew private(
                           cliqueRegisters: Array[ActorRef],
                           atomSignatures: Set[AtomSignature],
                           atomsDB: Array[TIntSet],
-                          orderedLiterals: Array[(Literal, AtomIdentityFunction)],
+                          orderedLiterals: Array[Literal],
+                          orderedIdentityFunctions: Array[AtomIdentityFunction],
                           owaLiterals: Array[Literal],
                           dynamicAtoms: Map[Int, (Vector[String] => Boolean)],
                           length: Int,
                           noNegWeights: Boolean,
                           eliminateNegatedUnit: Boolean) extends ClauseGrounder with Logging {
 
-  require(!clause.weight.isNaN, "Found a clause with not a valid weight value (NaN).")
+  require(orderedLiterals.size == orderedIdentityFunctions.size,
+    "The number of literals should be the same with the number of identity functions.")
+
+  require(!clause.weight.isNaN, "Clause weight cannot be NaN.")
 
   // The number of clique batches is same with the number of clique registers, by default is the number of available
   // virtual processors
@@ -82,38 +85,33 @@ class ClauseGrounderImplNew private(
 
   def computeGroundings() {
 
-    debug("The ordering of literals in clause: " + clause + "\n\t" +
-          "changed to: " + orderedLiterals.map(_.toString()).reduceLeft(_ + " v " + _))
+    // Vector containing the unique collection of variables that appear in the 'orderedLiterals' collection,
+    // retaining the order of their first appearance.
+    val uniqOrderedVars = uniqueOrderedVariablesIn(orderedLiterals)
 
-    val orderedConstantSets =
-      uniqueOrderedVariablesIn(orderedLiterals.map(_._1))
-        .map(v => mln.constants(v.domain))
+    // A utility Map for associating Variable -> Index in uniqOrderedVars
+    val var2Idx = uniqOrderedVars.zipWithIndex.toMap
 
+    // The variable index (in uniqOrderedVars) of the last variable that appears in the literal
+    // Example:
+    // - Assume the uniqOrderedVars = Vector(z,x,y)
+    // - The var2Idx is Map(x -> 1, y -> 2, z -> 0 )
+    // - For the literal 'Foo(x,y,z)', the last variable is 'z' and its index is '0'
+    // - Similarly for the literal '!Bar(x,y)', the last variable is 'y' and its index is '2'
+    // - Thus, litLastVarIdx for the clause Foo(x,y,z) v !Bar(x,y) is the 'Array(0, 2)'
+    val litLastVarIdx = orderedLiterals.map(literal => var2Idx(variablesIn(literal.sentence.terms).last))
 
-    val V2IDX: Map[Variable, Int] = (for((v, idx) <- uniqueOrderedVariablesIn(orderedLiterals.map(_._1)).zipWithIndex)
-      yield v -> idx)(breakOut)
+    // Utility position to indicate whether to keep or not the current ground clause
+    val DROP_IDX = orderedLiterals.length + 1
 
-    val atom2TermIndexes = new Array[Array[Int]](orderedLiterals.size)
+    val IS_TAUTOLOGY = -1
 
-    var atomIdx = 0
-    for( (atom, _ ) <- orderedLiterals) {
-      val atomVars = uniqueOrderedVariablesIn(atom.sentence).toArray
-      val indexes = new Array[Int](atomVars.size)
+    // Keeps count of the number of ground clauses that are produced
+    var groundClausesCounter = 0
 
-      for(i <- (0 until atomVars.length).optimized)
-        indexes(i) = V2IDX(atomVars(i))
-
-
-      atom2TermIndexes(atomIdx) = indexes
-      atomIdx += 1
-    }
-
-    val ffIterator = CartesianIterator.mkArithmetic(orderedConstantSets)
-
-    def performGrounding(substitution: Array[Int] ): Int = {
+    def performGrounding(substitution: Array[Int]): Int = {
 
       var sat = 0
-      var counter = 0
 
       // an array of integer literals, indicating the current ground clause's literals
       val currentVariables = new Array[Int](length)
@@ -125,11 +123,9 @@ class ClauseGrounderImplNew private(
       // current position in orderedLiterals
       var literalIdx = 0
 
-      //utility position to indicate whether to keep or not the current ground clause
-      val DROP = orderedLiterals.length + 1
-
       while (literalIdx < orderedLiterals.length) {
-        val (literal, idf) = orderedLiterals(literalIdx)
+        val literal = orderedLiterals(literalIdx)
+        val idf = orderedIdentityFunctions(literalIdx)
 
         // When the literal is a dynamic atom, then invoke its truth state dynamically
         if (literal.sentence.isDynamic) {
@@ -138,24 +134,25 @@ class ClauseGrounderImplNew private(
           sys.error("Dynamic atoms are not supported yet!")
         }
         else {
+          //TODO: atomID = ??
           // Otherwise, invoke its state from the evidence
-          val atomID = idf.encode(atom2TermIndexes(literalIdx), substitution)
+          val atomID = IDENTITY_NOT_EXIST //idf.encode(atom2TermIndexes(literalIdx), substitution)
 
           if (atomID == IDENTITY_NOT_EXIST) {
             // Due to closed-world assumption in the evidence atoms or in the function mappings,
             // the identity of the atom cannot be determined and in that case the current clause grounding
             // will be omitted from the MRF
-            literalIdx = DROP
+            literalIdx = DROP_IDX
           }
           else {
             // Otherwise, the atomID has a valid id number and the following pattern matching procedure
             // investigates whether the current literal satisfies the ground clause. If it does, the clause
             // is omitted from the MRF, since it is always satisfied from that literal.
-            val state = mln.atomStateDB(literal.sentence.signature).get(atomID).value
+            val state = mln.atomStateDB(literal.sentence.signature)(atomID).value
             if ((literal.isNegative && (state == FALSE.value)) || (literal.isPositive && (state == TRUE.value))) {
               // the clause is always satisfied from that literal
               sat += 1
-              literalIdx = DROP //we don't need to keep that ground clause
+              literalIdx = DROP_IDX //we don't need to keep that ground clause
             }
             else if (state == UNKNOWN.value) {
               // The state of the literal is unknown, thus the literal will be stored to the currentVariables
@@ -165,16 +162,16 @@ class ClauseGrounderImplNew private(
           }
         }
         literalIdx += 1
-      } //end:  while (literalsIterator.hasNext && !flagDrop)
+      }
 
-      if (literalIdx == DROP) {
+      var canSend = false //utility flag
+
+      if (literalIdx < DROP_IDX) {
         // So far the ground clause is produced, but we have to
         // examine whether we will keep it or not. If the
         // ground clause contains any literal that is included in the
         // atomsDB, then it will be stored (and later will be send to clique registers),
         // otherwise it will not be stored and omitted.
-
-        var canSend = false //utility flag
 
         var owaIdx = 0
         val cliqueVariables = new Array[Int](idx)
@@ -187,6 +184,7 @@ class ClauseGrounderImplNew private(
           // Examine whether the current literal is included to the atomsDB. If it isn't,
           // the current clause will be omitted from the MRF
           val atomsDBSegment = atomsDB(currentAtomID % atomsDBBatches)
+
           if (!canSend && (atomsDBSegment ne null)) canSend = atomsDBSegment.contains(currentAtomID)
           else if (atomsDBSegment eq null) canSend = true // this case happens only for Query literals
 
@@ -205,13 +203,13 @@ class ClauseGrounderImplNew private(
               // negate this clause (e.g. the clause "-w A" will be converted into w !A)
               cliqueVariables(0) = -cliqueVariables(0)
               store(-clause.weight, cliqueVariables)
-              counter += 1
+              groundClausesCounter += 1
             }
             else {
               val posWeight = -clause.weight / cliqueVariables.length
               for(i <- (0 until cliqueVariables.length).optimized){
                 store(posWeight, Array(-cliqueVariables(i)))
-                counter += 1
+                groundClausesCounter += 1
               }
             }
           }
@@ -227,22 +225,81 @@ class ClauseGrounderImplNew private(
 
             store(weightToStore, cliqueVariables)
 
-            counter += 1
+            groundClausesCounter += 1
           }
-          counter = 1
-        } // end: if (canSend)
+          //groundClausesCounter = 1
+        }
       }
 
-      counter
+
+      // Todo: when canSend is true give the index of the last tautological variable
+      if(canSend) litLastVarIdx(literalIdx)
+      else IS_TAUTOLOGY
     }
 
-    //if(clause.isGround) performGrounding()
-    //else
-    while(ffIterator.hasNext) performGrounding(ffIterator.next())
+    // TODO:
+    def substitureTerm(termIdx: Int): Int ={
 
-    /*if (clause.isGround) performGrounding()
-    else while (groundIterator.hasNext) performGrounding(theta = groundIterator.next())*/
+      ???
+    }
+
+
+    // Extract the sequence of unique variables and find their corresponding domain sizes
+    val variableDomainSizes = uniqOrderedVars.map(v => mln.constants(v.domain).size).toArray
+
+    // The maximum number of Cartesian products according to the domain sizes of all unique variables in this clause
+    val MAX_PRODUCT = variableDomainSizes.product
+
+    // Array that contains the initial domain index for each variable
+    val initialVariableIndexes = variableDomainSizes.map(_ - 1)
+
+    // At the beginning the current substitution is the same with the initial domain index of each variable.
+    val currentSubstitution = initialVariableIndexes.clone()
+
+    val LAST_VARIABLE_INDEX = currentSubstitution.length - 1
+    var stop_inner = false
+    var variable_idx = LAST_VARIABLE_INDEX
+    var product_counter = 0
+
+
+
+    while (variable_idx >= 0 && (product_counter < MAX_PRODUCT)) {
+
+      performGrounding(currentSubstitution)
+
+
+      // In case of a tautology, LT_IDX gives the last index of tautological variable
+      val LT_IDX = performGrounding(currentSubstitution)
+
+      if(LT_IDX == IS_TAUTOLOGY) // Ignore the products, in which we have the same tautological literals
+        variable_idx = LT_IDX
+      else {
+        variable_idx = LAST_VARIABLE_INDEX
+        product_counter += 1
+      }
+
+      // Reset stop_inner flag
+      stop_inner = false
+
+      // Proceed to the inner loop for the production of the next candidate Cartesian product
+      while (!stop_inner && variable_idx >= 0) {
+
+        if (currentSubstitution(variable_idx) > 0) {
+          currentSubstitution(variable_idx) -= 1
+          stop_inner = true
+
+          val pos = variable_idx + 1
+
+          if (pos <= LAST_VARIABLE_INDEX)
+            System.arraycopy(initialVariableIndexes, pos, currentSubstitution, pos, LAST_VARIABLE_INDEX - pos + 1)
+        }
+        else variable_idx -= 1
+      }
+    }
+
   }
+
+
 
   /*private def substituteTerm(theta: collection.Map[Variable, String])(term: Term): String = term match {
     case c: Constant => c.symbol
@@ -285,44 +342,47 @@ object ClauseGrounderImplNew {
      * that the possible instantiations of 't', according to some given evidence, is the discrete set 1 to 100. The Map
      * will contain as a key the {{{Variable("t")}}} and as a value the iterable collection of 1 to 100.
      */
-    val variableDomains: Map[Variable, Iterable[String]] = {
+    /*val variableDomains: Map[Variable, Iterable[String]] = {
       if (clause.isGround) Map.empty[Variable, Iterable[String]]
       else (for (v <- clause.variables) yield v -> mln.constants(v.domain))(breakOut)
-    }
+    }*/
 
     /**
      * A utility Map that associates AtomSignatures with AtomIdentityFunction (= Bijection of ground atoms to integers).
      * This Map contains information only for ordinary atoms (not dynamic atoms).
      */
-    val identities: Map[AtomSignature, AtomIdentityFunction] =
+    /*val identities: Map[AtomSignature, AtomIdentityFunction] =
     (for (literal <- clause.literals if !mln.isDynamicAtom(literal.sentence.signature))
-    yield literal.sentence.signature -> mln.identityFunctions(literal.sentence.signature))(breakOut)
+    yield literal.sentence.signature -> mln.identityFunctions(literal.sentence.signature))(breakOut)*/
 
 
-
-    val orderedLiterals: Array[(Literal, AtomIdentityFunction)] = clause
+    val orderedLiterals =
+      clause
       .literals
-      .view
-      .map(lit => (lit, identities.getOrElse(lit.sentence.signature, null)))
       .toArray
-      .sortBy(entry => entry._1)(ClauseLiteralsOrdering(mln))
+      .sortBy(entry => entry)(ClauseLiteralsOrdering(mln))
+
+    val orderedIdentityFunctions =
+      orderedLiterals
+        .map(literal => mln.identityFunctions(literal.sentence.signature))
 
 
     // Collect literals with open-world assumption
     val owaLiterals: Array[Literal] = orderedLiterals
-      .map(_._1) // get the literal instance
       .filter(literal => mln.isTriState(literal.sentence.signature))
 
     // Collect dynamic atoms
     val dynamicAtoms: Map[Int, (Vector[String] => Boolean)] =
-      (for (i <- 0 until orderedLiterals.length; sentence = orderedLiterals(i)._1.sentence; if sentence.isDynamic)
+      (for (i <- 0 until orderedLiterals.length; sentence = orderedLiterals(i).sentence; if sentence.isDynamic)
       yield i -> mln.dynamicPredicates(sentence.signature))(breakOut)
 
 
     val length = clause.literals.count(l => mln.isTriState(l.sentence.signature))
 
     // Create the new instance 'ClauseGrounderImplNew':
-    new ClauseGrounderImplNew(clause, mln, cliqueRegisters, atomSignatures, atomsDB, orderedLiterals,owaLiterals,
+    new ClauseGrounderImplNew(
+      clause, mln, cliqueRegisters, atomSignatures, atomsDB,
+      orderedLiterals, orderedIdentityFunctions, owaLiterals,
       dynamicAtoms,length, noNegWeights, eliminateNegatedUnit)
   }
 
