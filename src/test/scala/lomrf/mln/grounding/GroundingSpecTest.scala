@@ -126,6 +126,12 @@ class GroundingSpecTest extends FunSpec with Matchers {
 
 
 
+    val orderedIdentityFunctions = orderedLiterals.map(literal => mln.identityFunctions(literal.sentence.signature))
+
+    val thetaIndexes = new Array[Array[Int]](orderedLiterals.size)
+    for(literal <- orderedLiterals){
+
+    }
 
     //
     // Utility arrays:
@@ -145,6 +151,7 @@ class GroundingSpecTest extends FunSpec with Matchers {
 
     // mask 1: contains 1 for the first time that a new variable appears, 0 otherwise.
     val mask1 = new Array[Int](numTerms)
+
 
     var uniqueVariables = Set[Variable]()
     var index = 0
@@ -180,6 +187,10 @@ class GroundingSpecTest extends FunSpec with Matchers {
     info("mask2: " + mask2.mkString(", "))
 
 
+    def ground(substitution: Array[Int]): Array[Int] ={
+
+      ???
+    }
 
 
     //
@@ -249,6 +260,9 @@ class GroundingSpecTest extends FunSpec with Matchers {
 
     def cartesianProductsT(source: Array[Int]): Set[Array[Int]] = {
       var products =  Set[Array[Int]]()
+      var groundings = List[Array[Int]]()
+
+
 
       // cartesian factors: current domain indexes for each unique ordered variable
       val indexes = util.Arrays.copyOf(source.map(_ - 1), source.length)
@@ -266,7 +280,7 @@ class GroundingSpecTest extends FunSpec with Matchers {
       //var copies = 0
 
       // Last tautological index
-     /* val LT_IDX = 3
+      /* val LT_IDX = 3
       val tautology = () => factors(0) == factors(LT_IDX)*/
 
       val startTime = System.currentTimeMillis()
@@ -317,10 +331,13 @@ class GroundingSpecTest extends FunSpec with Matchers {
     }
 
 
-    val products = cartesianProducts(varDomains)
+
+    //
+    // TEST PRODUCTS
+    //
+
+    /*val products = cartesianProducts(varDomains)
     val productsT = cartesianProductsT(varDomains)
-
-
 
     val productsTStr = productsT.map(_.mkString(":"))
     val productsStr = products.map(_.mkString(":"))
@@ -342,9 +359,8 @@ class GroundingSpecTest extends FunSpec with Matchers {
     // ERROR 2
     val error2 = productsTStr.filter(x => tautology(x.split(":").map(_.toInt)))
     println("\nWRONG COLLECTED ENTRIES: "+error2.size)
-    error2.foreach(x => println("\t"+x))
+    error2.foreach(x => println("\t"+x))*/
 
-    //cartesianProducts(varDomains.reverse)
 
 
 
