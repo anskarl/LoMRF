@@ -238,7 +238,7 @@ class ClauseGrounderImplNew private(
     }
 
     // TODO:
-    def substitureTerm(termIdx: Int): Int ={
+    def substituteTerm(termIdx: Int): Int ={
 
       ???
     }

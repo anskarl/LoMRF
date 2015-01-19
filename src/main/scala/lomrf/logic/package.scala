@@ -349,6 +349,53 @@ package object logic extends Logging {
   }
 
 
+  def flatMatchedTerms(literals: Iterable[Literal], matcher: Term => Boolean): Vector[Term] = {
+    val stack = mutable.Stack[Term]()
+
+    var result = Vector[Term]()
+
+    for (literal <- literals) {
+      stack.pushAll(literal.sentence.terms)
+
+      while (stack.nonEmpty) {
+        val candidate = stack.pop()
+        if (matcher(candidate))
+          result ++= Vector(candidate)
+        else candidate match {
+          case f: TermFunction => stack.pushAll(f.terms)
+          case _ => //do nothing
+        }
+      }
+    }
+
+    result
+  }
+
+  def matchedTerms(literals: Iterable[Literal], matcher: Term => Boolean): Vector[Vector[Term]] = {
+    val stack = mutable.Stack[Term]()
+
+    var result = Vector[Vector[Term]]()
+
+    for (literal <- literals) {
+      stack.pushAll(literal.sentence.terms)
+      var matchedTerms = Vector[Term]()
+
+      while (stack.nonEmpty) {
+        val candidate = stack.pop()
+        if (matcher(candidate))
+          matchedTerms ++= Vector(candidate)
+        else candidate match {
+          case f: TermFunction => stack.pushAll(f.terms)
+          case _ => //do nothing
+        }
+      }
+      result ++= Vector(matchedTerms)
+    }
+
+    result
+  }
+
+
   object predef {
 
     val dynAtomBuilders: Map[AtomSignature, DynamicAtomBuilder] =

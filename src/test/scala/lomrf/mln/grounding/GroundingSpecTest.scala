@@ -32,20 +32,21 @@
 
 package lomrf.mln.grounding
 
-import java.util
-
+import auxlib.log.Logging
 import gnu.trove.set.hash.TIntHashSet
 import lomrf.logic._
 import lomrf.logic.{Literal, AtomSignature, KBParser}
 import lomrf.mln.model.{AtomIdentifier, MLN}
-import lomrf.util.{Utilities, AtomEvidenceDB}
+import lomrf.util.{ConstantsSet, Utilities, AtomEvidenceDB}
 import org.scalatest.{FunSpec, Matchers}
 import lomrf.tests.ECExampleDomain1._
+
+import scala.collection.mutable
 
 /**
  * @author Anastasios Skarlatidis
  */
-class GroundingSpecTest extends FunSpec with Matchers {
+class GroundingSpecTest extends FunSpec with Matchers with Logging {
 
 
   private val parser = new KBParser(predicateSchema, functionsSchema)
@@ -124,16 +125,7 @@ class GroundingSpecTest extends FunSpec with Matchers {
     info("original sequence of literals : " + clause.literals.map(_.toString).mkString(" v ") + "\n" +
       "ordered sequence of literals  : " + orderedLiterals.map(_.toString).mkString(" v "))
 
-
-
-
     val orderedIdentityFunctions = orderedLiterals.map(literal => mln.identityFunctions(literal.sentence.signature))
-
-
-
-    //
-    // Utility arrays:
-    //
 
     // extract the sequence of unique variables
     val uniqOrderedVars = uniqueOrderedVariablesIn(orderedLiterals)
@@ -146,57 +138,52 @@ class GroundingSpecTest extends FunSpec with Matchers {
     val varDomains = uniqOrderedVars.map(v => constants(v.domain).size).toArray
     info("Domain sizes of the ordered unique variables: " + varDomains.mkString(", "))
 
-    // The total number of terms is the sum of all arities
-    val numTerms = orderedLiterals.map(_.arity).sum
 
-    // mask 1: contains 1 for the first time that a new variable appears, 0 otherwise.
-    val mask1 = new Array[Int](numTerms)
+    val var2Idx: Map[Variable, Int] = uniqOrderedVars.zipWithIndex.toMap
+
+    val litLastVarIdx = orderedLiterals.map(literal => var2Idx(variablesIn(literal.sentence.terms).last))
+
+    val varIdx2ConstantSet: Map[Int, ConstantsSet] = var2Idx.map{ case (v: Variable, idx: Int) => idx -> mln.constants(v.domain)}.toMap
+
+    val matchTerms = matchedTerms(orderedLiterals, !_.isFunction)
 
 
-    var uniqueVariables = Set[Variable]()
-    var index = 0
-    for (literal <- orderedLiterals; term <- literal.sentence.terms) {
-      term match {
-        case v: Variable if !uniqueVariables.contains(v) =>
-          uniqueVariables += v
-          mask1(index) = 1
 
-        case c: Constant => mask1(index) = 0
 
-        case _ => mask1(index) = 0
+    println(matchTerms.mkString(", "))
+
+
+
+    /*private def substituteTerm(theta: collection.Map[Variable, String])(term: Term): String = term match {
+        case c: Constant => c.symbol
+        case v: Variable => theta(v)
+        case f: TermFunction =>
+          mln.functionMappers.get(f.signature) match {
+            case Some(m) => m(f.terms.map(a => substituteTerm(theta)(a)))
+            case None => fatal("Cannot apply substitution using theta: " + theta + " in function " + f.signature)
+          }
+      }*/
+
+    def substituteTerm(sentence: AtomicFormula)(theta: Array[Int])(index: Int): Int ={
+      sentence.terms(index) match {
+        case f: TermFunction =>
+          val mapper = mln
+            .functionMappers
+            .getOrElse(f.signature,
+              fatal("Cannot apply substitution using indexed theta: " + theta.mkString(", ") + " in function " + f.signature))
+
+
+        case _ => theta(index)
       }
-      index += 1
 
+      -1
     }
-
-    info("mask1: " + mask1.mkString(", "))
-
-
-    uniqueVariables = Set[Variable]()
-    // mask 2: contains the number of new variable appearances for each literal
-    val mask2 = orderedLiterals.map(
-      _.sentence.variables.count {
-        case v: Variable if !uniqueVariables.contains(v) =>
-          uniqueVariables += v
-          true
-        case _ => false
-      }
-    )
-
-    info("mask2: " + mask2.mkString(", "))
-
-
-    val uvar2Idx = uniqOrderedVars.zipWithIndex.toMap
-
-    val litLastVarIdx = orderedLiterals.map(literal => uvar2Idx(variablesIn(literal.sentence.terms).last))
-
-
 
 
     //
     // Cartesian products
     //
-    def cartesianProducts(source: Array[Int]): Set[Array[Int]] = {
+    /*def cartesianProducts(source: Array[Int]): Set[Array[Int]] = {
       var products =  Set[Array[Int]]()
 
       // cartesian factors: current domain indexes for each unique ordered variable
@@ -210,10 +197,6 @@ class GroundingSpecTest extends FunSpec with Matchers {
       var stop_inner = false
       var variable_idx = LAST_VARIABLE_INDEX
       var product_counter = 0
-      //var iterations = 0
-      //var outerIterations = 0
-      //var copies = 0
-
 
       val startTime = System.currentTimeMillis()
       while (variable_idx >= 0 && (product_counter < MAX)) {
@@ -221,8 +204,6 @@ class GroundingSpecTest extends FunSpec with Matchers {
         products += factors.clone()
         product_counter += 1
 
-        //println(counter + " : "+factors.mkString(", "))
-        //outerIterations += 1
         stop_inner = false
         variable_idx = LAST_VARIABLE_INDEX
 
@@ -246,16 +227,12 @@ class GroundingSpecTest extends FunSpec with Matchers {
       val endTime = System.currentTimeMillis()
       info("Total number of groundings: " + product_counter + " of " + MAX)
       info("Total number of stored groundings: " + products.size)
-      /*info("Total number of iterations: " + iterations)
-      info("Total number of outer iterations: " + outerIterations)
-      info("Total number of inner iterations: " + (iterations - outerIterations))*/
       info("Total time:" + Utilities.msecTimeToText(endTime - startTime))
-      //info("Total copies:" + copies)
 
       products
-    }
+    }*/
 
-    val LT_IDX = 3
+    /*val LT_IDX = 3
     val tautology = (factors: Array[Int]) => factors(0) == factors(LT_IDX)
 
     def cartesianProductsT(source: Array[Int]): Set[Array[Int]] = {
@@ -328,8 +305,7 @@ class GroundingSpecTest extends FunSpec with Matchers {
       //info("Total copies:" + copies)
 
       products
-    }
-
+    }*/
 
 
     //
@@ -360,8 +336,6 @@ class GroundingSpecTest extends FunSpec with Matchers {
     val error2 = productsTStr.filter(x => tautology(x.split(":").map(_.toInt)))
     println("\nWRONG COLLECTED ENTRIES: "+error2.size)
     error2.foreach(x => println("\t"+x))*/
-
-
 
 
     // Note: the given domains should always be above zero
