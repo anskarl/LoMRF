@@ -350,19 +350,46 @@ package object logic extends Logging {
 
 
   def flatMatchedTerms(literals: Iterable[Literal], matcher: Term => Boolean): Vector[Term] = {
-    val stack = mutable.Stack[Term]()
+    val queue = mutable.Queue[Term]()
 
     var result = Vector[Term]()
 
     for (literal <- literals) {
-      stack.pushAll(literal.sentence.terms)
+      queue ++= literal.sentence.terms
 
-      while (stack.nonEmpty) {
-        val candidate = stack.pop()
+      while (queue.nonEmpty) {
+        val candidate = queue.dequeue()
         if (matcher(candidate))
           result ++= Vector(candidate)
         else candidate match {
-          case f: TermFunction => stack.pushAll(f.terms)
+          case f: TermFunction => queue ++= f.terms
+          case _ => //do nothing
+        }
+      }
+    }
+
+    result
+  }
+
+
+  def uniqFlatMatchedTerms(literals: Iterable[Literal], matcher: Term => Boolean): Vector[Term] = {
+    val queue = mutable.Queue[Term]()
+
+    var memory = Set[Term]()
+    var result = Vector[Term]()
+
+    for (literal <- literals) {
+      queue ++= literal.sentence.terms
+
+      while (queue.nonEmpty) {
+        val candidate = queue.dequeue()
+
+        if (matcher(candidate) && !memory.contains(candidate)){
+          result ++= Vector(candidate)
+          memory += candidate
+        }
+        else candidate match {
+          case f: TermFunction => queue ++= f.terms
           case _ => //do nothing
         }
       }

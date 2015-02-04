@@ -81,8 +81,10 @@ class GroundingSpecTest extends FunSpec with Matchers with Logging {
   }
 
 
-  //val formulaStr = "HoldsAt(f,t) ^ !TerminatedAt(f,t) ^ Next(t,tNext) => HoldsAt(f,tNext)."
-  val formulaStr = "HoldsAt(f,t) ^ !TerminatedAt(f,t) ^ !TerminatedAt(f,t1) ^ Next(t,tNext) => HoldsAt(f,tNext)."
+  val formulaStr = "HoldsAt(f,t) ^ !TerminatedAt(f,t) ^ Next(t,tNext) => HoldsAt(f,tNext)."
+  //val formulaStr = "HoldsAt(f,t) ^ !TerminatedAt(f,t) ^ Next(t,tNext) => HoldsAt(f, t+1)."
+
+  //val formulaStr = "HoldsAt(f,t) ^ !TerminatedAt(f,t) ^ !TerminatedAt(f,t1) ^ Next(t,tNext) => HoldsAt(f,tNext)."
 
   describe("Formula '" + formulaStr + "'") {
     val formula = parser.parseFormula(formulaStr)
@@ -95,7 +97,7 @@ class GroundingSpecTest extends FunSpec with Matchers with Logging {
     val clause = clauses.head
 
     it("contains three variables") {
-      clause.variables.size should be(4)
+      clause.variables.size should be(3)
     }
 
     val mln = new MLN(
