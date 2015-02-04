@@ -178,13 +178,22 @@ class GroundingSpecTest2 extends FunSpec with Matchers with Logging {
     val theta = new Array[Int](clause.variables.size + clause.constants.size)
 
     val flatTerms = mkFlatTermDomains(orderedLiterals, mln.predicateSchema, mln.functionSchema)
+    var term2Pos = Map[Term, Int]()
 
-    for( ((term, domain), index) <- flatTerms.zipWithIndex) theta(index) = term match {
-      case c: Constant => mln.constants(domain).get(c.symbol).get
-      case _ => mln.constants(domain).size - 1
+
+    for( ((term, domain), index) <- flatTerms.zipWithIndex) {
+
+      term2Pos += (term -> index)
+
+      theta(index) = term match {
+        case c: Constant => mln.constants(domain).get(c.symbol).get
+        case _ => mln.constants(domain).size - 1
+      }
     }
 
-    println("TERMS: " + flatTerms.mkString(", "))
+    //println("TERMS: " + flatTerms.mkString(", "))
+
+    println("TERMS: " + flatTerms.map(e => e +"["+term2Pos(e._1)+"]").mkString(", "))
 
     println("THETA: " + theta.mkString(", "))
 
@@ -192,24 +201,52 @@ class GroundingSpecTest2 extends FunSpec with Matchers with Logging {
     def mkL2T(): Array[Array[Int]] = {
       val literal2Theta = new Array[Array[Int]](orderedLiterals.size + clause.functions.size)
 
-      // Step 1: parse all functions
+
       var func2Pos = Map[TermFunction, Int]() // gives the position of a function in the literal2Theta
-      val functionsQueue = collection.mutable.Queue[TermFunction]() // to collect the functions to parse
+      val collectedFunctions = collection.mutable.Stack[TermFunction]() // to collect the functions to parse
 
       // offset: to begin from the auxiliary position of functions
-      val offset = orderedLiterals.size - 1
-
-      // TODO: implement step 1
-
+      val functionIdxOffset = orderedLiterals.size - 1
+      var functionIdx = functionIdxOffset
 
 
-      // Step 2: parse all literals
+      // Step 1: parse all literals
       for( (literal, index) <- orderedLiterals.zipWithIndex; atom = literal.sentence ) {
+        val entries = new Array[Int](atom.arity)
+
+        val atomSchema = mln.predicateSchema(atom.signature)
+
+        for((term, tidx) <- atom.terms.zipWithIndex) term match {
+          case f: TermFunction =>
+
+            func2Pos.get(f) match{
+              case Some(position) => entries(tidx) = -position
+              case _ =>
+                collectedFunctions.push(f)
+                functionIdx += 1
+                entries(tidx) = -functionIdx
+                func2Pos += (f -> functionIdx)
+            }
+
+
+          case _ =>
+            entries(tidx) = term2Pos(term)
+        }
+
+        literal2Theta(index) = entries
 
       }
 
 
       literal2Theta
+    }
+
+    val l2t = mkL2T()
+
+    val output = l2t.zip(orderedLiterals)
+    //l2t.foreach(e => println(e.mkString(",")+"\n"))
+    for( (l2tEntry, lit) <- l2t.zip(orderedLiterals)){
+      println(lit.sentence+" ===> theta[I]<"+l2tEntry.mkString(",")+">\n")
     }
 
 
