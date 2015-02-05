@@ -33,6 +33,7 @@
 package lomrf.tests
 
 import lomrf.logic.AtomSignature
+import lomrf.logic.predef._
 import lomrf.util.{FunctionMapper, ConstantsSet}
 
 /**
@@ -58,11 +59,11 @@ object ECExampleDomain1 {
     AtomSignature("Next", 2) -> Vector("time", "time")
   )
 
-  lazy val functionsSchema = Map.empty[AtomSignature, (String, Vector[String])]
+  lazy val functionsSchema = Map(AtomSignature("next", 1) -> ("time", Vector("time"))) //Map.empty[AtomSignature, (String, Vector[String])]
 
-  lazy val dynamicAtoms = Map.empty[AtomSignature, Vector[String] => Boolean]
+  lazy val dynamicAtoms = dynAtoms
 
-  lazy val dynamicFunctions = Map.empty[AtomSignature, Vector[String] => String]
+  lazy val dynamicFunctions = dynFunctions
 
   lazy val functionMappers =  Map.empty[AtomSignature, FunctionMapper]
 

@@ -82,8 +82,9 @@ class GroundingSpecTest2 extends FunSpec with Matchers with Logging {
   }
 
 
-  val formulaStr = "HoldsAt(f,t) ^ !TerminatedAt(f,t) ^ Next(t,tNext) => HoldsAt(f,tNext)."
-  //val formulaStr = "HoldsAt(f,t) ^ !TerminatedAt(f,t) ^ Next(t,tNext) => HoldsAt(f, t+1)."
+  //val formulaStr = "HoldsAt(f,t) ^ !TerminatedAt(f,t) ^ Next(t,tNext) => HoldsAt(f,tNext)."
+  //val formulaStr = "HoldsAt(f,t) ^ !TerminatedAt(f,t)  => HoldsAt(f, next(t))."
+  val formulaStr = "HoldsAt(f,t) ^ !TerminatedAt(f,t)  => HoldsAt(f, t+1)."
 
   describe("Formula '" + formulaStr + "'") {
     val formula = parser.parseFormula(formulaStr)
@@ -95,9 +96,9 @@ class GroundingSpecTest2 extends FunSpec with Matchers with Logging {
 
     val clause = clauses.head
 
-    it("contains three variables") {
+    /*it("contains three variables") {
       clause.variables.size should be(3)
-    }
+    }*/
 
     val mln = new MLN(
       formulas = Set(formula),
@@ -152,7 +153,14 @@ class GroundingSpecTest2 extends FunSpec with Matchers with Logging {
 
           }
           else candidate match {
-            case f: TermFunction => queue ++= f.terms.zip(functionSchema(f.signature)._2)
+            case f: TermFunction if functionSchema.contains(f.signature) =>
+              queue ++= f.terms.zip(functionSchema(f.signature)._2)
+
+            case f: TermFunction if dynamicFunctions.contains(f.signature) =>
+              println("dynamicFunction with args: "+f.terms.mkString(", "))
+              error("Dynamic functions are not supported!")
+              sys.exit(1)
+              //queue ++= f.terms.zip(dynamicFunctions(f.signature))
             case _ => //do nothing
           }
         }
@@ -209,14 +217,12 @@ class GroundingSpecTest2 extends FunSpec with Matchers with Logging {
       val functionIdxOffset = orderedLiterals.size - 1
       var functionIdx = functionIdxOffset
 
+      def mkEntries(terms: Vector[Term], size: Int): Array[Int] ={
+        val entries = new Array[Int](size)
 
-      // Step 1: parse all literals
-      for( (literal, index) <- orderedLiterals.zipWithIndex; atom = literal.sentence ) {
-        val entries = new Array[Int](atom.arity)
+        //val atomSchema = mln.predicateSchema(atom.signature)
 
-        val atomSchema = mln.predicateSchema(atom.signature)
-
-        for((term, tidx) <- atom.terms.zipWithIndex) term match {
+        for((term, tidx) <- terms.zipWithIndex) term match {
           case f: TermFunction =>
 
             func2Pos.get(f) match{
@@ -226,15 +232,28 @@ class GroundingSpecTest2 extends FunSpec with Matchers with Logging {
                 functionIdx += 1
                 entries(tidx) = -functionIdx
                 func2Pos += (f -> functionIdx)
+
             }
-
-
           case _ =>
             entries(tidx) = term2Pos(term)
         }
 
-        literal2Theta(index) = entries
+        entries
+      }
 
+
+      // Step 1: parse all literals
+      for( (literal, index) <- orderedLiterals.zipWithIndex; atom = literal.sentence )
+        literal2Theta(index) = mkEntries(atom.terms, atom.arity)
+
+
+      println("collectedFunctions={"+collectedFunctions.mkString(", ")+"}")
+
+      // Step 2: parse all functions
+      while(collectedFunctions.nonEmpty){
+        val currentFunction = collectedFunctions.pop()
+        literal2Theta(functionIdx) = mkEntries(currentFunction.terms, currentFunction.arity)
+        functionIdx += 1
       }
 
 
@@ -243,11 +262,9 @@ class GroundingSpecTest2 extends FunSpec with Matchers with Logging {
 
     val l2t = mkL2T()
 
-    val output = l2t.zip(orderedLiterals)
-    //l2t.foreach(e => println(e.mkString(",")+"\n"))
-    for( (l2tEntry, lit) <- l2t.zip(orderedLiterals)){
-      println(lit.sentence+" ===> theta[I]<"+l2tEntry.mkString(",")+">\n")
-    }
+    for((l2tEntry, index) <- l2t.zipWithIndex)
+      println("theta_I["+index+"] = <"+l2tEntry.mkString(",")+">\n")
+
 
 
 

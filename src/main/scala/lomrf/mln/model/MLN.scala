@@ -198,11 +198,34 @@ final class MLN(
   def getStateOf(signature: AtomSignature, atomId: Int) = atomStateDB(signature).get(atomId)
 
   override def toString: String = {
-    "Markov Logic { \n" +
-      "\tConstant domains   = " + constants.size + "\n" +
-      "\tSchema definitions = " + predicateSchema.size + "\n" +
-      "\tFormulas           = " + formulas.size + "\n" +
-      "}\n"
+    "Markov Logic :\n" +
+      "\tNumber of constant domains.............: " + constants.size + "\n" +
+      "\tNumber of predicate schema definitions.: " + predicateSchema.size + "\n" +
+      "\tNumber of function schema definitions..: " + functionSchema.size + "\n" +
+      "\tNumber of dynamic predicates...........: " + dynamicPredicates.size + "\n" +
+      "\tNumber of dynamic functions............: " + dynamicFunctions.size + "\n" +
+      "\tNumber of constant types...............: " + constants.size + "\n" +
+      "\tNumber of formulas.....................: " + formulas.size + "\n" +
+      "\tPredicate schema definitions...........: {\n\t\t" +
+          predicateSchema
+            .map{case (signature, terms) => signature+" -> ("+terms.mkString(", ")+")"}
+            .mkString("\n\t\t")+"\n\t}\n"+
+      "\tFunction schema definitions............: {\n\t\t"+
+          functionSchema
+            .map{case (signature, (returnType, terms)) => signature+" -> "+returnType+" = ("+terms.mkString(", ")+")"}
+            .mkString("\n\t\t")+"\n\t}\n"+
+      "\tDynamic predicates.....................: {\n\t\t"+
+            dynamicPredicates
+              .map(_._1) //display only the signature
+              .mkString("\n\t\t")+"\n\t}\n"+
+      "\tDynamic functions......................: {\n\t\t"+
+            dynamicFunctions
+              .map(_._1) //display only the signature
+              .mkString("\n\t\t")+"\n\t}\n"+
+      "\tConstant types.........................: {\n\t\t"+
+          constants
+            .map{ case (name, constantSet) => name +" -> maps to ["+constantSet.idsRange.head+","+constantSet.idsRange.last+"]."}
+            .mkString("\n\t\t")+"\n\t}\n"+""
   }
 
 }
@@ -305,16 +328,16 @@ object MLN extends Logging {
     val finalOWA = atomSignatures -- finalCWA
 
     var functionMapperz = evidence.functionMappers
-    for ((signature, func) <- kb.dynamicFunctions) {
+    for ((signature, func) <- kb.dynamicFunctions)
       functionMapperz += (signature -> FunctionMapper(func))
-    }
+
 
     var atomStateDB = evidence.atomsEvDB
     for (signature <- kb.predicateSchema.keysIterator; if !evidence.atomsEvDB.contains(signature)) {
       val db = if (finalCWA.contains(signature))
-        AtomEvidenceDB(evidence.identities(signature),FALSE)//, kb.predicateSchema(signature).zipWithIndex.toMap, FALSE)
+        AtomEvidenceDB(evidence.identities(signature),FALSE)
       else
-        AtomEvidenceDB(evidence.identities(signature),UNKNOWN)//, kb.predicateSchema(signature).zipWithIndex.toMap, UNKNOWN)
+        AtomEvidenceDB(evidence.identities(signature),UNKNOWN)
 
       atomStateDB += (signature -> db)
     }

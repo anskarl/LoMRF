@@ -53,9 +53,13 @@ final class MaxWalkSATSpecTest extends FunSpec with Matchers {
   private val testFilesPath = System.getProperty("user.dir") + sep + "Examples" + sep + "data" + sep +
                               "tests" + sep + "inference" + sep
 
-  private val mlnFiles = findFiles(strToFile(testFilesPath), f => f.getName.contains(".mln"))
-  private val dbFilesList = findFiles(strToFile(testFilesPath), f => f.getName.contains(".db"))
-  private val goldenFilesList = findFiles(strToFile(testFilesPath), f => f.getName.contains(".mws.golden"))
+  private val mlnFiles = findFiles(testFilesPath, f => f.getName.contains(".mln"))
+  private val dbFilesList = findFiles(testFilesPath, f => f.getName.contains(".db"))
+  private val goldenFilesList = findFiles(testFilesPath, f => f.getName.contains(".mws.golden"))
+
+  assert(mlnFiles.nonEmpty, "Failed to locate MLN files (*.mln) in '"+testFilesPath+"'.")
+  assert(dbFilesList.nonEmpty, "Failed to locate DB files (*.db) in '"+testFilesPath+"'.")
+  assert(goldenFilesList.nonEmpty, "Failed to locate golden standard files (*.mws.golden) in '"+testFilesPath+"'.")
 
   describe("Caviar diagonal newton test in path: '" + testFilesPath + "'") {
 
@@ -77,10 +81,11 @@ final class MaxWalkSATSpecTest extends FunSpec with Matchers {
               cwa = Set(AtomSignature("Happens", 2), AtomSignature("Close", 4), AtomSignature("Next", 2),
                 AtomSignature("OrientationMove", 3), AtomSignature("StartTime", 1)))
 
-            info("Found " + mln.formulas.size + " formulas")
-            info("Found " + mln.constants.size + " constant types")
-            info("Found " + mln.predicateSchema.size + " predicate schemas")
-            info("Found " + mln.functionSchema.size + " function schemas")
+            /*info{"Found " + mln.formulas.size + " formulas\n" +
+              "Found " + mln.constants.size + " constant types\n"+
+              "Found " + mln.predicateSchema.size + " predicate schemas\n"+
+              "Found " + mln.functionSchema.size + " function schemas"}*/
+            info(mln.toString)
 
             it("should contain 25 formulas") {
               mln.formulas.size should be(25)
