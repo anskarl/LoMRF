@@ -1,0 +1,8 @@
+person={A,B}
+
+Smokes(person)
+Cancer(person)
+
+!Smokes(x) v Cancer(x).
+Smokes(x) v Smokes(y).
+

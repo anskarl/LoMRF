@@ -37,7 +37,7 @@ import java.{util => jutil}
 import akka.actor.{Actor, ActorRef}
 import auxlib.log.Logging
 import gnu.trove.list.array.TIntArrayList
-import gnu.trove.map.hash.TIntObjectHashMap
+import gnu.trove.map.hash.{TIntIntHashMap, TIntObjectHashMap}
 import lomrf._
 
 import scala.language.postfixOps
@@ -52,8 +52,12 @@ private final class CliqueRegisterWorker(val index: Int, master: ActorRef, atomR
   private var cliques = new TIntObjectHashMap[CliqueEntry](DEFAULT_CAPACITY, DEFAULT_LOAD_FACTOR, NO_ENTRY_KEY)
 
   // TODO: requirement for learning (see gitlab issue #25)
-  //goundClause[ID:Int] -> (Clause[ID:Int] -> (Freq:Int, invertedWeight:Boolean))
+  //groundClause[ID:Int] -> (Clause[ID:Int] -> (Freq:Int, invertedWeight:Boolean))
   //private var cliqueDependencyMap = new TIntObjectHashMap[TIntObjectHashMap[(Int, Boolean)]]()
+
+  //groundClause[ID:Int] -> (Clause[ID:Int] -> Freq:Int))
+  // negative Freq number indicates that the weight of the corresponding clause[ID:Int] has been inverted
+  private val cliqueDependencyMap = new TIntObjectHashMap[TIntIntHashMap](DEFAULT_CAPACITY, DEFAULT_LOAD_FACTOR, NO_ENTRY_KEY)
 
   private val numOfAtomBatches = atomRegisters.length
 
@@ -65,8 +69,11 @@ private final class CliqueRegisterWorker(val index: Int, master: ActorRef, atomR
       //println("CliqueRegister[" + index + "].received: " + ce)
       if (ce.weight == 0 && ce.variables.length == 1) {
         atomRegisters(ce.variables(0) % numOfAtomBatches) ! QueryVariable(ce.variables(0))
-      } else if (ce.weight != 0) storeClique(ce)
+      }
+      else if (ce.weight != 0) storeClique(ce)
+
     case GRND_Completed => sender ! NumberOfCliques(index, cliques.size())
+
     case StartID(offset: Int) =>
       hashCode2CliqueIDs = null //not needed anymore (allow GC to delete it)
 
@@ -138,6 +145,14 @@ private final class CliqueRegisterWorker(val index: Int, master: ActorRef, atomR
         put(cliqueID, cliqueEntry)
         storedCliqueIDs.add(cliqueID)
         registerVariables(cliqueEntry.variables)
+
+
+        // DependencyMap for learning:
+        val clauseStats = new TIntIntHashMap(DEFAULT_CAPACITY, DEFAULT_LOAD_FACTOR, NO_ENTRY_KEY, 0)
+        clauseStats.put(cliqueEntry.clauseID, cliqueEntry.freq)
+        cliqueDependencyMap.put(cliqueID, clauseStats)
+
+        // next cliqueID
         cliqueID += 1
       }
     }
@@ -148,6 +163,12 @@ private final class CliqueRegisterWorker(val index: Int, master: ActorRef, atomR
         val newEntries = new TIntArrayList()
         newEntries.add(cliqueID)
         hashCode2CliqueIDs.put(cliqueEntry.hashKey, newEntries)
+
+        cliqueDependencyMap
+          .get(cliqueID)
+          .adjustOrPutValue(cliqueEntry.clauseID, cliqueEntry.freq, cliqueEntry.freq)
+
+        // next cliqueID
         cliqueID += 1
       }
       registerVariables(cliqueEntry.variables)

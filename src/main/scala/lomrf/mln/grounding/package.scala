@@ -63,10 +63,10 @@ package object grounding {
   private[grounding] case class ClauseGroundingCompleted(clause: Clause, collectedSignatures: Set[AtomSignature])
 
   // Master -> GroundingWorker
-  private[grounding] case class Ground(clause: Clause, atomSignatures: Set[AtomSignature], atomsDB: Array[TIntSet])
+  private[grounding] case class Ground(clause: Clause, clauseIndex: Int, atomSignatures: Set[AtomSignature], atomsDB: Array[TIntSet])
 
   // GroundingWorker -> CliqueRegister
-  private[grounding] case class CliqueEntry(hashKey: Int, var weight: Double, variables: Array[Int]) {
+  private[grounding] case class CliqueEntry(hashKey: Int, var weight: Double, variables: Array[Int], clauseID: Int, freq: Int) {
 
 
     override def hashCode() = hashKey

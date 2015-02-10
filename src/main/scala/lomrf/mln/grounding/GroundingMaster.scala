@@ -68,7 +68,7 @@ private final class GroundingMaster(mln: MLN, latch: CountDownLatch, noNegWeight
   private var cliqueStartID = 0
   private var groundingIterations = 1
   //private var remainingClauses: Set[Clause] = mln.clauses
-  private var remainingClauses: Vector[Clause] = mln.clauses
+  private var remainingClauses: Vector[(Clause, Int)] = mln.clauses.zipWithIndex
   private var atomSignatures: Set[AtomSignature] = mln.queryAtoms.toSet
 
 
@@ -94,30 +94,32 @@ private final class GroundingMaster(mln: MLN, latch: CountDownLatch, noNegWeight
       + "\n\tTotal clique registry workers to use: " + cliqueRegisters.length
       + "\n\tTotal grounding workers to use: " + clauseGroundingWorkers.length)
 
+    val numberOfClauses = remainingClauses.size
+
     // To make sure that all ground query predicates will be stored in the network,
     // insert all ground query predicates as zero weighted unit clauses
-    for (signature <- mln.queryAtoms) {
+    for ((signature, qidx) <- mln.queryAtoms.zipWithIndex) {
       val terms = mln.predicateSchema(signature).view.zipWithIndex.map {
           case (argType: String, idx: Int) => Variable("v" + idx, argType, idx)
         }.toVector
       //remainingClauses += Clause(0, AtomicFormula(signature.symbol, terms))
-      remainingClauses :+= Clause(0, AtomicFormula(signature.symbol, terms))
+      remainingClauses :+= (Clause(0, AtomicFormula(signature.symbol, terms)), numberOfClauses + qidx)
     }
 
     performGrounding()
   }
 
   private def performGrounding() {
-    var remaining = Vector[Clause]()
+    var remaining = Vector[(Clause, Int)]()
     var counter = 0
     clauseCounter = 0
-    for (clause <- remainingClauses) {
+    for ((clause, clauseIndex) <- remainingClauses) {
       if (clause.literals.exists(literal => atomSignatures.contains(literal.sentence.signature))) {
-        clauseGroundingWorkers(workerIdx) ! Ground(clause, atomSignatures, atomsDB)
+        clauseGroundingWorkers(workerIdx) ! Ground(clause, clauseIndex, atomSignatures, atomsDB)
         workerIdx = if (workerIdx == clauseGroundingWorkers.length - 1) 0 else workerIdx + 1
         counter += 1
       }
-      else remaining :+= clause
+      else remaining :+= (clause, clauseIndex)
 
 
     }

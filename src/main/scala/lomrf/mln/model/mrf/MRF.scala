@@ -129,6 +129,10 @@ object MRF {
       nLit2Constraints.asInstanceOf[TIntObjectMap[collection.Iterable[Constraint]]],
       queryAtomStartID, queryAtomEndID, weightHard, maxNumberOfLiterals)
   }
+
+  def build(mln: MLN, noNegWeights: Boolean = false, eliminateNegatedUnit: Boolean = false): MRF ={
+    new lomrf.mln.grounding.MRFBuilder(mln, noNegWeights, eliminateNegatedUnit).buildNetwork
+  }
 }
 
 
