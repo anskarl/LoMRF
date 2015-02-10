@@ -62,13 +62,15 @@ object KBCompilerCLI extends Logging {
     val opt = new KBCOptions
     if (args.length == 0) println(opt.usage)
     else if (opt.parse(args)) {
-      if(opt.eliminateFunctions && !opt.cnf)
+      if(opt.eliminateFunctions && !opt.cnf) {
         warn("Function elimination enables CNF compilation")
+        opt.cnf = true
+      }
 
-      if(opt.introduceFunctions && !opt.cnf)
+      if(opt.introduceFunctions && !opt.cnf){
         warn("Function introduction enables CNF compilation")
-
-      opt.cnf = opt.eliminateFunctions || opt.introduceFunctions
+        opt.cnf = true
+      }
 
       compile(
         opt.mlnFileName.getOrElse(fatal("Please define the input MLN file.")),
