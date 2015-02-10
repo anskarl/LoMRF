@@ -97,6 +97,13 @@ mappings in Universal <++= (packageBin in Compile) map { jar =>
   }
 }
 
+mappings in Universal <++= (packageBin in Compile) map { jar =>
+  val scriptsDir = new java.io.File("src/main/resources/")
+  scriptsDir.listFiles.toSeq.map { f =>
+    f -> ("etc/" + f.getName)
+  }
+}
+
 // Include native libraries into the 'lib' directory, should become more general
 mappings in Universal <++= (packageBin in Compile) map { jar =>
   val scriptsDir = new java.io.File("lib/native/linux/x86_64/")
