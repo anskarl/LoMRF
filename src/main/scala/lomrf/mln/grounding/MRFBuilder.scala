@@ -38,7 +38,8 @@ import akka.actor._
 import akka.pattern._
 import akka.util.Timeout
 import auxlib.log.Logging
-import gnu.trove.map.hash.TIntObjectHashMap
+import gnu.trove.map.TIntIntMap
+import gnu.trove.map.hash.{TIntIntHashMap, TIntObjectHashMap}
 import lomrf.mln.model.MLN
 import lomrf.mln.model.mrf.{GroundAtom, Constraint, MRF}
 import lomrf.util.Utilities
@@ -135,8 +136,15 @@ final class MRFBuilder(val mln: MLN, noNegWeights: Boolean = false, eliminateNeg
     if (numAtoms == 0) fatal("The ground MRF is empty.")
 
 
-    val constraints = new TIntObjectHashMap[Constraint](if (numConstraints == 0) DEFAULT_CAPACITY else numConstraints, DEFAULT_LOAD_FACTOR, NO_ENTRY_KEY)
-    val atoms = new TIntObjectHashMap[GroundAtom](if (numAtoms == 0) DEFAULT_CAPACITY else numAtoms)
+    val constraints = new TIntObjectHashMap[Constraint](
+      if (numConstraints == 0) DEFAULT_CAPACITY else numConstraints, DEFAULT_LOAD_FACTOR, NO_ENTRY_KEY)
+
+    val atoms = new TIntObjectHashMap[GroundAtom](
+      if (numAtoms == 0) DEFAULT_CAPACITY else numAtoms)
+
+    val mergedDependencyMap = new TIntObjectHashMap[TIntIntMap](
+      if (numConstraints == 0) DEFAULT_CAPACITY else numConstraints, DEFAULT_LOAD_FACTOR, NO_ENTRY_KEY)
+    result.dependencyMap.foreach(mergedDependencyMap.putAll)
 
     for (qas <- result.queryAtomIDs) {
       val iterator = qas.iterator()
@@ -170,7 +178,6 @@ final class MRFBuilder(val mln: MLN, noNegWeights: Boolean = false, eliminateNeg
           atomsIterator.advance()
           val atomId = atomsIterator.key()
           atoms.putIfAbsent(atomId, new GroundAtom(atomId, weightHard))
-
         }
       }
 
@@ -183,7 +190,8 @@ final class MRFBuilder(val mln: MLN, noNegWeights: Boolean = false, eliminateNeg
 
 
     //---------------------------------------------
-    //Test if the Clique IDs are continuous
+    // Todo: add this as a unit test
+    // This code tests if the Clique IDs are continuous
     /*val keys = constraints.keys()
     var fail = false
     util.Arrays.sort(keys)
@@ -196,8 +204,7 @@ final class MRFBuilder(val mln: MLN, noNegWeights: Boolean = false, eliminateNeg
     if(fail) sys.exit() // */
     //---------------------------------------------
 
-    //return
-    MRF(mln, constraints, atoms, weightHard, mln.queryStartID, mln.queryEndID)
+    MRF(mln, constraints, atoms, weightHard, mln.queryStartID, mln.queryEndID, mergedDependencyMap)
   }
 }
 

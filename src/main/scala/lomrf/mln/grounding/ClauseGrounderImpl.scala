@@ -206,8 +206,6 @@ class ClauseGrounderImpl(
             }
           }
           else {
-
-
             if (cliqueVariables.length > 1) {
               jutil.Arrays.sort(cliqueVariables)
               store(clause.weight, cliqueVariables, 1)
@@ -217,8 +215,7 @@ class ClauseGrounderImpl(
               store(-clause.weight, cliqueVariables, -1)
             }
 
-
-
+            
             counter += 1
           }
           counter = 1

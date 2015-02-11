@@ -36,7 +36,8 @@ import java.util.concurrent.CountDownLatch
 
 import akka.actor.{Actor, ActorRef, PoisonPill, Props}
 import auxlib.log.Logging
-import gnu.trove.map.TIntObjectMap
+import gnu.trove.impl.hash.TIntIntHash
+import gnu.trove.map.{TIntIntMap, TIntObjectMap}
 import gnu.trove.set.TIntSet
 import gnu.trove.set.hash.TIntHashSet
 import lomrf._
@@ -52,6 +53,7 @@ private final class GroundingMaster(mln: MLN, latch: CountDownLatch, noNegWeight
 
   private val _variables2Cliques = new Array[TIntObjectMap[TIntHashSet]](processors)
   private val _cliques = new Array[TIntObjectMap[CliqueEntry]](processors)
+  private val _dependencyMap = new Array[TIntObjectMap[TIntIntMap]](processors)
   private val _queryAtomIDs = new Array[TIntSet](processors)
   private val atomsDB = new Array[TIntSet](processors)
 
@@ -173,8 +175,9 @@ private final class GroundingMaster(mln: MLN, latch: CountDownLatch, noNegWeight
       sender ! PoisonPill
       cliqueStartID += size
 
-    case CollectedCliques(index, cliques) =>
+    case CollectedCliques(index, cliques, dependencyMap) =>
       _cliques(index) = cliques
+      _dependencyMap(index) = dependencyMap
       cliqueBatchesCounter += 1
       if (cliqueBatchesCounter == processors) atomRegisters.foreach(_ ! PoisonPill)
 
@@ -186,7 +189,10 @@ private final class GroundingMaster(mln: MLN, latch: CountDownLatch, noNegWeight
       if (atomBatchesCounter == processors) killAll()
 
 
-    case REQUEST_RESULTS => if (completed) sender ! Result(_cliques, _variables2Cliques, _queryAtomIDs) else sender ! None
+    case REQUEST_RESULTS =>
+      if (completed) sender ! Result(_cliques, _variables2Cliques, _queryAtomIDs, _dependencyMap)
+      else sender ! None
+
     case msg => fatal("Master --- Received an unknown message '" + msg + "' from " + sender)
   }
 

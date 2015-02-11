@@ -34,8 +34,8 @@ package lomrf.mln
 
 import java.{util => jutil}
 
-import gnu.trove.map.TIntObjectMap
-import gnu.trove.map.hash.TIntObjectHashMap
+import gnu.trove.map.{TIntIntMap, TIntObjectMap}
+import gnu.trove.map.hash.{TIntIntHashMap, TIntObjectHashMap}
 import gnu.trove.set.TIntSet
 import gnu.trove.set.hash.TIntHashSet
 import lomrf.logic.{AtomSignature, Clause}
@@ -58,7 +58,11 @@ package object grounding {
 
   private[grounding] case object GRND_Completed
 
-  private[grounding] case class Result(cliques: Array[TIntObjectMap[CliqueEntry]], atom2Cliques: Array[TIntObjectMap[TIntHashSet]], queryAtomIDs: Array[TIntSet])
+  private[grounding] case class Result(
+                                        cliques: Array[TIntObjectMap[CliqueEntry]],
+                                        atom2Cliques: Array[TIntObjectMap[TIntHashSet]],
+                                        queryAtomIDs: Array[TIntSet],
+                                        dependencyMap: Array[TIntObjectMap[TIntIntMap]])
 
   private[grounding] case class ClauseGroundingCompleted(clause: Clause, collectedSignatures: Set[AtomSignature])
 
@@ -89,7 +93,7 @@ package object grounding {
   private[grounding] case class Register(atomID: Int, cliqueID: Int)
 
   // CliqueRegister -> Master
-  private[grounding] case class CollectedCliques(index: Int, cliques: TIntObjectMap[CliqueEntry])
+  private[grounding] case class CollectedCliques(index: Int, cliques: TIntObjectMap[CliqueEntry], dependencyMap: TIntObjectMap[TIntIntMap])
 
   private[grounding] case class StartID(id: Int)
 
