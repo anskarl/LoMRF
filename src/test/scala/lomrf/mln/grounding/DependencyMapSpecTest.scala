@@ -27,11 +27,11 @@ class DependencyMapSpecTest extends FunSpec with Matchers {
   implicit val mln = MLN(
     mlnFile,
     evidenceFile,
-    queryAtoms = Set("Smokes/1", "Cancer/1"),
+    queryAtoms = Set("Smokes/1", "Cancer/1", "Female/1"),
     cwa = Set.empty,
     owa = Set.empty)
 
-  val mrf = MRF.build(mln)
+  val mrf = MRF.build(mln, noNegWeights = true)
 
   val dmIterator = mrf.dependencyMap.iterator()
   while (dmIterator.hasNext){

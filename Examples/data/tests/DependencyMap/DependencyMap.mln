@@ -1,8 +1,16 @@
+// Meaningless theory
 person={A,B}
 
 Smokes(person)
 Cancer(person)
+Friends(person, person)
+Male(person)
+Female(person)
 
 !Smokes(x) v Cancer(x).
-Smokes(x) v Smokes(y).
-
+Friends(x,y) => Smokes(x) v Smokes(y).
+-0.5 Smokes(x) v Smokes(y)
+-0.8 Male(x) v Smokes(x)
+-0.2 Female(y)
+1.0 Smokes(x) v Smokes(y)
+-0.1 Friends(x,y)
