@@ -32,11 +32,14 @@
 
 package lomrf.mln.inference
 
+import java.io.{FileOutputStream, PrintStream}
 import lomrf.logic.AtomSignature
 import lomrf.mln.grounding.MRFBuilder
 import lomrf.mln.model.MLN
 import org.scalatest.{Matchers, FunSpec}
 import lomrf.util.Utilities.io.{findFiles, strToFile}
+import scala.collection.immutable.HashMap
+import scala.io.Source
 
 /**
  * Specification test for ILP algorithm used for MAP inference.
@@ -46,14 +49,18 @@ import lomrf.util.Utilities.io.{findFiles, strToFile}
  */
 final class ILPSpecTest extends FunSpec with Matchers {
 
-/*  private val sep = System.getProperty("file.separator")
+  private val sep = System.getProperty("file.separator")
   private val testFilesPath = System.getProperty("user.dir") + sep + "Examples" + sep + "data" + sep +
-    "tests" + sep + "inference" + sep
+    "tests" + sep + "inference" + sep + "caviar" + sep + "MM" + sep
 
   private val mlnFiles = findFiles(strToFile(testFilesPath), f => f.getName.contains(".mln"))
   private val dbFilesList = findFiles(strToFile(testFilesPath), f => f.getName.contains(".db"))
+  private val goldenFilesList = findFiles(strToFile(testFilesPath), f => f.getName.contains(".ilp.golden"))
 
-  describe("Caviar diagonal newton test in path: '" + testFilesPath + "'") {
+  println(mlnFiles.mkString(", "))
+  println(dbFilesList.mkString(", "))
+  println(goldenFilesList.mkString(", "))
+  describe("Caviar max-margin test in path: '" + testFilesPath + "'") {
 
     for(weightType <- List("HI", "SI", "SI_h")) {
       for (fold <- 0 to 9) {
@@ -61,10 +68,12 @@ final class ILPSpecTest extends FunSpec with Matchers {
           f.getAbsolutePath.contains(sep + weightType + sep))
         val dbFiles = dbFilesList.filter(f => f.getAbsolutePath.contains("fold_" + fold) &&
           f.getAbsolutePath.contains(sep + weightType + sep))
+        val goldenFiles = goldenFilesList.filter(f => f.getAbsolutePath.contains("fold_" + fold) &&
+          f.getAbsolutePath.contains(sep + weightType + sep))
 
         for(db <- dbFiles) {
           describe("MLN from file '" + mlnFile(0) + "' with evidence from file '" + db) {
-            val mln = MLN(
+            val mln = MLN.apply(
               mlnFileName = mlnFile(0).getAbsolutePath,
               evidenceFileName = db.getAbsolutePath,
               queryAtoms = Set(AtomSignature("HoldsAt", 2)),
@@ -73,8 +82,24 @@ final class ILPSpecTest extends FunSpec with Matchers {
 
             info("Found " + mln.formulas.size + " formulas")
             info("Found " + mln.constants.size + " constant types")
-            info("Found " + mln.schema.size + " predicate schemas")
+            info("Found " + mln.predicateSchema.size + " predicate schemas")
             info("Found " + mln.functionSchema.size + " function schemas")
+
+            it("should contain 25 formulas") {
+              mln.formulas.size should be(25)
+            }
+
+            it("should constants 5 constants sets (domains)") {
+              mln.constants.size should be(5)
+            }
+
+            it("should contain 6 predicate schemas") {
+              mln.predicateSchema.size should be(6)
+            }
+
+            it("should contain 7 function schemas") {
+              mln.functionSchema.size should be(7)
+            }
 
             describe("Creating MRF from previous MLN") {
 
@@ -86,14 +111,47 @@ final class ILPSpecTest extends FunSpec with Matchers {
               info("Created " + mrf.numberOfConstraints + " ground clauses")
 
               describe("Running MAP inference using ILP") {
-                val solver = new ILP(mrf, ilpSolver = 1)
+
+                val prefix = db.getName.split(".db")(0)
+                val golden = goldenFiles.find(f => f.getName.contains(prefix)).get
+
+                val resultsWriter = new PrintStream(
+                                    new FileOutputStream(
+                                    mlnFile(0).getParent.getAbsolutePath + sep + prefix + ".ilp.result"), true)
+
+                val solver = new ILP(mrf)
                 solver.infer()
+                solver.writeResults(resultsWriter)
+
+                var results = HashMap[String, Int]()
+                for (line <- Source.fromFile(mlnFile(0).getParent.getAbsolutePath + sep + prefix + ".ilp.result").getLines()) {
+                  val element = line.split(" ")
+                  results += ((element(0), element(1).toInt))
+                }
+
+                var standard = HashMap[String, Int]()
+                for (line <- Source.fromFile(golden.getAbsolutePath).getLines()) {
+                  val element = line.split(" ")
+                  standard += ((element(0), element(1).toInt))
+                }
+
+                var total = 0
+                for( (atom, value) <- results)
+                  total += math.abs(value - standard.get(atom).get)
+
+                info("Number of differences: " + total)
+
+                it("should be less or equal than 5") {
+                  assert(total <= 5)
+                }
               }
+
             }
           }
         }
 
       }
     }
-  }*/
+  }
+
 }

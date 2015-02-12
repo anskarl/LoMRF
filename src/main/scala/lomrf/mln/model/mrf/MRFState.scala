@@ -99,26 +99,51 @@ final class MRFState private(val mrf: MRF,
    * @param atomID atom id
    * @return delta cost
    */
+  // TODO: Counting should be eliminated
   def computeDelta(atomID: Int): Double = {
     var delta = 0.0
 
+    var count = 0
     for(i <- (0 until Unsatisfied.size).optimized) {
       val constraint = Unsatisfied.apply(i)
 
-      if(constraint.literals.contains(atomID))
-        delta += constraint.weight
-      else if(constraint.literals.contains(-atomID))
-        delta -= constraint.weight
+      if(constraint.literals.contains(atomID)) {
+        count += 1
+        if (constraint.weight > 1000) delta += 1000
+        else delta += constraint.weight
+      }
+      else if(constraint.literals.contains(-atomID)) {
+        count += 1
+        if (constraint.weight > 1000) delta -= 1000
+        else delta -= constraint.weight
+      }
     }
+    println("Unsat constraints found = " + count)
     delta
   }
 
-  // EXPERIMENTAL
+  // TODO: EXPERIMENTAL
   def refineState(atomID: Int): Unit = {
     for(i <- (0 until Unsatisfied.size).optimized) {
       val constraint = Unsatisfied.apply(i)
       if( state(atomID) && constraint.literals.contains(atomID) || (!state(atomID) && constraint.literals.contains(-atomID)))
         Unsatisfied -= constraint
+    }
+  }
+
+  // TODO: EXPERIMENTAL
+  def makeAllUnsatisfied(): Unit = {
+
+    // Recompute delta costs:
+    val iterator = mrf.constraints.iterator()
+
+    // Current constraint
+    var currentConstraint: Constraint = null
+
+    while (iterator.hasNext) {
+      iterator.advance()
+      currentConstraint = iterator.value()
+      Unsatisfied += currentConstraint
     }
   }
 

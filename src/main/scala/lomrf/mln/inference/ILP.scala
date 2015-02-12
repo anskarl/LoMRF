@@ -233,23 +233,28 @@ final class ILP(mrf: MRF, annotationDB: Map[AtomSignature, AtomEvidenceDB] = Map
     val solution = new TIntDoubleHashMap(literalLPVars.size())
     var fractionalSolutions = List[(Int, Double)]()
 
+    // create MRF state
+    val state = MRFState(mrf)
+    state.makeAllUnsatisfied()
+
     // Search for fractional solutions and fix atom values of non fractional solutions
     var nonIntegralSolutionsCounter = 0
     for ((id, lpVar) <- literalLPVars.iterator()) {
       val value = if (lpVar.value.get > 0.99) 1.0 else lpVar.value.get
       if (value != 0.0 && value != 1.0) {
         nonIntegralSolutionsCounter += 1
-        fractionalSolutions ::= ((id, value))
+        fractionalSolutions +:= ((id, value))
       }
       else {
         fetchAtom(id).fixedValue = if (value == 0.0) -1 else 1
         fetchAtom(id).state = if (value == 0.0) false else true
+        state.refineState(id)
       }
       solution.put(id, value)
     }
 
     // create MRF state
-    val state = MRFState(mrf)
+    //val state = MRFState(mrf)
 
     info("Number of non-integral solutions: " + nonIntegralSolutionsCounter)
     assert(state.countUnfixAtoms() == nonIntegralSolutionsCounter)
@@ -257,7 +262,7 @@ final class ILP(mrf: MRF, annotationDB: Map[AtomSignature, AtomEvidenceDB] = Map
     val sRoundUp = System.currentTimeMillis()
 
     // Should be executed here!
-    state.evaluateState()
+    //state.evaluateState()
 
     if(nonIntegralSolutionsCounter > 0) {
 
