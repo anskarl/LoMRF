@@ -73,7 +73,7 @@ class DependencyMapSpecTest extends FunSpec with Matchers {
 
     println("\n-----------------------------------------------------------")
 
-    val dmIterator = mrfNoNeg.dependencyMap.getOrElse(sys.error("TODO: !!!")).iterator()
+    val dmIterator = mrfNoNeg.dependencyMap.getOrElse(sys.error("Dependency map does not exist!")).iterator()
 
     while (dmIterator.hasNext) {
       dmIterator.advance()
@@ -122,7 +122,7 @@ class DependencyMapSpecTest extends FunSpec with Matchers {
 
     println("\n-----------------------------------------------------------")
 
-    val dmIterator = mrfNeg.dependencyMap.getOrElse(sys.error("TODO: !!!")).iterator()
+    val dmIterator = mrfNeg.dependencyMap.getOrElse(sys.error("Dependency map does not exist!")).iterator()
 
     while (dmIterator.hasNext) {
       dmIterator.advance()
