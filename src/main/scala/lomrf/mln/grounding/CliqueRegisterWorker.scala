@@ -35,23 +35,24 @@ package lomrf.mln.grounding
 import java.{util => jutil}
 
 import akka.actor.{Actor, ActorRef}
-import akka.japi.Procedure
 import auxlib.log.Logging
-import auxlib.trove.TroveImplicits._
-import auxlib.trove.TroveConversions._
 import gnu.trove.list.array.TIntArrayList
 import gnu.trove.map.TIntFloatMap
-import gnu.trove.map.hash.{TIntFloatHashMap, TIntIntHashMap, TIntObjectHashMap}
-import gnu.trove.procedure.TIntFloatProcedure
+import gnu.trove.map.hash.{TIntFloatHashMap, TIntObjectHashMap}
 import lomrf._
 
 import scala.language.postfixOps
 import scalaxy.loops._
 
+
 /**
  * @author Anastasios Skarlatidis
  */
-private final class CliqueRegisterWorker(val index: Int, master: ActorRef, atomRegisters: Array[ActorRef]) extends Actor with Logging {
+private final class CliqueRegisterWorker(
+                                          val index: Int,
+                                          master: ActorRef,
+                                          atomRegisters: Array[ActorRef],
+                                          createDependencyMap: Boolean) extends Actor with Logging {
 
   private var hashCode2CliqueIDs = new TIntObjectHashMap[TIntArrayList]()
   private var cliques = new TIntObjectHashMap[CliqueEntry](DEFAULT_CAPACITY, DEFAULT_LOAD_FACTOR, NO_ENTRY_KEY)
@@ -70,12 +71,18 @@ private final class CliqueRegisterWorker(val index: Int, master: ActorRef, atomR
    * corresponding FOL 'Clause[ID:Int]' has been inverted during the grounding process.
    *
    */
-  private var dependencyMap = new TIntObjectHashMap[TIntFloatHashMap](DEFAULT_CAPACITY, DEFAULT_LOAD_FACTOR, NO_ENTRY_KEY)
+  private var dependencyMap: DependencyMap = _
 
   private val numOfAtomBatches = atomRegisters.length
 
   private var cliqueID = 0
 
+
+
+  override def preStart(): Unit = {
+    if(createDependencyMap)
+      dependencyMap = new TIntObjectHashMap[TIntFloatMap](DEFAULT_CAPACITY, DEFAULT_LOAD_FACTOR, NO_ENTRY_KEY)
+  }
 
   def receive = {
     case ce: CliqueEntry =>
@@ -95,7 +102,11 @@ private final class CliqueRegisterWorker(val index: Int, master: ActorRef, atomR
       hashCode2CliqueIDs = null //not needed anymore (allow GC to delete it)
 
       val resultingCliques = new TIntObjectHashMap[CliqueEntry](cliques.size() + 1, DEFAULT_LOAD_FACTOR, NO_ENTRY_KEY)
-      val resultingDependencyMap = new TIntObjectHashMap[TIntFloatMap](DEFAULT_CAPACITY, DEFAULT_LOAD_FACTOR, NO_ENTRY_KEY)
+
+      val resultingDependencyMap: Option[DependencyMap] =
+        if(createDependencyMap)
+          Some(new TIntObjectHashMap[TIntFloatMap](DEFAULT_CAPACITY, DEFAULT_LOAD_FACTOR, NO_ENTRY_KEY))
+        else None
 
       val iterator = cliques.iterator()
       var currentClique: CliqueEntry = null
@@ -111,7 +122,9 @@ private final class CliqueRegisterWorker(val index: Int, master: ActorRef, atomR
 
         // Store clique mappings with the new 'final' id as key
         resultingCliques.put(finalID, currentClique)
-        resultingDependencyMap.put(finalID, dependencyMap.get(oldID))
+
+        if(createDependencyMap)
+          resultingDependencyMap.get.put(finalID, dependencyMap.get(oldID))
 
         // Register (atomID -> cliqueID) mappings
         for (variable <- currentClique.variables; atomID = math.abs(variable))
@@ -143,6 +156,12 @@ private final class CliqueRegisterWorker(val index: Int, master: ActorRef, atomR
         val atomID = math.abs(variables(i))
         atomRegisters(atomID % numOfAtomBatches) ! atomID
       }
+    }
+
+    @inline def addToDependencyMap(cliqueID: Int, cliqueEntry: CliqueEntry): Unit = if(createDependencyMap){
+      val clauseStats = new TIntFloatHashMap(DEFAULT_CAPACITY, DEFAULT_LOAD_FACTOR, NO_ENTRY_KEY, 0)
+      clauseStats.put(cliqueEntry.clauseID, cliqueEntry.freq)
+      dependencyMap.put(cliqueID, clauseStats)
     }
 
     val storedCliqueIDs = hashCode2CliqueIDs.get(cliqueEntry.hashKey)
@@ -186,17 +205,14 @@ private final class CliqueRegisterWorker(val index: Int, master: ActorRef, atomR
         storedCliqueIDs.add(cliqueID)
         registerVariables(cliqueEntry.variables)
 
-        // Update dependencyMap:
-        val clauseStats = new TIntFloatHashMap(DEFAULT_CAPACITY, DEFAULT_LOAD_FACTOR, NO_ENTRY_KEY, 0)
-        clauseStats.put(cliqueEntry.clauseID, cliqueEntry.freq)
-        dependencyMap.put(cliqueID, clauseStats)
-
+        // add to dependencyMap:
+        addToDependencyMap(cliqueID, cliqueEntry)
 
         // next cliqueID
         cliqueID += 1
       }
-      else{
-        // Update dependencyMap:
+      else if(createDependencyMap){
+        // Add or adjust the corresponding frequency in the dependencyMap
         dependencyMap.get(storedId).adjustOrPutValue(cliqueEntry.clauseID, cliqueEntry.freq, cliqueEntry.freq)
       }
 
@@ -209,11 +225,8 @@ private final class CliqueRegisterWorker(val index: Int, master: ActorRef, atomR
         newEntries.add(cliqueID)
         hashCode2CliqueIDs.put(cliqueEntry.hashKey, newEntries)
 
-        // Update dependencyMap:
-        val clauseStats = new TIntFloatHashMap(DEFAULT_CAPACITY, DEFAULT_LOAD_FACTOR, NO_ENTRY_KEY, 0)
-        clauseStats.put(cliqueEntry.clauseID, cliqueEntry.freq)
-        dependencyMap.put(cliqueID, clauseStats)
-
+        // add to dependencyMap:
+        addToDependencyMap(cliqueID, cliqueEntry)
 
         // next cliqueID
         cliqueID += 1

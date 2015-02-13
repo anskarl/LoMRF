@@ -38,11 +38,11 @@ import akka.actor._
 import akka.pattern._
 import akka.util.Timeout
 import auxlib.log.Logging
+import auxlib.trove.TroveConversions._
 import gnu.trove.map.TIntFloatMap
 import gnu.trove.map.hash.TIntObjectHashMap
-import auxlib.trove.TroveConversions._
 import lomrf.mln.model.MLN
-import lomrf.mln.model.mrf.{GroundAtom, Constraint, MRF}
+import lomrf.mln.model.mrf.{Constraint, GroundAtom, MRF}
 import lomrf.util.Utilities
 import lomrf.{DEFAULT_CAPACITY, DEFAULT_LOAD_FACTOR, NO_ENTRY_KEY}
 
@@ -97,7 +97,10 @@ import scalaxy.loops._
  *
  * @author Anastasios Skarlatidis
  */
-final class MRFBuilder(val mln: MLN, noNegWeights: Boolean = false, eliminateNegatedUnit: Boolean = false) extends Logging {
+final class MRFBuilder(val mln: MLN,
+                       noNegWeights: Boolean = false,
+                       eliminateNegatedUnit: Boolean = false,
+                       createDependencyMap: Boolean = false) extends Logging {
 
   private val mcSatParam = 1
 
@@ -111,7 +114,7 @@ final class MRFBuilder(val mln: MLN, noNegWeights: Boolean = false, eliminateNeg
     val latch = new CountDownLatch(1)
 
     val startTime = System.currentTimeMillis()
-    val masterActor = system.actorOf(Props(new GroundingMaster(mln, latch, noNegWeights, eliminateNegatedUnit)), name = "master")
+    val masterActor = system.actorOf(Props(new GroundingMaster(mln, latch, noNegWeights, eliminateNegatedUnit, createDependencyMap)), name = "master")
     latch.await()
     val endTime = System.currentTimeMillis()
     val result = Await.result((masterActor ? REQUEST_RESULTS).mapTo[Result], timeout.duration)
@@ -143,26 +146,36 @@ final class MRFBuilder(val mln: MLN, noNegWeights: Boolean = false, eliminateNeg
     val atoms = new TIntObjectHashMap[GroundAtom](
       if (numAtoms == 0) DEFAULT_CAPACITY else numAtoms)
 
-    val mergedDependencyMap = new TIntObjectHashMap[TIntFloatMap](
-      if (numConstraints == 0) DEFAULT_CAPACITY else numConstraints, DEFAULT_LOAD_FACTOR, NO_ENTRY_KEY)
+    val mergedDependencyMapOpt =
+      if (createDependencyMap) {
+        val mergedDependencyMap =
+          new TIntObjectHashMap[TIntFloatMap](
+            if (numConstraints == 0) DEFAULT_CAPACITY else numConstraints, DEFAULT_LOAD_FACTOR, NO_ENTRY_KEY)
 
+        // Update the frequencies in the DependencyMap:
+        // When a clause has negative a negative weight and the 'noNegWeights' is True:
+        //    - adjust the frequency value by dividing with the size of the corresponding FOL clause.
 
-    // Update the frequencies in the DependencyMap:
-    // When a clause has negative a negative weight and the 'noNegWeights' is True:
-    //    - adjust the frequency value by dividing with the size of the corresponding FOL clause.
-    if(noNegWeights) for {
-      partition <- result.dependencyMap.par
-      (_, frequencies) <- partition.iterator()}{
+        val dependencyMapPartitions = result.dependencyMap.getOrElse(fatal("DependencyMap is not computed."))
 
-      val iterator = frequencies.iterator()
-      while(iterator.hasNext){
-        iterator.advance()
-        if(iterator.value() < 0)
-          iterator.setValue(iterator.value()/mln.clauses(iterator.key()).size)
+        if (noNegWeights) for {
+          partition <- dependencyMapPartitions.par
+          (_, frequencies) <- partition.iterator()} {
+
+          val iterator = frequencies.iterator()
+          while (iterator.hasNext) {
+            iterator.advance()
+            if (iterator.value() < 0)
+              iterator.setValue(iterator.value() / mln.clauses(iterator.key()).size)
+          }
+        }
+
+        dependencyMapPartitions.foreach(mergedDependencyMap.putAll)
+
+        Some(mergedDependencyMap)
       }
-    }
+      else None
 
-    result.dependencyMap.foreach(mergedDependencyMap.putAll)
 
     for (qas <- result.queryAtomIDs) {
       val iterator = qas.iterator()
@@ -222,7 +235,7 @@ final class MRFBuilder(val mln: MLN, noNegWeights: Boolean = false, eliminateNeg
     if(fail) sys.exit() // */
     //---------------------------------------------
 
-    MRF(mln, constraints, atoms, weightHard, mln.queryStartID, mln.queryEndID, mergedDependencyMap)
+    MRF(mln, constraints, atoms, weightHard, mln.queryStartID, mln.queryEndID, mergedDependencyMapOpt)
   }
 }
 

@@ -58,7 +58,7 @@ class DependencyMapSpecTest extends FunSpec with Matchers {
 
   describe("Checking dependency map when no negative weights are allowed") {
 
-    val mrfNoNeg = MRF.build(mln, noNegWeights = true)
+    val mrfNoNeg = MRF.build(mln, noNegWeights = true, createDependencyMap = true)
 
     info("Created " + mrfNoNeg.numberOfAtoms + " ground atoms")
     info("Created " + mrfNoNeg.numberOfConstraints + " ground clauses")
@@ -73,7 +73,7 @@ class DependencyMapSpecTest extends FunSpec with Matchers {
 
     println("\n-----------------------------------------------------------")
 
-    val dmIterator = mrfNoNeg.dependencyMap.iterator()
+    val dmIterator = mrfNoNeg.dependencyMap.getOrElse(sys.error("TODO: !!!")).iterator()
 
     while (dmIterator.hasNext) {
       dmIterator.advance()
@@ -107,7 +107,7 @@ class DependencyMapSpecTest extends FunSpec with Matchers {
 
   describe("Checking dependency map when negative weights are allowed") {
 
-    val mrfNeg = MRF.build(mln)
+    val mrfNeg = MRF.build(mln, createDependencyMap = true)
 
     info("Created " + mrfNeg.numberOfAtoms + " ground atoms")
     info("Created " + mrfNeg.numberOfConstraints + " ground clauses")
@@ -122,7 +122,7 @@ class DependencyMapSpecTest extends FunSpec with Matchers {
 
     println("\n-----------------------------------------------------------")
 
-    val dmIterator = mrfNeg.dependencyMap.iterator()
+    val dmIterator = mrfNeg.dependencyMap.getOrElse(sys.error("TODO: !!!")).iterator()
 
     while (dmIterator.hasNext) {
       dmIterator.advance()

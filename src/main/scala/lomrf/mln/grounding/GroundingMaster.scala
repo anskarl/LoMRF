@@ -36,24 +36,28 @@ import java.util.concurrent.CountDownLatch
 
 import akka.actor.{Actor, ActorRef, PoisonPill, Props}
 import auxlib.log.Logging
-import gnu.trove.impl.hash.TIntIntHash
-import gnu.trove.map.{TIntFloatMap, TIntIntMap, TIntObjectMap}
+import gnu.trove.map.TIntObjectMap
 import gnu.trove.set.TIntSet
 import gnu.trove.set.hash.TIntHashSet
 import lomrf._
 import lomrf.logic.{AtomSignature, AtomicFormula, Clause, Variable}
 import lomrf.mln.model.MLN
+import scalaxy.loops._
 
 import scala.collection.breakOut
 
 /**
  * @author Anastasios Skarlatidis
  */
-private final class GroundingMaster(mln: MLN, latch: CountDownLatch, noNegWeights: Boolean, eliminateNegatedUnit: Boolean) extends Actor with Logging {
+private final class GroundingMaster(mln: MLN,
+                                    latch: CountDownLatch,
+                                    noNegWeights: Boolean,
+                                    eliminateNegatedUnit: Boolean,
+                                    createDependencyMap: Boolean) extends Actor with Logging {
 
   private val _variables2Cliques = new Array[TIntObjectMap[TIntHashSet]](processors)
   private val _cliques = new Array[TIntObjectMap[CliqueEntry]](processors)
-  private val _dependencyMap = new Array[DependencyMap](processors)
+  private lazy val _dependencyMap = new Array[DependencyMap](processors)
   private val _queryAtomIDs = new Array[TIntSet](processors)
   private val atomsDB = new Array[TIntSet](processors)
 
@@ -81,7 +85,7 @@ private final class GroundingMaster(mln: MLN, latch: CountDownLatch, noNegWeight
 
   private val cliqueRegisters: Array[ActorRef] = (
     for (i <- 0 until processors)
-    yield context.actorOf(Props(new CliqueRegisterWorker(i, this.self, atomRegisters)), name = "clique_register-" + i)
+    yield context.actorOf(Props(new CliqueRegisterWorker(i, this.self, atomRegisters, createDependencyMap)), name = "clique_register-" + i)
     )(breakOut)
 
   private val clauseGroundingWorkers: Array[ActorRef] = {
@@ -102,10 +106,10 @@ private final class GroundingMaster(mln: MLN, latch: CountDownLatch, noNegWeight
     // insert all ground query predicates as zero weighted unit clauses
     for ((signature, qidx) <- mln.queryAtoms.zipWithIndex) {
       val terms = mln.predicateSchema(signature).view.zipWithIndex.map {
-          case (argType: String, idx: Int) => Variable("v" + idx, argType, idx)
-        }.toVector
+        case (argType: String, idx: Int) => Variable("v" + idx, argType, idx)
+      }.toVector
       //remainingClauses += Clause(0, AtomicFormula(signature.symbol, terms))
-      remainingClauses :+= (Clause(0, AtomicFormula(signature.symbol, terms)), numberOfClauses + qidx)
+      remainingClauses :+=(Clause(0, AtomicFormula(signature.symbol, terms)), numberOfClauses + qidx)
     }
 
     performGrounding()
@@ -121,7 +125,7 @@ private final class GroundingMaster(mln: MLN, latch: CountDownLatch, noNegWeight
         workerIdx = if (workerIdx == clauseGroundingWorkers.length - 1) 0 else workerIdx + 1
         counter += 1
       }
-      else remaining :+= (clause, clauseIndex)
+      else remaining :+=(clause, clauseIndex)
 
 
     }
@@ -177,7 +181,10 @@ private final class GroundingMaster(mln: MLN, latch: CountDownLatch, noNegWeight
 
     case CollectedCliques(index, cliques, dependencyMap) =>
       _cliques(index) = cliques
-      _dependencyMap(index) = dependencyMap
+
+      if(createDependencyMap)
+        _dependencyMap(index) = dependencyMap.getOrElse(fatal("dependencyMap is note defined."))
+
       cliqueBatchesCounter += 1
       if (cliqueBatchesCounter == processors) atomRegisters.foreach(_ ! PoisonPill)
 
@@ -190,7 +197,8 @@ private final class GroundingMaster(mln: MLN, latch: CountDownLatch, noNegWeight
 
 
     case REQUEST_RESULTS =>
-      if (completed) sender ! Result(_cliques, _variables2Cliques, _queryAtomIDs, _dependencyMap)
+      if (completed)
+        sender ! Result(_cliques, _variables2Cliques, _queryAtomIDs, if(createDependencyMap) Some(_dependencyMap) else None)
       else sender ! None
 
     case msg => fatal("Master --- Received an unknown message '" + msg + "' from " + sender)
