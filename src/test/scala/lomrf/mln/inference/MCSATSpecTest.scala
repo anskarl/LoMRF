@@ -52,7 +52,7 @@ final class MCSATSpecTest extends FunSpec with Matchers {
 
   private val sep = System.getProperty("file.separator")
   private val testFilesPath = System.getProperty("user.dir") + sep + "Examples" + sep + "data" + sep +
-    "tests" + sep + "inference" + sep
+    "tests" + sep + "inference" + sep + "caviar" + sep + "DN" + sep
 
   private val mlnFiles = findFiles(strToFile(testFilesPath), f => f.getName.contains(".mln"))
   private val dbFilesList = findFiles(strToFile(testFilesPath), f => f.getName.contains(".db"))
