@@ -63,7 +63,7 @@ class MRF(val mln: MLN,
           val queryAtomEndID: Int,
           val weightHard: Double,
           val maxNumberOfLiterals: Int,
-          val dependencyMap: DependencyMap) {
+          val dependencyMap: Option[DependencyMap] = None) {
 
   val numberOfConstraints = constraints.size()
   val numberOfAtoms = atoms.size()
@@ -103,7 +103,7 @@ object MRF {
             weightHard: Double,
             queryAtomStartID: Int,
             queryAtomEndID: Int,
-            dependencyMap: DependencyMap): MRF = {
+            dependencyMap: Option[DependencyMap] = None): MRF = {
 
     //create positive-and-negative literal to constraint occurrence maps
     val iterator = constraints.iterator()
@@ -143,8 +143,8 @@ object MRF {
       queryAtomStartID, queryAtomEndID, weightHard, maxNumberOfLiterals, dependencyMap)
   }
 
-  def build(mln: MLN, noNegWeights: Boolean = false, eliminateNegatedUnit: Boolean = false): MRF ={
-    new lomrf.mln.grounding.MRFBuilder(mln, noNegWeights, eliminateNegatedUnit).buildNetwork
+  def build(mln: MLN, noNegWeights: Boolean = false, eliminateNegatedUnit: Boolean = false, createDependencyMap: Boolean = false): MRF ={
+    new lomrf.mln.grounding.MRFBuilder(mln, noNegWeights, eliminateNegatedUnit, createDependencyMap).buildNetwork
   }
 }
 

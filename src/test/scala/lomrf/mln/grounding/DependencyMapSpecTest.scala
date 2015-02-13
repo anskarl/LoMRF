@@ -31,9 +31,9 @@ class DependencyMapSpecTest extends FunSpec with Matchers {
     cwa = Set.empty,
     owa = Set.empty)
 
-  val mrf = MRF.build(mln, noNegWeights = true)
+  val mrf = MRF.build(mln, noNegWeights = true, createDependencyMap = true)
 
-  val dmIterator = mrf.dependencyMap.iterator()
+  val dmIterator = mrf.dependencyMap.getOrElse(sys.error("TODO: !!!")).iterator()
   while (dmIterator.hasNext){
     dmIterator.advance()
     val gcid = dmIterator.key()

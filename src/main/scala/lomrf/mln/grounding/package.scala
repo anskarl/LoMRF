@@ -68,7 +68,7 @@ package object grounding {
                                         cliques: Array[TIntObjectMap[CliqueEntry]],
                                         atom2Cliques: Array[TIntObjectMap[TIntHashSet]],
                                         queryAtomIDs: Array[TIntSet],
-                                        dependencyMap: Array[DependencyMap])
+                                        dependencyMap: Option[Array[DependencyMap]] = None)
 
   private[grounding] case class ClauseGroundingCompleted(clause: Clause, collectedSignatures: Set[AtomSignature])
 
@@ -99,7 +99,7 @@ package object grounding {
   private[grounding] case class Register(atomID: Int, cliqueID: Int)
 
   // CliqueRegister -> Master
-  private[grounding] case class CollectedCliques(index: Int, cliques: TIntObjectMap[CliqueEntry], dependencyMap: TIntObjectMap[TIntFloatMap])
+  private[grounding] case class CollectedCliques(index: Int, cliques: TIntObjectMap[CliqueEntry], dependencyMap: Option[DependencyMap] = None)
 
   private[grounding] case class StartID(id: Int)
 
