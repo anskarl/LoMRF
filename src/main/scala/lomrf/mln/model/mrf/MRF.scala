@@ -32,8 +32,9 @@
 
 package lomrf.mln.model.mrf
 
-import gnu.trove.map.{TIntIntMap, TIntObjectMap}
+import gnu.trove.map.TIntObjectMap
 import gnu.trove.map.hash.TIntObjectHashMap
+import lomrf.mln.grounding.DependencyMap
 import lomrf.mln.model.MLN
 
 
@@ -62,7 +63,7 @@ class MRF(val mln: MLN,
           val queryAtomEndID: Int,
           val weightHard: Double,
           val maxNumberOfLiterals: Int,
-          val dependencyMap: TIntObjectMap[TIntIntMap]) {
+          val dependencyMap: DependencyMap) {
 
   val numberOfConstraints = constraints.size()
   val numberOfAtoms = atoms.size()
@@ -102,7 +103,7 @@ object MRF {
             weightHard: Double,
             queryAtomStartID: Int,
             queryAtomEndID: Int,
-            dependencyMap: TIntObjectMap[TIntIntMap]): MRF = {
+            dependencyMap: DependencyMap): MRF = {
 
     //create positive-and-negative literal to constraint occurrence maps
     val iterator = constraints.iterator()

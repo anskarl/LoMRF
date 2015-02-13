@@ -37,7 +37,7 @@ import java.util.concurrent.CountDownLatch
 import akka.actor.{Actor, ActorRef, PoisonPill, Props}
 import auxlib.log.Logging
 import gnu.trove.impl.hash.TIntIntHash
-import gnu.trove.map.{TIntIntMap, TIntObjectMap}
+import gnu.trove.map.{TIntFloatMap, TIntIntMap, TIntObjectMap}
 import gnu.trove.set.TIntSet
 import gnu.trove.set.hash.TIntHashSet
 import lomrf._
@@ -53,7 +53,7 @@ private final class GroundingMaster(mln: MLN, latch: CountDownLatch, noNegWeight
 
   private val _variables2Cliques = new Array[TIntObjectMap[TIntHashSet]](processors)
   private val _cliques = new Array[TIntObjectMap[CliqueEntry]](processors)
-  private val _dependencyMap = new Array[TIntObjectMap[TIntIntMap]](processors)
+  private val _dependencyMap = new Array[DependencyMap](processors)
   private val _queryAtomIDs = new Array[TIntSet](processors)
   private val atomsDB = new Array[TIntSet](processors)
 

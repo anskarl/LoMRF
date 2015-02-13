@@ -38,8 +38,9 @@ import akka.actor._
 import akka.pattern._
 import akka.util.Timeout
 import auxlib.log.Logging
-import gnu.trove.map.TIntIntMap
-import gnu.trove.map.hash.{TIntIntHashMap, TIntObjectHashMap}
+import gnu.trove.map.TIntFloatMap
+import gnu.trove.map.hash.TIntObjectHashMap
+import auxlib.trove.TroveConversions._
 import lomrf.mln.model.MLN
 import lomrf.mln.model.mrf.{GroundAtom, Constraint, MRF}
 import lomrf.util.Utilities
@@ -142,8 +143,25 @@ final class MRFBuilder(val mln: MLN, noNegWeights: Boolean = false, eliminateNeg
     val atoms = new TIntObjectHashMap[GroundAtom](
       if (numAtoms == 0) DEFAULT_CAPACITY else numAtoms)
 
-    val mergedDependencyMap = new TIntObjectHashMap[TIntIntMap](
+    val mergedDependencyMap = new TIntObjectHashMap[TIntFloatMap](
       if (numConstraints == 0) DEFAULT_CAPACITY else numConstraints, DEFAULT_LOAD_FACTOR, NO_ENTRY_KEY)
+
+
+    // Update the frequencies in the DependencyMap:
+    // When a clause has negative a negative weight and the 'noNegWeights' is True:
+    //    - adjust the frequency value by dividing with the size of the corresponding FOL clause.
+    if(noNegWeights) for {
+      partition <- result.dependencyMap.par
+      (_, frequencies) <- partition.iterator()}{
+
+      val iterator = frequencies.iterator()
+      while(iterator.hasNext){
+        iterator.advance()
+        if(iterator.value() < 0)
+          iterator.setValue(iterator.value()/mln.clauses(iterator.key()).size)
+      }
+    }
+
     result.dependencyMap.foreach(mergedDependencyMap.putAll)
 
     for (qas <- result.queryAtomIDs) {

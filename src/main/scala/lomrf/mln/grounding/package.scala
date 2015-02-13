@@ -34,7 +34,7 @@ package lomrf.mln
 
 import java.{util => jutil}
 
-import gnu.trove.map.{TIntIntMap, TIntObjectMap}
+import gnu.trove.map.{TIntFloatMap, TIntIntMap, TIntObjectMap}
 import gnu.trove.map.hash.{TIntIntHashMap, TIntObjectHashMap}
 import gnu.trove.set.TIntSet
 import gnu.trove.set.hash.TIntHashSet
@@ -44,6 +44,12 @@ import lomrf.logic.{AtomSignature, Clause}
  * @author Anastasios Skarlatidis
  */
 package object grounding {
+
+  // ----------------------------------------
+  // Types
+  // ----------------------------------------
+  type DependencyMap = TIntObjectMap[TIntFloatMap]
+
 
   // ----------------------------------------
   // Messages
@@ -62,7 +68,7 @@ package object grounding {
                                         cliques: Array[TIntObjectMap[CliqueEntry]],
                                         atom2Cliques: Array[TIntObjectMap[TIntHashSet]],
                                         queryAtomIDs: Array[TIntSet],
-                                        dependencyMap: Array[TIntObjectMap[TIntIntMap]])
+                                        dependencyMap: Array[DependencyMap])
 
   private[grounding] case class ClauseGroundingCompleted(clause: Clause, collectedSignatures: Set[AtomSignature])
 
@@ -93,7 +99,7 @@ package object grounding {
   private[grounding] case class Register(atomID: Int, cliqueID: Int)
 
   // CliqueRegister -> Master
-  private[grounding] case class CollectedCliques(index: Int, cliques: TIntObjectMap[CliqueEntry], dependencyMap: TIntObjectMap[TIntIntMap])
+  private[grounding] case class CollectedCliques(index: Int, cliques: TIntObjectMap[CliqueEntry], dependencyMap: TIntObjectMap[TIntFloatMap])
 
   private[grounding] case class StartID(id: Int)
 
