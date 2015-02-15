@@ -1,215 +1,213 @@
 // weighted ground clauses
 
-0.217968 !HoldsAt(Meet_ID1_ID2,377)
-0.217968 !HoldsAt(Meet_ID1_ID2,374)
-0.217968 !HoldsAt(Meet_ID1_ID2,371)
-0.217968 !HoldsAt(Meet_ID1_ID2,368)
-0.217968 !HoldsAt(Meet_ID1_ID2,365)
-0.217968 !HoldsAt(Meet_ID1_ID2,362)
-0.217968 !HoldsAt(Meet_ID1_ID2,359)
-0.217968 !HoldsAt(Meet_ID1_ID2,356)
-0.217968 !HoldsAt(Meet_ID1_ID2,353)
-0.217968 !HoldsAt(Meet_ID1_ID2,350)
-0.217968 !HoldsAt(Meet_ID1_ID2,347)
-0.217968 !HoldsAt(Meet_ID1_ID2,344)
-0.217968 !HoldsAt(Meet_ID1_ID2,341)
-0.217968 !HoldsAt(Meet_ID1_ID2,338)
-0.217968 !HoldsAt(Meet_ID1_ID2,335)
-0.422337 !HoldsAt(Meet_ID1_ID2,329)
-0.422337 !HoldsAt(Meet_ID1_ID2,326)
-0.422337 !HoldsAt(Meet_ID1_ID2,323)
-0.422337 !HoldsAt(Meet_ID1_ID2,320)
-0.422337 !HoldsAt(Meet_ID1_ID2,317)
-0.422337 !HoldsAt(Meet_ID1_ID2,314)
-!HoldsAt(Meet_ID1_ID2,332).
-0.422337 !HoldsAt(Meet_ID1_ID2,311)
-0.422337 !HoldsAt(Meet_ID1_ID2,308)
-0.422337 !HoldsAt(Meet_ID1_ID2,305)
-0.422337 !HoldsAt(Meet_ID1_ID2,302)
-0.422337 !HoldsAt(Meet_ID1_ID2,299)
-0.422337 !HoldsAt(Meet_ID1_ID2,296)
-0.422337 !HoldsAt(Meet_ID1_ID2,293)
-0.422337 !HoldsAt(Meet_ID1_ID2,290)
-0.422337 !HoldsAt(Meet_ID1_ID2,287)
-0.422337 !HoldsAt(Meet_ID1_ID2,284)
-0.422337 !HoldsAt(Meet_ID1_ID2,281)
-0.422337 !HoldsAt(Meet_ID1_ID2,278)
-0.422337 !HoldsAt(Meet_ID1_ID2,275)
-0.422337 !HoldsAt(Meet_ID1_ID2,272)
-!HoldsAt(Meet_ID2_ID1,40) v HoldsAt(Meet_ID2_ID1,39).
-!HoldsAt(Meet_ID1_ID1,40) v HoldsAt(Meet_ID1_ID1,39).
-0.422337 !HoldsAt(Meet_ID1_ID2,269)
-0.422337 !HoldsAt(Meet_ID1_ID2,266)
-0.422337 !HoldsAt(Meet_ID1_ID2,263)
-0.422337 !HoldsAt(Meet_ID1_ID2,260)
-0.422337 !HoldsAt(Meet_ID1_ID2,257)
-0.422337 !HoldsAt(Meet_ID1_ID2,254)
-0.422337 !HoldsAt(Meet_ID1_ID2,251)
-0.422337 !HoldsAt(Meet_ID1_ID2,248)
-0.422337 !HoldsAt(Meet_ID1_ID2,245)
-0.422337 !HoldsAt(Meet_ID1_ID2,242)
-0.422337 !HoldsAt(Meet_ID1_ID2,239)
-0.422337 !HoldsAt(Meet_ID1_ID2,236)
-0.422337 !HoldsAt(Meet_ID1_ID2,233)
-0.422337 !HoldsAt(Meet_ID1_ID2,230)
-0.422337 !HoldsAt(Meet_ID1_ID2,227)
-0.422337 !HoldsAt(Meet_ID1_ID2,224)
-0.422337 !HoldsAt(Meet_ID1_ID2,221)
-0.422337 !HoldsAt(Meet_ID1_ID2,218)
-0.422337 !HoldsAt(Meet_ID1_ID2,215)
-0.422337 !HoldsAt(Meet_ID1_ID2,212)
-0.422337 !HoldsAt(Meet_ID1_ID2,209)
-0.422337 !HoldsAt(Meet_ID1_ID2,206)
-0.422337 !HoldsAt(Meet_ID1_ID2,203)
-0.422337 !HoldsAt(Meet_ID1_ID2,200)
-0.422337 !HoldsAt(Meet_ID1_ID2,197)
-0.422337 !HoldsAt(Meet_ID1_ID2,194)
-0.422337 !HoldsAt(Meet_ID1_ID2,191)
-0.422337 !HoldsAt(Meet_ID1_ID2,188)
-0.422337 !HoldsAt(Meet_ID1_ID2,185)
-0.422337 !HoldsAt(Meet_ID1_ID2,182)
-0.422337 !HoldsAt(Meet_ID1_ID2,179)
-0.422337 !HoldsAt(Meet_ID1_ID2,176)
-0.422337 !HoldsAt(Meet_ID1_ID2,173)
-0.422337 !HoldsAt(Meet_ID1_ID2,170)
-0.422337 !HoldsAt(Meet_ID1_ID2,167)
-0.422337 !HoldsAt(Meet_ID1_ID2,164)
-0.422337 !HoldsAt(Meet_ID1_ID2,161)
-0.422337 !HoldsAt(Meet_ID1_ID2,158)
-0.422337 !HoldsAt(Meet_ID1_ID2,155)
-0.422337 !HoldsAt(Meet_ID1_ID2,152)
-0.422337 !HoldsAt(Meet_ID1_ID2,149)
-0.422337 !HoldsAt(Meet_ID1_ID2,146)
-0.422337 !HoldsAt(Meet_ID1_ID2,143)
-0.422337 !HoldsAt(Meet_ID1_ID2,140)
-0.422337 !HoldsAt(Meet_ID1_ID2,137)
-0.422337 !HoldsAt(Meet_ID1_ID2,134)
-0.422337 !HoldsAt(Meet_ID1_ID2,131)
-0.422337 !HoldsAt(Meet_ID1_ID2,128)
-0.204369 !HoldsAt(Meet_ID1_ID2,68)
-0.204369 !HoldsAt(Meet_ID1_ID2,65)
-0.204369 !HoldsAt(Meet_ID1_ID2,62)
-0.204369 !HoldsAt(Meet_ID1_ID2,59)
-0.204369 !HoldsAt(Meet_ID1_ID2,56)
-0.204369 !HoldsAt(Meet_ID1_ID2,53)
-0.204369 !HoldsAt(Meet_ID1_ID2,50)
-!HoldsAt(Meet_ID2_ID2,44).
-!HoldsAt(Meet_ID2_ID2,41).
-!HoldsAt(Meet_ID1_ID1,39).
-!HoldsAt(Meet_ID1_ID1,36).
-!HoldsAt(Meet_ID1_ID1,33).
-!HoldsAt(Meet_ID1_ID1,377).
-!HoldsAt(Meet_ID1_ID1,374).
-!HoldsAt(Meet_ID1_ID1,371).
-!HoldsAt(Meet_ID1_ID1,368).
-!HoldsAt(Meet_ID1_ID1,365).
-!HoldsAt(Meet_ID1_ID1,362).
-!HoldsAt(Meet_ID1_ID1,359).
-!HoldsAt(Meet_ID1_ID1,356).
-!HoldsAt(Meet_ID1_ID1,353).
-!HoldsAt(Meet_ID1_ID1,350).
-!HoldsAt(Meet_ID1_ID1,347).
-!HoldsAt(Meet_ID1_ID1,344).
-!HoldsAt(Meet_ID1_ID1,341).
-!HoldsAt(Meet_ID1_ID1,338).
-!HoldsAt(Meet_ID1_ID1,335).
-!HoldsAt(Meet_ID1_ID1,332).
-!HoldsAt(Meet_ID1_ID1,329).
-!HoldsAt(Meet_ID1_ID1,326).
-!HoldsAt(Meet_ID1_ID1,323).
-!HoldsAt(Meet_ID1_ID1,320).
-!HoldsAt(Meet_ID1_ID1,317).
-!HoldsAt(Meet_ID1_ID1,314).
-!HoldsAt(Meet_ID1_ID1,311).
-!HoldsAt(Meet_ID1_ID1,308).
-!HoldsAt(Meet_ID1_ID1,305).
-!HoldsAt(Meet_ID1_ID1,302).
-!HoldsAt(Meet_ID1_ID1,299).
-!HoldsAt(Meet_ID1_ID1,296).
-!HoldsAt(Meet_ID1_ID1,293).
-!HoldsAt(Meet_ID1_ID1,290).
-!HoldsAt(Meet_ID1_ID1,287).
-!HoldsAt(Meet_ID1_ID1,284).
-!HoldsAt(Meet_ID1_ID1,281).
-!HoldsAt(Meet_ID1_ID1,278).
-!HoldsAt(Meet_ID1_ID1,275).
-!HoldsAt(Meet_ID1_ID1,272).
-!HoldsAt(Meet_ID1_ID1,269).
-!HoldsAt(Meet_ID1_ID1,266).
-!HoldsAt(Meet_ID1_ID1,263).
-!HoldsAt(Meet_ID1_ID1,260).
-!HoldsAt(Meet_ID1_ID1,257).
-!HoldsAt(Meet_ID1_ID1,254).
-!HoldsAt(Meet_ID1_ID1,251).
-!HoldsAt(Meet_ID1_ID1,248).
-!HoldsAt(Meet_ID1_ID1,245).
-!HoldsAt(Meet_ID1_ID1,242).
-!HoldsAt(Meet_ID1_ID1,239).
-!HoldsAt(Meet_ID1_ID1,236).
-!HoldsAt(Meet_ID1_ID1,233).
-!HoldsAt(Meet_ID1_ID1,230).
-!HoldsAt(Meet_ID1_ID1,227).
-!HoldsAt(Meet_ID1_ID1,224).
-!HoldsAt(Meet_ID1_ID1,221).
-!HoldsAt(Meet_ID1_ID1,218).
-!HoldsAt(Meet_ID1_ID1,215).
-!HoldsAt(Meet_ID1_ID1,212).
-!HoldsAt(Meet_ID1_ID1,209).
-!HoldsAt(Meet_ID1_ID1,206).
-!HoldsAt(Meet_ID1_ID1,203).
-!HoldsAt(Meet_ID1_ID1,200).
-!HoldsAt(Meet_ID1_ID1,197).
-!HoldsAt(Meet_ID1_ID1,194).
-!HoldsAt(Meet_ID1_ID1,191).
-!HoldsAt(Meet_ID1_ID1,188).
-!HoldsAt(Meet_ID1_ID1,185).
-!HoldsAt(Meet_ID1_ID1,182).
-!HoldsAt(Meet_ID1_ID1,179).
-!HoldsAt(Meet_ID1_ID1,176).
-!HoldsAt(Meet_ID1_ID1,173).
-!HoldsAt(Meet_ID1_ID1,170).
-!HoldsAt(Meet_ID1_ID1,167).
-!HoldsAt(Meet_ID1_ID1,164).
-!HoldsAt(Meet_ID1_ID1,161).
-!HoldsAt(Meet_ID1_ID1,158).
-!HoldsAt(Meet_ID1_ID1,155).
-!HoldsAt(Meet_ID1_ID1,152).
-!HoldsAt(Meet_ID1_ID1,149).
-!HoldsAt(Meet_ID1_ID1,146).
-!HoldsAt(Meet_ID1_ID1,143).
-!HoldsAt(Meet_ID1_ID1,140).
-!HoldsAt(Meet_ID1_ID1,137).
-!HoldsAt(Meet_ID1_ID1,134).
-!HoldsAt(Meet_ID1_ID1,131).
-!HoldsAt(Meet_ID1_ID1,128).
-!HoldsAt(Meet_ID1_ID1,125).
-!HoldsAt(Meet_ID1_ID1,122).
-!HoldsAt(Meet_ID1_ID1,119).
-!HoldsAt(Meet_ID1_ID1,116).
-!HoldsAt(Meet_ID1_ID1,113).
-!HoldsAt(Meet_ID1_ID1,110).
-!HoldsAt(Meet_ID1_ID1,107).
-!HoldsAt(Meet_ID1_ID1,104).
-!HoldsAt(Meet_ID1_ID1,101).
-!HoldsAt(Meet_ID1_ID1,98).
-!HoldsAt(Meet_ID1_ID1,95).
-!HoldsAt(Meet_ID1_ID1,92).
-!HoldsAt(Meet_ID1_ID1,89).
-!HoldsAt(Meet_ID1_ID1,86).
-!HoldsAt(Meet_ID1_ID1,83).
-!HoldsAt(Meet_ID1_ID1,80).
-!HoldsAt(Meet_ID1_ID1,77).
-!HoldsAt(Meet_ID1_ID1,74).
-!HoldsAt(Meet_ID1_ID1,71).
-!HoldsAt(Meet_ID1_ID1,68).
-!HoldsAt(Meet_ID1_ID1,65).
-!HoldsAt(Meet_ID1_ID1,62).
-!HoldsAt(Meet_ID1_ID1,59).
-!HoldsAt(Meet_ID1_ID1,56).
-!HoldsAt(Meet_ID1_ID1,53).
-!HoldsAt(Meet_ID1_ID1,50).
-!HoldsAt(Meet_ID1_ID1,45).
-!HoldsAt(Meet_ID1_ID1,42).
+0.217968 !HoldsAt(Meet_ID2_ID1,67)
+0.217968 !HoldsAt(Meet_ID2_ID1,64)
+0.217968 !HoldsAt(Meet_ID2_ID1,61)
+0.217968 !HoldsAt(Meet_ID2_ID1,58)
+0.217968 !HoldsAt(Meet_ID2_ID1,55)
+0.217968 !HoldsAt(Meet_ID2_ID1,52)
+0.217968 !HoldsAt(Meet_ID2_ID1,49)
+0.217968 !HoldsAt(Meet_ID2_ID1,45)
+0.217968 !HoldsAt(Meet_ID2_ID1,42)
+0.204369 !HoldsAt(Meet_ID2_ID1,376)
+0.204369 !HoldsAt(Meet_ID2_ID1,373)
+0.204369 !HoldsAt(Meet_ID2_ID1,370)
+0.204369 !HoldsAt(Meet_ID2_ID1,367)
+0.204369 !HoldsAt(Meet_ID2_ID1,364)
+0.204369 !HoldsAt(Meet_ID2_ID1,361)
+0.204369 !HoldsAt(Meet_ID2_ID1,358)
+0.204369 !HoldsAt(Meet_ID2_ID1,355)
+0.204369 !HoldsAt(Meet_ID2_ID1,352)
+0.204369 !HoldsAt(Meet_ID2_ID1,349)
+0.204369 !HoldsAt(Meet_ID2_ID1,346)
+0.204369 !HoldsAt(Meet_ID2_ID1,343)
+0.204369 !HoldsAt(Meet_ID2_ID1,340)
+0.204369 !HoldsAt(Meet_ID2_ID1,337)
+0.204369 !HoldsAt(Meet_ID2_ID1,334)
+0.422337 !HoldsAt(Meet_ID2_ID1,331)
+0.422337 !HoldsAt(Meet_ID2_ID1,328)
+0.422337 !HoldsAt(Meet_ID2_ID1,325)
+0.422337 !HoldsAt(Meet_ID2_ID1,322)
+0.422337 !HoldsAt(Meet_ID2_ID1,319)
+0.422337 !HoldsAt(Meet_ID2_ID1,316)
+0.422337 !HoldsAt(Meet_ID2_ID1,313)
+0.422337 !HoldsAt(Meet_ID2_ID1,310)
+0.422337 !HoldsAt(Meet_ID2_ID1,307)
+0.422337 !HoldsAt(Meet_ID2_ID1,304)
+0.422337 !HoldsAt(Meet_ID2_ID1,301)
+0.422337 !HoldsAt(Meet_ID2_ID1,298)
+0.422337 !HoldsAt(Meet_ID2_ID1,295)
+0.422337 !HoldsAt(Meet_ID2_ID1,292)
+0.422337 !HoldsAt(Meet_ID2_ID1,289)
+0.422337 !HoldsAt(Meet_ID2_ID1,286)
+0.422337 !HoldsAt(Meet_ID2_ID1,283)
+0.422337 !HoldsAt(Meet_ID2_ID1,280)
+0.422337 !HoldsAt(Meet_ID2_ID1,277)
+0.422337 !HoldsAt(Meet_ID2_ID1,274)
+0.422337 !HoldsAt(Meet_ID2_ID1,271)
+0.422337 !HoldsAt(Meet_ID2_ID1,268)
+0.422337 !HoldsAt(Meet_ID2_ID1,265)
+0.422337 !HoldsAt(Meet_ID2_ID1,262)
+0.422337 !HoldsAt(Meet_ID2_ID1,259)
+0.422337 !HoldsAt(Meet_ID2_ID1,256)
+0.422337 !HoldsAt(Meet_ID2_ID1,253)
+0.422337 !HoldsAt(Meet_ID2_ID1,250)
+0.422337 !HoldsAt(Meet_ID2_ID1,247)
+0.422337 !HoldsAt(Meet_ID2_ID1,244)
+0.422337 !HoldsAt(Meet_ID2_ID1,241)
+0.422337 !HoldsAt(Meet_ID2_ID1,238)
+0.422337 !HoldsAt(Meet_ID2_ID1,235)
+0.422337 !HoldsAt(Meet_ID2_ID1,232)
+0.422337 !HoldsAt(Meet_ID2_ID1,229)
+0.422337 !HoldsAt(Meet_ID2_ID1,226)
+0.422337 !HoldsAt(Meet_ID2_ID1,223)
+0.422337 !HoldsAt(Meet_ID2_ID1,220)
+0.422337 !HoldsAt(Meet_ID2_ID1,217)
+0.422337 !HoldsAt(Meet_ID2_ID1,214)
+0.422337 !HoldsAt(Meet_ID2_ID1,211)
+0.422337 !HoldsAt(Meet_ID2_ID1,208)
+0.422337 !HoldsAt(Meet_ID2_ID1,205)
+0.422337 !HoldsAt(Meet_ID2_ID1,202)
+0.422337 !HoldsAt(Meet_ID2_ID1,199)
+0.422337 !HoldsAt(Meet_ID2_ID1,196)
+0.422337 !HoldsAt(Meet_ID2_ID1,193)
+0.422337 !HoldsAt(Meet_ID2_ID1,190)
+0.422337 !HoldsAt(Meet_ID2_ID1,187)
+0.422337 !HoldsAt(Meet_ID2_ID1,184)
+0.422337 !HoldsAt(Meet_ID2_ID1,181)
+0.422337 !HoldsAt(Meet_ID2_ID1,178)
+0.422337 !HoldsAt(Meet_ID2_ID1,175)
+0.422337 !HoldsAt(Meet_ID2_ID1,172)
+0.422337 !HoldsAt(Meet_ID2_ID1,169)
+0.422337 !HoldsAt(Meet_ID2_ID1,166)
+0.422337 !HoldsAt(Meet_ID2_ID1,163)
+0.422337 !HoldsAt(Meet_ID2_ID1,160)
+0.422337 !HoldsAt(Meet_ID2_ID1,157)
+0.422337 !HoldsAt(Meet_ID2_ID1,154)
+0.422337 !HoldsAt(Meet_ID2_ID1,151)
+0.422337 !HoldsAt(Meet_ID2_ID1,148)
+0.422337 !HoldsAt(Meet_ID2_ID1,145)
+0.422337 !HoldsAt(Meet_ID2_ID1,142)
+0.422337 !HoldsAt(Meet_ID2_ID1,139)
+0.422337 !HoldsAt(Meet_ID2_ID1,136)
+0.422337 !HoldsAt(Meet_ID2_ID1,133)
+0.422337 !HoldsAt(Meet_ID2_ID1,130)
+!HoldsAt(Meet_ID1_ID1,38).
+!HoldsAt(Meet_ID1_ID1,35).
+!HoldsAt(Meet_ID1_ID1,32).
+!HoldsAt(Meet_ID1_ID1,376).
+!HoldsAt(Meet_ID1_ID1,373).
+!HoldsAt(Meet_ID1_ID1,370).
+!HoldsAt(Meet_ID1_ID1,367).
+!HoldsAt(Meet_ID1_ID1,364).
+!HoldsAt(Meet_ID1_ID1,361).
+!HoldsAt(Meet_ID1_ID1,358).
+!HoldsAt(Meet_ID1_ID1,355).
+!HoldsAt(Meet_ID1_ID1,352).
+!HoldsAt(Meet_ID1_ID1,349).
+!HoldsAt(Meet_ID1_ID1,346).
+!HoldsAt(Meet_ID1_ID1,343).
+!HoldsAt(Meet_ID1_ID1,340).
+!HoldsAt(Meet_ID1_ID1,337).
+!HoldsAt(Meet_ID1_ID1,334).
+!HoldsAt(Meet_ID1_ID1,331).
+!HoldsAt(Meet_ID1_ID1,328).
+!HoldsAt(Meet_ID1_ID1,325).
+!HoldsAt(Meet_ID1_ID1,322).
+!HoldsAt(Meet_ID1_ID1,319).
+!HoldsAt(Meet_ID1_ID1,316).
+!HoldsAt(Meet_ID1_ID1,313).
+!HoldsAt(Meet_ID1_ID1,310).
+!HoldsAt(Meet_ID1_ID1,307).
+!HoldsAt(Meet_ID1_ID1,304).
+!HoldsAt(Meet_ID1_ID1,301).
+!HoldsAt(Meet_ID1_ID1,298).
+!HoldsAt(Meet_ID1_ID1,295).
+!HoldsAt(Meet_ID1_ID1,292).
+!HoldsAt(Meet_ID1_ID1,289).
+!HoldsAt(Meet_ID1_ID1,286).
+!HoldsAt(Meet_ID1_ID1,283).
+!HoldsAt(Meet_ID1_ID1,280).
+!HoldsAt(Meet_ID1_ID1,277).
+!HoldsAt(Meet_ID1_ID1,274).
+!HoldsAt(Meet_ID1_ID1,271).
+!HoldsAt(Meet_ID1_ID1,268).
+!HoldsAt(Meet_ID1_ID1,265).
+!HoldsAt(Meet_ID1_ID1,262).
+!HoldsAt(Meet_ID1_ID1,259).
+!HoldsAt(Meet_ID1_ID1,256).
+!HoldsAt(Meet_ID1_ID1,253).
+!HoldsAt(Meet_ID1_ID1,250).
+!HoldsAt(Meet_ID1_ID1,247).
+!HoldsAt(Meet_ID1_ID1,244).
+!HoldsAt(Meet_ID1_ID1,241).
+!HoldsAt(Meet_ID1_ID1,238).
+!HoldsAt(Meet_ID1_ID1,235).
+!HoldsAt(Meet_ID1_ID1,232).
+!HoldsAt(Meet_ID1_ID1,229).
+!HoldsAt(Meet_ID1_ID1,226).
+!HoldsAt(Meet_ID1_ID1,223).
+!HoldsAt(Meet_ID1_ID1,220).
+!HoldsAt(Meet_ID1_ID1,217).
+!HoldsAt(Meet_ID1_ID1,214).
+!HoldsAt(Meet_ID1_ID1,211).
+!HoldsAt(Meet_ID1_ID1,208).
+!HoldsAt(Meet_ID1_ID1,205).
+!HoldsAt(Meet_ID1_ID1,202).
+!HoldsAt(Meet_ID1_ID1,199).
+!HoldsAt(Meet_ID1_ID1,196).
+!HoldsAt(Meet_ID1_ID1,193).
+!HoldsAt(Meet_ID1_ID1,190).
+!HoldsAt(Meet_ID1_ID1,187).
+!HoldsAt(Meet_ID1_ID1,184).
+!HoldsAt(Meet_ID1_ID1,181).
+!HoldsAt(Meet_ID1_ID1,178).
+!HoldsAt(Meet_ID1_ID1,175).
+!HoldsAt(Meet_ID1_ID1,172).
+!HoldsAt(Meet_ID1_ID1,169).
+!HoldsAt(Meet_ID1_ID1,166).
+!HoldsAt(Meet_ID1_ID1,163).
+!HoldsAt(Meet_ID1_ID1,160).
+!HoldsAt(Meet_ID1_ID1,157).
+!HoldsAt(Meet_ID1_ID1,154).
+!HoldsAt(Meet_ID1_ID1,151).
+!HoldsAt(Meet_ID1_ID1,148).
+!HoldsAt(Meet_ID1_ID1,145).
+!HoldsAt(Meet_ID1_ID1,142).
+!HoldsAt(Meet_ID1_ID1,139).
+!HoldsAt(Meet_ID1_ID1,136).
+!HoldsAt(Meet_ID1_ID1,133).
+!HoldsAt(Meet_ID1_ID1,130).
+!HoldsAt(Meet_ID1_ID1,127).
+!HoldsAt(Meet_ID1_ID1,124).
+!HoldsAt(Meet_ID1_ID1,121).
+!HoldsAt(Meet_ID1_ID1,118).
+!HoldsAt(Meet_ID1_ID1,115).
+!HoldsAt(Meet_ID1_ID1,112).
+!HoldsAt(Meet_ID1_ID1,109).
+!HoldsAt(Meet_ID1_ID1,106).
+!HoldsAt(Meet_ID1_ID1,103).
+!HoldsAt(Meet_ID1_ID1,100).
+!HoldsAt(Meet_ID1_ID1,97).
+!HoldsAt(Meet_ID1_ID1,94).
+!HoldsAt(Meet_ID1_ID1,91).
+!HoldsAt(Meet_ID1_ID1,88).
+!HoldsAt(Meet_ID1_ID1,85).
+!HoldsAt(Meet_ID1_ID1,82).
+!HoldsAt(Meet_ID1_ID1,79).
+!HoldsAt(Meet_ID1_ID1,76).
+!HoldsAt(Meet_ID1_ID1,73).
+!HoldsAt(Meet_ID1_ID1,70).
+!HoldsAt(Meet_ID1_ID1,67).
+!HoldsAt(Meet_ID1_ID1,64).
+!HoldsAt(Meet_ID1_ID1,61).
+!HoldsAt(Meet_ID1_ID1,58).
+!HoldsAt(Meet_ID1_ID1,55).
+!HoldsAt(Meet_ID1_ID1,52).
+!HoldsAt(Meet_ID1_ID1,49).
+!HoldsAt(Meet_ID1_ID1,46).
+!HoldsAt(Meet_ID1_ID1,43).
+!HoldsAt(Meet_ID1_ID1,40).
 !HoldsAt(Meet_ID2_ID1,39) v HoldsAt(Meet_ID2_ID1,38).
 !HoldsAt(Meet_ID1_ID1,39) v HoldsAt(Meet_ID1_ID1,38).
 !HoldsAt(Meet_ID2_ID1,38) v HoldsAt(Meet_ID2_ID1,37).
@@ -497,7 +495,9 @@
 !HoldsAt(Meet_ID2_ID1,243) v HoldsAt(Meet_ID2_ID1,242).
 !HoldsAt(Meet_ID1_ID1,243) v HoldsAt(Meet_ID1_ID1,242).
 !HoldsAt(Meet_ID2_ID1,242) v HoldsAt(Meet_ID2_ID1,241).
+!HoldsAt(Meet_ID2_ID1,39) v HoldsAt(Meet_ID2_ID1,40).
 !HoldsAt(Meet_ID1_ID1,242) v HoldsAt(Meet_ID1_ID1,241).
+!HoldsAt(Meet_ID1_ID1,39) v HoldsAt(Meet_ID1_ID1,40).
 !HoldsAt(Meet_ID2_ID1,241) v HoldsAt(Meet_ID2_ID1,240).
 !HoldsAt(Meet_ID1_ID1,241) v HoldsAt(Meet_ID1_ID1,240).
 !HoldsAt(Meet_ID2_ID1,240) v HoldsAt(Meet_ID2_ID1,239).
@@ -566,96 +566,50 @@
 !HoldsAt(Meet_ID1_ID1,209) v HoldsAt(Meet_ID1_ID1,208).
 !HoldsAt(Meet_ID2_ID1,208) v HoldsAt(Meet_ID2_ID1,207).
 !HoldsAt(Meet_ID1_ID1,208) v HoldsAt(Meet_ID1_ID1,207).
-!HoldsAt(Meet_ID2_ID1,113) v HoldsAt(Meet_ID2_ID1,112).
 !HoldsAt(Meet_ID2_ID1,207) v HoldsAt(Meet_ID2_ID1,206).
-!HoldsAt(Meet_ID2_ID1,112) v HoldsAt(Meet_ID2_ID1,111).
 !HoldsAt(Meet_ID1_ID1,207) v HoldsAt(Meet_ID1_ID1,206).
-!HoldsAt(Meet_ID2_ID1,111) v HoldsAt(Meet_ID2_ID1,110).
 !HoldsAt(Meet_ID2_ID1,206) v HoldsAt(Meet_ID2_ID1,205).
-!HoldsAt(Meet_ID2_ID1,110) v HoldsAt(Meet_ID2_ID1,109).
 !HoldsAt(Meet_ID1_ID1,206) v HoldsAt(Meet_ID1_ID1,205).
-!HoldsAt(Meet_ID2_ID1,109) v HoldsAt(Meet_ID2_ID1,108).
 !HoldsAt(Meet_ID2_ID1,205) v HoldsAt(Meet_ID2_ID1,204).
-!HoldsAt(Meet_ID2_ID1,108) v HoldsAt(Meet_ID2_ID1,107).
 !HoldsAt(Meet_ID1_ID1,205) v HoldsAt(Meet_ID1_ID1,204).
-!HoldsAt(Meet_ID2_ID1,107) v HoldsAt(Meet_ID2_ID1,106).
 !HoldsAt(Meet_ID2_ID1,204) v HoldsAt(Meet_ID2_ID1,203).
-!HoldsAt(Meet_ID2_ID1,106) v HoldsAt(Meet_ID2_ID1,105).
 !HoldsAt(Meet_ID1_ID1,204) v HoldsAt(Meet_ID1_ID1,203).
-!HoldsAt(Meet_ID2_ID1,105) v HoldsAt(Meet_ID2_ID1,104).
 !HoldsAt(Meet_ID2_ID1,203) v HoldsAt(Meet_ID2_ID1,202).
-!HoldsAt(Meet_ID2_ID1,104) v HoldsAt(Meet_ID2_ID1,103).
 !HoldsAt(Meet_ID1_ID1,203) v HoldsAt(Meet_ID1_ID1,202).
-!HoldsAt(Meet_ID2_ID1,103) v HoldsAt(Meet_ID2_ID1,102).
 !HoldsAt(Meet_ID2_ID1,202) v HoldsAt(Meet_ID2_ID1,201).
-!HoldsAt(Meet_ID2_ID1,102) v HoldsAt(Meet_ID2_ID1,101).
 !HoldsAt(Meet_ID1_ID1,202) v HoldsAt(Meet_ID1_ID1,201).
-!HoldsAt(Meet_ID2_ID1,101) v HoldsAt(Meet_ID2_ID1,100).
 !HoldsAt(Meet_ID2_ID1,201) v HoldsAt(Meet_ID2_ID1,200).
 !HoldsAt(Meet_ID1_ID1,201) v HoldsAt(Meet_ID1_ID1,200).
-!HoldsAt(Meet_ID2_ID1,100) v HoldsAt(Meet_ID2_ID1,99).
-!HoldsAt(Meet_ID2_ID1,99) v HoldsAt(Meet_ID2_ID1,98).
 !HoldsAt(Meet_ID2_ID1,200) v HoldsAt(Meet_ID2_ID1,199).
-!HoldsAt(Meet_ID2_ID1,98) v HoldsAt(Meet_ID2_ID1,97).
 !HoldsAt(Meet_ID1_ID1,200) v HoldsAt(Meet_ID1_ID1,199).
-!HoldsAt(Meet_ID2_ID1,97) v HoldsAt(Meet_ID2_ID1,96).
 !HoldsAt(Meet_ID2_ID1,199) v HoldsAt(Meet_ID2_ID1,198).
 !HoldsAt(Meet_ID1_ID1,199) v HoldsAt(Meet_ID1_ID1,198).
-!HoldsAt(Meet_ID2_ID1,96) v HoldsAt(Meet_ID2_ID1,95).
-!HoldsAt(Meet_ID2_ID1,95) v HoldsAt(Meet_ID2_ID1,94).
 !HoldsAt(Meet_ID2_ID1,198) v HoldsAt(Meet_ID2_ID1,197).
 !HoldsAt(Meet_ID1_ID1,198) v HoldsAt(Meet_ID1_ID1,197).
-!HoldsAt(Meet_ID2_ID1,94) v HoldsAt(Meet_ID2_ID1,93).
-!HoldsAt(Meet_ID2_ID1,93) v HoldsAt(Meet_ID2_ID1,92).
 !HoldsAt(Meet_ID2_ID1,197) v HoldsAt(Meet_ID2_ID1,196).
 !HoldsAt(Meet_ID1_ID1,197) v HoldsAt(Meet_ID1_ID1,196).
-!HoldsAt(Meet_ID2_ID1,92) v HoldsAt(Meet_ID2_ID1,91).
-!HoldsAt(Meet_ID2_ID1,91) v HoldsAt(Meet_ID2_ID1,90).
 !HoldsAt(Meet_ID2_ID1,196) v HoldsAt(Meet_ID2_ID1,195).
 !HoldsAt(Meet_ID1_ID1,196) v HoldsAt(Meet_ID1_ID1,195).
-!HoldsAt(Meet_ID2_ID1,90) v HoldsAt(Meet_ID2_ID1,89).
-!HoldsAt(Meet_ID2_ID1,89) v HoldsAt(Meet_ID2_ID1,88).
 !HoldsAt(Meet_ID2_ID1,195) v HoldsAt(Meet_ID2_ID1,194).
 !HoldsAt(Meet_ID1_ID1,195) v HoldsAt(Meet_ID1_ID1,194).
-!HoldsAt(Meet_ID2_ID1,88) v HoldsAt(Meet_ID2_ID1,87).
-!HoldsAt(Meet_ID2_ID1,87) v HoldsAt(Meet_ID2_ID1,86).
 !HoldsAt(Meet_ID2_ID1,194) v HoldsAt(Meet_ID2_ID1,193).
 !HoldsAt(Meet_ID1_ID1,194) v HoldsAt(Meet_ID1_ID1,193).
-!HoldsAt(Meet_ID2_ID1,86) v HoldsAt(Meet_ID2_ID1,85).
-!HoldsAt(Meet_ID2_ID1,85) v HoldsAt(Meet_ID2_ID1,84).
 !HoldsAt(Meet_ID2_ID1,193) v HoldsAt(Meet_ID2_ID1,192).
 !HoldsAt(Meet_ID1_ID1,193) v HoldsAt(Meet_ID1_ID1,192).
-!HoldsAt(Meet_ID2_ID1,84) v HoldsAt(Meet_ID2_ID1,83).
-!HoldsAt(Meet_ID2_ID1,83) v HoldsAt(Meet_ID2_ID1,82).
 !HoldsAt(Meet_ID2_ID1,192) v HoldsAt(Meet_ID2_ID1,191).
 !HoldsAt(Meet_ID1_ID1,192) v HoldsAt(Meet_ID1_ID1,191).
-!HoldsAt(Meet_ID2_ID1,82) v HoldsAt(Meet_ID2_ID1,81).
-!HoldsAt(Meet_ID2_ID1,81) v HoldsAt(Meet_ID2_ID1,80).
 !HoldsAt(Meet_ID2_ID1,191) v HoldsAt(Meet_ID2_ID1,190).
 !HoldsAt(Meet_ID1_ID1,191) v HoldsAt(Meet_ID1_ID1,190).
-!HoldsAt(Meet_ID2_ID1,80) v HoldsAt(Meet_ID2_ID1,79).
-!HoldsAt(Meet_ID2_ID1,79) v HoldsAt(Meet_ID2_ID1,78).
 !HoldsAt(Meet_ID2_ID1,190) v HoldsAt(Meet_ID2_ID1,189).
 !HoldsAt(Meet_ID1_ID1,190) v HoldsAt(Meet_ID1_ID1,189).
-!HoldsAt(Meet_ID2_ID1,39) v HoldsAt(Meet_ID2_ID1,40).
-!HoldsAt(Meet_ID2_ID1,78) v HoldsAt(Meet_ID2_ID1,77).
-!HoldsAt(Meet_ID1_ID1,39) v HoldsAt(Meet_ID1_ID1,40).
-!HoldsAt(Meet_ID2_ID1,77) v HoldsAt(Meet_ID2_ID1,76).
 !HoldsAt(Meet_ID2_ID1,189) v HoldsAt(Meet_ID2_ID1,188).
 !HoldsAt(Meet_ID1_ID1,189) v HoldsAt(Meet_ID1_ID1,188).
-!HoldsAt(Meet_ID2_ID1,76) v HoldsAt(Meet_ID2_ID1,75).
 !HoldsAt(Meet_ID2_ID1,188) v HoldsAt(Meet_ID2_ID1,187).
-!HoldsAt(Meet_ID2_ID1,75) v HoldsAt(Meet_ID2_ID1,74).
 !HoldsAt(Meet_ID1_ID1,188) v HoldsAt(Meet_ID1_ID1,187).
-!HoldsAt(Meet_ID2_ID1,74) v HoldsAt(Meet_ID2_ID1,73).
 !HoldsAt(Meet_ID2_ID1,187) v HoldsAt(Meet_ID2_ID1,186).
-!HoldsAt(Meet_ID2_ID1,73) v HoldsAt(Meet_ID2_ID1,72).
 !HoldsAt(Meet_ID1_ID1,187) v HoldsAt(Meet_ID1_ID1,186).
-!HoldsAt(Meet_ID2_ID1,72) v HoldsAt(Meet_ID2_ID1,71).
 !HoldsAt(Meet_ID2_ID1,186) v HoldsAt(Meet_ID2_ID1,185).
-!HoldsAt(Meet_ID2_ID1,71) v HoldsAt(Meet_ID2_ID1,70).
 !HoldsAt(Meet_ID1_ID1,186) v HoldsAt(Meet_ID1_ID1,185).
-!HoldsAt(Meet_ID2_ID1,70) v HoldsAt(Meet_ID2_ID1,69).
 !HoldsAt(Meet_ID2_ID1,185) v HoldsAt(Meet_ID2_ID1,184).
 !HoldsAt(Meet_ID1_ID1,185) v HoldsAt(Meet_ID1_ID1,184).
 !HoldsAt(Meet_ID2_ID1,184) v HoldsAt(Meet_ID2_ID1,183).
@@ -775,74 +729,131 @@
 !HoldsAt(Meet_ID2_ID1,127) v HoldsAt(Meet_ID2_ID1,126).
 !HoldsAt(Meet_ID1_ID1,127) v HoldsAt(Meet_ID1_ID1,126).
 !HoldsAt(Meet_ID2_ID1,126) v HoldsAt(Meet_ID2_ID1,125).
+!HoldsAt(Meet_ID1_ID2,47) v HoldsAt(Meet_ID1_ID2,46).
 !HoldsAt(Meet_ID1_ID1,126) v HoldsAt(Meet_ID1_ID1,125).
 !HoldsAt(Meet_ID2_ID1,125) v HoldsAt(Meet_ID2_ID1,124).
 !HoldsAt(Meet_ID1_ID1,125) v HoldsAt(Meet_ID1_ID1,124).
+!HoldsAt(Meet_ID2_ID2,46) v HoldsAt(Meet_ID2_ID2,45).
 !HoldsAt(Meet_ID2_ID1,124) v HoldsAt(Meet_ID2_ID1,123).
+!HoldsAt(Meet_ID1_ID2,46) v HoldsAt(Meet_ID1_ID2,45).
 !HoldsAt(Meet_ID1_ID1,124) v HoldsAt(Meet_ID1_ID1,123).
 !HoldsAt(Meet_ID2_ID1,123) v HoldsAt(Meet_ID2_ID1,122).
+!HoldsAt(Meet_ID2_ID2,45) v HoldsAt(Meet_ID2_ID2,44).
 !HoldsAt(Meet_ID1_ID1,123) v HoldsAt(Meet_ID1_ID1,122).
+!HoldsAt(Meet_ID1_ID2,45) v HoldsAt(Meet_ID1_ID2,44).
 !HoldsAt(Meet_ID2_ID1,122) v HoldsAt(Meet_ID2_ID1,121).
 !HoldsAt(Meet_ID1_ID1,122) v HoldsAt(Meet_ID1_ID1,121).
 !HoldsAt(Meet_ID2_ID1,121) v HoldsAt(Meet_ID2_ID1,120).
+!HoldsAt(Meet_ID2_ID2,44) v HoldsAt(Meet_ID2_ID2,43).
 !HoldsAt(Meet_ID1_ID1,121) v HoldsAt(Meet_ID1_ID1,120).
+!HoldsAt(Meet_ID1_ID2,44) v HoldsAt(Meet_ID1_ID2,43).
 !HoldsAt(Meet_ID2_ID1,120) v HoldsAt(Meet_ID2_ID1,119).
 !HoldsAt(Meet_ID1_ID1,120) v HoldsAt(Meet_ID1_ID1,119).
 !HoldsAt(Meet_ID2_ID1,119) v HoldsAt(Meet_ID2_ID1,118).
+!HoldsAt(Meet_ID2_ID2,43) v HoldsAt(Meet_ID2_ID2,42).
 !HoldsAt(Meet_ID1_ID1,119) v HoldsAt(Meet_ID1_ID1,118).
+!HoldsAt(Meet_ID1_ID2,43) v HoldsAt(Meet_ID1_ID2,42).
 !HoldsAt(Meet_ID2_ID1,118) v HoldsAt(Meet_ID2_ID1,117).
 !HoldsAt(Meet_ID1_ID1,118) v HoldsAt(Meet_ID1_ID1,117).
 !HoldsAt(Meet_ID2_ID1,117) v HoldsAt(Meet_ID2_ID1,116).
+!HoldsAt(Meet_ID2_ID2,42) v HoldsAt(Meet_ID2_ID2,41).
 !HoldsAt(Meet_ID1_ID1,117) v HoldsAt(Meet_ID1_ID1,116).
+!HoldsAt(Meet_ID1_ID2,42) v HoldsAt(Meet_ID1_ID2,41).
 !HoldsAt(Meet_ID2_ID1,116) v HoldsAt(Meet_ID2_ID1,115).
 !HoldsAt(Meet_ID1_ID1,116) v HoldsAt(Meet_ID1_ID1,115).
 !HoldsAt(Meet_ID2_ID1,115) v HoldsAt(Meet_ID2_ID1,114).
+!HoldsAt(Meet_ID2_ID2,41) v HoldsAt(Meet_ID2_ID2,40).
 !HoldsAt(Meet_ID1_ID1,115) v HoldsAt(Meet_ID1_ID1,114).
+!HoldsAt(Meet_ID1_ID2,41) v HoldsAt(Meet_ID1_ID2,40).
 !HoldsAt(Meet_ID2_ID1,114) v HoldsAt(Meet_ID2_ID1,113).
 !HoldsAt(Meet_ID1_ID1,114) v HoldsAt(Meet_ID1_ID1,113).
+!HoldsAt(Meet_ID2_ID1,113) v HoldsAt(Meet_ID2_ID1,112).
 !HoldsAt(Meet_ID1_ID1,113) v HoldsAt(Meet_ID1_ID1,112).
+!HoldsAt(Meet_ID2_ID1,112) v HoldsAt(Meet_ID2_ID1,111).
 !HoldsAt(Meet_ID1_ID1,112) v HoldsAt(Meet_ID1_ID1,111).
+!HoldsAt(Meet_ID2_ID1,111) v HoldsAt(Meet_ID2_ID1,110).
 !HoldsAt(Meet_ID1_ID1,111) v HoldsAt(Meet_ID1_ID1,110).
+!HoldsAt(Meet_ID2_ID1,110) v HoldsAt(Meet_ID2_ID1,109).
 !HoldsAt(Meet_ID1_ID1,110) v HoldsAt(Meet_ID1_ID1,109).
+!HoldsAt(Meet_ID2_ID1,109) v HoldsAt(Meet_ID2_ID1,108).
 !HoldsAt(Meet_ID1_ID1,109) v HoldsAt(Meet_ID1_ID1,108).
+!HoldsAt(Meet_ID2_ID1,108) v HoldsAt(Meet_ID2_ID1,107).
 !HoldsAt(Meet_ID1_ID1,108) v HoldsAt(Meet_ID1_ID1,107).
+!HoldsAt(Meet_ID2_ID1,107) v HoldsAt(Meet_ID2_ID1,106).
 !HoldsAt(Meet_ID1_ID1,107) v HoldsAt(Meet_ID1_ID1,106).
+!HoldsAt(Meet_ID2_ID1,106) v HoldsAt(Meet_ID2_ID1,105).
 !HoldsAt(Meet_ID1_ID1,106) v HoldsAt(Meet_ID1_ID1,105).
+!HoldsAt(Meet_ID2_ID1,105) v HoldsAt(Meet_ID2_ID1,104).
 !HoldsAt(Meet_ID1_ID1,105) v HoldsAt(Meet_ID1_ID1,104).
+!HoldsAt(Meet_ID2_ID1,104) v HoldsAt(Meet_ID2_ID1,103).
 !HoldsAt(Meet_ID1_ID1,104) v HoldsAt(Meet_ID1_ID1,103).
+!HoldsAt(Meet_ID2_ID1,103) v HoldsAt(Meet_ID2_ID1,102).
 !HoldsAt(Meet_ID1_ID1,103) v HoldsAt(Meet_ID1_ID1,102).
+!HoldsAt(Meet_ID2_ID1,102) v HoldsAt(Meet_ID2_ID1,101).
 !HoldsAt(Meet_ID1_ID1,102) v HoldsAt(Meet_ID1_ID1,101).
+!HoldsAt(Meet_ID2_ID1,101) v HoldsAt(Meet_ID2_ID1,100).
 !HoldsAt(Meet_ID1_ID1,101) v HoldsAt(Meet_ID1_ID1,100).
+!HoldsAt(Meet_ID2_ID1,100) v HoldsAt(Meet_ID2_ID1,99).
 !HoldsAt(Meet_ID1_ID1,100) v HoldsAt(Meet_ID1_ID1,99).
+!HoldsAt(Meet_ID2_ID1,99) v HoldsAt(Meet_ID2_ID1,98).
 !HoldsAt(Meet_ID1_ID1,99) v HoldsAt(Meet_ID1_ID1,98).
+!HoldsAt(Meet_ID2_ID1,98) v HoldsAt(Meet_ID2_ID1,97).
 !HoldsAt(Meet_ID1_ID1,98) v HoldsAt(Meet_ID1_ID1,97).
+!HoldsAt(Meet_ID2_ID1,97) v HoldsAt(Meet_ID2_ID1,96).
 !HoldsAt(Meet_ID1_ID1,97) v HoldsAt(Meet_ID1_ID1,96).
+!HoldsAt(Meet_ID2_ID1,96) v HoldsAt(Meet_ID2_ID1,95).
 !HoldsAt(Meet_ID1_ID1,96) v HoldsAt(Meet_ID1_ID1,95).
+!HoldsAt(Meet_ID2_ID1,95) v HoldsAt(Meet_ID2_ID1,94).
 !HoldsAt(Meet_ID1_ID1,95) v HoldsAt(Meet_ID1_ID1,94).
+!HoldsAt(Meet_ID2_ID1,94) v HoldsAt(Meet_ID2_ID1,93).
 !HoldsAt(Meet_ID1_ID1,94) v HoldsAt(Meet_ID1_ID1,93).
+!HoldsAt(Meet_ID2_ID1,93) v HoldsAt(Meet_ID2_ID1,92).
 !HoldsAt(Meet_ID1_ID1,93) v HoldsAt(Meet_ID1_ID1,92).
+!HoldsAt(Meet_ID2_ID1,92) v HoldsAt(Meet_ID2_ID1,91).
 !HoldsAt(Meet_ID1_ID1,92) v HoldsAt(Meet_ID1_ID1,91).
+!HoldsAt(Meet_ID2_ID1,91) v HoldsAt(Meet_ID2_ID1,90).
 !HoldsAt(Meet_ID1_ID1,91) v HoldsAt(Meet_ID1_ID1,90).
+!HoldsAt(Meet_ID2_ID1,90) v HoldsAt(Meet_ID2_ID1,89).
 !HoldsAt(Meet_ID1_ID1,90) v HoldsAt(Meet_ID1_ID1,89).
+!HoldsAt(Meet_ID2_ID1,89) v HoldsAt(Meet_ID2_ID1,88).
 !HoldsAt(Meet_ID1_ID1,89) v HoldsAt(Meet_ID1_ID1,88).
+!HoldsAt(Meet_ID2_ID1,88) v HoldsAt(Meet_ID2_ID1,87).
 !HoldsAt(Meet_ID1_ID1,88) v HoldsAt(Meet_ID1_ID1,87).
+!HoldsAt(Meet_ID2_ID1,87) v HoldsAt(Meet_ID2_ID1,86).
 !HoldsAt(Meet_ID1_ID1,87) v HoldsAt(Meet_ID1_ID1,86).
+!HoldsAt(Meet_ID2_ID1,86) v HoldsAt(Meet_ID2_ID1,85).
 !HoldsAt(Meet_ID1_ID1,86) v HoldsAt(Meet_ID1_ID1,85).
+!HoldsAt(Meet_ID2_ID1,85) v HoldsAt(Meet_ID2_ID1,84).
 !HoldsAt(Meet_ID1_ID1,85) v HoldsAt(Meet_ID1_ID1,84).
+!HoldsAt(Meet_ID2_ID1,84) v HoldsAt(Meet_ID2_ID1,83).
 !HoldsAt(Meet_ID1_ID1,84) v HoldsAt(Meet_ID1_ID1,83).
+!HoldsAt(Meet_ID2_ID1,83) v HoldsAt(Meet_ID2_ID1,82).
 !HoldsAt(Meet_ID1_ID1,83) v HoldsAt(Meet_ID1_ID1,82).
+!HoldsAt(Meet_ID2_ID1,82) v HoldsAt(Meet_ID2_ID1,81).
 !HoldsAt(Meet_ID1_ID1,82) v HoldsAt(Meet_ID1_ID1,81).
+!HoldsAt(Meet_ID2_ID1,81) v HoldsAt(Meet_ID2_ID1,80).
 !HoldsAt(Meet_ID1_ID1,81) v HoldsAt(Meet_ID1_ID1,80).
+!HoldsAt(Meet_ID2_ID1,80) v HoldsAt(Meet_ID2_ID1,79).
 !HoldsAt(Meet_ID1_ID1,80) v HoldsAt(Meet_ID1_ID1,79).
+!HoldsAt(Meet_ID2_ID1,79) v HoldsAt(Meet_ID2_ID1,78).
 !HoldsAt(Meet_ID1_ID1,79) v HoldsAt(Meet_ID1_ID1,78).
+!HoldsAt(Meet_ID2_ID1,78) v HoldsAt(Meet_ID2_ID1,77).
 !HoldsAt(Meet_ID1_ID1,78) v HoldsAt(Meet_ID1_ID1,77).
+!HoldsAt(Meet_ID2_ID1,77) v HoldsAt(Meet_ID2_ID1,76).
 !HoldsAt(Meet_ID1_ID1,77) v HoldsAt(Meet_ID1_ID1,76).
+!HoldsAt(Meet_ID2_ID1,76) v HoldsAt(Meet_ID2_ID1,75).
 !HoldsAt(Meet_ID1_ID1,76) v HoldsAt(Meet_ID1_ID1,75).
+!HoldsAt(Meet_ID2_ID1,75) v HoldsAt(Meet_ID2_ID1,74).
 !HoldsAt(Meet_ID1_ID1,75) v HoldsAt(Meet_ID1_ID1,74).
+!HoldsAt(Meet_ID2_ID1,74) v HoldsAt(Meet_ID2_ID1,73).
 !HoldsAt(Meet_ID1_ID1,74) v HoldsAt(Meet_ID1_ID1,73).
+!HoldsAt(Meet_ID2_ID1,73) v HoldsAt(Meet_ID2_ID1,72).
 !HoldsAt(Meet_ID1_ID1,73) v HoldsAt(Meet_ID1_ID1,72).
+!HoldsAt(Meet_ID2_ID1,72) v HoldsAt(Meet_ID2_ID1,71).
 !HoldsAt(Meet_ID1_ID1,72) v HoldsAt(Meet_ID1_ID1,71).
+!HoldsAt(Meet_ID2_ID1,71) v HoldsAt(Meet_ID2_ID1,70).
 !HoldsAt(Meet_ID1_ID1,71) v HoldsAt(Meet_ID1_ID1,70).
+!HoldsAt(Meet_ID2_ID1,70) v HoldsAt(Meet_ID2_ID1,69).
 !HoldsAt(Meet_ID1_ID1,70) v HoldsAt(Meet_ID1_ID1,69).
 !HoldsAt(Meet_ID2_ID1,69) v HoldsAt(Meet_ID2_ID1,68).
 !HoldsAt(Meet_ID1_ID1,69) v HoldsAt(Meet_ID1_ID1,68).
@@ -888,19 +899,6 @@
 !HoldsAt(Meet_ID1_ID1,49) v HoldsAt(Meet_ID1_ID1,48).
 !HoldsAt(Meet_ID2_ID1,48) v HoldsAt(Meet_ID2_ID1,47).
 !HoldsAt(Meet_ID1_ID1,48) v HoldsAt(Meet_ID1_ID1,47).
-!HoldsAt(Meet_ID1_ID2,47) v HoldsAt(Meet_ID1_ID2,46).
-!HoldsAt(Meet_ID2_ID2,46) v HoldsAt(Meet_ID2_ID2,45).
-!HoldsAt(Meet_ID1_ID2,46) v HoldsAt(Meet_ID1_ID2,45).
-!HoldsAt(Meet_ID2_ID2,45) v HoldsAt(Meet_ID2_ID2,44).
-!HoldsAt(Meet_ID1_ID2,45) v HoldsAt(Meet_ID1_ID2,44).
-!HoldsAt(Meet_ID2_ID2,44) v HoldsAt(Meet_ID2_ID2,43).
-!HoldsAt(Meet_ID1_ID2,44) v HoldsAt(Meet_ID1_ID2,43).
-!HoldsAt(Meet_ID2_ID2,43) v HoldsAt(Meet_ID2_ID2,42).
-!HoldsAt(Meet_ID1_ID2,43) v HoldsAt(Meet_ID1_ID2,42).
-!HoldsAt(Meet_ID2_ID2,42) v HoldsAt(Meet_ID2_ID2,41).
-!HoldsAt(Meet_ID1_ID2,42) v HoldsAt(Meet_ID1_ID2,41).
-!HoldsAt(Meet_ID2_ID2,41) v HoldsAt(Meet_ID2_ID2,40).
-!HoldsAt(Meet_ID1_ID2,41) v HoldsAt(Meet_ID1_ID2,40).
 0.204369 !HoldsAt(Meet_ID1_ID2,45)
 !HoldsAt(Meet_ID2_ID2,38).
 !HoldsAt(Meet_ID2_ID2,35).
@@ -1016,14 +1014,216 @@
 !HoldsAt(Meet_ID2_ID2,52).
 !HoldsAt(Meet_ID2_ID2,49).
 0.204369 !HoldsAt(Meet_ID1_ID2,42)
-0.217968 !HoldsAt(Meet_ID1_ID2,376)
-0.217968 !HoldsAt(Meet_ID1_ID2,373)
-0.217968 !HoldsAt(Meet_ID1_ID2,370)
-0.217968 !HoldsAt(Meet_ID1_ID2,367)
-0.217968 !HoldsAt(Meet_ID1_ID2,364)
-0.217968 !HoldsAt(Meet_ID1_ID2,361)
-0.217968 !HoldsAt(Meet_ID1_ID2,358)
-0.217968 !HoldsAt(Meet_ID1_ID2,355)
+0.217968 !HoldsAt(Meet_ID1_ID2,377)
+0.217968 !HoldsAt(Meet_ID1_ID2,374)
+0.217968 !HoldsAt(Meet_ID1_ID2,371)
+0.217968 !HoldsAt(Meet_ID1_ID2,368)
+0.217968 !HoldsAt(Meet_ID1_ID2,365)
+0.217968 !HoldsAt(Meet_ID1_ID2,362)
+0.217968 !HoldsAt(Meet_ID1_ID2,359)
+0.217968 !HoldsAt(Meet_ID1_ID2,356)
+0.217968 !HoldsAt(Meet_ID1_ID2,353)
+0.217968 !HoldsAt(Meet_ID1_ID2,350)
+0.217968 !HoldsAt(Meet_ID1_ID2,347)
+0.217968 !HoldsAt(Meet_ID1_ID2,344)
+0.217968 !HoldsAt(Meet_ID1_ID2,341)
+0.217968 !HoldsAt(Meet_ID1_ID2,338)
+0.217968 !HoldsAt(Meet_ID1_ID2,335)
+0.422337 !HoldsAt(Meet_ID1_ID2,329)
+0.422337 !HoldsAt(Meet_ID1_ID2,326)
+0.422337 !HoldsAt(Meet_ID1_ID2,323)
+0.422337 !HoldsAt(Meet_ID1_ID2,320)
+0.422337 !HoldsAt(Meet_ID1_ID2,317)
+0.422337 !HoldsAt(Meet_ID1_ID2,314)
+!HoldsAt(Meet_ID2_ID1,40) v HoldsAt(Meet_ID2_ID1,39).
+!HoldsAt(Meet_ID1_ID1,40) v HoldsAt(Meet_ID1_ID1,39).
+0.422337 !HoldsAt(Meet_ID1_ID2,311)
+0.422337 !HoldsAt(Meet_ID1_ID2,308)
+0.422337 !HoldsAt(Meet_ID1_ID2,305)
+0.422337 !HoldsAt(Meet_ID1_ID2,302)
+0.422337 !HoldsAt(Meet_ID1_ID2,299)
+0.422337 !HoldsAt(Meet_ID1_ID2,296)
+!HoldsAt(Meet_ID1_ID2,332).
+0.422337 !HoldsAt(Meet_ID1_ID2,293)
+0.422337 !HoldsAt(Meet_ID1_ID2,290)
+0.422337 !HoldsAt(Meet_ID1_ID2,287)
+0.422337 !HoldsAt(Meet_ID1_ID2,284)
+0.422337 !HoldsAt(Meet_ID1_ID2,281)
+0.422337 !HoldsAt(Meet_ID1_ID2,278)
+0.422337 !HoldsAt(Meet_ID1_ID2,275)
+0.422337 !HoldsAt(Meet_ID1_ID2,272)
+0.422337 !HoldsAt(Meet_ID1_ID2,269)
+0.422337 !HoldsAt(Meet_ID1_ID2,266)
+0.422337 !HoldsAt(Meet_ID1_ID2,263)
+0.422337 !HoldsAt(Meet_ID1_ID2,260)
+0.422337 !HoldsAt(Meet_ID1_ID2,257)
+0.422337 !HoldsAt(Meet_ID1_ID2,254)
+0.422337 !HoldsAt(Meet_ID1_ID2,251)
+0.422337 !HoldsAt(Meet_ID1_ID2,248)
+0.422337 !HoldsAt(Meet_ID1_ID2,245)
+0.422337 !HoldsAt(Meet_ID1_ID2,242)
+0.422337 !HoldsAt(Meet_ID1_ID2,239)
+0.422337 !HoldsAt(Meet_ID1_ID2,236)
+0.422337 !HoldsAt(Meet_ID1_ID2,233)
+0.422337 !HoldsAt(Meet_ID1_ID2,230)
+0.422337 !HoldsAt(Meet_ID1_ID2,227)
+0.422337 !HoldsAt(Meet_ID1_ID2,224)
+0.422337 !HoldsAt(Meet_ID1_ID2,221)
+0.422337 !HoldsAt(Meet_ID1_ID2,218)
+0.422337 !HoldsAt(Meet_ID1_ID2,215)
+0.422337 !HoldsAt(Meet_ID1_ID2,212)
+0.422337 !HoldsAt(Meet_ID1_ID2,209)
+0.422337 !HoldsAt(Meet_ID1_ID2,206)
+0.422337 !HoldsAt(Meet_ID1_ID2,203)
+0.422337 !HoldsAt(Meet_ID1_ID2,200)
+0.422337 !HoldsAt(Meet_ID1_ID2,197)
+0.422337 !HoldsAt(Meet_ID1_ID2,194)
+0.422337 !HoldsAt(Meet_ID1_ID2,191)
+0.422337 !HoldsAt(Meet_ID1_ID2,188)
+0.422337 !HoldsAt(Meet_ID1_ID2,185)
+0.422337 !HoldsAt(Meet_ID1_ID2,182)
+0.422337 !HoldsAt(Meet_ID1_ID2,179)
+0.422337 !HoldsAt(Meet_ID1_ID2,176)
+0.422337 !HoldsAt(Meet_ID1_ID2,173)
+0.422337 !HoldsAt(Meet_ID1_ID2,170)
+0.422337 !HoldsAt(Meet_ID1_ID2,167)
+0.422337 !HoldsAt(Meet_ID1_ID2,164)
+0.422337 !HoldsAt(Meet_ID1_ID2,161)
+0.422337 !HoldsAt(Meet_ID1_ID2,158)
+0.422337 !HoldsAt(Meet_ID1_ID2,155)
+0.422337 !HoldsAt(Meet_ID1_ID2,152)
+0.422337 !HoldsAt(Meet_ID1_ID2,149)
+0.422337 !HoldsAt(Meet_ID1_ID2,146)
+0.422337 !HoldsAt(Meet_ID1_ID2,143)
+0.422337 !HoldsAt(Meet_ID1_ID2,140)
+0.422337 !HoldsAt(Meet_ID1_ID2,137)
+0.422337 !HoldsAt(Meet_ID1_ID2,134)
+0.422337 !HoldsAt(Meet_ID1_ID2,131)
+0.422337 !HoldsAt(Meet_ID1_ID2,128)
+0.204369 !HoldsAt(Meet_ID1_ID2,68)
+0.204369 !HoldsAt(Meet_ID1_ID2,65)
+0.204369 !HoldsAt(Meet_ID1_ID2,62)
+0.204369 !HoldsAt(Meet_ID1_ID2,59)
+0.204369 !HoldsAt(Meet_ID1_ID2,56)
+0.204369 !HoldsAt(Meet_ID1_ID2,53)
+0.204369 !HoldsAt(Meet_ID1_ID2,50)
+!HoldsAt(Meet_ID2_ID2,44).
+!HoldsAt(Meet_ID2_ID2,41).
+!HoldsAt(Meet_ID1_ID1,39).
+!HoldsAt(Meet_ID1_ID1,36).
+!HoldsAt(Meet_ID1_ID1,33).
+!HoldsAt(Meet_ID1_ID1,377).
+!HoldsAt(Meet_ID1_ID1,374).
+!HoldsAt(Meet_ID1_ID1,371).
+!HoldsAt(Meet_ID1_ID1,368).
+!HoldsAt(Meet_ID1_ID1,365).
+!HoldsAt(Meet_ID1_ID1,362).
+!HoldsAt(Meet_ID1_ID1,359).
+!HoldsAt(Meet_ID1_ID1,356).
+!HoldsAt(Meet_ID1_ID1,353).
+!HoldsAt(Meet_ID1_ID1,350).
+!HoldsAt(Meet_ID1_ID1,347).
+!HoldsAt(Meet_ID1_ID1,344).
+!HoldsAt(Meet_ID1_ID1,341).
+!HoldsAt(Meet_ID1_ID1,338).
+!HoldsAt(Meet_ID1_ID1,335).
+!HoldsAt(Meet_ID1_ID1,332).
+!HoldsAt(Meet_ID1_ID1,329).
+!HoldsAt(Meet_ID1_ID1,326).
+!HoldsAt(Meet_ID1_ID1,323).
+!HoldsAt(Meet_ID1_ID1,320).
+!HoldsAt(Meet_ID1_ID1,317).
+!HoldsAt(Meet_ID1_ID1,314).
+!HoldsAt(Meet_ID1_ID1,311).
+!HoldsAt(Meet_ID1_ID1,308).
+!HoldsAt(Meet_ID1_ID1,305).
+!HoldsAt(Meet_ID1_ID1,302).
+!HoldsAt(Meet_ID1_ID1,299).
+!HoldsAt(Meet_ID1_ID1,296).
+!HoldsAt(Meet_ID1_ID1,293).
+!HoldsAt(Meet_ID1_ID1,290).
+!HoldsAt(Meet_ID1_ID1,287).
+!HoldsAt(Meet_ID1_ID1,284).
+!HoldsAt(Meet_ID1_ID1,281).
+!HoldsAt(Meet_ID1_ID1,278).
+!HoldsAt(Meet_ID1_ID1,275).
+!HoldsAt(Meet_ID1_ID1,272).
+!HoldsAt(Meet_ID1_ID1,269).
+!HoldsAt(Meet_ID1_ID1,266).
+!HoldsAt(Meet_ID1_ID1,263).
+!HoldsAt(Meet_ID1_ID1,260).
+!HoldsAt(Meet_ID1_ID1,257).
+!HoldsAt(Meet_ID1_ID1,254).
+!HoldsAt(Meet_ID1_ID1,251).
+!HoldsAt(Meet_ID1_ID1,248).
+!HoldsAt(Meet_ID1_ID1,245).
+!HoldsAt(Meet_ID1_ID1,242).
+!HoldsAt(Meet_ID1_ID1,239).
+!HoldsAt(Meet_ID1_ID1,236).
+!HoldsAt(Meet_ID1_ID1,233).
+!HoldsAt(Meet_ID1_ID1,230).
+!HoldsAt(Meet_ID1_ID1,227).
+!HoldsAt(Meet_ID1_ID1,224).
+!HoldsAt(Meet_ID1_ID1,221).
+!HoldsAt(Meet_ID1_ID1,218).
+!HoldsAt(Meet_ID1_ID1,215).
+!HoldsAt(Meet_ID1_ID1,212).
+!HoldsAt(Meet_ID1_ID1,209).
+!HoldsAt(Meet_ID1_ID1,206).
+!HoldsAt(Meet_ID1_ID1,203).
+!HoldsAt(Meet_ID1_ID1,200).
+!HoldsAt(Meet_ID1_ID1,197).
+!HoldsAt(Meet_ID1_ID1,194).
+!HoldsAt(Meet_ID1_ID1,191).
+!HoldsAt(Meet_ID1_ID1,188).
+!HoldsAt(Meet_ID1_ID1,185).
+!HoldsAt(Meet_ID1_ID1,182).
+!HoldsAt(Meet_ID1_ID1,179).
+!HoldsAt(Meet_ID1_ID1,176).
+!HoldsAt(Meet_ID1_ID1,173).
+!HoldsAt(Meet_ID1_ID1,170).
+!HoldsAt(Meet_ID1_ID1,167).
+!HoldsAt(Meet_ID1_ID1,164).
+!HoldsAt(Meet_ID1_ID1,161).
+!HoldsAt(Meet_ID1_ID1,158).
+!HoldsAt(Meet_ID1_ID1,155).
+!HoldsAt(Meet_ID1_ID1,152).
+!HoldsAt(Meet_ID1_ID1,149).
+!HoldsAt(Meet_ID1_ID1,146).
+!HoldsAt(Meet_ID1_ID1,143).
+!HoldsAt(Meet_ID1_ID1,140).
+!HoldsAt(Meet_ID1_ID1,137).
+!HoldsAt(Meet_ID1_ID1,134).
+!HoldsAt(Meet_ID1_ID1,131).
+!HoldsAt(Meet_ID1_ID1,128).
+!HoldsAt(Meet_ID1_ID1,125).
+!HoldsAt(Meet_ID1_ID1,122).
+!HoldsAt(Meet_ID1_ID1,119).
+!HoldsAt(Meet_ID1_ID1,116).
+!HoldsAt(Meet_ID1_ID1,113).
+!HoldsAt(Meet_ID1_ID1,110).
+!HoldsAt(Meet_ID1_ID1,107).
+!HoldsAt(Meet_ID1_ID1,104).
+!HoldsAt(Meet_ID1_ID1,101).
+!HoldsAt(Meet_ID1_ID1,98).
+!HoldsAt(Meet_ID1_ID1,95).
+!HoldsAt(Meet_ID1_ID1,92).
+!HoldsAt(Meet_ID1_ID1,89).
+!HoldsAt(Meet_ID1_ID1,86).
+!HoldsAt(Meet_ID1_ID1,83).
+!HoldsAt(Meet_ID1_ID1,80).
+!HoldsAt(Meet_ID1_ID1,77).
+!HoldsAt(Meet_ID1_ID1,74).
+!HoldsAt(Meet_ID1_ID1,71).
+!HoldsAt(Meet_ID1_ID1,68).
+!HoldsAt(Meet_ID1_ID1,65).
+!HoldsAt(Meet_ID1_ID1,62).
+!HoldsAt(Meet_ID1_ID1,59).
+!HoldsAt(Meet_ID1_ID1,56).
+!HoldsAt(Meet_ID1_ID1,53).
+!HoldsAt(Meet_ID1_ID1,50).
+!HoldsAt(Meet_ID1_ID1,45).
+!HoldsAt(Meet_ID1_ID1,42).
 !HoldsAt(Meet_ID2_ID2,38) v HoldsAt(Meet_ID2_ID2,39).
 !HoldsAt(Meet_ID1_ID2,38) v HoldsAt(Meet_ID1_ID2,39).
 !HoldsAt(Meet_ID2_ID2,37) v HoldsAt(Meet_ID2_ID2,38).
@@ -1033,7 +1233,6 @@
 !HoldsAt(Meet_ID2_ID2,35) v HoldsAt(Meet_ID2_ID2,36).
 !HoldsAt(Meet_ID1_ID2,35) v HoldsAt(Meet_ID1_ID2,36).
 !HoldsAt(Meet_ID2_ID2,34) v HoldsAt(Meet_ID2_ID2,35).
-0.217968 !HoldsAt(Meet_ID1_ID2,352)
 !HoldsAt(Meet_ID1_ID2,34) v HoldsAt(Meet_ID1_ID2,35).
 !HoldsAt(Meet_ID2_ID2,33) v HoldsAt(Meet_ID2_ID2,34).
 !HoldsAt(Meet_ID1_ID2,33) v HoldsAt(Meet_ID1_ID2,34).
@@ -1041,6 +1240,15 @@
 !HoldsAt(Meet_ID1_ID2,32) v HoldsAt(Meet_ID1_ID2,33).
 !HoldsAt(Meet_ID2_ID2,31) v HoldsAt(Meet_ID2_ID2,32).
 !HoldsAt(Meet_ID1_ID2,31) v HoldsAt(Meet_ID1_ID2,32).
+0.217968 !HoldsAt(Meet_ID1_ID2,376)
+0.217968 !HoldsAt(Meet_ID1_ID2,373)
+0.217968 !HoldsAt(Meet_ID1_ID2,370)
+0.217968 !HoldsAt(Meet_ID1_ID2,367)
+0.217968 !HoldsAt(Meet_ID1_ID2,364)
+0.217968 !HoldsAt(Meet_ID1_ID2,361)
+0.217968 !HoldsAt(Meet_ID1_ID2,358)
+0.217968 !HoldsAt(Meet_ID1_ID2,355)
+0.217968 !HoldsAt(Meet_ID1_ID2,352)
 0.217968 !HoldsAt(Meet_ID1_ID2,349)
 0.217968 !HoldsAt(Meet_ID1_ID2,346)
 0.217968 !HoldsAt(Meet_ID1_ID2,343)
@@ -1203,117 +1411,150 @@
 0.204369 !HoldsAt(Meet_ID1_ID2,49)
 !HoldsAt(Meet_ID2_ID2,45).
 !HoldsAt(Meet_ID2_ID2,42).
-0.204369 !HoldsAt(Meet_ID2_ID1,376)
-0.217968 !HoldsAt(Meet_ID2_ID1,67)
-0.204369 !HoldsAt(Meet_ID2_ID1,373)
-0.217968 !HoldsAt(Meet_ID2_ID1,64)
-0.204369 !HoldsAt(Meet_ID2_ID1,370)
-0.217968 !HoldsAt(Meet_ID2_ID1,61)
-0.204369 !HoldsAt(Meet_ID2_ID1,367)
-0.217968 !HoldsAt(Meet_ID2_ID1,58)
-0.204369 !HoldsAt(Meet_ID2_ID1,364)
-0.217968 !HoldsAt(Meet_ID2_ID1,55)
-0.204369 !HoldsAt(Meet_ID2_ID1,361)
-0.217968 !HoldsAt(Meet_ID2_ID1,52)
-0.204369 !HoldsAt(Meet_ID2_ID1,358)
-0.217968 !HoldsAt(Meet_ID2_ID1,49)
-0.204369 !HoldsAt(Meet_ID2_ID1,355)
-0.204369 !HoldsAt(Meet_ID2_ID1,352)
-0.217968 !HoldsAt(Meet_ID2_ID1,45)
-0.204369 !HoldsAt(Meet_ID2_ID1,349)
-0.217968 !HoldsAt(Meet_ID2_ID1,42)
-0.204369 !HoldsAt(Meet_ID2_ID1,346)
-0.204369 !HoldsAt(Meet_ID2_ID1,343)
-0.204369 !HoldsAt(Meet_ID2_ID1,340)
-0.204369 !HoldsAt(Meet_ID2_ID1,337)
-0.204369 !HoldsAt(Meet_ID2_ID1,334)
-0.422337 !HoldsAt(Meet_ID2_ID1,331)
-0.422337 !HoldsAt(Meet_ID2_ID1,328)
-0.422337 !HoldsAt(Meet_ID2_ID1,325)
-0.422337 !HoldsAt(Meet_ID2_ID1,322)
-0.422337 !HoldsAt(Meet_ID2_ID1,319)
-0.422337 !HoldsAt(Meet_ID2_ID1,316)
-0.422337 !HoldsAt(Meet_ID2_ID1,313)
-0.422337 !HoldsAt(Meet_ID2_ID1,310)
-0.422337 !HoldsAt(Meet_ID2_ID1,307)
-0.422337 !HoldsAt(Meet_ID2_ID1,304)
-0.422337 !HoldsAt(Meet_ID2_ID1,301)
-0.422337 !HoldsAt(Meet_ID2_ID1,298)
-0.422337 !HoldsAt(Meet_ID2_ID1,295)
-0.422337 !HoldsAt(Meet_ID2_ID1,292)
-0.422337 !HoldsAt(Meet_ID2_ID1,289)
-0.422337 !HoldsAt(Meet_ID2_ID1,286)
-0.422337 !HoldsAt(Meet_ID2_ID1,283)
-0.422337 !HoldsAt(Meet_ID2_ID1,280)
-0.422337 !HoldsAt(Meet_ID2_ID1,277)
-0.422337 !HoldsAt(Meet_ID2_ID1,274)
-0.422337 !HoldsAt(Meet_ID2_ID1,271)
-0.422337 !HoldsAt(Meet_ID2_ID1,268)
-0.422337 !HoldsAt(Meet_ID2_ID1,265)
-0.422337 !HoldsAt(Meet_ID2_ID1,262)
-0.422337 !HoldsAt(Meet_ID2_ID1,259)
-0.422337 !HoldsAt(Meet_ID2_ID1,256)
-0.422337 !HoldsAt(Meet_ID2_ID1,253)
-0.422337 !HoldsAt(Meet_ID2_ID1,250)
-0.422337 !HoldsAt(Meet_ID2_ID1,247)
-0.422337 !HoldsAt(Meet_ID2_ID1,244)
-0.422337 !HoldsAt(Meet_ID2_ID1,241)
-0.422337 !HoldsAt(Meet_ID2_ID1,238)
-0.422337 !HoldsAt(Meet_ID2_ID1,235)
-0.422337 !HoldsAt(Meet_ID2_ID1,232)
-0.422337 !HoldsAt(Meet_ID2_ID1,229)
-0.422337 !HoldsAt(Meet_ID2_ID1,226)
-0.422337 !HoldsAt(Meet_ID2_ID1,223)
-0.422337 !HoldsAt(Meet_ID2_ID1,220)
-0.422337 !HoldsAt(Meet_ID2_ID1,217)
-0.422337 !HoldsAt(Meet_ID2_ID1,214)
-0.422337 !HoldsAt(Meet_ID2_ID1,211)
-0.422337 !HoldsAt(Meet_ID2_ID1,208)
-0.422337 !HoldsAt(Meet_ID2_ID1,205)
-0.422337 !HoldsAt(Meet_ID2_ID1,202)
-0.422337 !HoldsAt(Meet_ID2_ID1,199)
-0.422337 !HoldsAt(Meet_ID2_ID1,196)
-0.422337 !HoldsAt(Meet_ID2_ID1,193)
-0.422337 !HoldsAt(Meet_ID2_ID1,190)
-0.422337 !HoldsAt(Meet_ID2_ID1,187)
-0.422337 !HoldsAt(Meet_ID2_ID1,184)
-0.422337 !HoldsAt(Meet_ID2_ID1,181)
-0.422337 !HoldsAt(Meet_ID2_ID1,178)
-0.422337 !HoldsAt(Meet_ID2_ID1,175)
-0.422337 !HoldsAt(Meet_ID2_ID1,172)
-0.422337 !HoldsAt(Meet_ID2_ID1,169)
-0.422337 !HoldsAt(Meet_ID2_ID1,166)
-0.422337 !HoldsAt(Meet_ID2_ID1,163)
-0.422337 !HoldsAt(Meet_ID2_ID1,160)
-0.422337 !HoldsAt(Meet_ID2_ID1,157)
-0.422337 !HoldsAt(Meet_ID2_ID1,154)
-0.422337 !HoldsAt(Meet_ID2_ID1,151)
-0.422337 !HoldsAt(Meet_ID2_ID1,148)
-0.422337 !HoldsAt(Meet_ID2_ID1,145)
-0.422337 !HoldsAt(Meet_ID2_ID1,142)
-0.422337 !HoldsAt(Meet_ID2_ID1,139)
-0.422337 !HoldsAt(Meet_ID2_ID1,136)
-0.422337 !HoldsAt(Meet_ID2_ID1,133)
-0.422337 !HoldsAt(Meet_ID2_ID1,130)
+!HoldsAt(Meet_ID2_ID2,47) v HoldsAt(Meet_ID2_ID2,48).
+!HoldsAt(Meet_ID2_ID2,46) v HoldsAt(Meet_ID2_ID2,47).
+!HoldsAt(Meet_ID2_ID2,45) v HoldsAt(Meet_ID2_ID2,46).
+!HoldsAt(Meet_ID2_ID2,44) v HoldsAt(Meet_ID2_ID2,45).
+!HoldsAt(Meet_ID2_ID2,43) v HoldsAt(Meet_ID2_ID2,44).
+!HoldsAt(Meet_ID2_ID2,42) v HoldsAt(Meet_ID2_ID2,43).
+!HoldsAt(Meet_ID2_ID2,41) v HoldsAt(Meet_ID2_ID2,42).
+!HoldsAt(Meet_ID2_ID2,40) v HoldsAt(Meet_ID2_ID2,41).
+!HoldsAt(Meet_ID2_ID2,40) v HoldsAt(Meet_ID2_ID2,39).
+!HoldsAt(Meet_ID1_ID2,40) v HoldsAt(Meet_ID1_ID2,39).
+0.204369 !HoldsAt(Meet_ID1_ID2,46)
+0.204369 !HoldsAt(Meet_ID1_ID2,43)
+!HoldsAt(Meet_ID2_ID2,37).
+!HoldsAt(Meet_ID2_ID2,34).
+!HoldsAt(Meet_ID2_ID2,31).
+!HoldsAt(Meet_ID2_ID2,375).
+!HoldsAt(Meet_ID2_ID2,372).
+!HoldsAt(Meet_ID2_ID2,369).
+!HoldsAt(Meet_ID2_ID2,366).
+!HoldsAt(Meet_ID2_ID2,363).
+!HoldsAt(Meet_ID2_ID2,360).
+!HoldsAt(Meet_ID2_ID2,357).
+!HoldsAt(Meet_ID2_ID2,354).
+!HoldsAt(Meet_ID2_ID2,351).
+!HoldsAt(Meet_ID2_ID2,348).
+!HoldsAt(Meet_ID2_ID2,345).
+!HoldsAt(Meet_ID2_ID2,342).
+!HoldsAt(Meet_ID2_ID2,339).
+!HoldsAt(Meet_ID2_ID2,336).
+!HoldsAt(Meet_ID2_ID2,333).
+!HoldsAt(Meet_ID2_ID2,330).
+!HoldsAt(Meet_ID2_ID2,327).
+!HoldsAt(Meet_ID2_ID2,324).
+!HoldsAt(Meet_ID2_ID2,321).
+!HoldsAt(Meet_ID2_ID2,318).
+!HoldsAt(Meet_ID2_ID2,315).
+!HoldsAt(Meet_ID2_ID2,312).
+!HoldsAt(Meet_ID2_ID2,309).
+!HoldsAt(Meet_ID2_ID2,306).
+!HoldsAt(Meet_ID2_ID2,303).
+!HoldsAt(Meet_ID2_ID2,300).
+!HoldsAt(Meet_ID2_ID2,297).
+!HoldsAt(Meet_ID2_ID2,294).
+!HoldsAt(Meet_ID2_ID2,291).
+!HoldsAt(Meet_ID2_ID2,288).
+!HoldsAt(Meet_ID2_ID2,285).
+!HoldsAt(Meet_ID2_ID2,282).
+!HoldsAt(Meet_ID2_ID2,279).
+!HoldsAt(Meet_ID2_ID2,276).
+!HoldsAt(Meet_ID2_ID2,273).
+!HoldsAt(Meet_ID2_ID2,270).
+!HoldsAt(Meet_ID2_ID2,267).
+!HoldsAt(Meet_ID2_ID2,264).
+!HoldsAt(Meet_ID2_ID2,261).
+!HoldsAt(Meet_ID2_ID2,258).
+!HoldsAt(Meet_ID2_ID2,255).
+!HoldsAt(Meet_ID2_ID2,252).
+!HoldsAt(Meet_ID2_ID2,249).
+!HoldsAt(Meet_ID2_ID2,246).
+!HoldsAt(Meet_ID2_ID2,243).
+!HoldsAt(Meet_ID2_ID2,240).
+!HoldsAt(Meet_ID2_ID2,237).
+!HoldsAt(Meet_ID2_ID2,234).
+!HoldsAt(Meet_ID2_ID2,231).
+!HoldsAt(Meet_ID2_ID2,228).
+!HoldsAt(Meet_ID2_ID2,225).
+!HoldsAt(Meet_ID2_ID2,222).
+!HoldsAt(Meet_ID2_ID2,219).
+!HoldsAt(Meet_ID2_ID2,216).
+!HoldsAt(Meet_ID2_ID2,213).
+!HoldsAt(Meet_ID2_ID2,210).
+!HoldsAt(Meet_ID2_ID2,207).
+!HoldsAt(Meet_ID2_ID2,204).
+!HoldsAt(Meet_ID2_ID2,201).
+!HoldsAt(Meet_ID2_ID2,198).
+!HoldsAt(Meet_ID2_ID2,195).
+!HoldsAt(Meet_ID2_ID2,192).
+!HoldsAt(Meet_ID2_ID2,189).
+!HoldsAt(Meet_ID2_ID2,186).
+!HoldsAt(Meet_ID2_ID2,183).
+!HoldsAt(Meet_ID2_ID2,180).
+!HoldsAt(Meet_ID2_ID2,177).
+!HoldsAt(Meet_ID2_ID2,174).
+!HoldsAt(Meet_ID2_ID2,171).
+!HoldsAt(Meet_ID2_ID2,168).
+!HoldsAt(Meet_ID2_ID2,165).
+!HoldsAt(Meet_ID2_ID2,162).
+!HoldsAt(Meet_ID2_ID2,159).
+!HoldsAt(Meet_ID2_ID2,156).
+!HoldsAt(Meet_ID2_ID2,153).
+!HoldsAt(Meet_ID2_ID2,150).
+!HoldsAt(Meet_ID2_ID2,147).
+!HoldsAt(Meet_ID2_ID2,144).
+!HoldsAt(Meet_ID2_ID2,141).
+!HoldsAt(Meet_ID2_ID2,138).
+!HoldsAt(Meet_ID2_ID2,135).
+!HoldsAt(Meet_ID2_ID2,132).
+!HoldsAt(Meet_ID2_ID2,129).
+!HoldsAt(Meet_ID2_ID2,126).
+!HoldsAt(Meet_ID2_ID2,123).
+!HoldsAt(Meet_ID2_ID2,120).
+!HoldsAt(Meet_ID2_ID2,117).
+!HoldsAt(Meet_ID2_ID2,114).
+!HoldsAt(Meet_ID2_ID2,111).
+!HoldsAt(Meet_ID2_ID2,108).
+!HoldsAt(Meet_ID2_ID2,105).
+!HoldsAt(Meet_ID2_ID2,102).
+!HoldsAt(Meet_ID2_ID2,99).
+!HoldsAt(Meet_ID2_ID2,96).
+!HoldsAt(Meet_ID2_ID2,93).
+!HoldsAt(Meet_ID2_ID2,90).
+!HoldsAt(Meet_ID2_ID2,87).
+!HoldsAt(Meet_ID2_ID2,84).
+!HoldsAt(Meet_ID2_ID2,81).
+!HoldsAt(Meet_ID2_ID2,78).
+!HoldsAt(Meet_ID2_ID2,75).
+!HoldsAt(Meet_ID2_ID2,72).
+!HoldsAt(Meet_ID2_ID2,69).
+!HoldsAt(Meet_ID2_ID2,66).
+!HoldsAt(Meet_ID2_ID2,63).
+!HoldsAt(Meet_ID2_ID2,60).
+!HoldsAt(Meet_ID2_ID2,57).
+!HoldsAt(Meet_ID2_ID2,54).
+!HoldsAt(Meet_ID2_ID2,51).
+!HoldsAt(Meet_ID2_ID2,48).
 0.217968 !HoldsAt(Meet_ID2_ID1,69)
-0.204369 !HoldsAt(Meet_ID2_ID1,375)
 0.217968 !HoldsAt(Meet_ID2_ID1,66)
-0.204369 !HoldsAt(Meet_ID2_ID1,372)
 0.217968 !HoldsAt(Meet_ID2_ID1,63)
-0.204369 !HoldsAt(Meet_ID2_ID1,369)
 0.217968 !HoldsAt(Meet_ID2_ID1,60)
-0.204369 !HoldsAt(Meet_ID2_ID1,366)
 0.217968 !HoldsAt(Meet_ID2_ID1,57)
-0.204369 !HoldsAt(Meet_ID2_ID1,363)
 0.217968 !HoldsAt(Meet_ID2_ID1,54)
-0.204369 !HoldsAt(Meet_ID2_ID1,360)
 0.217968 !HoldsAt(Meet_ID2_ID1,51)
-0.204369 !HoldsAt(Meet_ID2_ID1,357)
 0.217968 !HoldsAt(Meet_ID2_ID1,48)
-0.204369 !HoldsAt(Meet_ID2_ID1,354)
 0.217968 !HoldsAt(Meet_ID2_ID1,46)
-0.204369 !HoldsAt(Meet_ID2_ID1,351)
 0.217968 !HoldsAt(Meet_ID2_ID1,43)
+0.204369 !HoldsAt(Meet_ID2_ID1,375)
+0.204369 !HoldsAt(Meet_ID2_ID1,372)
+0.204369 !HoldsAt(Meet_ID2_ID1,369)
+0.204369 !HoldsAt(Meet_ID2_ID1,366)
+0.204369 !HoldsAt(Meet_ID2_ID1,363)
+0.204369 !HoldsAt(Meet_ID2_ID1,360)
+0.204369 !HoldsAt(Meet_ID2_ID1,357)
+0.204369 !HoldsAt(Meet_ID2_ID1,354)
+0.204369 !HoldsAt(Meet_ID2_ID1,351)
 0.204369 !HoldsAt(Meet_ID2_ID1,348)
 0.204369 !HoldsAt(Meet_ID2_ID1,345)
 0.204369 !HoldsAt(Meet_ID2_ID1,342)
@@ -1389,122 +1630,6 @@
 0.422337 !HoldsAt(Meet_ID2_ID1,132)
 0.422337 !HoldsAt(Meet_ID2_ID1,129)
 !HoldsAt(Meet_ID2_ID1,31).
-!HoldsAt(Meet_ID1_ID1,38).
-!HoldsAt(Meet_ID1_ID1,35).
-!HoldsAt(Meet_ID1_ID1,32).
-!HoldsAt(Meet_ID1_ID1,376).
-!HoldsAt(Meet_ID1_ID1,373).
-!HoldsAt(Meet_ID1_ID1,370).
-!HoldsAt(Meet_ID1_ID1,367).
-!HoldsAt(Meet_ID1_ID1,364).
-!HoldsAt(Meet_ID1_ID1,361).
-!HoldsAt(Meet_ID1_ID1,358).
-!HoldsAt(Meet_ID1_ID1,355).
-!HoldsAt(Meet_ID1_ID1,352).
-!HoldsAt(Meet_ID1_ID1,349).
-!HoldsAt(Meet_ID1_ID1,346).
-!HoldsAt(Meet_ID1_ID1,343).
-!HoldsAt(Meet_ID1_ID1,340).
-!HoldsAt(Meet_ID1_ID1,337).
-!HoldsAt(Meet_ID1_ID1,334).
-!HoldsAt(Meet_ID1_ID1,331).
-!HoldsAt(Meet_ID1_ID1,328).
-!HoldsAt(Meet_ID1_ID1,325).
-!HoldsAt(Meet_ID1_ID1,322).
-!HoldsAt(Meet_ID1_ID1,319).
-!HoldsAt(Meet_ID1_ID1,316).
-!HoldsAt(Meet_ID1_ID1,313).
-!HoldsAt(Meet_ID1_ID1,310).
-!HoldsAt(Meet_ID1_ID1,307).
-!HoldsAt(Meet_ID1_ID1,304).
-!HoldsAt(Meet_ID1_ID1,301).
-!HoldsAt(Meet_ID1_ID1,298).
-!HoldsAt(Meet_ID1_ID1,295).
-!HoldsAt(Meet_ID1_ID1,292).
-!HoldsAt(Meet_ID1_ID1,289).
-!HoldsAt(Meet_ID1_ID1,286).
-!HoldsAt(Meet_ID1_ID1,283).
-!HoldsAt(Meet_ID1_ID1,280).
-!HoldsAt(Meet_ID1_ID1,277).
-!HoldsAt(Meet_ID1_ID1,274).
-!HoldsAt(Meet_ID1_ID1,271).
-!HoldsAt(Meet_ID1_ID1,268).
-!HoldsAt(Meet_ID1_ID1,265).
-!HoldsAt(Meet_ID1_ID1,262).
-!HoldsAt(Meet_ID1_ID1,259).
-!HoldsAt(Meet_ID1_ID1,256).
-!HoldsAt(Meet_ID1_ID1,253).
-!HoldsAt(Meet_ID1_ID1,250).
-!HoldsAt(Meet_ID1_ID1,247).
-!HoldsAt(Meet_ID1_ID1,244).
-!HoldsAt(Meet_ID1_ID1,241).
-!HoldsAt(Meet_ID1_ID1,238).
-!HoldsAt(Meet_ID1_ID1,235).
-!HoldsAt(Meet_ID1_ID1,232).
-!HoldsAt(Meet_ID1_ID1,229).
-!HoldsAt(Meet_ID1_ID1,226).
-!HoldsAt(Meet_ID1_ID1,223).
-!HoldsAt(Meet_ID1_ID1,220).
-!HoldsAt(Meet_ID1_ID1,217).
-!HoldsAt(Meet_ID1_ID1,214).
-!HoldsAt(Meet_ID1_ID1,211).
-!HoldsAt(Meet_ID1_ID1,208).
-!HoldsAt(Meet_ID1_ID1,205).
-!HoldsAt(Meet_ID1_ID1,202).
-!HoldsAt(Meet_ID1_ID1,199).
-!HoldsAt(Meet_ID1_ID1,196).
-!HoldsAt(Meet_ID1_ID1,193).
-!HoldsAt(Meet_ID1_ID1,190).
-!HoldsAt(Meet_ID1_ID1,187).
-!HoldsAt(Meet_ID1_ID1,184).
-!HoldsAt(Meet_ID1_ID1,181).
-!HoldsAt(Meet_ID1_ID1,178).
-!HoldsAt(Meet_ID1_ID1,175).
-!HoldsAt(Meet_ID1_ID1,172).
-!HoldsAt(Meet_ID1_ID1,169).
-!HoldsAt(Meet_ID1_ID1,166).
-!HoldsAt(Meet_ID1_ID1,163).
-!HoldsAt(Meet_ID1_ID1,160).
-!HoldsAt(Meet_ID1_ID1,157).
-!HoldsAt(Meet_ID1_ID1,154).
-!HoldsAt(Meet_ID1_ID1,151).
-!HoldsAt(Meet_ID1_ID1,148).
-!HoldsAt(Meet_ID1_ID1,145).
-!HoldsAt(Meet_ID1_ID1,142).
-!HoldsAt(Meet_ID1_ID1,139).
-!HoldsAt(Meet_ID1_ID1,136).
-!HoldsAt(Meet_ID1_ID1,133).
-!HoldsAt(Meet_ID1_ID1,130).
-!HoldsAt(Meet_ID1_ID1,127).
-!HoldsAt(Meet_ID1_ID1,124).
-!HoldsAt(Meet_ID1_ID1,121).
-!HoldsAt(Meet_ID1_ID1,118).
-!HoldsAt(Meet_ID1_ID1,115).
-!HoldsAt(Meet_ID1_ID1,112).
-!HoldsAt(Meet_ID1_ID1,109).
-!HoldsAt(Meet_ID1_ID1,106).
-!HoldsAt(Meet_ID1_ID1,103).
-!HoldsAt(Meet_ID1_ID1,100).
-!HoldsAt(Meet_ID1_ID1,97).
-!HoldsAt(Meet_ID1_ID1,94).
-!HoldsAt(Meet_ID1_ID1,91).
-!HoldsAt(Meet_ID1_ID1,88).
-!HoldsAt(Meet_ID1_ID1,85).
-!HoldsAt(Meet_ID1_ID1,82).
-!HoldsAt(Meet_ID1_ID1,79).
-!HoldsAt(Meet_ID1_ID1,76).
-!HoldsAt(Meet_ID1_ID1,73).
-!HoldsAt(Meet_ID1_ID1,70).
-!HoldsAt(Meet_ID1_ID1,67).
-!HoldsAt(Meet_ID1_ID1,64).
-!HoldsAt(Meet_ID1_ID1,61).
-!HoldsAt(Meet_ID1_ID1,58).
-!HoldsAt(Meet_ID1_ID1,55).
-!HoldsAt(Meet_ID1_ID1,52).
-!HoldsAt(Meet_ID1_ID1,49).
-!HoldsAt(Meet_ID1_ID1,46).
-!HoldsAt(Meet_ID1_ID1,43).
-!HoldsAt(Meet_ID1_ID1,40).
 0.217968 !HoldsAt(Meet_ID1_ID2,375)
 0.217968 !HoldsAt(Meet_ID1_ID2,372)
 0.217968 !HoldsAt(Meet_ID1_ID2,369)
@@ -1520,101 +1645,55 @@
 0.217968 !HoldsAt(Meet_ID1_ID2,339)
 0.217968 !HoldsAt(Meet_ID1_ID2,336)
 0.217968 !HoldsAt(Meet_ID1_ID2,333)
-!HoldsAt(Meet_ID2_ID2,39) v HoldsAt(Meet_ID2_ID2,40).
-!HoldsAt(Meet_ID1_ID2,39) v HoldsAt(Meet_ID1_ID2,40).
-!HoldsAt(Meet_ID1_ID2,113) v HoldsAt(Meet_ID1_ID2,112).
-!HoldsAt(Meet_ID1_ID2,112) v HoldsAt(Meet_ID1_ID2,111).
-!HoldsAt(Meet_ID1_ID2,111) v HoldsAt(Meet_ID1_ID2,110).
-!HoldsAt(Meet_ID1_ID2,110) v HoldsAt(Meet_ID1_ID2,109).
-!HoldsAt(Meet_ID1_ID2,109) v HoldsAt(Meet_ID1_ID2,108).
-!HoldsAt(Meet_ID1_ID2,108) v HoldsAt(Meet_ID1_ID2,107).
-!HoldsAt(Meet_ID1_ID2,107) v HoldsAt(Meet_ID1_ID2,106).
-!HoldsAt(Meet_ID1_ID2,106) v HoldsAt(Meet_ID1_ID2,105).
 !HoldsAt(Meet_ID2_ID2,39) v HoldsAt(Meet_ID2_ID2,38).
-!HoldsAt(Meet_ID1_ID2,105) v HoldsAt(Meet_ID1_ID2,104).
 !HoldsAt(Meet_ID1_ID2,39) v HoldsAt(Meet_ID1_ID2,38).
-!HoldsAt(Meet_ID1_ID2,104) v HoldsAt(Meet_ID1_ID2,103).
 !HoldsAt(Meet_ID2_ID2,38) v HoldsAt(Meet_ID2_ID2,37).
 !HoldsAt(Meet_ID1_ID2,38) v HoldsAt(Meet_ID1_ID2,37).
-!HoldsAt(Meet_ID1_ID2,103) v HoldsAt(Meet_ID1_ID2,102).
 !HoldsAt(Meet_ID2_ID2,37) v HoldsAt(Meet_ID2_ID2,36).
 !HoldsAt(Meet_ID1_ID2,37) v HoldsAt(Meet_ID1_ID2,36).
-!HoldsAt(Meet_ID1_ID2,102) v HoldsAt(Meet_ID1_ID2,101).
-!HoldsAt(Meet_ID1_ID2,101) v HoldsAt(Meet_ID1_ID2,100).
 !HoldsAt(Meet_ID2_ID2,36) v HoldsAt(Meet_ID2_ID2,35).
 !HoldsAt(Meet_ID1_ID2,36) v HoldsAt(Meet_ID1_ID2,35).
-!HoldsAt(Meet_ID1_ID2,100) v HoldsAt(Meet_ID1_ID2,99).
 !HoldsAt(Meet_ID2_ID2,35) v HoldsAt(Meet_ID2_ID2,34).
-!HoldsAt(Meet_ID1_ID2,99) v HoldsAt(Meet_ID1_ID2,98).
 !HoldsAt(Meet_ID1_ID2,35) v HoldsAt(Meet_ID1_ID2,34).
-!HoldsAt(Meet_ID1_ID2,98) v HoldsAt(Meet_ID1_ID2,97).
 !HoldsAt(Meet_ID2_ID2,34) v HoldsAt(Meet_ID2_ID2,33).
 !HoldsAt(Meet_ID1_ID2,34) v HoldsAt(Meet_ID1_ID2,33).
-!HoldsAt(Meet_ID1_ID2,97) v HoldsAt(Meet_ID1_ID2,96).
 !HoldsAt(Meet_ID2_ID2,33) v HoldsAt(Meet_ID2_ID2,32).
 !HoldsAt(Meet_ID1_ID2,33) v HoldsAt(Meet_ID1_ID2,32).
-!HoldsAt(Meet_ID1_ID2,96) v HoldsAt(Meet_ID1_ID2,95).
 !HoldsAt(Meet_ID2_ID2,32) v HoldsAt(Meet_ID2_ID2,31).
-!HoldsAt(Meet_ID1_ID2,95) v HoldsAt(Meet_ID1_ID2,94).
 !HoldsAt(Meet_ID1_ID2,32) v HoldsAt(Meet_ID1_ID2,31).
-!HoldsAt(Meet_ID1_ID2,94) v HoldsAt(Meet_ID1_ID2,93).
-!HoldsAt(Meet_ID1_ID2,93) v HoldsAt(Meet_ID1_ID2,92).
 !HoldsAt(Meet_ID2_ID2,377) v HoldsAt(Meet_ID2_ID2,376).
 !HoldsAt(Meet_ID1_ID2,377) v HoldsAt(Meet_ID1_ID2,376).
-!HoldsAt(Meet_ID1_ID2,92) v HoldsAt(Meet_ID1_ID2,91).
 !HoldsAt(Meet_ID2_ID2,376) v HoldsAt(Meet_ID2_ID2,375).
 !HoldsAt(Meet_ID1_ID2,376) v HoldsAt(Meet_ID1_ID2,375).
-!HoldsAt(Meet_ID1_ID2,91) v HoldsAt(Meet_ID1_ID2,90).
 !HoldsAt(Meet_ID2_ID2,375) v HoldsAt(Meet_ID2_ID2,374).
-!HoldsAt(Meet_ID1_ID2,90) v HoldsAt(Meet_ID1_ID2,89).
 !HoldsAt(Meet_ID1_ID2,375) v HoldsAt(Meet_ID1_ID2,374).
-!HoldsAt(Meet_ID1_ID2,89) v HoldsAt(Meet_ID1_ID2,88).
 !HoldsAt(Meet_ID2_ID2,374) v HoldsAt(Meet_ID2_ID2,373).
 !HoldsAt(Meet_ID1_ID2,374) v HoldsAt(Meet_ID1_ID2,373).
-!HoldsAt(Meet_ID1_ID2,88) v HoldsAt(Meet_ID1_ID2,87).
 !HoldsAt(Meet_ID2_ID2,373) v HoldsAt(Meet_ID2_ID2,372).
 !HoldsAt(Meet_ID1_ID2,373) v HoldsAt(Meet_ID1_ID2,372).
-!HoldsAt(Meet_ID1_ID2,87) v HoldsAt(Meet_ID1_ID2,86).
 !HoldsAt(Meet_ID2_ID2,372) v HoldsAt(Meet_ID2_ID2,371).
 !HoldsAt(Meet_ID1_ID2,372) v HoldsAt(Meet_ID1_ID2,371).
-!HoldsAt(Meet_ID1_ID2,86) v HoldsAt(Meet_ID1_ID2,85).
 !HoldsAt(Meet_ID2_ID2,371) v HoldsAt(Meet_ID2_ID2,370).
-!HoldsAt(Meet_ID1_ID2,85) v HoldsAt(Meet_ID1_ID2,84).
 !HoldsAt(Meet_ID1_ID2,371) v HoldsAt(Meet_ID1_ID2,370).
-!HoldsAt(Meet_ID1_ID2,84) v HoldsAt(Meet_ID1_ID2,83).
 !HoldsAt(Meet_ID2_ID2,370) v HoldsAt(Meet_ID2_ID2,369).
 !HoldsAt(Meet_ID1_ID2,370) v HoldsAt(Meet_ID1_ID2,369).
-!HoldsAt(Meet_ID1_ID2,83) v HoldsAt(Meet_ID1_ID2,82).
 !HoldsAt(Meet_ID2_ID2,369) v HoldsAt(Meet_ID2_ID2,368).
 !HoldsAt(Meet_ID1_ID2,369) v HoldsAt(Meet_ID1_ID2,368).
-!HoldsAt(Meet_ID1_ID2,82) v HoldsAt(Meet_ID1_ID2,81).
 !HoldsAt(Meet_ID2_ID2,368) v HoldsAt(Meet_ID2_ID2,367).
-!HoldsAt(Meet_ID1_ID2,81) v HoldsAt(Meet_ID1_ID2,80).
 !HoldsAt(Meet_ID1_ID2,368) v HoldsAt(Meet_ID1_ID2,367).
-!HoldsAt(Meet_ID1_ID2,80) v HoldsAt(Meet_ID1_ID2,79).
 !HoldsAt(Meet_ID2_ID2,367) v HoldsAt(Meet_ID2_ID2,366).
 !HoldsAt(Meet_ID1_ID2,367) v HoldsAt(Meet_ID1_ID2,366).
-!HoldsAt(Meet_ID1_ID2,79) v HoldsAt(Meet_ID1_ID2,78).
 !HoldsAt(Meet_ID2_ID2,366) v HoldsAt(Meet_ID2_ID2,365).
 !HoldsAt(Meet_ID1_ID2,366) v HoldsAt(Meet_ID1_ID2,365).
-!HoldsAt(Meet_ID1_ID2,78) v HoldsAt(Meet_ID1_ID2,77).
 !HoldsAt(Meet_ID2_ID2,365) v HoldsAt(Meet_ID2_ID2,364).
 !HoldsAt(Meet_ID1_ID2,365) v HoldsAt(Meet_ID1_ID2,364).
-!HoldsAt(Meet_ID1_ID2,77) v HoldsAt(Meet_ID1_ID2,76).
 !HoldsAt(Meet_ID2_ID2,364) v HoldsAt(Meet_ID2_ID2,363).
-!HoldsAt(Meet_ID1_ID2,76) v HoldsAt(Meet_ID1_ID2,75).
 !HoldsAt(Meet_ID1_ID2,364) v HoldsAt(Meet_ID1_ID2,363).
-!HoldsAt(Meet_ID1_ID2,75) v HoldsAt(Meet_ID1_ID2,74).
 !HoldsAt(Meet_ID2_ID2,363) v HoldsAt(Meet_ID2_ID2,362).
-!HoldsAt(Meet_ID1_ID2,74) v HoldsAt(Meet_ID1_ID2,73).
 !HoldsAt(Meet_ID1_ID2,363) v HoldsAt(Meet_ID1_ID2,362).
-!HoldsAt(Meet_ID1_ID2,73) v HoldsAt(Meet_ID1_ID2,72).
 !HoldsAt(Meet_ID2_ID2,362) v HoldsAt(Meet_ID2_ID2,361).
-!HoldsAt(Meet_ID1_ID2,72) v HoldsAt(Meet_ID1_ID2,71).
 !HoldsAt(Meet_ID1_ID2,362) v HoldsAt(Meet_ID1_ID2,361).
-!HoldsAt(Meet_ID1_ID2,71) v HoldsAt(Meet_ID1_ID2,70).
 !HoldsAt(Meet_ID2_ID2,361) v HoldsAt(Meet_ID2_ID2,360).
-!HoldsAt(Meet_ID1_ID2,70) v HoldsAt(Meet_ID1_ID2,69).
 !HoldsAt(Meet_ID1_ID2,361) v HoldsAt(Meet_ID1_ID2,360).
 !HoldsAt(Meet_ID2_ID2,360) v HoldsAt(Meet_ID2_ID2,359).
 !HoldsAt(Meet_ID1_ID2,360) v HoldsAt(Meet_ID1_ID2,359).
@@ -1710,6 +1789,8 @@
 !HoldsAt(Meet_ID1_ID2,315) v HoldsAt(Meet_ID1_ID2,314).
 !HoldsAt(Meet_ID2_ID2,314) v HoldsAt(Meet_ID2_ID2,313).
 !HoldsAt(Meet_ID1_ID2,314) v HoldsAt(Meet_ID1_ID2,313).
+!HoldsAt(Meet_ID2_ID2,39) v HoldsAt(Meet_ID2_ID2,40).
+!HoldsAt(Meet_ID1_ID2,39) v HoldsAt(Meet_ID1_ID2,40).
 !HoldsAt(Meet_ID2_ID2,313) v HoldsAt(Meet_ID2_ID2,312).
 !HoldsAt(Meet_ID1_ID2,313) v HoldsAt(Meet_ID1_ID2,312).
 !HoldsAt(Meet_ID2_ID2,312) v HoldsAt(Meet_ID2_ID2,311).
@@ -1821,50 +1902,94 @@
 !HoldsAt(Meet_ID2_ID2,259) v HoldsAt(Meet_ID2_ID2,258).
 !HoldsAt(Meet_ID1_ID2,259) v HoldsAt(Meet_ID1_ID2,258).
 !HoldsAt(Meet_ID2_ID2,258) v HoldsAt(Meet_ID2_ID2,257).
+!HoldsAt(Meet_ID1_ID2,113) v HoldsAt(Meet_ID1_ID2,112).
 !HoldsAt(Meet_ID1_ID2,258) v HoldsAt(Meet_ID1_ID2,257).
+!HoldsAt(Meet_ID1_ID2,112) v HoldsAt(Meet_ID1_ID2,111).
 !HoldsAt(Meet_ID2_ID2,257) v HoldsAt(Meet_ID2_ID2,256).
+!HoldsAt(Meet_ID1_ID2,111) v HoldsAt(Meet_ID1_ID2,110).
 !HoldsAt(Meet_ID1_ID2,257) v HoldsAt(Meet_ID1_ID2,256).
+!HoldsAt(Meet_ID1_ID2,110) v HoldsAt(Meet_ID1_ID2,109).
 !HoldsAt(Meet_ID2_ID2,256) v HoldsAt(Meet_ID2_ID2,255).
+!HoldsAt(Meet_ID1_ID2,109) v HoldsAt(Meet_ID1_ID2,108).
 !HoldsAt(Meet_ID1_ID2,256) v HoldsAt(Meet_ID1_ID2,255).
+!HoldsAt(Meet_ID1_ID2,108) v HoldsAt(Meet_ID1_ID2,107).
 !HoldsAt(Meet_ID2_ID2,255) v HoldsAt(Meet_ID2_ID2,254).
 !HoldsAt(Meet_ID1_ID2,255) v HoldsAt(Meet_ID1_ID2,254).
+!HoldsAt(Meet_ID1_ID2,107) v HoldsAt(Meet_ID1_ID2,106).
+!HoldsAt(Meet_ID1_ID2,106) v HoldsAt(Meet_ID1_ID2,105).
 !HoldsAt(Meet_ID2_ID2,254) v HoldsAt(Meet_ID2_ID2,253).
 !HoldsAt(Meet_ID1_ID2,254) v HoldsAt(Meet_ID1_ID2,253).
+!HoldsAt(Meet_ID1_ID2,105) v HoldsAt(Meet_ID1_ID2,104).
+!HoldsAt(Meet_ID1_ID2,104) v HoldsAt(Meet_ID1_ID2,103).
 !HoldsAt(Meet_ID2_ID2,253) v HoldsAt(Meet_ID2_ID2,252).
 !HoldsAt(Meet_ID1_ID2,253) v HoldsAt(Meet_ID1_ID2,252).
+!HoldsAt(Meet_ID1_ID2,103) v HoldsAt(Meet_ID1_ID2,102).
+!HoldsAt(Meet_ID1_ID2,102) v HoldsAt(Meet_ID1_ID2,101).
 !HoldsAt(Meet_ID2_ID2,252) v HoldsAt(Meet_ID2_ID2,251).
 !HoldsAt(Meet_ID1_ID2,252) v HoldsAt(Meet_ID1_ID2,251).
+!HoldsAt(Meet_ID1_ID2,101) v HoldsAt(Meet_ID1_ID2,100).
+!HoldsAt(Meet_ID1_ID2,100) v HoldsAt(Meet_ID1_ID2,99).
 !HoldsAt(Meet_ID2_ID2,251) v HoldsAt(Meet_ID2_ID2,250).
 !HoldsAt(Meet_ID1_ID2,251) v HoldsAt(Meet_ID1_ID2,250).
+!HoldsAt(Meet_ID1_ID2,99) v HoldsAt(Meet_ID1_ID2,98).
+!HoldsAt(Meet_ID1_ID2,98) v HoldsAt(Meet_ID1_ID2,97).
 !HoldsAt(Meet_ID2_ID2,250) v HoldsAt(Meet_ID2_ID2,249).
 !HoldsAt(Meet_ID1_ID2,250) v HoldsAt(Meet_ID1_ID2,249).
+!HoldsAt(Meet_ID1_ID2,97) v HoldsAt(Meet_ID1_ID2,96).
+!HoldsAt(Meet_ID1_ID2,96) v HoldsAt(Meet_ID1_ID2,95).
 !HoldsAt(Meet_ID2_ID2,249) v HoldsAt(Meet_ID2_ID2,248).
 !HoldsAt(Meet_ID1_ID2,249) v HoldsAt(Meet_ID1_ID2,248).
+!HoldsAt(Meet_ID1_ID2,95) v HoldsAt(Meet_ID1_ID2,94).
+!HoldsAt(Meet_ID1_ID2,94) v HoldsAt(Meet_ID1_ID2,93).
 !HoldsAt(Meet_ID2_ID2,248) v HoldsAt(Meet_ID2_ID2,247).
 !HoldsAt(Meet_ID1_ID2,248) v HoldsAt(Meet_ID1_ID2,247).
+!HoldsAt(Meet_ID1_ID2,93) v HoldsAt(Meet_ID1_ID2,92).
+!HoldsAt(Meet_ID1_ID2,92) v HoldsAt(Meet_ID1_ID2,91).
 !HoldsAt(Meet_ID2_ID2,247) v HoldsAt(Meet_ID2_ID2,246).
 !HoldsAt(Meet_ID1_ID2,247) v HoldsAt(Meet_ID1_ID2,246).
+!HoldsAt(Meet_ID1_ID2,91) v HoldsAt(Meet_ID1_ID2,90).
+!HoldsAt(Meet_ID1_ID2,90) v HoldsAt(Meet_ID1_ID2,89).
 !HoldsAt(Meet_ID2_ID2,246) v HoldsAt(Meet_ID2_ID2,245).
 !HoldsAt(Meet_ID1_ID2,246) v HoldsAt(Meet_ID1_ID2,245).
+!HoldsAt(Meet_ID1_ID2,89) v HoldsAt(Meet_ID1_ID2,88).
+!HoldsAt(Meet_ID1_ID2,88) v HoldsAt(Meet_ID1_ID2,87).
 !HoldsAt(Meet_ID2_ID2,245) v HoldsAt(Meet_ID2_ID2,244).
 !HoldsAt(Meet_ID1_ID2,245) v HoldsAt(Meet_ID1_ID2,244).
+!HoldsAt(Meet_ID1_ID2,87) v HoldsAt(Meet_ID1_ID2,86).
+!HoldsAt(Meet_ID1_ID2,86) v HoldsAt(Meet_ID1_ID2,85).
 !HoldsAt(Meet_ID2_ID2,244) v HoldsAt(Meet_ID2_ID2,243).
 !HoldsAt(Meet_ID1_ID2,244) v HoldsAt(Meet_ID1_ID2,243).
+!HoldsAt(Meet_ID1_ID2,85) v HoldsAt(Meet_ID1_ID2,84).
 !HoldsAt(Meet_ID2_ID2,243) v HoldsAt(Meet_ID2_ID2,242).
+!HoldsAt(Meet_ID1_ID2,84) v HoldsAt(Meet_ID1_ID2,83).
 !HoldsAt(Meet_ID1_ID2,243) v HoldsAt(Meet_ID1_ID2,242).
+!HoldsAt(Meet_ID1_ID2,83) v HoldsAt(Meet_ID1_ID2,82).
+!HoldsAt(Meet_ID1_ID2,82) v HoldsAt(Meet_ID1_ID2,81).
 !HoldsAt(Meet_ID2_ID2,242) v HoldsAt(Meet_ID2_ID2,241).
 !HoldsAt(Meet_ID1_ID2,242) v HoldsAt(Meet_ID1_ID2,241).
+!HoldsAt(Meet_ID1_ID2,81) v HoldsAt(Meet_ID1_ID2,80).
+!HoldsAt(Meet_ID1_ID2,80) v HoldsAt(Meet_ID1_ID2,79).
 !HoldsAt(Meet_ID2_ID2,241) v HoldsAt(Meet_ID2_ID2,240).
 !HoldsAt(Meet_ID1_ID2,241) v HoldsAt(Meet_ID1_ID2,240).
+!HoldsAt(Meet_ID1_ID2,79) v HoldsAt(Meet_ID1_ID2,78).
 !HoldsAt(Meet_ID2_ID2,240) v HoldsAt(Meet_ID2_ID2,239).
+!HoldsAt(Meet_ID1_ID2,78) v HoldsAt(Meet_ID1_ID2,77).
 !HoldsAt(Meet_ID1_ID2,240) v HoldsAt(Meet_ID1_ID2,239).
+!HoldsAt(Meet_ID1_ID2,77) v HoldsAt(Meet_ID1_ID2,76).
 !HoldsAt(Meet_ID2_ID2,239) v HoldsAt(Meet_ID2_ID2,238).
+!HoldsAt(Meet_ID1_ID2,76) v HoldsAt(Meet_ID1_ID2,75).
 !HoldsAt(Meet_ID1_ID2,239) v HoldsAt(Meet_ID1_ID2,238).
+!HoldsAt(Meet_ID1_ID2,75) v HoldsAt(Meet_ID1_ID2,74).
 !HoldsAt(Meet_ID2_ID2,238) v HoldsAt(Meet_ID2_ID2,237).
+!HoldsAt(Meet_ID1_ID2,74) v HoldsAt(Meet_ID1_ID2,73).
 !HoldsAt(Meet_ID1_ID2,238) v HoldsAt(Meet_ID1_ID2,237).
+!HoldsAt(Meet_ID1_ID2,73) v HoldsAt(Meet_ID1_ID2,72).
 !HoldsAt(Meet_ID2_ID2,237) v HoldsAt(Meet_ID2_ID2,236).
+!HoldsAt(Meet_ID1_ID2,72) v HoldsAt(Meet_ID1_ID2,71).
 !HoldsAt(Meet_ID1_ID2,237) v HoldsAt(Meet_ID1_ID2,236).
+!HoldsAt(Meet_ID1_ID2,71) v HoldsAt(Meet_ID1_ID2,70).
 !HoldsAt(Meet_ID2_ID2,236) v HoldsAt(Meet_ID2_ID2,235).
+!HoldsAt(Meet_ID1_ID2,70) v HoldsAt(Meet_ID1_ID2,69).
 !HoldsAt(Meet_ID1_ID2,236) v HoldsAt(Meet_ID1_ID2,235).
 !HoldsAt(Meet_ID2_ID2,235) v HoldsAt(Meet_ID2_ID2,234).
 !HoldsAt(Meet_ID1_ID2,235) v HoldsAt(Meet_ID1_ID2,234).
@@ -2065,7 +2190,6 @@
 !HoldsAt(Meet_ID2_ID2,137) v HoldsAt(Meet_ID2_ID2,136).
 !HoldsAt(Meet_ID1_ID2,137) v HoldsAt(Meet_ID1_ID2,136).
 !HoldsAt(Meet_ID2_ID2,136) v HoldsAt(Meet_ID2_ID2,135).
-0.422337 !HoldsAt(Meet_ID1_ID2,330)
 !HoldsAt(Meet_ID1_ID2,136) v HoldsAt(Meet_ID1_ID2,135).
 !HoldsAt(Meet_ID2_ID2,135) v HoldsAt(Meet_ID2_ID2,134).
 !HoldsAt(Meet_ID1_ID2,135) v HoldsAt(Meet_ID1_ID2,134).
@@ -2076,7 +2200,6 @@
 !HoldsAt(Meet_ID2_ID2,132) v HoldsAt(Meet_ID2_ID2,131).
 !HoldsAt(Meet_ID1_ID2,132) v HoldsAt(Meet_ID1_ID2,131).
 !HoldsAt(Meet_ID2_ID2,131) v HoldsAt(Meet_ID2_ID2,130).
-0.422337 !HoldsAt(Meet_ID1_ID2,327)
 !HoldsAt(Meet_ID1_ID2,131) v HoldsAt(Meet_ID1_ID2,130).
 !HoldsAt(Meet_ID2_ID2,130) v HoldsAt(Meet_ID2_ID2,129).
 !HoldsAt(Meet_ID1_ID2,130) v HoldsAt(Meet_ID1_ID2,129).
@@ -2086,7 +2209,6 @@
 !HoldsAt(Meet_ID1_ID2,128) v HoldsAt(Meet_ID1_ID2,127).
 !HoldsAt(Meet_ID2_ID2,127) v HoldsAt(Meet_ID2_ID2,126).
 !HoldsAt(Meet_ID1_ID2,127) v HoldsAt(Meet_ID1_ID2,126).
-0.422337 !HoldsAt(Meet_ID1_ID2,324)
 !HoldsAt(Meet_ID2_ID2,126) v HoldsAt(Meet_ID2_ID2,125).
 !HoldsAt(Meet_ID1_ID2,126) v HoldsAt(Meet_ID1_ID2,125).
 !HoldsAt(Meet_ID2_ID2,125) v HoldsAt(Meet_ID2_ID2,124).
@@ -2097,7 +2219,6 @@
 !HoldsAt(Meet_ID1_ID2,123) v HoldsAt(Meet_ID1_ID2,122).
 !HoldsAt(Meet_ID2_ID2,122) v HoldsAt(Meet_ID2_ID2,121).
 !HoldsAt(Meet_ID1_ID2,122) v HoldsAt(Meet_ID1_ID2,121).
-0.422337 !HoldsAt(Meet_ID1_ID2,321)
 !HoldsAt(Meet_ID2_ID2,121) v HoldsAt(Meet_ID2_ID2,120).
 !HoldsAt(Meet_ID1_ID2,121) v HoldsAt(Meet_ID1_ID2,120).
 !HoldsAt(Meet_ID2_ID2,120) v HoldsAt(Meet_ID2_ID2,119).
@@ -2108,7 +2229,6 @@
 !HoldsAt(Meet_ID1_ID2,118) v HoldsAt(Meet_ID1_ID2,117).
 !HoldsAt(Meet_ID2_ID2,117) v HoldsAt(Meet_ID2_ID2,116).
 !HoldsAt(Meet_ID1_ID2,117) v HoldsAt(Meet_ID1_ID2,116).
-0.422337 !HoldsAt(Meet_ID1_ID2,318)
 !HoldsAt(Meet_ID2_ID2,116) v HoldsAt(Meet_ID2_ID2,115).
 !HoldsAt(Meet_ID1_ID2,116) v HoldsAt(Meet_ID1_ID2,115).
 !HoldsAt(Meet_ID2_ID2,115) v HoldsAt(Meet_ID2_ID2,114).
@@ -2117,64 +2237,54 @@
 !HoldsAt(Meet_ID1_ID2,114) v HoldsAt(Meet_ID1_ID2,113).
 !HoldsAt(Meet_ID2_ID2,113) v HoldsAt(Meet_ID2_ID2,112).
 !HoldsAt(Meet_ID2_ID2,112) v HoldsAt(Meet_ID2_ID2,111).
-0.422337 !HoldsAt(Meet_ID1_ID2,315)
 !HoldsAt(Meet_ID2_ID2,111) v HoldsAt(Meet_ID2_ID2,110).
 !HoldsAt(Meet_ID2_ID2,110) v HoldsAt(Meet_ID2_ID2,109).
 !HoldsAt(Meet_ID2_ID2,109) v HoldsAt(Meet_ID2_ID2,108).
 !HoldsAt(Meet_ID2_ID2,108) v HoldsAt(Meet_ID2_ID2,107).
 !HoldsAt(Meet_ID2_ID2,107) v HoldsAt(Meet_ID2_ID2,106).
-0.422337 !HoldsAt(Meet_ID1_ID2,312)
 !HoldsAt(Meet_ID2_ID2,106) v HoldsAt(Meet_ID2_ID2,105).
 !HoldsAt(Meet_ID2_ID2,105) v HoldsAt(Meet_ID2_ID2,104).
 !HoldsAt(Meet_ID2_ID2,104) v HoldsAt(Meet_ID2_ID2,103).
 !HoldsAt(Meet_ID2_ID2,103) v HoldsAt(Meet_ID2_ID2,102).
 !HoldsAt(Meet_ID2_ID2,102) v HoldsAt(Meet_ID2_ID2,101).
 !HoldsAt(Meet_ID2_ID2,101) v HoldsAt(Meet_ID2_ID2,100).
-0.422337 !HoldsAt(Meet_ID1_ID2,309)
 !HoldsAt(Meet_ID2_ID2,100) v HoldsAt(Meet_ID2_ID2,99).
 !HoldsAt(Meet_ID2_ID2,99) v HoldsAt(Meet_ID2_ID2,98).
 !HoldsAt(Meet_ID2_ID2,98) v HoldsAt(Meet_ID2_ID2,97).
 !HoldsAt(Meet_ID2_ID2,97) v HoldsAt(Meet_ID2_ID2,96).
 !HoldsAt(Meet_ID2_ID2,96) v HoldsAt(Meet_ID2_ID2,95).
-0.422337 !HoldsAt(Meet_ID1_ID2,306)
 !HoldsAt(Meet_ID2_ID2,95) v HoldsAt(Meet_ID2_ID2,94).
 !HoldsAt(Meet_ID2_ID2,94) v HoldsAt(Meet_ID2_ID2,93).
 !HoldsAt(Meet_ID2_ID2,93) v HoldsAt(Meet_ID2_ID2,92).
 !HoldsAt(Meet_ID2_ID2,92) v HoldsAt(Meet_ID2_ID2,91).
 !HoldsAt(Meet_ID2_ID2,91) v HoldsAt(Meet_ID2_ID2,90).
-0.422337 !HoldsAt(Meet_ID1_ID2,303)
 !HoldsAt(Meet_ID2_ID2,90) v HoldsAt(Meet_ID2_ID2,89).
 !HoldsAt(Meet_ID2_ID2,89) v HoldsAt(Meet_ID2_ID2,88).
 !HoldsAt(Meet_ID2_ID2,88) v HoldsAt(Meet_ID2_ID2,87).
 !HoldsAt(Meet_ID2_ID2,87) v HoldsAt(Meet_ID2_ID2,86).
 !HoldsAt(Meet_ID2_ID2,86) v HoldsAt(Meet_ID2_ID2,85).
-0.422337 !HoldsAt(Meet_ID1_ID2,300)
 !HoldsAt(Meet_ID2_ID2,85) v HoldsAt(Meet_ID2_ID2,84).
 !HoldsAt(Meet_ID2_ID2,84) v HoldsAt(Meet_ID2_ID2,83).
 !HoldsAt(Meet_ID2_ID2,83) v HoldsAt(Meet_ID2_ID2,82).
 !HoldsAt(Meet_ID2_ID2,82) v HoldsAt(Meet_ID2_ID2,81).
 !HoldsAt(Meet_ID2_ID2,81) v HoldsAt(Meet_ID2_ID2,80).
 !HoldsAt(Meet_ID2_ID2,80) v HoldsAt(Meet_ID2_ID2,79).
-0.422337 !HoldsAt(Meet_ID1_ID2,297)
 !HoldsAt(Meet_ID2_ID2,79) v HoldsAt(Meet_ID2_ID2,78).
 !HoldsAt(Meet_ID2_ID2,78) v HoldsAt(Meet_ID2_ID2,77).
 !HoldsAt(Meet_ID2_ID2,77) v HoldsAt(Meet_ID2_ID2,76).
 !HoldsAt(Meet_ID2_ID2,76) v HoldsAt(Meet_ID2_ID2,75).
 !HoldsAt(Meet_ID2_ID2,75) v HoldsAt(Meet_ID2_ID2,74).
-0.422337 !HoldsAt(Meet_ID1_ID2,294)
 !HoldsAt(Meet_ID2_ID2,74) v HoldsAt(Meet_ID2_ID2,73).
 !HoldsAt(Meet_ID2_ID2,73) v HoldsAt(Meet_ID2_ID2,72).
 !HoldsAt(Meet_ID2_ID2,72) v HoldsAt(Meet_ID2_ID2,71).
 !HoldsAt(Meet_ID2_ID2,71) v HoldsAt(Meet_ID2_ID2,70).
 !HoldsAt(Meet_ID2_ID2,70) v HoldsAt(Meet_ID2_ID2,69).
-0.422337 !HoldsAt(Meet_ID1_ID2,291)
 !HoldsAt(Meet_ID2_ID2,69) v HoldsAt(Meet_ID2_ID2,68).
 !HoldsAt(Meet_ID1_ID2,69) v HoldsAt(Meet_ID1_ID2,68).
 !HoldsAt(Meet_ID2_ID2,68) v HoldsAt(Meet_ID2_ID2,67).
 !HoldsAt(Meet_ID1_ID2,68) v HoldsAt(Meet_ID1_ID2,67).
 !HoldsAt(Meet_ID2_ID2,67) v HoldsAt(Meet_ID2_ID2,66).
 !HoldsAt(Meet_ID1_ID2,67) v HoldsAt(Meet_ID1_ID2,66).
-0.422337 !HoldsAt(Meet_ID1_ID2,288)
 !HoldsAt(Meet_ID2_ID2,66) v HoldsAt(Meet_ID2_ID2,65).
 !HoldsAt(Meet_ID1_ID2,66) v HoldsAt(Meet_ID1_ID2,65).
 !HoldsAt(Meet_ID2_ID2,65) v HoldsAt(Meet_ID2_ID2,64).
@@ -2185,7 +2295,6 @@
 !HoldsAt(Meet_ID1_ID2,63) v HoldsAt(Meet_ID1_ID2,62).
 !HoldsAt(Meet_ID2_ID2,62) v HoldsAt(Meet_ID2_ID2,61).
 !HoldsAt(Meet_ID1_ID2,62) v HoldsAt(Meet_ID1_ID2,61).
-0.422337 !HoldsAt(Meet_ID1_ID2,285)
 !HoldsAt(Meet_ID2_ID2,61) v HoldsAt(Meet_ID2_ID2,60).
 !HoldsAt(Meet_ID1_ID2,61) v HoldsAt(Meet_ID1_ID2,60).
 !HoldsAt(Meet_ID2_ID2,60) v HoldsAt(Meet_ID2_ID2,59).
@@ -2195,7 +2304,6 @@
 !HoldsAt(Meet_ID2_ID2,58) v HoldsAt(Meet_ID2_ID2,57).
 !HoldsAt(Meet_ID1_ID2,58) v HoldsAt(Meet_ID1_ID2,57).
 !HoldsAt(Meet_ID2_ID2,57) v HoldsAt(Meet_ID2_ID2,56).
-0.422337 !HoldsAt(Meet_ID1_ID2,282)
 !HoldsAt(Meet_ID1_ID2,57) v HoldsAt(Meet_ID1_ID2,56).
 !HoldsAt(Meet_ID2_ID2,56) v HoldsAt(Meet_ID2_ID2,55).
 !HoldsAt(Meet_ID1_ID2,56) v HoldsAt(Meet_ID1_ID2,55).
@@ -2206,7 +2314,6 @@
 !HoldsAt(Meet_ID2_ID2,53) v HoldsAt(Meet_ID2_ID2,52).
 !HoldsAt(Meet_ID1_ID2,53) v HoldsAt(Meet_ID1_ID2,52).
 !HoldsAt(Meet_ID2_ID2,52) v HoldsAt(Meet_ID2_ID2,51).
-0.422337 !HoldsAt(Meet_ID1_ID2,279)
 !HoldsAt(Meet_ID1_ID2,52) v HoldsAt(Meet_ID1_ID2,51).
 !HoldsAt(Meet_ID2_ID2,51) v HoldsAt(Meet_ID2_ID2,50).
 !HoldsAt(Meet_ID1_ID2,51) v HoldsAt(Meet_ID1_ID2,50).
@@ -2217,10 +2324,15 @@
 !HoldsAt(Meet_ID2_ID2,48) v HoldsAt(Meet_ID2_ID2,47).
 !HoldsAt(Meet_ID1_ID2,48) v HoldsAt(Meet_ID1_ID2,47).
 !HoldsAt(Meet_ID2_ID2,47) v HoldsAt(Meet_ID2_ID2,46).
-0.422337 !HoldsAt(Meet_ID1_ID2,276)
+0.422337 !HoldsAt(Meet_ID1_ID2,330)
+0.422337 !HoldsAt(Meet_ID1_ID2,327)
+0.422337 !HoldsAt(Meet_ID1_ID2,324)
+0.422337 !HoldsAt(Meet_ID1_ID2,321)
+0.422337 !HoldsAt(Meet_ID1_ID2,318)
 !HoldsAt(Meet_ID2_ID1,47) v HoldsAt(Meet_ID2_ID1,46).
 !HoldsAt(Meet_ID1_ID1,47) v HoldsAt(Meet_ID1_ID1,46).
 !HoldsAt(Meet_ID2_ID1,46) v HoldsAt(Meet_ID2_ID1,45).
+0.422337 !HoldsAt(Meet_ID1_ID2,315)
 !HoldsAt(Meet_ID1_ID1,46) v HoldsAt(Meet_ID1_ID1,45).
 !HoldsAt(Meet_ID2_ID1,45) v HoldsAt(Meet_ID2_ID1,44).
 !HoldsAt(Meet_ID1_ID1,45) v HoldsAt(Meet_ID1_ID1,44).
@@ -2228,11 +2340,24 @@
 !HoldsAt(Meet_ID1_ID1,44) v HoldsAt(Meet_ID1_ID1,43).
 !HoldsAt(Meet_ID2_ID1,43) v HoldsAt(Meet_ID2_ID1,42).
 !HoldsAt(Meet_ID1_ID1,43) v HoldsAt(Meet_ID1_ID1,42).
-0.422337 !HoldsAt(Meet_ID1_ID2,273)
 !HoldsAt(Meet_ID2_ID1,42) v HoldsAt(Meet_ID2_ID1,41).
 !HoldsAt(Meet_ID1_ID1,42) v HoldsAt(Meet_ID1_ID1,41).
 !HoldsAt(Meet_ID2_ID1,41) v HoldsAt(Meet_ID2_ID1,40).
 !HoldsAt(Meet_ID1_ID1,41) v HoldsAt(Meet_ID1_ID1,40).
+0.422337 !HoldsAt(Meet_ID1_ID2,312)
+0.422337 !HoldsAt(Meet_ID1_ID2,309)
+0.422337 !HoldsAt(Meet_ID1_ID2,306)
+0.422337 !HoldsAt(Meet_ID1_ID2,303)
+0.422337 !HoldsAt(Meet_ID1_ID2,300)
+0.422337 !HoldsAt(Meet_ID1_ID2,297)
+0.422337 !HoldsAt(Meet_ID1_ID2,294)
+0.422337 !HoldsAt(Meet_ID1_ID2,291)
+0.422337 !HoldsAt(Meet_ID1_ID2,288)
+0.422337 !HoldsAt(Meet_ID1_ID2,285)
+0.422337 !HoldsAt(Meet_ID1_ID2,282)
+0.422337 !HoldsAt(Meet_ID1_ID2,279)
+0.422337 !HoldsAt(Meet_ID1_ID2,276)
+0.422337 !HoldsAt(Meet_ID1_ID2,273)
 0.422337 !HoldsAt(Meet_ID1_ID2,270)
 0.422337 !HoldsAt(Meet_ID1_ID2,267)
 0.422337 !HoldsAt(Meet_ID1_ID2,264)
@@ -2293,99 +2418,6 @@
 !HoldsAt(Meet_ID2_ID2,46).
 !HoldsAt(Meet_ID2_ID2,43).
 !HoldsAt(Meet_ID2_ID2,40).
-0.204369 !HoldsAt(Meet_ID2_ID1,377)
-0.217968 !HoldsAt(Meet_ID2_ID1,68)
-0.204369 !HoldsAt(Meet_ID2_ID1,374)
-0.217968 !HoldsAt(Meet_ID2_ID1,65)
-0.204369 !HoldsAt(Meet_ID2_ID1,371)
-0.217968 !HoldsAt(Meet_ID2_ID1,62)
-0.204369 !HoldsAt(Meet_ID2_ID1,368)
-0.217968 !HoldsAt(Meet_ID2_ID1,59)
-0.204369 !HoldsAt(Meet_ID2_ID1,365)
-0.217968 !HoldsAt(Meet_ID2_ID1,56)
-0.204369 !HoldsAt(Meet_ID2_ID1,362)
-0.217968 !HoldsAt(Meet_ID2_ID1,53)
-0.204369 !HoldsAt(Meet_ID2_ID1,359)
-0.217968 !HoldsAt(Meet_ID2_ID1,50)
-0.204369 !HoldsAt(Meet_ID2_ID1,356)
-0.204369 !HoldsAt(Meet_ID2_ID1,353)
-0.217968 !HoldsAt(Meet_ID2_ID1,44)
-0.204369 !HoldsAt(Meet_ID2_ID1,350)
-0.217968 !HoldsAt(Meet_ID2_ID1,41)
-0.204369 !HoldsAt(Meet_ID2_ID1,347)
-0.204369 !HoldsAt(Meet_ID2_ID1,344)
-0.204369 !HoldsAt(Meet_ID2_ID1,341)
-0.204369 !HoldsAt(Meet_ID2_ID1,338)
-0.204369 !HoldsAt(Meet_ID2_ID1,335)
-0.422337 !HoldsAt(Meet_ID2_ID1,329)
-0.422337 !HoldsAt(Meet_ID2_ID1,326)
-0.422337 !HoldsAt(Meet_ID2_ID1,323)
-0.422337 !HoldsAt(Meet_ID2_ID1,320)
-0.422337 !HoldsAt(Meet_ID2_ID1,317)
-0.422337 !HoldsAt(Meet_ID2_ID1,314)
-0.422337 !HoldsAt(Meet_ID2_ID1,311)
-0.422337 !HoldsAt(Meet_ID2_ID1,308)
-0.422337 !HoldsAt(Meet_ID2_ID1,305)
-0.422337 !HoldsAt(Meet_ID2_ID1,302)
-!HoldsAt(Meet_ID2_ID1,332).
-0.422337 !HoldsAt(Meet_ID2_ID1,299)
-0.422337 !HoldsAt(Meet_ID2_ID1,296)
-0.422337 !HoldsAt(Meet_ID2_ID1,293)
-0.422337 !HoldsAt(Meet_ID2_ID1,290)
-0.422337 !HoldsAt(Meet_ID2_ID1,287)
-0.422337 !HoldsAt(Meet_ID2_ID1,284)
-0.422337 !HoldsAt(Meet_ID2_ID1,281)
-0.422337 !HoldsAt(Meet_ID2_ID1,278)
-0.422337 !HoldsAt(Meet_ID2_ID1,275)
-0.422337 !HoldsAt(Meet_ID2_ID1,272)
-0.422337 !HoldsAt(Meet_ID2_ID1,269)
-0.422337 !HoldsAt(Meet_ID2_ID1,266)
-0.422337 !HoldsAt(Meet_ID2_ID1,263)
-0.422337 !HoldsAt(Meet_ID2_ID1,260)
-0.422337 !HoldsAt(Meet_ID2_ID1,257)
-0.422337 !HoldsAt(Meet_ID2_ID1,254)
-0.422337 !HoldsAt(Meet_ID2_ID1,251)
-0.422337 !HoldsAt(Meet_ID2_ID1,248)
-0.422337 !HoldsAt(Meet_ID2_ID1,245)
-0.422337 !HoldsAt(Meet_ID2_ID1,242)
-0.422337 !HoldsAt(Meet_ID2_ID1,239)
-0.422337 !HoldsAt(Meet_ID2_ID1,236)
-0.422337 !HoldsAt(Meet_ID2_ID1,233)
-0.422337 !HoldsAt(Meet_ID2_ID1,230)
-0.422337 !HoldsAt(Meet_ID2_ID1,227)
-0.422337 !HoldsAt(Meet_ID2_ID1,224)
-0.422337 !HoldsAt(Meet_ID2_ID1,221)
-0.422337 !HoldsAt(Meet_ID2_ID1,218)
-0.422337 !HoldsAt(Meet_ID2_ID1,215)
-0.422337 !HoldsAt(Meet_ID2_ID1,212)
-0.422337 !HoldsAt(Meet_ID2_ID1,209)
-0.422337 !HoldsAt(Meet_ID2_ID1,206)
-0.422337 !HoldsAt(Meet_ID2_ID1,203)
-0.422337 !HoldsAt(Meet_ID2_ID1,200)
-0.422337 !HoldsAt(Meet_ID2_ID1,197)
-0.422337 !HoldsAt(Meet_ID2_ID1,194)
-0.422337 !HoldsAt(Meet_ID2_ID1,191)
-0.422337 !HoldsAt(Meet_ID2_ID1,188)
-0.422337 !HoldsAt(Meet_ID2_ID1,185)
-0.422337 !HoldsAt(Meet_ID2_ID1,182)
-0.422337 !HoldsAt(Meet_ID2_ID1,179)
-0.422337 !HoldsAt(Meet_ID2_ID1,176)
-0.422337 !HoldsAt(Meet_ID2_ID1,173)
-0.422337 !HoldsAt(Meet_ID2_ID1,170)
-0.422337 !HoldsAt(Meet_ID2_ID1,167)
-0.422337 !HoldsAt(Meet_ID2_ID1,164)
-0.422337 !HoldsAt(Meet_ID2_ID1,161)
-0.422337 !HoldsAt(Meet_ID2_ID1,158)
-0.422337 !HoldsAt(Meet_ID2_ID1,155)
-0.422337 !HoldsAt(Meet_ID2_ID1,152)
-0.422337 !HoldsAt(Meet_ID2_ID1,149)
-0.422337 !HoldsAt(Meet_ID2_ID1,146)
-0.422337 !HoldsAt(Meet_ID2_ID1,143)
-0.422337 !HoldsAt(Meet_ID2_ID1,140)
-0.422337 !HoldsAt(Meet_ID2_ID1,137)
-0.422337 !HoldsAt(Meet_ID2_ID1,134)
-0.422337 !HoldsAt(Meet_ID2_ID1,131)
-0.422337 !HoldsAt(Meet_ID2_ID1,128)
 !HoldsAt(Meet_ID1_ID1,37).
 !HoldsAt(Meet_ID1_ID1,34).
 !HoldsAt(Meet_ID1_ID1,31).
@@ -2502,131 +2534,6 @@
 !HoldsAt(Meet_ID1_ID1,47).
 !HoldsAt(Meet_ID1_ID1,44).
 !HoldsAt(Meet_ID1_ID1,41).
-!HoldsAt(Meet_ID2_ID2,47) v HoldsAt(Meet_ID2_ID2,48).
-!HoldsAt(Meet_ID2_ID2,46) v HoldsAt(Meet_ID2_ID2,47).
-!HoldsAt(Meet_ID2_ID2,45) v HoldsAt(Meet_ID2_ID2,46).
-!HoldsAt(Meet_ID2_ID2,44) v HoldsAt(Meet_ID2_ID2,45).
-!HoldsAt(Meet_ID2_ID2,43) v HoldsAt(Meet_ID2_ID2,44).
-!HoldsAt(Meet_ID2_ID2,42) v HoldsAt(Meet_ID2_ID2,43).
-!HoldsAt(Meet_ID2_ID2,41) v HoldsAt(Meet_ID2_ID2,42).
-!HoldsAt(Meet_ID2_ID2,40) v HoldsAt(Meet_ID2_ID2,41).
-!HoldsAt(Meet_ID2_ID2,40) v HoldsAt(Meet_ID2_ID2,39).
-!HoldsAt(Meet_ID1_ID2,40) v HoldsAt(Meet_ID1_ID2,39).
-0.204369 !HoldsAt(Meet_ID1_ID2,46)
-0.204369 !HoldsAt(Meet_ID1_ID2,43)
-!HoldsAt(Meet_ID2_ID2,37).
-!HoldsAt(Meet_ID2_ID2,34).
-!HoldsAt(Meet_ID2_ID2,31).
-!HoldsAt(Meet_ID2_ID2,375).
-!HoldsAt(Meet_ID2_ID2,372).
-!HoldsAt(Meet_ID2_ID2,369).
-!HoldsAt(Meet_ID2_ID2,366).
-!HoldsAt(Meet_ID2_ID2,363).
-!HoldsAt(Meet_ID2_ID2,360).
-!HoldsAt(Meet_ID2_ID2,357).
-!HoldsAt(Meet_ID2_ID2,354).
-!HoldsAt(Meet_ID2_ID2,351).
-!HoldsAt(Meet_ID2_ID2,348).
-!HoldsAt(Meet_ID2_ID2,345).
-!HoldsAt(Meet_ID2_ID2,342).
-!HoldsAt(Meet_ID2_ID2,339).
-!HoldsAt(Meet_ID2_ID2,336).
-!HoldsAt(Meet_ID2_ID2,333).
-!HoldsAt(Meet_ID2_ID2,330).
-!HoldsAt(Meet_ID2_ID2,327).
-!HoldsAt(Meet_ID2_ID2,324).
-!HoldsAt(Meet_ID2_ID2,321).
-!HoldsAt(Meet_ID2_ID2,318).
-!HoldsAt(Meet_ID2_ID2,315).
-!HoldsAt(Meet_ID2_ID2,312).
-!HoldsAt(Meet_ID2_ID2,309).
-!HoldsAt(Meet_ID2_ID2,306).
-!HoldsAt(Meet_ID2_ID2,303).
-!HoldsAt(Meet_ID2_ID2,300).
-!HoldsAt(Meet_ID2_ID2,297).
-!HoldsAt(Meet_ID2_ID2,294).
-!HoldsAt(Meet_ID2_ID2,291).
-!HoldsAt(Meet_ID2_ID2,288).
-!HoldsAt(Meet_ID2_ID2,285).
-!HoldsAt(Meet_ID2_ID2,282).
-!HoldsAt(Meet_ID2_ID2,279).
-!HoldsAt(Meet_ID2_ID2,276).
-!HoldsAt(Meet_ID2_ID2,273).
-!HoldsAt(Meet_ID2_ID2,270).
-!HoldsAt(Meet_ID2_ID2,267).
-!HoldsAt(Meet_ID2_ID2,264).
-!HoldsAt(Meet_ID2_ID2,261).
-!HoldsAt(Meet_ID2_ID2,258).
-!HoldsAt(Meet_ID2_ID2,255).
-!HoldsAt(Meet_ID2_ID2,252).
-!HoldsAt(Meet_ID2_ID2,249).
-!HoldsAt(Meet_ID2_ID2,246).
-!HoldsAt(Meet_ID2_ID2,243).
-!HoldsAt(Meet_ID2_ID2,240).
-!HoldsAt(Meet_ID2_ID2,237).
-!HoldsAt(Meet_ID2_ID2,234).
-!HoldsAt(Meet_ID2_ID2,231).
-!HoldsAt(Meet_ID2_ID2,228).
-!HoldsAt(Meet_ID2_ID2,225).
-!HoldsAt(Meet_ID2_ID2,222).
-!HoldsAt(Meet_ID2_ID2,219).
-!HoldsAt(Meet_ID2_ID2,216).
-!HoldsAt(Meet_ID2_ID2,213).
-!HoldsAt(Meet_ID2_ID2,210).
-!HoldsAt(Meet_ID2_ID2,207).
-!HoldsAt(Meet_ID2_ID2,204).
-!HoldsAt(Meet_ID2_ID2,201).
-!HoldsAt(Meet_ID2_ID2,198).
-!HoldsAt(Meet_ID2_ID2,195).
-!HoldsAt(Meet_ID2_ID2,192).
-!HoldsAt(Meet_ID2_ID2,189).
-!HoldsAt(Meet_ID2_ID2,186).
-!HoldsAt(Meet_ID2_ID2,183).
-!HoldsAt(Meet_ID2_ID2,180).
-!HoldsAt(Meet_ID2_ID2,177).
-!HoldsAt(Meet_ID2_ID2,174).
-!HoldsAt(Meet_ID2_ID2,171).
-!HoldsAt(Meet_ID2_ID2,168).
-!HoldsAt(Meet_ID2_ID2,165).
-!HoldsAt(Meet_ID2_ID2,162).
-!HoldsAt(Meet_ID2_ID2,159).
-!HoldsAt(Meet_ID2_ID2,156).
-!HoldsAt(Meet_ID2_ID2,153).
-!HoldsAt(Meet_ID2_ID2,150).
-!HoldsAt(Meet_ID2_ID2,147).
-!HoldsAt(Meet_ID2_ID2,144).
-!HoldsAt(Meet_ID2_ID2,141).
-!HoldsAt(Meet_ID2_ID2,138).
-!HoldsAt(Meet_ID2_ID2,135).
-!HoldsAt(Meet_ID2_ID2,132).
-!HoldsAt(Meet_ID2_ID2,129).
-!HoldsAt(Meet_ID2_ID2,126).
-!HoldsAt(Meet_ID2_ID2,123).
-!HoldsAt(Meet_ID2_ID2,120).
-!HoldsAt(Meet_ID2_ID2,117).
-!HoldsAt(Meet_ID2_ID2,114).
-!HoldsAt(Meet_ID2_ID2,111).
-!HoldsAt(Meet_ID2_ID2,108).
-!HoldsAt(Meet_ID2_ID2,105).
-!HoldsAt(Meet_ID2_ID2,102).
-!HoldsAt(Meet_ID2_ID2,99).
-!HoldsAt(Meet_ID2_ID2,96).
-!HoldsAt(Meet_ID2_ID2,93).
-!HoldsAt(Meet_ID2_ID2,90).
-!HoldsAt(Meet_ID2_ID2,87).
-!HoldsAt(Meet_ID2_ID2,84).
-!HoldsAt(Meet_ID2_ID2,81).
-!HoldsAt(Meet_ID2_ID2,78).
-!HoldsAt(Meet_ID2_ID2,75).
-!HoldsAt(Meet_ID2_ID2,72).
-!HoldsAt(Meet_ID2_ID2,69).
-!HoldsAt(Meet_ID2_ID2,66).
-!HoldsAt(Meet_ID2_ID2,63).
-!HoldsAt(Meet_ID2_ID2,60).
-!HoldsAt(Meet_ID2_ID2,57).
-!HoldsAt(Meet_ID2_ID2,54).
-!HoldsAt(Meet_ID2_ID2,51).
-!HoldsAt(Meet_ID2_ID2,48).
 !HoldsAt(Meet_ID2_ID1,38) v HoldsAt(Meet_ID2_ID1,39).
 !HoldsAt(Meet_ID1_ID1,38) v HoldsAt(Meet_ID1_ID1,39).
 !HoldsAt(Meet_ID2_ID1,37) v HoldsAt(Meet_ID2_ID1,38).
@@ -2864,3 +2771,96 @@
 !HoldsAt(Meet_ID2_ID2,50).
 !HoldsAt(Meet_ID2_ID2,47).
 0.204369 !HoldsAt(Meet_ID1_ID2,41)
+0.217968 !HoldsAt(Meet_ID2_ID1,68)
+0.217968 !HoldsAt(Meet_ID2_ID1,65)
+0.217968 !HoldsAt(Meet_ID2_ID1,62)
+0.217968 !HoldsAt(Meet_ID2_ID1,59)
+0.217968 !HoldsAt(Meet_ID2_ID1,56)
+0.217968 !HoldsAt(Meet_ID2_ID1,53)
+0.217968 !HoldsAt(Meet_ID2_ID1,50)
+0.217968 !HoldsAt(Meet_ID2_ID1,44)
+0.217968 !HoldsAt(Meet_ID2_ID1,41)
+0.204369 !HoldsAt(Meet_ID2_ID1,377)
+0.204369 !HoldsAt(Meet_ID2_ID1,374)
+0.204369 !HoldsAt(Meet_ID2_ID1,371)
+0.204369 !HoldsAt(Meet_ID2_ID1,368)
+0.204369 !HoldsAt(Meet_ID2_ID1,365)
+0.204369 !HoldsAt(Meet_ID2_ID1,362)
+0.204369 !HoldsAt(Meet_ID2_ID1,359)
+0.204369 !HoldsAt(Meet_ID2_ID1,356)
+0.204369 !HoldsAt(Meet_ID2_ID1,353)
+0.204369 !HoldsAt(Meet_ID2_ID1,350)
+0.204369 !HoldsAt(Meet_ID2_ID1,347)
+0.204369 !HoldsAt(Meet_ID2_ID1,344)
+0.204369 !HoldsAt(Meet_ID2_ID1,341)
+0.204369 !HoldsAt(Meet_ID2_ID1,338)
+0.204369 !HoldsAt(Meet_ID2_ID1,335)
+0.422337 !HoldsAt(Meet_ID2_ID1,329)
+0.422337 !HoldsAt(Meet_ID2_ID1,326)
+0.422337 !HoldsAt(Meet_ID2_ID1,323)
+0.422337 !HoldsAt(Meet_ID2_ID1,320)
+0.422337 !HoldsAt(Meet_ID2_ID1,317)
+0.422337 !HoldsAt(Meet_ID2_ID1,314)
+0.422337 !HoldsAt(Meet_ID2_ID1,311)
+0.422337 !HoldsAt(Meet_ID2_ID1,308)
+0.422337 !HoldsAt(Meet_ID2_ID1,305)
+0.422337 !HoldsAt(Meet_ID2_ID1,302)
+0.422337 !HoldsAt(Meet_ID2_ID1,299)
+0.422337 !HoldsAt(Meet_ID2_ID1,296)
+0.422337 !HoldsAt(Meet_ID2_ID1,293)
+0.422337 !HoldsAt(Meet_ID2_ID1,290)
+0.422337 !HoldsAt(Meet_ID2_ID1,287)
+0.422337 !HoldsAt(Meet_ID2_ID1,284)
+0.422337 !HoldsAt(Meet_ID2_ID1,281)
+0.422337 !HoldsAt(Meet_ID2_ID1,278)
+0.422337 !HoldsAt(Meet_ID2_ID1,275)
+0.422337 !HoldsAt(Meet_ID2_ID1,272)
+0.422337 !HoldsAt(Meet_ID2_ID1,269)
+0.422337 !HoldsAt(Meet_ID2_ID1,266)
+0.422337 !HoldsAt(Meet_ID2_ID1,263)
+!HoldsAt(Meet_ID2_ID1,332).
+0.422337 !HoldsAt(Meet_ID2_ID1,260)
+0.422337 !HoldsAt(Meet_ID2_ID1,257)
+0.422337 !HoldsAt(Meet_ID2_ID1,254)
+0.422337 !HoldsAt(Meet_ID2_ID1,251)
+0.422337 !HoldsAt(Meet_ID2_ID1,248)
+0.422337 !HoldsAt(Meet_ID2_ID1,245)
+0.422337 !HoldsAt(Meet_ID2_ID1,242)
+0.422337 !HoldsAt(Meet_ID2_ID1,239)
+0.422337 !HoldsAt(Meet_ID2_ID1,236)
+0.422337 !HoldsAt(Meet_ID2_ID1,233)
+0.422337 !HoldsAt(Meet_ID2_ID1,230)
+0.422337 !HoldsAt(Meet_ID2_ID1,227)
+0.422337 !HoldsAt(Meet_ID2_ID1,224)
+0.422337 !HoldsAt(Meet_ID2_ID1,221)
+0.422337 !HoldsAt(Meet_ID2_ID1,218)
+0.422337 !HoldsAt(Meet_ID2_ID1,215)
+0.422337 !HoldsAt(Meet_ID2_ID1,212)
+0.422337 !HoldsAt(Meet_ID2_ID1,209)
+0.422337 !HoldsAt(Meet_ID2_ID1,206)
+0.422337 !HoldsAt(Meet_ID2_ID1,203)
+0.422337 !HoldsAt(Meet_ID2_ID1,200)
+0.422337 !HoldsAt(Meet_ID2_ID1,197)
+0.422337 !HoldsAt(Meet_ID2_ID1,194)
+0.422337 !HoldsAt(Meet_ID2_ID1,191)
+0.422337 !HoldsAt(Meet_ID2_ID1,188)
+0.422337 !HoldsAt(Meet_ID2_ID1,185)
+0.422337 !HoldsAt(Meet_ID2_ID1,182)
+0.422337 !HoldsAt(Meet_ID2_ID1,179)
+0.422337 !HoldsAt(Meet_ID2_ID1,176)
+0.422337 !HoldsAt(Meet_ID2_ID1,173)
+0.422337 !HoldsAt(Meet_ID2_ID1,170)
+0.422337 !HoldsAt(Meet_ID2_ID1,167)
+0.422337 !HoldsAt(Meet_ID2_ID1,164)
+0.422337 !HoldsAt(Meet_ID2_ID1,161)
+0.422337 !HoldsAt(Meet_ID2_ID1,158)
+0.422337 !HoldsAt(Meet_ID2_ID1,155)
+0.422337 !HoldsAt(Meet_ID2_ID1,152)
+0.422337 !HoldsAt(Meet_ID2_ID1,149)
+0.422337 !HoldsAt(Meet_ID2_ID1,146)
+0.422337 !HoldsAt(Meet_ID2_ID1,143)
+0.422337 !HoldsAt(Meet_ID2_ID1,140)
+0.422337 !HoldsAt(Meet_ID2_ID1,137)
+0.422337 !HoldsAt(Meet_ID2_ID1,134)
+0.422337 !HoldsAt(Meet_ID2_ID1,131)
+0.422337 !HoldsAt(Meet_ID2_ID1,128)

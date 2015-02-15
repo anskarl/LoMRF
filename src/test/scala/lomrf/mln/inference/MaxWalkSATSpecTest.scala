@@ -37,7 +37,7 @@ import java.io.{File, FileOutputStream, PrintStream}
 import lomrf.logic.AtomSignature
 import lomrf.mln.grounding.MRFBuilder
 import lomrf.mln.model.MLN
-import lomrf.util.Utilities.io.{findFiles, strToFile}
+import lomrf.util.Utilities.io._
 import org.scalatest.{FunSpec, Matchers}
 
 import scala.io.Source
@@ -68,18 +68,18 @@ final class MaxWalkSATSpecTest extends FunSpec with Matchers {
     currentPath = new File(mainPath + sep + inertiaConfiguration + sep + "meet" + sep + "fold_" + fold)
     if currentPath.exists
 
-    mlnFile = findFiles(currentPath, f => f.getName.endsWith(".mln"))
+    mlnFile = findFirstFile(currentPath, _.getName.endsWith(".mln"))
+      .getOrElse(sys.error("Cannot find MLN in '"+currentPath+"'"))
 
-    expectedResultFiles = findFiles(currentPath, f => f.getName.endsWith(".mws.golden"))
+    expectedResultFiles = findFiles(currentPath, _.getName.endsWith(".mws.golden"))
 
-    dbFiles = findFiles(currentPath, f => f.getName.endsWith(".db"))
+    dbFile <- findFiles(currentPath, _.getName.endsWith(".db"))
+  } describe("Loading MLN theory from file '" + mlnFile + "', with evidence from file '" + dbFile) {
 
-    db <- dbFiles
-  } describe("Loading MLN theory from file '" + mlnFile(0) + "', with evidence from file '" + db) {
+    val mln = MLN(mlnFile.getAbsolutePath, dbFile.getAbsolutePath, queryAtoms, cwa)
 
-    val mln = MLN(mlnFile(0).getAbsolutePath, db.getAbsolutePath, queryAtoms, cwa)
     val stats = Source
-      .fromFile(mlnFile(0).getAbsolutePath.replace(".mln", ".statistics"))
+      .fromFile(dbFile.getAbsolutePath.replace(".db", ".statistics"))
       .getLines()
       .map(line => line.split('='))
       .map(entries => entries(0) -> entries(1))
@@ -114,17 +114,17 @@ final class MaxWalkSATSpecTest extends FunSpec with Matchers {
         mrf.constraints.size should be(stats("mrf.constraints.size").toInt)
       }
 
-      it(s"should has ${stats("mrf.weightHard")} ground clauses") {
+      it(s"should has ${stats("mrf.weightHard")} as hard weight value") {
         mrf.weightHard should be(stats("mrf.weightHard").toDouble)
       }
     }
 
     describe("Running MAP inference using MaxWalkSAT") {
 
-      val prefix = mlnFile(0).getParent.getAbsolutePath + sep + db.getName.split(".db")(0)
+      val prefix = mlnFile.getParent.getAbsolutePath + sep + dbFile.getName.split(".db")(0)
 
       val golden = expectedResultFiles
-        .find(f => f.getName.contains(db.getName.split(".db")(0)))
+        .find(f => f.getName.contains(dbFile.getName.split(".db")(0)))
         .getOrElse(sys.error("Failed to locate golden standard file."))
 
       val resultsWriter = new PrintStream(new FileOutputStream(prefix + ".mws.result"), true)
@@ -134,7 +134,7 @@ final class MaxWalkSATSpecTest extends FunSpec with Matchers {
       solver.writeResults(resultsWriter)
 
 
-      it("should be identical to the golden standard") {
+      it("should have identical output with the corresponding golden standard result file") {
         val inferredResults = Source.fromFile(prefix + ".mws.result").getLines()
 
         // Create a Map [predicate -> value] that contains the expected output (Golden Standard)
