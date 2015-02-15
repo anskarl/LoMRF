@@ -37,7 +37,6 @@ import lomrf.logic.AtomSignature
 import lomrf.mln.grounding.MRFBuilder
 import lomrf.mln.model.MLN
 import org.scalatest.{Matchers, FunSpec}
-import scala.collection.immutable.HashMap
 import scala.io.Source
 import lomrf.util.Utilities.io.{findFiles, strToFile}
 
@@ -50,99 +49,130 @@ import lomrf.util.Utilities.io.{findFiles, strToFile}
 final class MaxWalkSATSpecTest extends FunSpec with Matchers {
 
   private val sep = System.getProperty("file.separator")
-  private val testFilesPath = System.getProperty("user.dir") + sep + "Examples" + sep + "data" + sep +
-                              "tests" + sep + "inference" + sep
+  private val testFilesPath = System.getProperty("user.dir") + sep +
+    "Examples" + sep + "data" + sep + "tests" + sep + "inference" + sep
 
-  private val mlnFiles = findFiles(strToFile(testFilesPath), f => f.getName.contains(".mln"))
-  private val dbFilesList = findFiles(strToFile(testFilesPath), f => f.getName.contains(".db"))
-  private val goldenFilesList = findFiles(strToFile(testFilesPath), f => f.getName.contains(".mws.golden"))
+  private val mlnFiles = findFiles(testFilesPath, f => f.getName.contains(".mln"))
+  assert(mlnFiles.size > 0, "Failed to find input MLN files (*.mln) in '" + testFilesPath + "'")
 
-  describe("Caviar diagonal newton test in path: '" + testFilesPath + "'") {
+  private val dbFilesList = findFiles(testFilesPath, f => f.getName.contains(".db"))
+  assert(dbFilesList.size > 0, "Failed to find input DB files (*.db) in '" + testFilesPath + "'")
 
-    for(weightType <- List("HI", "SI", "SI_h")) {
-      for (fold <- 0 to 9) {
-        val mlnFile = mlnFiles.filter(f => f.getAbsolutePath.contains("fold_" + fold) &&
-                                      f.getAbsolutePath.contains(sep + weightType + sep))
-        val dbFiles = dbFilesList.filter(f => f.getAbsolutePath.contains("fold_" + fold) &&
-                                     f.getAbsolutePath.contains(sep + weightType + sep))
-        val goldenFiles = goldenFilesList.filter(f => f.getAbsolutePath.contains("fold_" + fold) &&
-                                                 f.getAbsolutePath.contains(sep + weightType + sep))
+  private val goldenFilesList = findFiles(testFilesPath, f => f.getName.contains(".mws.golden"))
+  assert(goldenFilesList.size > 0, "Failed to find input golden standard files (*.mws.golden) in '" + testFilesPath + "'")
 
-        for(db <- dbFiles) {
-          describe("MLN from file '" + mlnFile(0) + "' with evidence from file '" + db) {
-            val mln = MLN(
-              mlnFileName = mlnFile(0).getAbsolutePath,
-              evidenceFileName = db.getAbsolutePath,
-              queryAtoms = Set(AtomSignature("HoldsAt", 2)),
-              cwa = Set(AtomSignature("Happens", 2), AtomSignature("Close", 4), AtomSignature("Next", 2),
-                AtomSignature("OrientationMove", 3), AtomSignature("StartTime", 1)))
 
-            info("Found " + mln.formulas.size + " formulas")
-            info("Found " + mln.constants.size + " constant types")
-            info("Found " + mln.predicateSchema.size + " predicate schemas")
-            info("Found " + mln.functionSchema.size + " function schemas")
+  val queryAtoms = Set(AtomSignature("HoldsAt", 2))
+  val cwa = Set(AtomSignature("Happens", 2), AtomSignature("Close", 4), AtomSignature("Next", 2), AtomSignature("OrientationMove", 3), AtomSignature("StartTime", 1))
 
-            it("should contain 25 formulas") {
-              mln.formulas.size should be(25)
+  for {
+    weightType <- List("HI", "SI", "SI_h")
+
+    fold <- 0 to 9
+
+    mlnFile = mlnFiles
+      .filter(f => f.getAbsolutePath.contains("fold_" + fold) && f.getAbsolutePath.contains(sep + weightType + sep))
+
+    goldenFiles = goldenFilesList
+      .filter(f => f.getAbsolutePath.contains("fold_" + fold) && f.getAbsolutePath.contains(sep + weightType + sep))
+
+    db <- dbFilesList.filter(f => f.getAbsolutePath.contains("fold_" + fold) && f.getAbsolutePath.contains(sep + weightType + sep))
+
+  } describe("MLN from file '" + mlnFile(0) + "' with evidence from file '" + db) {
+
+    val mln = MLN(mlnFile(0).getAbsolutePath, db.getAbsolutePath, queryAtoms, cwa)
+
+    info {
+      s"""Found ${mln.formulas.size} formulas
+              Found ${mln.constants.size} constant types
+              Found ${mln.predicateSchema.size} predicate schemas
+              Found ${mln.functionSchema.size} function schemas"""
+    }
+
+    it("should contain 25 formulas") {
+      mln.formulas.size should be(25)
+    }
+
+    it("should constants 5 constants sets (domains)") {
+      mln.constants.size should be(5)
+    }
+
+    it("should contain 6 predicate schemas") {
+      mln.predicateSchema.size should be(6)
+    }
+
+    it("should contain 7 function schemas") {
+      mln.functionSchema.size should be(7)
+    }
+
+    describe("Creating MRF from previous MLN") {
+
+      info("Creating MRF...")
+      val mrfBuilder = new MRFBuilder(mln, createDependencyMap = true)
+      val mrf = mrfBuilder.buildNetwork
+
+      info("Created " + mrf.numberOfAtoms + " ground atoms")
+      info("Created " + mrf.numberOfConstraints + " ground clauses")
+
+      describe("Running MAP inference using MaxWalkSAT") {
+
+        val prefix = mlnFile(0).getParent.getAbsolutePath + sep + db.getName.split(".db")(0)
+
+        val golden = goldenFiles
+          .find(f => f.getName.contains(db.getName.split(".db")(0)))
+          .getOrElse(sys.error("Failed to locate golden standard file."))
+
+        val resultsWriter = new PrintStream(new FileOutputStream(prefix + ".mws.result"), true)
+
+        val solver = new MaxWalkSAT(mrf)
+        solver.infer()
+        solver.writeResults(resultsWriter)
+
+
+        it("should be identical to the golden standard") {
+          val inferredResults = Source.fromFile(prefix + ".mws.result").getLines()
+
+          // Create a Map [predicate -> value] that contains the expected output (Golden Standard)
+          val expectedResultsMap = Source
+            .fromFile(golden.getAbsolutePath)
+            .getLines()
+            .map(line => line.splitAt(line.lastIndexOf(' ')))
+            .map { case (expectedPredicate, expectedValue) => expectedPredicate.trim -> expectedValue.trim.toInt}
+            .toMap
+
+          println("Inspecting result file: '" + prefix + ".mws.result'")
+          var differences = 0
+          var countedResults = 0
+
+          for {
+
+            (inferred, lineNumber) <- inferredResults.zipWithIndex
+            (inferredPredicateSrc, inferredValueSrc) = inferred.splitAt(inferred.lastIndexOf(' '))
+            inferredPredicate = inferredPredicateSrc.trim
+            inferredValue = inferredValueSrc.trim.toInt
+            expectedValueOpt = expectedResultsMap.get(inferredPredicate)
+          } {
+
+            countedResults += 1
+
+            assert(expectedValueOpt.isDefined)
+            val expectedValue = expectedValueOpt.get
+
+            if (inferredValue != expectedValue) {
+              differences += 1
+              println(s"\tLine '$lineNumber' the output ground predicate '$inferredPredicate' should be '" + expectedValue + "'")
             }
 
-            it("should constants 5 constants sets (domains)") {
-              mln.constants.size should be(5)
-            }
 
-            it("should contain 6 predicate schemas") {
-              mln.predicateSchema.size should be(6)
-            }
-
-            it("should contain 7 function schemas") {
-              mln.functionSchema.size should be(7)
-            }
-
-            describe("Creating MRF from previous MLN") {
-
-              info("Creating MRF...")
-              val mrfBuilder = new MRFBuilder(mln)
-              val mrf = mrfBuilder.buildNetwork
-
-              info("Created " + mrf.numberOfAtoms + " ground atoms")
-              info("Created " + mrf.numberOfConstraints + " ground clauses")
-
-              describe("Running MAP inference using MaxWalkSAT") {
-
-                val prefix = db.getName.split(".db")(0)
-                val golden = goldenFiles.find(f => f.getName.contains(prefix)).get
-
-                val resultsWriter = new PrintStream(
-                                    new FileOutputStream(
-                                    mlnFile(0).getParent.getAbsolutePath + sep + prefix + ".mws.result"), true)
-
-                val solver = new MaxWalkSAT(mrf)
-                solver.infer()
-                solver.writeResults(resultsWriter)
-
-                var results = HashMap[String, Int]()
-                for (line <- Source.fromFile(mlnFile(0).getParent.getAbsolutePath + sep + prefix + ".mws.result").getLines()) {
-                  val element = line.split(" ")
-                  results += ((element(0), element(1).toInt))
-                }
-
-                var standard = HashMap[String, Int]()
-                for (line <- Source.fromFile(golden.getAbsolutePath).getLines()) {
-                  val element = line.split(" ")
-                  standard += ((element(0), element(1).toInt))
-                }
-
-                it("should be identical to the golden standard") {
-                  assert(results == standard)
-                }
-
-              }
-            }
           }
 
+          differences should equal(0)
+
+          countedResults should equal(expectedResultsMap.size)
         }
 
       }
     }
   }
+
 }
