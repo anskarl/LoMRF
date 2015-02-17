@@ -39,6 +39,7 @@ import auxlib.log.Logging
 import gnu.trove.list.array.TIntArrayList
 import gnu.trove.map.TIntFloatMap
 import gnu.trove.map.hash.{TIntFloatHashMap, TIntObjectHashMap}
+import gnu.trove.set.hash.TIntHashSet
 import lomrf._
 
 import scala.language.postfixOps
@@ -93,54 +94,79 @@ private final class CliqueRegisterWorker(
       else if (ce.weight != 0) storeClique(ce)
 
     case GRND_Completed =>
-      debug("CliqueRegister[" + index + "] received 'GRND_Completed' message.")
+      debug(s"CliqueRegister[$index] received 'GRND_Completed' message.")
+      debug(s"CliqueRegister[$index] collected total ${cliques.size} cliques.")
+
       sender ! NumberOfCliques(index, cliques.size())
 
     case StartID(offset: Int) =>
       debug("CliqueRegister[" + index + "] received 'StartID("+offset+")' message.")
 
-      hashCode2CliqueIDs = null //not needed anymore (allow GC to delete it)
+      val collectedCliques =
+        if(offset == 0) { //do not adjust clique ids
+          // Register (atomID -> cliqueID) mappings
+          val iterator = cliques.iterator()
+          while (iterator.hasNext) {
+            iterator.advance()
+            registerAtoms(iterator.value().variables, iterator.key())
+          }
+          CollectedCliques(index, cliques, if(createDependencyMap) Some(dependencyMap) else None)
+        }
+        else {//adjust clique ids
+          hashCode2CliqueIDs = null //not needed anymore (allow GC to delete it)
 
-      val resultingCliques = new TIntObjectHashMap[CliqueEntry](cliques.size() + 1, DEFAULT_LOAD_FACTOR, NO_ENTRY_KEY)
+          val resultingCliques = new TIntObjectHashMap[CliqueEntry](cliques.size() + 1, DEFAULT_LOAD_FACTOR, NO_ENTRY_KEY)
 
-      val resultingDependencyMap: Option[DependencyMap] =
-        if(createDependencyMap)
-          Some(new TIntObjectHashMap[TIntFloatMap](DEFAULT_CAPACITY, DEFAULT_LOAD_FACTOR, NO_ENTRY_KEY))
-        else None
+          val resultingDependencyMap: Option[DependencyMap] =
+            if(createDependencyMap)
+              Some(new TIntObjectHashMap[TIntFloatMap](DEFAULT_CAPACITY, DEFAULT_LOAD_FACTOR, NO_ENTRY_KEY))
+            else None
 
-      val iterator = cliques.iterator()
-      var currentClique: CliqueEntry = null
-      var finalID = NO_ENTRY_KEY
-      var oldID = NO_ENTRY_KEY
+          val iterator = cliques.iterator()
+          var currentClique: CliqueEntry = null
+          var finalID = NO_ENTRY_KEY
+          var oldID = NO_ENTRY_KEY
 
-      while (iterator.hasNext) {
-        iterator.advance()
+          while (iterator.hasNext) {
+            iterator.advance()
 
-        oldID = iterator.key()
-        finalID = oldID + offset
-        currentClique = iterator.value()
+            oldID = iterator.key()
+            finalID = oldID + offset
+            currentClique = iterator.value()
 
-        // Store clique mappings with the new 'final' id as key
-        resultingCliques.put(finalID, currentClique)
+            // Store clique mappings with the new 'final' id as key
+            resultingCliques.put(finalID, currentClique)
 
-        if(createDependencyMap)
-          resultingDependencyMap.get.put(finalID, dependencyMap.get(oldID))
+            //if(createDependencyMap)
+            resultingDependencyMap.foreach(_.put(finalID, dependencyMap.get(oldID)))
 
-        // Register (atomID -> cliqueID) mappings
-        for (variable <- currentClique.variables; atomID = math.abs(variable))
-          atomRegisters(atomID % numOfAtomBatches) ! Register(atomID, finalID)
+            // Register (atomID -> cliqueID) mappings
+            registerAtoms(currentClique.variables, finalID)
 
-      }
+          }
 
-      // Not needed anymore (allow GC to delete it)
-      cliques = null
-      dependencyMap = null
+          // Not needed anymore (allow GC to delete it)
+          cliques = null
+          dependencyMap = null
 
-      master ! CollectedCliques(index, resultingCliques, resultingDependencyMap)
+          CollectedCliques(index, resultingCliques, resultingDependencyMap)
+        }
+
+
+
+      debug(s"CliqueRegister[$index] sending to master the CollectedCliques message, containing ${collectedCliques.cliques.size} cliques.")
+
+      master ! collectedCliques
 
     case msg =>
       debug("CliqueRegister[" + index + "] received an unknown message '" + msg + "' from " + sender)
-      error("CliqueRegister[" + index + "] received an unknown message. The message is ignored.")
+      error("CliqueRegister[" + index + "] received an unknown message.")
+  }
+
+  @inline private def registerAtoms(variables: Array[Int], cliqueID: Int): Unit ={
+    // Register (atomID -> cliqueID) mappings
+    for (variable <- variables; atomID = math.abs(variable))
+      atomRegisters(atomID % numOfAtomBatches) ! Register(atomID, cliqueID)
   }
 
 

@@ -102,7 +102,7 @@ final class MaxWalkSATSpecTest extends FunSpec with Matchers {
     }
 
     info("Creating MRF...")
-    val mrfBuilder = new MRFBuilder(mln, createDependencyMap = true)
+    val mrfBuilder = new MRFBuilder(mln, createDependencyMap = false)
     val mrf = mrfBuilder.buildNetwork
 
     describe("The constructed MRF") {

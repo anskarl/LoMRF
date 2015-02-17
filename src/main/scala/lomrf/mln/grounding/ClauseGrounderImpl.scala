@@ -197,7 +197,8 @@ class ClauseGrounderImpl(
               cliqueVariables(0) = -cliqueVariables(0)
               store(-clause.weight, cliqueVariables, -1)
               counter += 1
-            } else {
+            }
+            else {
               val posWeight = -clause.weight / cliqueVariables.length
               for (groundLiteral <- cliqueVariables) {
                 store(posWeight, Array(-groundLiteral), -1)
@@ -206,16 +207,24 @@ class ClauseGrounderImpl(
             }
           }
           else {
+
+            // When we have a typical ground clause, with at least two literals,
+            // we simply sort its literals and thereafter we store the ground clause.
             if (cliqueVariables.length > 1) {
               jutil.Arrays.sort(cliqueVariables)
               store(clause.weight, cliqueVariables, 1)
             }
-            else if(eliminateNegatedUnit && cliqueVariables.length == 1 && cliqueVariables(0) < 0){
-              cliqueVariables(0) = -cliqueVariables(0)
-              store(-clause.weight, cliqueVariables, -1)
+            // Otherwise, we have a unit ground clause
+            else {
+              // When the flag 'eliminateNegatedUnit=true' and its unique literal is negative
+              // then we negate the literal and invert the sign of its weight value
+              if(eliminateNegatedUnit && cliqueVariables(0) < 0){
+                cliqueVariables(0) = -cliqueVariables(0)
+                store(-clause.weight, cliqueVariables, -1)
+              }
+              // Otherwise, store the unit clause as it is.
+              else store(clause.weight, cliqueVariables, 1)
             }
-
-            
             counter += 1
           }
           counter = 1

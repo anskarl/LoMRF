@@ -86,6 +86,9 @@ package object grounding {
         other.hashKey == hashKey && other.weight == weight && jutil.Arrays.equals(other.variables, variables)
       case _ => false
     }
+
+    override def toString: String =
+      s"CliqueEntry(hashKey=$hashKey, weight=$weight, variables=[${variables.mkString(",")}], clauseID=$clauseID, freq=$freq)"
   }
 
 
