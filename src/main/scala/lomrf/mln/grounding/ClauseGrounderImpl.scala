@@ -234,7 +234,7 @@ class ClauseGrounderImpl(
       counter
     }
 
-     if (clause.isGround) performGrounding()
+    if (clause.isGround) performGrounding()
     else while (groundIterator.hasNext) performGrounding(theta = groundIterator.next())
 
   }

@@ -119,7 +119,7 @@ final class MaxWalkSATSpecTest extends FunSpec with Matchers {
       }
     }
 
-    describe("Running MAP inference using MaxWalkSAT") {
+    describe("The result of MAP inference using MaxWalkSAT") {
 
       val prefix = mlnFile.getParent.getAbsolutePath + sep + dbFile.getName.split(".db")(0)
 
@@ -133,46 +133,48 @@ final class MaxWalkSATSpecTest extends FunSpec with Matchers {
       solver.infer()
       solver.writeResults(resultsWriter)
 
+      info("Inspecting result file: '" + prefix + ".mws.result'")
+      val inferredResults = Source.fromFile(prefix + ".mws.result").getLines()
 
-      it("should have identical output with the corresponding golden standard result file") {
-        val inferredResults = Source.fromFile(prefix + ".mws.result").getLines()
+      // Create a Map [predicate -> value] that contains the expected output (Golden Standard)
+      val expectedResultsMap = Source
+        .fromFile(golden.getAbsolutePath)
+        .getLines()
+        .map(_.split(' '))
+        .map(entries => entries(0).trim -> entries(1).trim.toInt)
+        .toMap
 
-        // Create a Map [predicate -> value] that contains the expected output (Golden Standard)
-        val expectedResultsMap = Source
-          .fromFile(golden.getAbsolutePath)
-          .getLines()
-          .map(_.split(' '))
-          .map(entries => entries(0).trim -> entries(1).trim.toInt)
-          .toMap
 
-        println("Inspecting result file: '" + prefix + ".mws.result'")
-        var differences = 0
-        var countedResults = 0
+      var differences = 0
+      var countedResults = 0
 
-        for ((inferred, lineNumber) <- inferredResults.zipWithIndex) {
+      for ((inferred, lineNumber) <- inferredResults.zipWithIndex) {
 
-          val slittedLine = inferred.split(' ')
-          val inferredPredicateSrc = slittedLine(0)
-          val inferredValueSrc = slittedLine(1)
-          val inferredPredicate = inferredPredicateSrc.trim
-          val inferredValue = inferredValueSrc.trim.toInt
-          val expectedValueOpt = expectedResultsMap.get(inferredPredicate)
+        val slittedLine = inferred.split(' ')
+        val inferredPredicateSrc = slittedLine(0)
+        val inferredValueSrc = slittedLine(1)
+        val inferredPredicate = inferredPredicateSrc.trim
+        val inferredValue = inferredValueSrc.trim.toInt
+        val expectedValueOpt = expectedResultsMap.get(inferredPredicate)
 
-          countedResults += 1
+        countedResults += 1
 
-          assert(expectedValueOpt.isDefined)
-          val expectedValue = expectedValueOpt.get
+        assert(expectedValueOpt.isDefined)
+        val expectedValue = expectedValueOpt.get
 
-          if (inferredValue != expectedValue) {
-            differences += 1
-            println(s"\tLine '$lineNumber' the output ground predicate '$inferredPredicate' should be '" + expectedValue + "'")
-          }
-
+        if (inferredValue != expectedValue) {
+          differences += 1
+          info(s"\tLine '$lineNumber' the output ground predicate '$inferredPredicate' should be '" + expectedValue + "'")
         }
 
-        differences should equal(0)
+      }
 
-        countedResults should equal(expectedResultsMap.size)
+      it(s"produces MAP results for ${expectedResultsMap.size} ground query predicates."){
+        countedResults shouldBe expectedResultsMap.size
+      }
+
+      it("has identical output with the corresponding golden standard result file") {
+        differences should equal(0)
       }
 
     }
