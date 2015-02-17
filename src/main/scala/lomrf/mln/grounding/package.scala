@@ -34,8 +34,8 @@ package lomrf.mln
 
 import java.{util => jutil}
 
-import gnu.trove.map.TIntObjectMap
-import gnu.trove.map.hash.TIntObjectHashMap
+import gnu.trove.map.{TIntFloatMap, TIntIntMap, TIntObjectMap}
+import gnu.trove.map.hash.{TIntIntHashMap, TIntObjectHashMap}
 import gnu.trove.set.TIntSet
 import gnu.trove.set.hash.TIntHashSet
 import lomrf.logic.{AtomSignature, Clause}
@@ -44,6 +44,12 @@ import lomrf.logic.{AtomSignature, Clause}
  * @author Anastasios Skarlatidis
  */
 package object grounding {
+
+  // ----------------------------------------
+  // Types
+  // ----------------------------------------
+  type DependencyMap = TIntObjectMap[TIntFloatMap]
+
 
   // ----------------------------------------
   // Messages
@@ -58,15 +64,19 @@ package object grounding {
 
   private[grounding] case object GRND_Completed
 
-  private[grounding] case class Result(cliques: Array[TIntObjectMap[CliqueEntry]], atom2Cliques: Array[TIntObjectMap[TIntHashSet]], queryAtomIDs: Array[TIntSet])
+  private[grounding] case class Result(
+                                        cliques: Array[TIntObjectMap[CliqueEntry]],
+                                        atom2Cliques: Array[TIntObjectMap[TIntHashSet]],
+                                        queryAtomIDs: Array[TIntSet],
+                                        dependencyMap: Option[Array[DependencyMap]] = None)
 
   private[grounding] case class ClauseGroundingCompleted(clause: Clause, collectedSignatures: Set[AtomSignature])
 
   // Master -> GroundingWorker
-  private[grounding] case class Ground(clause: Clause, atomSignatures: Set[AtomSignature], atomsDB: Array[TIntSet])
+  private[grounding] case class Ground(clause: Clause, clauseIndex: Int, atomSignatures: Set[AtomSignature], atomsDB: Array[TIntSet])
 
   // GroundingWorker -> CliqueRegister
-  private[grounding] case class CliqueEntry(hashKey: Int, var weight: Double, variables: Array[Int]) {
+  private[grounding] case class CliqueEntry(hashKey: Int, var weight: Double, variables: Array[Int], clauseID: Int, freq: Int) {
 
 
     override def hashCode() = hashKey
@@ -76,6 +86,9 @@ package object grounding {
         other.hashKey == hashKey && other.weight == weight && jutil.Arrays.equals(other.variables, variables)
       case _ => false
     }
+
+    override def toString: String =
+      s"CliqueEntry(hashKey=$hashKey, weight=$weight, variables=[${variables.mkString(",")}], clauseID=$clauseID, freq=$freq)"
   }
 
 
@@ -89,7 +102,7 @@ package object grounding {
   private[grounding] case class Register(atomID: Int, cliqueID: Int)
 
   // CliqueRegister -> Master
-  private[grounding] case class CollectedCliques(index: Int, cliques: TIntObjectMap[CliqueEntry])
+  private[grounding] case class CollectedCliques(index: Int, cliques: TIntObjectMap[CliqueEntry], dependencyMap: Option[DependencyMap] = None)
 
   private[grounding] case class StartID(id: Int)
 

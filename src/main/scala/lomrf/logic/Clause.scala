@@ -82,6 +82,12 @@ final class Clause(val weight: Double, val literals: Set[Literal]){
    */
   def isDefiniteClause = literals.count(_.isPositive) == 1
 
+  /**
+   *
+   * @return the number of literals
+   */
+  def size = literals.size
+
   def toDefiniteClause = {
     literals.filter(_.isPositive).toList match {
       case p1 :: Nil =>
