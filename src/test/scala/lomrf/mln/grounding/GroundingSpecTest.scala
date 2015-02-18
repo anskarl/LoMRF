@@ -147,7 +147,7 @@ class GroundingSpecTest extends FunSpec with Matchers with Logging {
 
     val varIdx2ConstantSet: Map[Int, ConstantsSet] = var2Idx.map{ case (v: Variable, idx: Int) => idx -> mln.constants(v.domain)}.toMap
 
-    val matchTerms = matchedTerms(orderedLiterals, !_.isFunction)
+    val matchTerms = matchedTermsInLiterals(orderedLiterals, !_.isFunction)
 
 
 

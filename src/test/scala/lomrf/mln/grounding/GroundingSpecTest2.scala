@@ -40,9 +40,6 @@ import lomrf.tests.ECExampleDomain1._
 import lomrf.util.{AtomEvidenceDB, ConstantsSet}
 import org.scalatest.{FunSpec, Matchers}
 
-import scala.collection
-import scala.collection.mutable
-import scala.collection.parallel.mutable
 
 /**
  * @author Anastasios Skarlatidis
@@ -83,11 +80,16 @@ class GroundingSpecTest2 extends FunSpec with Matchers with Logging {
 
 
   //val formulaStr = "HoldsAt(f,t) ^ !TerminatedAt(f,t) ^ Next(t,tNext) => HoldsAt(f,tNext)."
-  //val formulaStr = "HoldsAt(f,t) ^ !TerminatedAt(f,t)  => HoldsAt(f, next(t))."
-  val formulaStr = "HoldsAt(f,t) ^ !TerminatedAt(f,t)  => HoldsAt(f, t+1)."
+  //val formulaStr = "HoldsAt(f,t) ^ !TerminatedAt(f,t) => HoldsAt(f, next(t))."
+  val formulaStr = "HoldsAt(f,t) ^ !TerminatedAt(f,t) => HoldsAt(f, t + 1 )."
+
+  val formula = parser.parseFormula(formulaStr)
+
 
   describe("Formula '" + formulaStr + "'") {
-    val formula = parser.parseFormula(formulaStr)
+
+
+
     val clauses = formula.toCNF(constants)
 
     it("produces a single clause") {
@@ -140,7 +142,7 @@ class GroundingSpecTest2 extends FunSpec with Matchers with Logging {
       var memory = Set[Term]()
       var result = Vector[(Term, String)]()
 
-      for (literal <- literals) {
+      for ((literal, literalIdx) <- literals.zipWithIndex) {
 
         queue ++= literal.sentence.terms.zip(predicateSchema(literal.sentence.signature))
 
@@ -158,7 +160,23 @@ class GroundingSpecTest2 extends FunSpec with Matchers with Logging {
 
             case f: TermFunction if dynamicFunctions.contains(f.signature) =>
               println("dynamicFunction with args: "+f.terms.mkString(", "))
-              error("Dynamic functions are not supported!")
+              //val unarySets = matchedTerms(f.terms, _.isConstant).map(c => ConstantsSet(c.symbol))
+              //unarySets.foreach(println)
+
+              val dynFDomains =
+                for((term, termIdx) <- f.terms.zipWithIndex) yield term match {
+                  case v: Variable => (v.domain, mln.constants(v.domain))
+                  case c: Constant => ("D"+literalIdx+":"+termIdx, ConstantsSet(c.symbol))
+                  case f: TermFunction => fatal("Recursive function definitions are not supported.")
+                }
+
+              println(s"term domains of dynamic function '${f.toText} = {${dynFDomains.mkString(",")}}'")
+
+              val dynFSchema = AtomSignature(f.symbol+"$L"+literalIdx, f.arity) -> (f.domain, dynFDomains.map(_._1).toVector)
+
+              println(s"schema of dynamic function '${f.toText} = {$dynFSchema}'")
+
+              error("Dynamic functions are not supported!") //todo
               sys.exit(1)
               //queue ++= f.terms.zip(dynamicFunctions(f.signature))
             case _ => //do nothing

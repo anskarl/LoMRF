@@ -32,17 +32,38 @@
 
 package lomrf.util
 
+import gnu.trove.iterator.TObjectIntIterator
 import gnu.trove.map.hash.TObjectIntHashMap
 import gnu.trove.TCollections
 import scala.collection.mutable
 import gnu.trove.map.TObjectIntMap
 
+sealed trait ConstantsSet extends Iterable[String]{
+
+  def apply(id: Int): String
+
+  def apply(constant: String): Int
+
+  def get(id: Int): Option[String]
+
+  def get(constant: String): Option[Int]
+
+  def contains(constant: String): Boolean
+
+  def valuesIterator: TObjectIntIterator[String]
+
+  def idsIterator: Iterator[Int]
+
+  def idsRange: Range
+
+}
+
 /**
  *
  * @author Anastasios Skarlatidis
  */
-final class ConstantsSet private[util](val constants2Id: TObjectIntMap[String],
-                                       id2Constants: mutable.ArrayBuffer[String]) extends Iterable[String] {
+final class MultipleConstantsSet private[util](constants2Id: TObjectIntMap[String],
+                                               id2Constants: mutable.ArrayBuffer[String]) extends ConstantsSet {
 
   import ConstantsSet.NO_ENTRY
 
@@ -75,21 +96,85 @@ final class ConstantsSet private[util](val constants2Id: TObjectIntMap[String],
 
   override def isEmpty: Boolean = id2Constants.isEmpty
 
-  override def toString(): String = {
-    "ConstantsSet{\n constants2Id->" + constants2Id + "\n" +
-      "id2Constants->" + id2Constants + "\n}"
+  override def toString(): String =
+    s"MultipleConstantsSet(const2id->{${constants2Id.size()} elements}, id2const->{${id2Constants.size} elements})"
+}
+
+final class UnaryConstantsSet(val element: String) extends ConstantsSet{
+  import ConstantsSet.NO_ENTRY
+
+
+  override def head: String = element
+
+  override def last: String = element
+
+  def apply(id: Int): String = if(id == 0) element else null
+
+  def apply(constant: String): Int = if(constant == element) 0 else NO_ENTRY
+
+  def get(id: Int): Option[String] = if(id == 0) Some(element) else None
+
+  def get(constant: String): Option[Int] = if(constant == element) Some(0) else None
+
+  override def size: Int = 1
+
+  def contains(constant: String): Boolean = constant == element
+
+  def valuesIterator = new TObjectIntIterator[String](){
+    private var hasNextFlag = true
+
+    override def key(): String = element
+
+    override def setValue(i: Int): Int =
+      throw new UnsupportedOperationException("UnaryConstantsSet is immutable.")
+
+    override def value(): Int = 0
+
+    override def advance(): Unit = hasNextFlag = false
+
+    override def remove(): Unit =
+      throw new UnsupportedOperationException("UnaryConstantsSet is immutable.")
+
+    override def hasNext: Boolean = hasNextFlag
   }
+
+  def idsIterator: Iterator[Int] = (0 until 1).iterator
+
+  def idsRange: Range = 0 to 0
+
+  override def iterator: Iterator[String] = new Iterator[String]{
+    private var hasNextFlag = true
+
+    override def hasNext: Boolean = hasNextFlag
+
+    override def next(): String = {
+      hasNextFlag = false
+      element
+    }
+  }
+
+  override def isEmpty: Boolean = false
+
+  override def toString(): String = s"UnaryConstantsSet($element)"
+
 }
 
 object ConstantsSet {
   val NO_ENTRY: Int = -1000
 
-  def apply: ConstantsSet = new ConstantsSet(new TObjectIntHashMap[String](23, 0.5f, NO_ENTRY), new mutable.ArrayBuffer[String]())
+  //def apply: ConstantsSet = new MultipleConstantsSet(new TObjectIntHashMap[String](23, 0.5f, NO_ENTRY), new mutable.ArrayBuffer[String]())
+
+  def apply(entry: String): ConstantsSet = new UnaryConstantsSet(entry)
 
   def apply(entries: String*): ConstantsSet = {
-    val builder = new ConstantsSetBuilder()
-    entries.foreach(builder += _)
-    builder.result
+
+    if(entries.size == 1) new UnaryConstantsSet(entries.head)
+    else {
+      val builder = new ConstantsSetBuilder()
+      entries.foreach(builder += _)
+      builder.result
+    }
+
   }
 }
 
@@ -124,7 +209,7 @@ final class ConstantsSetBuilder {
 
   def result: ConstantsSet = {
     dirty = true
-    new ConstantsSet(TCollections.unmodifiableMap(constants2Id), id2Constants)
+    new MultipleConstantsSet(TCollections.unmodifiableMap(constants2Id), id2Constants)
   }
 
   def clear() {
@@ -133,10 +218,9 @@ final class ConstantsSetBuilder {
     dirty = false
   }
 
-  override def toString: String = {
-    "ConstantsSetBuilder{\n constants2Id->" + constants2Id + "\n" +
-      "id2Constants->" + id2Constants + "\n}"
-  }
+  override def toString: String =
+    s"ConstantsSetBuilder(constants2Id->{${constants2Id.size()} elements}, id2Constants->{${id2Constants.size} elements})"
+
 
   def size = _size
 
