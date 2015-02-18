@@ -3,7 +3,7 @@ import com.typesafe.sbt.SbtNativePackager._
 /** Project */
 name := "LoMRF"
 
-version := "0.3.0-beta_201412"
+version := "0.3.0-beta_201502"
 
 organization := "com.github.anskarl"
 

@@ -15,9 +15,9 @@ VM_ARGS=""
 
 ETC_DIR="$base_dir/etc"
 
-if [ -f $ETC_DIR/application.conf ]; then
-  VM_ARGS=$VM_ARGS" -Dconfig.resource=$ETC_DIR/application.conf "
-fi
+#if [ -f $ETC_DIR/application.conf ]; then
+#  VM_ARGS=$VM_ARGS" -Dconfig.resource=$ETC_DIR/application.conf "
+#fi
 
 if [ -f $ETC_DIR/logback.xml ]; then
   VM_ARGS=$VM_ARGS" -Dlogback.configurationFile=$ETC_DIR/logback.xml "
