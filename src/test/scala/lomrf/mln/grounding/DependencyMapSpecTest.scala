@@ -90,7 +90,7 @@ class DependencyMapSpecTest extends FunSpec with Matchers {
           statsIterator.advance()
           val cid = statsIterator.key()
           val freq = statsIterator.value()
-          clauseWeight = if (mln.clauses(cid).isHard) 18.4 else mln.clauses(cid).weight //TODO: explain 18.4
+          clauseWeight = if (mln.clauses(cid).isHard) mrf.weightHard else mln.clauses(cid).weight
           total += clauseWeight * freq
         }
 
