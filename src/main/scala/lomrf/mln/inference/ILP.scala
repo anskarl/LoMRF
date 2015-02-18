@@ -253,16 +253,10 @@ final class ILP(mrf: MRF, annotationDB: Map[AtomSignature, AtomEvidenceDB] = Map
       solution.put(id, value)
     }
 
-    // create MRF state
-    //val state = MRFState(mrf)
-
     info("Number of non-integral solutions: " + nonIntegralSolutionsCounter)
     assert(state.countUnfixAtoms() == nonIntegralSolutionsCounter)
 
     val sRoundUp = System.currentTimeMillis()
-
-    // Should be executed here!
-    //state.evaluateState()
 
     if(nonIntegralSolutionsCounter > 0) {
 
@@ -280,7 +274,6 @@ final class ILP(mrf: MRF, annotationDB: Map[AtomSignature, AtomEvidenceDB] = Map
             fetchAtom(id).state = false
           }
           state.refineState(id)
-          //state.evaluateState()
           whenDebug { state.printStatistics() }
         }
       }

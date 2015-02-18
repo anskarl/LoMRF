@@ -87,6 +87,9 @@ libraryDependencies ++= Seq(
 	"com.github.anskarl" %% "auxlib-trove" % "0.1-SNAPSHOT"
 )
 
+// add optimus requires local publishing (for details see https://github.com/vagm/Optimus)
+//libraryDependencies += "com.github.vagm" %% "Optimus" % "1.0"
+
 // TODO: add abide support (see https://github.com/scala/scala-abide)
 
 // Include utility BASH scripts in the 'bin' directory
@@ -96,13 +99,3 @@ mappings in Universal <++= (packageBin in Compile) map { jar =>
     f -> ("bin/" + f.getName)
   }
 }
-
-// Include native libraries into the 'lib' directory, should become more general
-/*
-mappings in Universal <++= (packageBin in Compile) map { jar =>
-  val scriptsDir = new java.io.File("lib/native/linux/x86_64/")
-  scriptsDir.listFiles.toSeq.map { f =>
-    f -> ("lib/native/linux/x86_64/" + f.getName)
-  }
-}
-*/

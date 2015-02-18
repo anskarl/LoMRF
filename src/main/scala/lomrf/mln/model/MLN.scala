@@ -330,7 +330,7 @@ object MLN extends Logging {
   }
 
 
-  def apply1(mlnFileName: String,
+  def learning(mlnFileName: String,
             trainingFileNames: List[String],
             nonEvidenceAtoms: collection.Set[AtomSignature],
             pcm: PredicateCompletionMode = Decomposed,

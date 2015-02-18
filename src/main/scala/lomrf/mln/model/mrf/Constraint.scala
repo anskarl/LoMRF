@@ -45,7 +45,7 @@ final class Constraint(private[mln] var weight: Double, val literals: Array[Int]
   /**
    * High precision weight used for inference computations.
    */
-  // TODO ???
+  // TODO: Maybe we should create a custom setter-getter for this one!
   private[mln] def hpWeight = new LongDouble(weight)
 
   /**

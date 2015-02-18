@@ -99,30 +99,27 @@ final class MRFState private(val mrf: MRF,
    * @param atomID atom id
    * @return delta cost
    */
-  // TODO: Counting should be eliminated
   def computeDelta(atomID: Int): Double = {
     var delta = 0.0
 
-    var count = 0
     for(i <- (0 until Unsatisfied.size).optimized) {
       val constraint = Unsatisfied.apply(i)
 
-      if(constraint.literals.contains(atomID)) {
-        count += 1
-        if (constraint.weight > 1000) delta += 1000
-        else delta += constraint.weight
-      }
-      else if(constraint.literals.contains(-atomID)) {
-        count += 1
-        if (constraint.weight > 1000) delta -= 1000
-        else delta -= constraint.weight
-      }
+      if(constraint.literals.contains(atomID))
+        if (constraint.weight > 1000) delta += 1000 else delta += constraint.weight
+
+      else if(constraint.literals.contains(-atomID))
+        if (constraint.weight > 1000) delta -= 1000 else delta -= constraint.weight
     }
-    println("Unsat constraints found = " + count)
     delta
   }
 
-  // TODO: EXPERIMENTAL
+  /**
+   * Refine state by removing satisfied constraints by this atom id from the
+   * unsatisfied list. Used by ILP roundup procedure.
+   *
+   * @param atomID atom id
+   */
   def refineState(atomID: Int): Unit = {
     for(i <- (0 until Unsatisfied.size).optimized) {
       val constraint = Unsatisfied.apply(i)
@@ -131,13 +128,12 @@ final class MRFState private(val mrf: MRF,
     }
   }
 
-  // TODO: EXPERIMENTAL
+  /**
+   * Put all constraints to the unsatisfied list.
+   */
   def makeAllUnsatisfied(): Unit = {
-
-    // Recompute delta costs:
     val iterator = mrf.constraints.iterator()
 
-    // Current constraint
     var currentConstraint: Constraint = null
 
     while (iterator.hasNext) {

@@ -287,20 +287,22 @@ object MRFWriterCLI extends Logging {
       }
     })
 
-    booleanOpt("noNeg", "eliminate-negative-weights", "Eliminate negative weight values from ground clauses (default is " + _noNeg + ").", _noNeg = _)
+    flagOpt("noNegWeights", "eliminate-negative-weights", "Eliminate negative weight values from ground clauses.", {
+      _noNeg = true
+    })
 
-    booleanOpt("noNegatedUnit", "eliminate-negated-unit", "Eliminate negated unit ground clauses (default is " + _eliminateNegatedUnit + ").", _eliminateNegatedUnit = _)
+    flagOpt("noNegatedUnit", "eliminate-negated-unit", "Eliminate negated unit ground clauses.", {
+      _eliminateNegatedUnit = true
+    })
 
     opt("dynamic", "dynamic-implementations", "<string>", "Comma separated paths to search recursively for dynamic predicates/functions implementations (*.class and *.jar files).", {
       path: String => if (!path.isEmpty) implPaths = Some(path.split(','))
     })
 
-
     flagOpt("h", "help", "Print usage options.", {
       println(usage)
       sys.exit(0)
     })
-
 
     private def addQueryAtom(atom: String) {
       query += parseAtomSignature(atom).getOrElse(fatal("Cannot parse the arity of query atom: " + atom))
