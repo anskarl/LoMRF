@@ -30,47 +30,35 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package lomrf.util
+package lomrf.mln.grounding
 
-import lomrf.util.Cartesian.CartesianIteratorArithmeticImpl
-import org.scalatest.{Matchers, FunSpec}
+import auxlib.log.Logging
+import gnu.trove.set.hash.TIntHashSet
+import lomrf.logic.{AtomSignature, KBParser, _}
+import lomrf.mln.model.{AtomIdentifier, MLN}
+import lomrf.tests.ECExampleDomain1._
+import lomrf.util.AtomEvidenceDB
+import org.scalatest.{FunSpec, Matchers}
 
 /**
  * @author Anastasios Skarlatidis
  */
-class CartesianSpecTest extends FunSpec with Matchers {
+object GroundingMLNExp extends App with Logging {
 
-  // Note: the given domains should always be above zero
-  private val domainList = List(
-    Array(10, 5, 2),
-    Array(10, 1, 2),
-    Array(1, 1, 10),
-    Array(1, 10),
-    Array(5, 10),
-    Array(10),
-    Array(1)
-  )
+  val s = System.getProperty("file.separator")
+  val prefix = System.getProperty("user.dir") +"/Examples/data/caviar/video25_complete/".replace("/", s)
 
-  require(domainList.forall(_.forall(_ > 0)))
+  val mlnFileName = prefix + "dec7a_plus.mln"
+  val evidenceFileName = prefix + "fra1gt_evidence_succ.db"
+  val queryAtoms = Set(AtomSignature("HoldsAt", 2))
+  val owa = Set(AtomSignature("InitiatedAt",2), AtomSignature("TerminatedAt", 2))
+  val cwa = Set(
+    AtomSignature("HappensAt", 2),
+    AtomSignature("StartTime", 1),
+    AtomSignature("Close", 4),
+    AtomSignature("OrientationMove", 3))
 
-  for (domain <- domainList; (l, iteration) <- domain.permutations.zipWithIndex) {
-    val elements = l.map(_ - 1)
-    val expectedIterations = l.product // this is the correct number of products
+  val mln = MLN(mlnFileName, evidenceFileName, queryAtoms, owa, cwa)
 
-    describe("Cartesian product of domains [" + elements.map(_.toString).reduceLeft(_ + ", " + _) + "]") {
-
-      val iterator = new CartesianIteratorArithmeticImpl(elements)
-      val result = iterator.map(_.toString).toSet
-
-      info("iteration: " + iteration + "\n" +
-        "\telements = [" + elements.map(_.toString).reduceLeft(_ + ", " + _) + "]\n" +
-        "\texpected = " + expectedIterations + "\n" +
-        "\tproduced = " + result.size)
-
-      it("produces " + expectedIterations + " distinct Cartesian products") {
-        assert(expectedIterations == result.size)
-      }
-    }
-  }
-
+  println(mln.toString)
 }
