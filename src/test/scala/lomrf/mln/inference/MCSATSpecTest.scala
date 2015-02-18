@@ -32,14 +32,14 @@
 
 package lomrf.mln.inference
 
-import java.io.{FileOutputStream, PrintStream}
+import java.io.{File, FileOutputStream, PrintStream}
 
 import lomrf.logic.AtomSignature
 import lomrf.mln.grounding.MRFBuilder
 import lomrf.mln.model.MLN
 import lomrf.util.Utilities.io._
-import org.scalatest.{Matchers, FunSpec}
-import scala.collection.immutable.HashMap
+import org.scalatest.{FunSpec, Matchers}
+
 import scala.io.Source
 
 /**
@@ -51,112 +51,145 @@ import scala.io.Source
 final class MCSATSpecTest extends FunSpec with Matchers {
 
   private val sep = System.getProperty("file.separator")
-  private val testFilesPath = System.getProperty("user.dir") + sep + "Examples" + sep + "data" + sep +
-    "tests" + sep + "inference" + sep + "caviar" + sep + "DN" + sep
 
-  private val mlnFiles = findFiles(strToFile(testFilesPath), f => f.getName.contains(".mln"))
-  private val dbFilesList = findFiles(strToFile(testFilesPath), f => f.getName.contains(".db"))
-  private val goldenFilesList = findFiles(strToFile(testFilesPath), f => f.getName.contains(".mcsat.golden"))
+  private val mainPath = System.getProperty("user.dir") + sep +
+    "Examples" + sep + "data" + sep + "tests" + sep + "inference" + sep + "caviar" + sep + "DN"
 
-  describe("Caviar diagonal newton test in path: '" + testFilesPath + "'") {
+  val queryAtoms = Set(AtomSignature("HoldsAt", 2))
 
-    for(weightType <- List("HI")) {
-      for (fold <- 0 to 9) {
-        val mlnFile = mlnFiles.filter(f => f.getAbsolutePath.contains("fold_" + fold) &&
-          f.getAbsolutePath.contains(sep + weightType + sep))
-        val dbFiles = dbFilesList.filter(f => f.getAbsolutePath.contains("fold_" + fold) &&
-          f.getAbsolutePath.contains(sep + weightType + sep))
-        val goldenFiles = goldenFilesList.filter(f => f.getAbsolutePath.contains("fold_" + fold) &&
-          f.getAbsolutePath.contains(sep + weightType + sep))
+  val cwa = Set(
+    AtomSignature("Happens", 2), AtomSignature("Close", 4), AtomSignature("Next", 2),
+    AtomSignature("OrientationMove", 3), AtomSignature("StartTime", 1))
 
-        for(db <- dbFiles) {
-          describe("MLN from file '" + mlnFile(0) + "' with evidence from file '" + db) {
-            val mln = MLN(
-              mlnFileName = mlnFile(0).getAbsolutePath,
-              evidenceFileName = db.getAbsolutePath,
-              queryAtoms = Set(AtomSignature("HoldsAt", 2)),
-              cwa = Set(AtomSignature("Happens", 2), AtomSignature("Close", 4), AtomSignature("Next", 2),
-                AtomSignature("OrientationMove", 3), AtomSignature("StartTime", 1)))
+  val inertiaConfiguration = "HI"
 
-            info("Found " + mln.formulas.size + " formulas")
-            info("Found " + mln.constants.size + " constant types")
-            info("Found " + mln.predicateSchema.size + " predicate schemas")
-            info("Found " + mln.functionSchema.size + " function schemas")
+  for {
+    fold <- 0 to 9
 
-            it("should contain 25 formulas") {
-              mln.formulas.size should be(25)
-            }
+    currentPath = new File(mainPath + sep + inertiaConfiguration + sep + "meet" + sep + "fold_" + fold)
+    if currentPath.exists
 
-            it("should constants 5 constants sets (domains)") {
-              mln.constants.size should be(5)
-            }
+    mlnFile = findFirstFile(currentPath, _.getName.endsWith(".mln"))
+      .getOrElse(sys.error("Cannot find MLN in '"+currentPath+"'"))
 
-            it("should contain 6 predicate schemas") {
-              mln.predicateSchema.size should be(6)
-            }
+    expectedResultFiles = findFiles(currentPath, _.getName.endsWith(".mcsat.golden"))
 
-            it("should contain 7 function schemas") {
-              mln.functionSchema.size should be(7)
-            }
+    dbFile <- findFiles(currentPath, _.getName.endsWith(".db"))
+  } describe("Loading MLN theory from file '" + mlnFile + "', with evidence from file '" + dbFile) {
 
-            describe("Creating MRF from previous MLN") {
+    val mln = MLN(mlnFile.getAbsolutePath, dbFile.getAbsolutePath, queryAtoms, cwa)
 
-              info("Creating MRF...")
-              val mrfBuilder = new MRFBuilder(mln)
-              val mrf = mrfBuilder.buildNetwork
+    val stats = Source
+      .fromFile(dbFile.getAbsolutePath.replace(".db", ".statistics"))
+      .getLines()
+      .map(line => line.split('='))
+      .map(entries => entries(0) -> entries(1))
+      .toMap
 
-              info("Created " + mrf.numberOfAtoms + " ground atoms")
-              info("Created " + mrf.numberOfConstraints + " ground clauses")
+    it(s"should contain ${stats("mln.formulas.size")} formulas") {
+      mln.formulas.size should be(stats("mln.formulas.size").toInt)
+    }
 
-              describe("Running marginal inference using MCSAT") {
+    it(s"should constants ${stats("mln.constants.size")} constants sets (domains)") {
+      mln.constants.size should be(stats("mln.constants.size").toInt)
+    }
 
-                val prefix = db.getName.split(".db")(0)
-                val golden = goldenFiles.find(f => f.getName.contains(prefix)).get
+    it(s"should contain ${stats("mln.predicateSchema.size")} predicate schemas") {
+      mln.predicateSchema.size should be(stats("mln.predicateSchema.size").toInt)
+    }
 
-                val resultsWriter = new PrintStream(
-                  new FileOutputStream(
-                    mlnFile(0).getParent.getAbsolutePath + sep + prefix + ".mcsat.result"), true)
+    it(s"should contain ${stats("mln.functionSchema.size")} function schemas") {
+      mln.functionSchema.size should be(stats("mln.functionSchema.size").toInt)
+    }
 
-                val solver = new MCSAT(mrf)
-                solver.infer()
-                solver.writeResults(resultsWriter)
+    info("Creating MRF...")
+    val mrfBuilder = new MRFBuilder(mln, createDependencyMap = false)
+    val mrf = mrfBuilder.buildNetwork
 
-                var results = HashMap[String, Double]()
-                for (line <- Source.fromFile(mlnFile(0).getParent.getAbsolutePath + sep + prefix + ".mcsat.result").getLines()) {
-                  val element = line.split(" ")
-                  results += ((element(0), element(1).toDouble))
-                }
+    describe("The constructed MRF") {
+      it(s"should contain ${stats("mrf.atoms.size")} ground atoms") {
+        mrf.atoms.size should be(stats("mrf.atoms.size").toInt)
+      }
 
-                var standard = HashMap[String, Double]()
-                for (line <- Source.fromFile(golden.getAbsolutePath).getLines()) {
-                  val element = line.split(" ")
-                  standard += ((element(0), element(1).toDouble))
-                }
+      it(s"should contain ${stats("mrf.constraints.size")} ground clauses") {
+        mrf.constraints.size should be(stats("mrf.constraints.size").toInt)
+      }
 
-                var max = 0.0
-                var total = 0.0
-                for( (atom, p) <- results) {
-                  val diff = math.abs(p - standard.get(atom).get)
-                  total += diff
-                  if(diff > max)
-                    max = diff
-                }
-                info("Maximum error: " + max)
-                info("Average error " + total/results.size.toDouble)
+      it(s"should has ${stats("mrf.weightHard")} as hard weight value") {
+        mrf.weightHard should be(stats("mrf.weightHard").toDouble)
+      }
+    }
 
-                it("should be less or equal than 0.1") {
-                  assert(max <= 0.1)
-                }
+    describe("The result of marginal inference using MCSAT") {
 
-              }
-            }
+      val prefix = mlnFile.getParent.getAbsolutePath + sep + dbFile.getName.split(".db")(0)
+
+      val golden = expectedResultFiles
+        .find(f => f.getName.contains(dbFile.getName.split(".db")(0)))
+        .getOrElse(sys.error("Failed to locate golden standard file."))
+
+
+      val solver = new MCSAT(mrf)
+      solver.infer()
+      solver.writeResults(new PrintStream(new FileOutputStream(prefix + ".mcsat.result"), true))
+
+      info("Inspecting result file: '" + prefix + ".mcsat.result'")
+
+      val inferredResults = Source.fromFile(prefix + ".mcsat.result").getLines()
+
+      // Create a Map [predicate -> value] that contains the expected output (Golden Standard)
+      val expectedResultsMap = Source
+        .fromFile(golden.getAbsolutePath)
+        .getLines()
+        .map(_.split(' '))
+        .map(entries => entries(0).trim -> entries(1).trim.toDouble)
+        .toMap
+
+      var majorDifferences = 0
+      var totalError = 0.0
+      var countedResults = 0
+
+      for ((inferred, lineNumber) <- inferredResults.zipWithIndex) {
+
+        val slittedLine = inferred.split(' ')
+        val inferredPredicateSrc = slittedLine(0)
+        val inferredValueSrc = slittedLine(1)
+        val inferredPredicate = inferredPredicateSrc.trim
+        val inferredValue = inferredValueSrc.trim.toDouble
+        val expectedValueOpt = expectedResultsMap.get(inferredPredicate)
+
+        countedResults += 1
+
+        assert(expectedValueOpt.isDefined)
+        val expectedValue = expectedValueOpt.get
+
+        if (inferredValue != expectedValue) {
+          val currentError = math.abs(expectedValue - inferredValue)
+
+          totalError += currentError
+
+          if(currentError >= 0.2 ){
+            majorDifferences += 1
+            info(s"\tLine '$lineNumber': The estimated probability of '$inferredPredicate' is '$inferredValue' which differs significantly (>=0.2 p.p.) from the expected probability '" + expectedValue + "'")
           }
-
         }
 
       }
-    }
-  }
 
+      it(s"produces marginal probabilities for ${expectedResultsMap.size} ground query predicates."){
+        countedResults shouldBe expectedResultsMap.size
+      }
+
+      it("has average error less than 0.01") {
+        assert((totalError / countedResults) <= 0.01)
+      }
+
+      it("has maximum error less than 0.2") {
+        majorDifferences shouldBe 0
+      }
+
+    }
+
+  }
 
 }

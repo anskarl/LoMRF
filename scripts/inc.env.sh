@@ -13,12 +13,14 @@ TERMINAL_WITH=$(tput cols)
 
 VM_ARGS=""
 
-if [ -f $base_dir/application.conf ]; then
-  VM_ARGS=$VM_ARGS" -Dconfig.resource=$base_dir/application.conf "
+ETC_DIR="$base_dir/etc"
+
+if [ -f $ETC_DIR/application.conf ]; then
+  VM_ARGS=$VM_ARGS" -Dconfig.resource=$ETC_DIR/application.conf "
 fi
 
-if [ -f $base_dir/logback.xml ]; then
-  VM_ARGS=$VM_ARGS" -Dlogback.configurationFile=$base_dir/logback.xml "
+if [ -f $ETC_DIR/logback.xml ]; then
+  VM_ARGS=$VM_ARGS" -Dlogback.configurationFile=$ETC_DIR/logback.xml "
 fi
 
 VM_ARGS=$VM_ARGS" -XX:+DoEscapeAnalysis -XX:+UseFastAccessorMethods -XX:+OptimizeStringConcat"

@@ -80,22 +80,28 @@ libraryDependencies += "com.nativelibs4java" %% "scalaxy-loops" % "0.3.3" % "pro
 // JTS Topology API for modelling and manipulating 2-dimensional linear geometry
 libraryDependencies += "com.vividsolutions" % "jts" % "1.13"
 
-// add auxlib-* requires local publishing (for details see https://github.com/anskarl/auxlib)
+// Adding auxlib library requires local publishing (for details see https://github.com/anskarl/auxlib)
 libraryDependencies ++= Seq(
 	"com.github.anskarl" %% "auxlib-log" % "0.1-SNAPSHOT",
 	"com.github.anskarl" %% "auxlib-opt" % "0.1-SNAPSHOT",
 	"com.github.anskarl" %% "auxlib-trove" % "0.1-SNAPSHOT"
 )
 
-// add optimus requires local publishing (for details see https://github.com/vagm/Optimus)
-//libraryDependencies += "com.github.vagm" %% "Optimus" % "1.0"
+// Adding optimus library requires local publishing (for details see https://github.com/vagm/Optimus)
+libraryDependencies += "com.github.vagm" %% "optimus" % "1.0"
 
-// TODO: add abide support (see https://github.com/scala/scala-abide)
-
-// Include utility BASH scripts in the 'bin' directory
+// Include utility bash scripts in the 'bin' directory
 mappings in Universal <++= (packageBin in Compile) map { jar =>
   val scriptsDir = new java.io.File("scripts/")
   scriptsDir.listFiles.toSeq.map { f =>
     f -> ("bin/" + f.getName)
+  }
+}
+
+// Include logger configuration file to the final distribution
+mappings in Universal <++= (packageBin in Compile) map { jar =>
+  val scriptsDir = new java.io.File("src/main/resources/")
+  scriptsDir.listFiles.toSeq.map { f =>
+    f -> ("etc/" + f.getName)
   }
 }

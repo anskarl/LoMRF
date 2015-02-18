@@ -115,7 +115,7 @@ final class MRFState private(val mrf: MRF,
   }
 
   /**
-   * Refine state by removing satisfied constraints by this atom id from the
+   * Refine state by removing satisfied constraints by this atom from the
    * unsatisfied list. Used by ILP roundup procedure.
    *
    * @param atomID atom id
@@ -129,7 +129,8 @@ final class MRFState private(val mrf: MRF,
   }
 
   /**
-   * Put all constraints to the unsatisfied list.
+   * Make all constraints unsatisfied by appending the to the
+   * unsatisfied list. Used by the ILP roundup procedure.
    */
   def makeAllUnsatisfied(): Unit = {
     val iterator = mrf.constraints.iterator()
@@ -316,15 +317,15 @@ final class MRFState private(val mrf: MRF,
     //var done = false
     val done = new AtomicBoolean(false)
 
-    while (/*!done*/ !done.get()) {
+    while (!done.get()) {
       //done = true
       done.set(true)
       parConstraints.foreach { constraint =>
-      /*val pIterator = mrf.constraints.iterator()
+        /*val pIterator = mrf.constraints.iterator()
 
-      while (pIterator.hasNext) {
-        pIterator.advance()
-        val constraint = pIterator.value()*/
+        while (pIterator.hasNext) {
+          pIterator.advance()
+          val constraint = pIterator.value()*/
         if (!constraint.inactive && constraint.isPositive && !constraint.isSatisfiedByFixed) {
 
           var numOfNonFixedAtoms = 0

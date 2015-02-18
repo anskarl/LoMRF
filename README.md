@@ -12,9 +12,9 @@ This program comes with ABSOLUTELY NO WARRANTY. This is free software, and you a
   * Predicate completion.
   * Knowledge base simplification.
   * Clausal form transformation.
-  * Replacement of functions with utility predicates.
+  * Replacement of functions with utility predicates and vice versa.
   * Reads and produces Alchemy compatible MLN files.
-2. Support for marginal (MC-SAT) and MAP (via MaxWalkSAT and lp-relaxed Integer Linear Programming) inference.
+2. Support for marginal (MC-SAT) and MAP (via MaxWalkSAT and LP-relaxed Integer Linear Programming) inference.
 3. Parallel grounding algorithm based on [Akka actors library](http://akka.io/).
 4. Can export ground MRF in various formats (mrfwriter).
 
@@ -23,9 +23,9 @@ What is missing? Many features, but most important weight learning algorithms.
 
 ## Instrunctions to build LoMRF from source
 
-In order to build LoMRF from source, you need to have Java 7 and [sbt](http://www.scala-sbt.org/) installed in your system. Furthermore, LoMRF build depends on the [auxlib](https://github.com/anskarl/auxlib) (v0.1-SNAPSHOT), as well as to [lp_solve](http://lpsolve.sourceforge.net), [Gurobi](http://www.gurobi.com/) and [OscaR](http://oscarlib.bitbucket.org/).
+In order to build LoMRF from source, you need to have Java 7 and [sbt](http://www.scala-sbt.org/) installed in your system. Furthermore, LoMRF build depends on the [auxlib](https://github.com/anskarl/auxlib) (v0.1-SNAPSHOT), as well as to [Optimus](https://github.com/vagm/Optimus), [lp_solve](http://lpsolve.sourceforge.net), [Gurobi](http://www.gurobi.com/) and [oJalgo](http://www.ojalgo.org/).
 
-Step 1. To clone and publish localy the auxlib project, type the following commands:
+Step 1. To clone and publish locally the auxlib project, type the following commands:
 
 ```
 $ git clone https://github.com/anskarl/auxlib.git
@@ -33,45 +33,28 @@ $ cd auxlib
 $ sbt publishLocal
 ```
 
-Step 2. Include lp_solve, Gurobi and OscaR library dependencies to `./lib`, as it is illustrated in the tree below:
+Step 2. To clone and publish locally the Optimus project, follow the instructions [here](https://github.com/vagm/Optimus).
+
+Step 3. Include lp_solve, Gurobi and oJalgo library dependencies to `./lib`, as it is illustrated in the tree below:
 
 ```
 .
-|-- glpk-java.jar
 |-- gurobi.jar
 |-- lpsolve55j.jar
-|-- native
-|   `-- linux
-|       |-- x86_32
-|       `-- x86_64
-|           |-- libGurobiJni60.so
-|           |-- libglpk.so.0
-|           |-- libglpk_java.so
-|           |-- libgurobi.so.6.0.0
-|           |-- libgurobi60.so -> ./libgurobi.so.6.0.0
-|           |-- liblpsolve55.so
-|           `-- liblpsolve55j.so
-|-- oscar-algebra_2.10-1.0.0.jar
-|-- oscar-algo_2.10-1.0.0.jar
-|-- oscar-cbls_2.10-1.0.0.jar
-|-- oscar-cp_2.10-1.0.0.jar
-|-- oscar-des_2.10-1.0.0.jar
-|-- oscar-dfo_2.10-1.0.0.jar
-|-- oscar-invariants_2.10-1.0.0.jar
-|-- oscar-linprog_2.10-1.0.0.jar
-|-- oscar-util_2.10-1.0.0.jar
-|-- oscar-visual_2.10-1.0.0.jar
-`-- oscar_2.10-1.0.0.jar
+|-- mosek.jar
+|-- ojalgo-37.0.jar
+|-- ojalgo-biz-37.0.jar
+|-- ojalgo-ext-37.0.jar
 
 ```
 
-Step 3. To start building the LoMRF distributon, type the following command:
+Step 4. To start building the LoMRF distribution, type the following command:
 
 ```
 $ sbt dist
 ```
 
-After a successful compilation, the LoMRF distributon is located inside the `./target/universal/lomrf-<version>.zip` file. You can extract this file and add the `path/to/lomrf-<version>/bin` in your PATH, in order to execute the LoMRF scripts from terminal. The distributon contains all library dependencies and requires only a Java 7 (or higher runtime). Sources, documentation and the compiled library (without dependencies) are archived as jar files into the `./target/scala-2.10/` directory.
+After a successful compilation, the LoMRF distribution is located inside the `./target/universal/lomrf-<version>.zip` file. You can extract this file and add the `path/to/lomrf-<version>/bin` in your PATH, in order to execute the LoMRF scripts from terminal. The distribution contains all library dependencies and requires only a Java 7 (or higher runtime). Sources, documentation and the compiled library (without dependencies) are archived as jar files into the `./target/scala-2.10/` directory.
 
 The resulting documentation is located inside the `./target/site/scaladocs` directory.
 

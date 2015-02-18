@@ -1,0 +1,9 @@
+mln.formulas.size=25
+mln.constants.size=5
+mln.predicateSchema.size=6
+mln.functionSchema.size=7
+mrf.atoms.size=4028
+mrf.constraints.size=9860
+mrf.nLit2Constraints.size=4028
+mrf.pLit2Constraints.size=4028
+mrf.weightHard=4.854914154028684E15

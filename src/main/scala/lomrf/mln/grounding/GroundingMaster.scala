@@ -42,16 +42,22 @@ import gnu.trove.set.hash.TIntHashSet
 import lomrf._
 import lomrf.logic.{AtomSignature, AtomicFormula, Clause, Variable}
 import lomrf.mln.model.MLN
+import scalaxy.loops._
 
 import scala.collection.breakOut
 
 /**
  * @author Anastasios Skarlatidis
  */
-private final class GroundingMaster(mln: MLN, latch: CountDownLatch, noNegWeights: Boolean, eliminateNegatedUnit: Boolean) extends Actor with Logging {
+private final class GroundingMaster(mln: MLN,
+                                    latch: CountDownLatch,
+                                    noNegWeights: Boolean,
+                                    eliminateNegatedUnit: Boolean,
+                                    createDependencyMap: Boolean) extends Actor with Logging {
 
   private val _variables2Cliques = new Array[TIntObjectMap[TIntHashSet]](processors)
   private val _cliques = new Array[TIntObjectMap[CliqueEntry]](processors)
+  private lazy val _dependencyMap = new Array[DependencyMap](processors)
   private val _queryAtomIDs = new Array[TIntSet](processors)
   private val atomsDB = new Array[TIntSet](processors)
 
@@ -68,7 +74,7 @@ private final class GroundingMaster(mln: MLN, latch: CountDownLatch, noNegWeight
   private var cliqueStartID = 0
   private var groundingIterations = 1
   //private var remainingClauses: Set[Clause] = mln.clauses
-  private var remainingClauses: Vector[Clause] = mln.clauses
+  private var remainingClauses: Vector[(Clause, Int)] = mln.clauses.zipWithIndex
   private var atomSignatures: Set[AtomSignature] = mln.queryAtoms.toSet
 
 
@@ -79,7 +85,7 @@ private final class GroundingMaster(mln: MLN, latch: CountDownLatch, noNegWeight
 
   private val cliqueRegisters: Array[ActorRef] = (
     for (i <- 0 until processors)
-    yield context.actorOf(Props(new CliqueRegisterWorker(i, this.self, atomRegisters)), name = "clique_register-" + i)
+    yield context.actorOf(Props(new CliqueRegisterWorker(i, this.self, atomRegisters, createDependencyMap)), name = "clique_register-" + i)
     )(breakOut)
 
   private val clauseGroundingWorkers: Array[ActorRef] = {
@@ -94,30 +100,32 @@ private final class GroundingMaster(mln: MLN, latch: CountDownLatch, noNegWeight
       + "\n\tTotal clique registry workers to use: " + cliqueRegisters.length
       + "\n\tTotal grounding workers to use: " + clauseGroundingWorkers.length)
 
+    val numberOfClauses = remainingClauses.size
+
     // To make sure that all ground query predicates will be stored in the network,
     // insert all ground query predicates as zero weighted unit clauses
-    for (signature <- mln.queryAtoms) {
+    for ((signature, qidx) <- mln.queryAtoms.zipWithIndex) {
       val terms = mln.predicateSchema(signature).view.zipWithIndex.map {
-          case (argType: String, idx: Int) => Variable("v" + idx, argType, idx)
-        }.toVector
+        case (argType: String, idx: Int) => Variable("v" + idx, argType, idx)
+      }.toVector
       //remainingClauses += Clause(0, AtomicFormula(signature.symbol, terms))
-      remainingClauses :+= Clause(0, AtomicFormula(signature.symbol, terms))
+      remainingClauses :+=(Clause(0, AtomicFormula(signature.symbol, terms)), numberOfClauses + qidx)
     }
 
     performGrounding()
   }
 
   private def performGrounding() {
-    var remaining = Vector[Clause]()
+    var remaining = Vector[(Clause, Int)]()
     var counter = 0
     clauseCounter = 0
-    for (clause <- remainingClauses) {
+    for ((clause, clauseIndex) <- remainingClauses) {
       if (clause.literals.exists(literal => atomSignatures.contains(literal.sentence.signature))) {
-        clauseGroundingWorkers(workerIdx) ! Ground(clause, atomSignatures, atomsDB)
+        clauseGroundingWorkers(workerIdx) ! Ground(clause, clauseIndex, atomSignatures, atomsDB)
         workerIdx = if (workerIdx == clauseGroundingWorkers.length - 1) 0 else workerIdx + 1
         counter += 1
       }
-      else remaining :+= clause
+      else remaining :+=(clause, clauseIndex)
 
 
     }
@@ -171,8 +179,12 @@ private final class GroundingMaster(mln: MLN, latch: CountDownLatch, noNegWeight
       sender ! PoisonPill
       cliqueStartID += size
 
-    case CollectedCliques(index, cliques) =>
+    case CollectedCliques(index, cliques, dependencyMap) =>
       _cliques(index) = cliques
+
+      if(createDependencyMap)
+        _dependencyMap(index) = dependencyMap.getOrElse(fatal("dependencyMap is note defined."))
+
       cliqueBatchesCounter += 1
       if (cliqueBatchesCounter == processors) atomRegisters.foreach(_ ! PoisonPill)
 
@@ -184,7 +196,11 @@ private final class GroundingMaster(mln: MLN, latch: CountDownLatch, noNegWeight
       if (atomBatchesCounter == processors) killAll()
 
 
-    case REQUEST_RESULTS => if (completed) sender ! Result(_cliques, _variables2Cliques, _queryAtomIDs) else sender ! None
+    case REQUEST_RESULTS =>
+      if (completed)
+        sender ! Result(_cliques, _variables2Cliques, _queryAtomIDs, if(createDependencyMap) Some(_dependencyMap) else None)
+      else sender ! None
+
     case msg => fatal("Master --- Received an unknown message '" + msg + "' from " + sender)
   }
 
