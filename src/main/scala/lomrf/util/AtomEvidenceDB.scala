@@ -32,6 +32,7 @@
 
 package lomrf.util
 
+import auxlib.log.Logging
 import lomrf.logic._
 import gnu.trove.set.hash.TIntHashSet
 import gnu.trove.set.TIntSet
@@ -47,11 +48,10 @@ import gnu.trove.map.TIntDoubleMap
  * in order to instantiate the appropriate database implementation.
  *
  * @param identity the atom identity [[lomrf.util.AtomIdentityFunction]]
- * @param mapping atom's argument type to position
  *
  * @author Anastasios Skarlatidis
  */
-abstract class AtomEvidenceDB(val identity: AtomIdentityFunction, mapping: Map[String, Int]) {
+abstract class AtomEvidenceDB(val identity: AtomIdentityFunction) extends Logging {
 
   // The atom's first id in the space of ground atom ids
   protected val bottomBound = identity.startID
@@ -232,12 +232,12 @@ abstract class AtomEvidenceDB(val identity: AtomIdentityFunction, mapping: Map[S
   protected def fetch(id: Int): TriState
 
   protected final def checkBounds(id: Int) {
-    if (!isBetweenBounds(id)) sys.error("Out of bounds!")
+    if (!isBetweenBounds(id)) error("Out of bounds!")
   }
 
   protected final def checkLength(args: Seq[String]) {
     if (args.length != arity)
-      sys.error("The length of the arguments is not the same with the predicate arity of this database (" + args.size + " != " + arity + ").")
+      error("The length of the arguments is not the same with the predicate arity of this database (" + args.size + " != " + arity + ").")
   }
 
   private final def isBetweenBounds(id: Int): Boolean = id <= upperBound && id >= bottomBound
@@ -261,7 +261,7 @@ abstract class AtomEvidenceDB(val identity: AtomIdentityFunction, mapping: Map[S
 
 object AtomEvidenceDB {
 
-  object CWA{
+  object CWA {
 
     /**
      * Creates an AtomEvidenceDB with closed-world assumption, i.e. contains all ground evidence atoms
@@ -269,12 +269,11 @@ object AtomEvidenceDB {
      *
      * @param positives the collection of positive ground atom ids (i.e. their state is fixed to True).
      * @param identity the identity of the atom [[lomrf.util.AtomIdentityFunction]]
-     * @param mapping a map that associates atom's argument type to position
      *
      * @return an AtomEvidenceDB instance
      */
-    def apply(positives: TIntSet, identity: AtomIdentityFunction, mapping: Map[String, Int]): AtomEvidenceDB =
-      new DBCWA(positives, identity, mapping)
+    def apply(positives: TIntSet, identity: AtomIdentityFunction): AtomEvidenceDB =
+      new DBCWA(positives, identity)
 
     /**
      * Creates an AtomEvidenceDB containing atoms where their state is either True or Unknown.
@@ -283,12 +282,11 @@ object AtomEvidenceDB {
      * @param positives a collection of ground atom ids, where their state is explicitly defined as True
      * @param unknown a collection of ground atom ids, where their state is explicitly defined as Unknown
      * @param identity the identity of the atom [[lomrf.util.AtomIdentityFunction]]
-     * @param mapping a map that associates atom's argument type to position
      *
      * @return an AtomEvidenceDB instance
      */
-    def apply(positives: TIntSet, unknown: TIntSet, identity: AtomIdentityFunction, mapping: Map[String, Int]): AtomEvidenceDB =
-      new DBCWA_UNK(positives, unknown, identity, mapping)
+    def apply(positives: TIntSet, unknown: TIntSet, identity: AtomIdentityFunction): AtomEvidenceDB =
+      new DBCWA_UNK(positives, unknown, identity)
 
     /**
      * Creates an AtomEvidenceDB with closed-world assumption and probabilistic evidence.
@@ -296,16 +294,25 @@ object AtomEvidenceDB {
      * @param positives the collection of positive ground atom ids (i.e. their state is fixed to True).
      * @param probabilistic the collection of probabilistic ground atom ids (i.e. their state is True with some probability).
      * @param identity the identity of the atom [[lomrf.util.AtomIdentityFunction]]
-     * @param mapping a map that associates atom's argument type to position
      *
      * @return an AtomEvidenceDB instance
      */
-    def apply(positives: TIntSet, probabilistic: TIntDoubleMap, identity: AtomIdentityFunction, mapping: Map[String, Int]): AtomEvidenceDB =
-      new DBProbCWA(positives, probabilistic, identity, mapping)
+    def apply(positives: TIntSet, probabilistic: TIntDoubleMap, identity: AtomIdentityFunction): AtomEvidenceDB =
+      new DBProbCWA(positives, probabilistic, identity)
 
   }
 
-  object OWA{
+  object OWA {
+
+    /**
+     * Creates an AtomEvidenceDB with open-world assumption.
+     *
+     * @param identity the identity of the atom [[lomrf.util.AtomIdentityFunction]]
+     *
+     * @return an AtomEvidenceDB instance
+     */
+    def apply(identity: AtomIdentityFunction): AtomEvidenceDB = new DBOWA(new TIntHashSet(), new TIntHashSet(), identity)
+
 
     /**
      * Creates an AtomEvidenceDB with open-world assumption.
@@ -313,11 +320,10 @@ object AtomEvidenceDB {
      * @param positives the collection of positive ground atom ids (i.e. their state is fixed to True).
      * @param negatives the collection of negative ground atom ids (i.e. their state is fixed to False).
      * @param identity the identity of the atom [[lomrf.util.AtomIdentityFunction]]
-     * @param mapping a map that associates atom's argument type to position
      *
      * @return an AtomEvidenceDB instance
      */
-    def apply(positives: TIntSet, negatives: TIntSet, identity: AtomIdentityFunction, mapping: Map[String, Int]): AtomEvidenceDB = new DBOWA(positives, negatives, identity, mapping)
+    def apply(positives: TIntSet, negatives: TIntSet, identity: AtomIdentityFunction): AtomEvidenceDB = new DBOWA(positives, negatives, identity)
 
     /**
      * Creates an AtomEvidenceDB with open-world assumption and probabilistic evidence
@@ -326,12 +332,11 @@ object AtomEvidenceDB {
      * @param negatives the collection of negative ground atom ids (i.e. their state is fixed to False).
      * @param probabilistic the collection of probabilistic ground atom ids (i.e. their state is True with some probability).
      * @param identity the identity of the atom [[lomrf.util.AtomIdentityFunction]]
-     * @param mapping a map that associates atom's argument type to position
      *
      * @return an AtomEvidenceDB instance
      */
-    def apply(positives: TIntSet, negatives: TIntSet, probabilistic: TIntDoubleMap, identity: AtomIdentityFunction, mapping: Map[String, Int]): AtomEvidenceDB = {
-      new DBProbOWA(positives, negatives, probabilistic, identity, mapping)
+    def apply(positives: TIntSet, negatives: TIntSet, probabilistic: TIntDoubleMap, identity: AtomIdentityFunction): AtomEvidenceDB = {
+      new DBProbOWA(positives, negatives, probabilistic, identity)
     }
 
   }
@@ -340,17 +345,17 @@ object AtomEvidenceDB {
   /**
    * Creates an AtomEvidenceDB, where all its atoms have the specified state.
    */
-  def apply(identity: AtomIdentityFunction, mapping: Map[String, Int], state: TriState): AtomEvidenceDB = {
+  def apply(identity: AtomIdentityFunction, state: TriState): AtomEvidenceDB = {
     state match {
-      case TRUE => new DummyDBTrue(identity, mapping)
-      case FALSE => new DummyDBFalse(identity, mapping)
-      case UNKNOWN => new DummyDBUnknown(identity, mapping)
+      case TRUE => new DummyDBTrue(identity)
+      case FALSE => new DummyDBFalse(identity)
+      case UNKNOWN => new DummyDBUnknown(identity)
     }
   }
 
 }
 
-private class DBCWA(positives: TIntSet, override val identity: AtomIdentityFunction, mapping: Map[String, Int]) extends AtomEvidenceDB(identity, mapping) {
+private class DBCWA(positives: TIntSet, override val identity: AtomIdentityFunction) extends AtomEvidenceDB(identity) {
 
   protected def fetch(id: Int): TriState = if (positives.contains(id)) TRUE else FALSE
 
@@ -376,7 +381,7 @@ private class DBCWA(positives: TIntSet, override val identity: AtomIdentityFunct
 }
 
 private class DBCWA_UNK(positives: TIntSet, unknown: TIntSet,
-                        override val identity: AtomIdentityFunction, mapping: Map[String, Int]) extends AtomEvidenceDB(identity, mapping) {
+                        override val identity: AtomIdentityFunction) extends AtomEvidenceDB(identity) {
 
   protected def fetch(id: Int): TriState = {
     if (positives.contains(id)) TRUE
@@ -413,7 +418,7 @@ private class DBCWA_UNK(positives: TIntSet, unknown: TIntSet,
   }
 }
 
-private class DBOWA(positives: TIntSet, negatives: TIntSet, override val identity: AtomIdentityFunction, mapping: Map[String, Int]) extends AtomEvidenceDB(identity, mapping) {
+private class DBOWA(positives: TIntSet, negatives: TIntSet, override val identity: AtomIdentityFunction) extends AtomEvidenceDB(identity) {
 
   private val allUnknown = positives.isEmpty && negatives.isEmpty
 
@@ -455,7 +460,7 @@ private class DBOWA(positives: TIntSet, negatives: TIntSet, override val identit
 
 }
 
-private class DummyDBUnknown(override val identity: AtomIdentityFunction, mapping: Map[String, Int]) extends AtomEvidenceDB(identity, mapping) {
+private class DummyDBUnknown(override val identity: AtomIdentityFunction) extends AtomEvidenceDB(identity) {
 
   protected def fetch(id: Int) = UNKNOWN
 
@@ -474,7 +479,7 @@ private class DummyDBUnknown(override val identity: AtomIdentityFunction, mappin
   }
 }
 
-private class DummyDBFalse(override val identity: AtomIdentityFunction, mapping: Map[String, Int]) extends AtomEvidenceDB(identity, mapping) {
+private class DummyDBFalse(override val identity: AtomIdentityFunction) extends AtomEvidenceDB(identity) {
 
   protected def fetch(id: Int) = FALSE
 
@@ -495,7 +500,7 @@ private class DummyDBFalse(override val identity: AtomIdentityFunction, mapping:
 
 }
 
-private class DummyDBTrue(override val identity: AtomIdentityFunction, mapping: Map[String, Int]) extends AtomEvidenceDB(identity, mapping) {
+private class DummyDBTrue(override val identity: AtomIdentityFunction) extends AtomEvidenceDB(identity) {
 
   protected def fetch(id: Int) = TRUE
 
@@ -516,7 +521,7 @@ private class DummyDBTrue(override val identity: AtomIdentityFunction, mapping: 
 }
 
 
-private class DBProbOWA(positives: TIntSet, negatives: TIntSet, val probabilistic: TIntDoubleMap, override val identity: AtomIdentityFunction, mapping: Map[String, Int]) extends AtomEvidenceDB(identity, mapping) {
+private class DBProbOWA(positives: TIntSet, negatives: TIntSet, val probabilistic: TIntDoubleMap, override val identity: AtomIdentityFunction) extends AtomEvidenceDB(identity) {
   private val allUnknown = positives.isEmpty && negatives.isEmpty
 
   protected def fetch(id: Int): TriState = {
@@ -575,7 +580,7 @@ private class DBProbOWA(positives: TIntSet, negatives: TIntSet, val probabilisti
 }
 
 
-private class DBProbCWA(positives: TIntSet, val probabilistic: TIntDoubleMap, override val identity: AtomIdentityFunction, mapping: Map[String, Int]) extends AtomEvidenceDB(identity, mapping) {
+private class DBProbCWA(positives: TIntSet, val probabilistic: TIntDoubleMap, override val identity: AtomIdentityFunction) extends AtomEvidenceDB(identity) {
 
   protected def fetch(id: Int): TriState = {
     if (positives.contains(id)) TRUE
@@ -624,7 +629,7 @@ private class DBProbCWA(positives: TIntSet, val probabilistic: TIntDoubleMap, ov
 
 final class AtomEvidenceDBBuilder private(val signature: AtomSignature, schema: Seq[String], identity: AtomIdentityFunction, isCWA: Boolean,
                                           private var positives: TIntHashSet, private var negatives: TIntHashSet,
-                                          private var unknown: TIntHashSet, private var probabilistic: TIntDoubleHashMap) {
+                                          private var unknown: TIntHashSet, private var probabilistic: TIntDoubleHashMap) extends Logging {
 
   def this(signature: AtomSignature, schema: Seq[String], identity: AtomIdentityFunction, isCWA: Boolean) =
     this(signature, schema, identity, isCWA, new TIntHashSet(), new TIntHashSet(), new TIntHashSet(), new TIntDoubleHashMap())
@@ -639,16 +644,16 @@ final class AtomEvidenceDBBuilder private(val signature: AtomSignature, schema: 
 
     atom.state match {
       case TRUE =>
-        if (negatives.contains(id)) sys.error("Atom " + atom + " is defined both as positive and negative in the given evidence db.")
-        else if (probabilistic.contains(id)) sys.error("Atom " + atom + " is defined both as positive and probabilistic/unknown in the given evidence db.")
+        if (negatives.contains(id)) error("Atom " + atom + " is defined both as positive and negative in the given evidence db.")
+        else if (probabilistic.contains(id)) error("Atom " + atom + " is defined both as positive and probabilistic/unknown in the given evidence db.")
         else positives.add(id)
       case FALSE =>
-        if (positives.contains(id)) sys.error("Atom " + atom + " is defined both as positive and negative in the given evidence db.")
-        else if (probabilistic.contains(id)) sys.error("Atom " + atom + " is defined both as negative and probabilistic/unknown in the given evidence db.")
+        if (positives.contains(id)) error("Atom " + atom + " is defined both as positive and negative in the given evidence db.")
+        else if (probabilistic.contains(id)) error("Atom " + atom + " is defined both as negative and probabilistic/unknown in the given evidence db.")
         else negatives.add(id)
       case UNKNOWN =>
-        if (positives.contains(id)) sys.error("Atom " + atom + " is defined both as positive and probabilistic/unknown in the given evidence db.")
-        else if (negatives.contains(id)) sys.error("Atom " + atom + " is defined both as negative and probabilistic/unknown in the given evidence db.")
+        if (positives.contains(id)) error("Atom " + atom + " is defined both as positive and probabilistic/unknown in the given evidence db.")
+        else if (negatives.contains(id)) error("Atom " + atom + " is defined both as negative and probabilistic/unknown in the given evidence db.")
         else {
           atom.probability match {
             case 1.0 => putLiteral(id) // interpret as non-probabilistic evidence (state = TRUE)
@@ -685,14 +690,14 @@ final class AtomEvidenceDBBuilder private(val signature: AtomSignature, schema: 
 
   private def putLiteral(literal: Int) {
     if (literal > 0) {
-      if (negatives.contains(literal)) sys.error("Atom " + literal + " is defined both as positive and negative.")
-      else if (probabilistic.contains(literal)) sys.error("Atom " + literal + " is defined both as positive and probabilistic/unkown.")
+      if (negatives.contains(literal)) error("Atom " + literal + " is defined both as positive and negative.")
+      else if (probabilistic.contains(literal)) error("Atom " + literal + " is defined both as positive and probabilistic/unkown.")
       else positives.add(literal)
     }
     else {
       val id = -literal
-      if (positives.contains(id)) sys.error("Atom " + id + " is defined both as positive and negative.")
-      else if (probabilistic.contains(id)) sys.error("Atom " + id + " is defined both as negative and probabilistic/unkown.")
+      if (positives.contains(id)) error("Atom " + id + " is defined both as positive and negative.")
+      else if (probabilistic.contains(id)) error("Atom " + id + " is defined both as negative and probabilistic/unkown.")
       else negatives.add(id)
     }
   }
@@ -700,35 +705,35 @@ final class AtomEvidenceDBBuilder private(val signature: AtomSignature, schema: 
 
   def toAtomEvidenceDB: AtomEvidenceDB = {
     dirty = true
-    val mapping: Map[String, Int] = (for ((key, position) <- schema.zipWithIndex) yield key -> position)(breakOut)
+    //val mapping: Map[String, Int] = (for ((key, position) <- schema.zipWithIndex) yield key -> position)(breakOut)
 
-    if (isCWA){
+    if (isCWA) {
       (probabilistic.isEmpty, unknown.isEmpty) match {
         // Evidence atom with standard closed-world assumption, that is all unspecified atoms have False state.
-        case (true, true) => AtomEvidenceDB.CWA(TCollections.unmodifiableSet(positives), identity, mapping)
+        case (true, true) => AtomEvidenceDB.CWA(TCollections.unmodifiableSet(positives), identity)
         // Evidence atoms where their state is either True or Unknown. For the rest (unspecified states) we use closed-world assumption.
-        case (true, false) => AtomEvidenceDB.CWA(TCollections.unmodifiableSet(positives), TCollections.unmodifiableSet(unknown), identity, mapping)
+        case (true, false) => AtomEvidenceDB.CWA(TCollections.unmodifiableSet(positives), TCollections.unmodifiableSet(unknown), identity)
         // Probabilistic evidence atoms, where their state is either True or Probabilistic. For the rest (unspecified states) we use closed-world assumption.
-        case (false, true) => AtomEvidenceDB.CWA(TCollections.unmodifiableSet(positives), TCollections.unmodifiableMap(probabilistic), identity, mapping)
+        case (false, true) => AtomEvidenceDB.CWA(TCollections.unmodifiableSet(positives), TCollections.unmodifiableMap(probabilistic), identity)
         // The same with the previous, but all collected atoms with unknown state are translated as probabilistic with probability equal to 0.5
         case (false, false) =>
           val iterator = unknown.iterator()
           while (iterator.hasNext) probabilistic.put(iterator.next(), 0.5)
 
-          AtomEvidenceDB.CWA(TCollections.unmodifiableSet(positives), TCollections.unmodifiableMap(probabilistic), identity, mapping)
+          AtomEvidenceDB.CWA(TCollections.unmodifiableSet(positives), TCollections.unmodifiableMap(probabilistic), identity)
       }
     }
     else {
       if (probabilistic.isEmpty)
-        AtomEvidenceDB.OWA(TCollections.unmodifiableSet(positives), TCollections.unmodifiableSet(negatives), identity, mapping)
+        AtomEvidenceDB.OWA(TCollections.unmodifiableSet(positives), TCollections.unmodifiableSet(negatives), identity)
       else
-        AtomEvidenceDB.OWA(TCollections.unmodifiableSet(positives), TCollections.unmodifiableSet(negatives), TCollections.unmodifiableMap(probabilistic), identity, mapping)
+        AtomEvidenceDB.OWA(TCollections.unmodifiableSet(positives), TCollections.unmodifiableSet(negatives), TCollections.unmodifiableMap(probabilistic), identity)
     }
   }
 
   @inline private def _check(atom: EvidenceAtom) {
     if (atom.signature != signature)
-      sys.error("You are trying to store atom: " + atom + " in a database for " + signature + " atoms.")
+      error("You are trying to store atom: " + atom + " in a database for " + signature + " atoms.")
 
     if (dirty) {
       val cp_positives = new TIntHashSet(positives)

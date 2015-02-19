@@ -35,7 +35,7 @@ package lomrf.mln.model.mrf
 import lomrf.util.LongDoubleConversions._
 import scala.annotation.switch
 
-final class Constraint(val weight: Double, val literals: Array[Int], val isHardConstraint: Boolean, val threshold: Double,
+final class Constraint(private[mln] var weight: Double, val literals: Array[Int], val isHardConstraint: Boolean, val threshold: Double,
                        val id: Int = -1, var mode: Int = MRF.MODE_MWS) {
 
   // ----------------------------------------------------------------
@@ -45,7 +45,8 @@ final class Constraint(val weight: Double, val literals: Array[Int], val isHardC
   /**
    * High precision weight used for inference computations.
    */
-  private[mln] lazy val hpWeight = new LongDouble(weight)
+  // TODO: Maybe we should create a custom setter-getter for this one!
+  private[mln] def hpWeight = new LongDouble(weight)
 
   /**
    * Number of literals satisfying the constraint.
@@ -76,15 +77,15 @@ final class Constraint(val weight: Double, val literals: Array[Int], val isHardC
   private[mln] var watchLit2: Int = 0
 
   /**
-   * Checks if the constraint is positive.
-   */
-  val isPositive: Boolean = weight > 0
-
-  /**
    * Checks if the constraint is unit, having
    * exactly one literal.
    */
   val isUnit: Boolean = literals.length == 1
+
+  /**
+   * Checks if the constraint is positive.
+   */
+  def isPositive: Boolean = weight > 0
 
   /**
    * Checks if the constraint is satisfied at the
@@ -118,6 +119,11 @@ final class Constraint(val weight: Double, val literals: Array[Int], val isHardC
    * Returns the number of literals satisfying this constraint.
    */
   def getNSat: Int = nsat
+
+  /**
+   * Returns the weight of the constraint
+   */
+  def getWeight: Double = weight
 
   override def hashCode() = id
 

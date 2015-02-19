@@ -58,7 +58,7 @@ import scala.collection
  * @param queryEndID the id of the last ground query atom
  * @author Anastasios Skarlatidis
  */
-class MLN(
+final class MLN(
            val formulas: collection.Set[Formula],
            val predicateSchema: collection.Map[AtomSignature, collection.Seq[String]],
            val functionSchema: collection.Map[AtomSignature, (String, Vector[String])],
@@ -78,6 +78,26 @@ class MLN(
            val queryStartID: Int,
            val queryEndID: Int) {
 
+  def this(formulas: collection.Set[Formula],
+           predicateSchema: collection.Map[AtomSignature, collection.Seq[String]],
+           functionSchema: collection.Map[AtomSignature, (String, Vector[String])],
+           dynamicPredicates: Map[AtomSignature, Vector[String] => Boolean],
+           dynamicFunctions: Map[AtomSignature, Vector[String] => String],
+           constants: Map[String, ConstantsSet],
+           functionMappers: Map[AtomSignature, FunctionMapper],
+           queryAtoms: collection.Set[AtomSignature],
+           cwa: collection.Set[AtomSignature],
+           owa: collection.Set[AtomSignature],
+           probabilisticAtoms: collection.Set[AtomSignature],
+           tristateAtoms: collection.Set[AtomSignature],
+           atomStateDB: Map[AtomSignature, AtomEvidenceDB],
+           atomIdentifier: AtomIdentifier) = {
+    this(formulas, predicateSchema, functionSchema, dynamicPredicates, dynamicFunctions,
+      constants, functionMappers, queryAtoms, cwa, owa, probabilisticAtoms, tristateAtoms,
+      atomIdentifier.identities, atomStateDB, atomIdentifier.orderedStartIDs, atomIdentifier.orderedAtomSignatures,
+      atomIdentifier.queryStartID, atomIdentifier.queryEndID)
+  }
+  
   /**
    * The set of ground clauses
    */
@@ -292,9 +312,9 @@ object MLN extends Logging {
     var atomStateDB = evidence.atomsEvDB
     for (signature <- kb.predicateSchema.keysIterator; if !evidence.atomsEvDB.contains(signature)) {
       val db = if (finalCWA.contains(signature))
-        AtomEvidenceDB(evidence.identities(signature), kb.predicateSchema(signature).zipWithIndex.toMap, FALSE)
+        AtomEvidenceDB(evidence.identities(signature),FALSE)//, kb.predicateSchema(signature).zipWithIndex.toMap, FALSE)
       else
-        AtomEvidenceDB(evidence.identities(signature), kb.predicateSchema(signature).zipWithIndex.toMap, UNKNOWN)
+        AtomEvidenceDB(evidence.identities(signature),UNKNOWN)//, kb.predicateSchema(signature).zipWithIndex.toMap, UNKNOWN)
 
       atomStateDB += (signature -> db)
     }
@@ -310,7 +330,7 @@ object MLN extends Logging {
   }
 
 
-  def forLearning(mlnFileName: String,
+  def learning(mlnFileName: String,
             trainingFileNames: List[String],
             nonEvidenceAtoms: collection.Set[AtomSignature],
             pcm: PredicateCompletionMode = Decomposed,
@@ -347,18 +367,18 @@ object MLN extends Logging {
     var (annotationDB, atomStateDB) = evidence.atomsEvDB.partition(e => nonEvidenceAtoms.contains(e._1))
 
     for (signature <- annotationDB.keysIterator)
-      atomStateDB += (signature -> AtomEvidenceDB(evidence.identities(signature), kb.predicateSchema(signature).zipWithIndex.toMap, UNKNOWN))
+      atomStateDB += (signature -> AtomEvidenceDB(evidence.identities(signature),UNKNOWN))//, kb.predicateSchema(signature).zipWithIndex.toMap, UNKNOWN))
 
     for (signature <- nonEvidenceAtoms; if !annotationDB.contains(signature)){
       warn("Annotation was not given in the training file(s) for predicate '"+signature+"', assuming FALSE state for all its groundings.")
-      annotationDB += (signature -> AtomEvidenceDB(evidence.identities(signature), kb.predicateSchema(signature).zipWithIndex.toMap, FALSE))
+      annotationDB += (signature -> AtomEvidenceDB(evidence.identities(signature),FALSE))//, kb.predicateSchema(signature).zipWithIndex.toMap, FALSE))
     }
 
     val probabilisticAtoms = Set.empty[AtomSignature]
     val queryAtoms = nonEvidenceAtoms
     val finalCWA = evidenceAtoms
     val finalOWA = nonEvidenceAtoms
-    val triStateAtoms = Set.empty[AtomSignature]
+    val triStateAtoms = atomStateDB.filter(db => db._2.isTriStateDB).map(_._1).toSet // is required for grounding
 
     (new MLN(kb.formulas, kb.predicateSchema, kb.functionSchema, kb.dynamicPredicates, kb.dynamicFunctions,
       evidence.constants, functionMapperz, queryAtoms, finalCWA, finalOWA, probabilisticAtoms, triStateAtoms, evidence.identities,

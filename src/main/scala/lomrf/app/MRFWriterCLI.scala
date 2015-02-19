@@ -99,7 +99,7 @@ object MRFWriterCLI extends Logging {
       val constraint = constraintsIterator.value()
       out.write(
         numFormat.format(
-          if (constraint.weight == Double.PositiveInfinity) mrf.weightHard else constraint.weight
+          if (constraint.getWeight == Double.PositiveInfinity) mrf.weightHard else constraint.getWeight
         )
       )
       out.write(" ")
@@ -121,7 +121,7 @@ object MRFWriterCLI extends Logging {
       constraintsIterator.advance()
       val constraint = constraintsIterator.value()
       //begin -- write weight value (if the feature is soft-constrained)
-      if (!constraint.weight.isInfinite && !constraint.weight.isNaN && constraint.weight != mrf.weightHard) out.write(numFormat.format(constraint.weight) + " ")
+      if (!constraint.getWeight.isInfinite && !constraint.getWeight.isNaN && constraint.getWeight != mrf.weightHard) out.write(numFormat.format(constraint.getWeight) + " ")
       //write ground literals
       val clause = constraint.literals.map {
         literal =>
@@ -132,7 +132,7 @@ object MRFWriterCLI extends Logging {
       }.reduceLeft(_ + " v " + _)
       out.write(clause)
 
-      if (constraint.weight.isInfinite || constraint.weight == mrf.weightHard) out.write(".")
+      if (constraint.getWeight.isInfinite || constraint.getWeight == mrf.weightHard) out.write(".")
       //end -- change line
       out.newLine()
     }
@@ -155,7 +155,7 @@ object MRFWriterCLI extends Logging {
       constraintsIterator.advance()
       val constraint = constraintsIterator.value()
       val literals = constraint.literals
-      val weight = constraint.weight
+      val weight = constraint.getWeight
       require(!weight.isNaN && !weight.isInfinite)
 
       // write ground clause as comment for evaluation
@@ -287,20 +287,22 @@ object MRFWriterCLI extends Logging {
       }
     })
 
-    booleanOpt("noNeg", "eliminate-negative-weights", "Eliminate negative weight values from ground clauses (default is " + _noNeg + ").", _noNeg = _)
+    flagOpt("noNegWeights", "eliminate-negative-weights", "Eliminate negative weight values from ground clauses.", {
+      _noNeg = true
+    })
 
-    booleanOpt("noNegatedUnit", "eliminate-negated-unit", "Eliminate negated unit ground clauses (default is " + _eliminateNegatedUnit + ").", _eliminateNegatedUnit = _)
+    flagOpt("noNegatedUnit", "eliminate-negated-unit", "Eliminate negated unit ground clauses.", {
+      _eliminateNegatedUnit = true
+    })
 
     opt("dynamic", "dynamic-implementations", "<string>", "Comma separated paths to search recursively for dynamic predicates/functions implementations (*.class and *.jar files).", {
       path: String => if (!path.isEmpty) implPaths = Some(path.split(','))
     })
 
-
     flagOpt("h", "help", "Print usage options.", {
       println(usage)
       sys.exit(0)
     })
-
 
     private def addQueryAtom(atom: String) {
       query += parseAtomSignature(atom).getOrElse(fatal("Cannot parse the arity of query atom: " + atom))

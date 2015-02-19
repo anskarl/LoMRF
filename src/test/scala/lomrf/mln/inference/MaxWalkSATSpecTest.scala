@@ -33,13 +33,11 @@
 package lomrf.mln.inference
 
 import java.io.{File, FileOutputStream, PrintStream}
-
 import lomrf.logic.AtomSignature
 import lomrf.mln.grounding.MRFBuilder
 import lomrf.mln.model.MLN
 import lomrf.util.Utilities.io._
 import org.scalatest.{FunSpec, Matchers}
-
 import scala.io.Source
 
 /**
@@ -51,6 +49,7 @@ import scala.io.Source
 final class MaxWalkSATSpecTest extends FunSpec with Matchers {
 
   private val sep = System.getProperty("file.separator")
+
   private val mainPath = System.getProperty("user.dir") + sep +
     "Examples" + sep + "data" + sep + "tests" + sep + "inference" + sep + "caviar" + sep + "DN"
 
@@ -143,7 +142,6 @@ final class MaxWalkSATSpecTest extends FunSpec with Matchers {
         .map(_.split(' '))
         .map(entries => entries(0).trim -> entries(1).trim.toInt)
         .toMap
-
 
       var differences = 0
       var countedResults = 0

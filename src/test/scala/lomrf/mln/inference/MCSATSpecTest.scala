@@ -51,6 +51,7 @@ import scala.io.Source
 final class MCSATSpecTest extends FunSpec with Matchers {
 
   private val sep = System.getProperty("file.separator")
+
   private val mainPath = System.getProperty("user.dir") + sep +
     "Examples" + sep + "data" + sep + "tests" + sep + "inference" + sep + "caviar" + sep + "DN"
 
@@ -144,11 +145,9 @@ final class MCSATSpecTest extends FunSpec with Matchers {
         .map(entries => entries(0).trim -> entries(1).trim.toDouble)
         .toMap
 
-
       var majorDifferences = 0
       var totalError = 0.0
       var countedResults = 0
-      //var maxError = 0.0
 
       for ((inferred, lineNumber) <- inferredResults.zipWithIndex) {
 
@@ -168,13 +167,11 @@ final class MCSATSpecTest extends FunSpec with Matchers {
           val currentError = math.abs(expectedValue - inferredValue)
 
           totalError += currentError
-          //maxError = math.max(maxError, currentError)
 
           if(currentError >= 0.2 ){
             majorDifferences += 1
             info(s"\tLine '$lineNumber': The estimated probability of '$inferredPredicate' is '$inferredValue' which differs significantly (>=0.2 p.p.) from the expected probability '" + expectedValue + "'")
           }
-
         }
 
       }

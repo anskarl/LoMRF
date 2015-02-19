@@ -84,6 +84,8 @@ object Cartesian {
 
     def mkArithmetic(sets: Iterable[ConstantsSet]) = new CartesianIteratorArithmeticImpl(sets.map(_.size - 1))
 
+    def mkArithmetic(sizes: Array[Int]) = new CartesianIteratorArithmeticImpl(sizes)
+
 
   }
 
