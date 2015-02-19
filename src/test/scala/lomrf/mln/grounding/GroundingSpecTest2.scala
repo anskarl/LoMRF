@@ -40,6 +40,7 @@ import lomrf.tests.ECExampleDomain1._
 import lomrf.util.{AtomEvidenceDB, ConstantsSet}
 import org.scalatest.{FunSpec, Matchers}
 import scala.collection.breakOut
+import scala.{collection => sc}
 
 
 /**
@@ -133,22 +134,35 @@ class GroundingSpecTest2 extends FunSpec with Matchers with Logging {
 
     // --- Lets build the flat-indexes
 
+    // Vector of ( Term -> Domain Name), Map of (Domain Name -> its corresponding constants set),
+    //   Map of (function signature -> (function return domain name, Seq of function's term domains))
+    type FlatDomainDescription = (
+      Vector[(Term, String)],
+        sc.Map[String, ConstantsSet],
+        sc.Map[AtomSignature, (String, collection.Seq[String])]
+      )
+
 
     def mkFlatTermDomains(literals: Iterable[Literal],
-                          predicateSchema: collection.Map[AtomSignature, collection.Seq[String]],
-                          functionSchema: collection.Map[AtomSignature, (String, collection.Seq[String])],
-                          staticDomain2ConstantSets: collection.Map[String, ConstantsSet]): (Vector[(Term, String)], collection.Map[String, ConstantsSet]) = {
+                          predicateSchema: sc.Map[AtomSignature, sc.Seq[String]],
+                          functionSchema: sc.Map[AtomSignature, (String, collection.Seq[String])],
+                          staticDomain2ConstantSets: sc.Map[String, ConstantsSet]): FlatDomainDescription = {
 
       val queue = collection.mutable.Queue[(Term, String)]()
 
       var memory = Set[Term]()
-      // Term -> domain name
+
+      // Vector of ( Term -> Domain Name)
       var result = Vector[(Term, String)]()
 
+      //Map of (Domain Name -> its corresponding constants set)
       var dynConstants = Map[String, ConstantsSet]()
+
+      var dynFunctionSchema = Map[AtomSignature, (String, collection.Seq[String])]()
 
       for ((literal, literalIdx) <- literals.zipWithIndex) {
 
+        // todo: add term index
         queue ++= literal.sentence.terms.zip(predicateSchema(literal.sentence.signature))
 
         while (queue.nonEmpty) {
@@ -168,40 +182,28 @@ class GroundingSpecTest2 extends FunSpec with Matchers with Logging {
               //val unarySets = matchedTerms(f.terms, _.isConstant).map(c => ConstantsSet(c.symbol))
               //unarySets.foreach(println)
 
-              queue ++= (
+              val term2Domains: List[(Term, String)] = (
                 for((term, termIdx) <- f.terms.zipWithIndex) yield term match {
                   case v: Variable => (v, v.domain)
 
                   case c: Constant =>
+                    //todo add function position in literals terms
                     val dynDomainName = "_D"+literalIdx+":"+termIdx
+
+                    // Update dynConstants
                     dynConstants += (dynDomainName -> ConstantsSet(c.symbol))
+
                     (c, dynDomainName)
 
                   case f: TermFunction =>
                     fatal("Recursive function definitions are not supported.")
                 })(breakOut)
 
-              /*val dynFDomains =
-                for((term, termIdx) <- f.terms.zipWithIndex) yield term match {
-                  case v: Variable =>
-                    (v.domain, mln.constants(v.domain))
+              queue ++= term2Domains
 
-                  case c: Constant =>
-                    ("D"+literalIdx+":"+termIdx, ConstantsSet(c.symbol))
+              // todo: add function position in literals terms
+              dynFunctionSchema += AtomSignature(f.symbol+"@"+literalIdx, f.arity) -> (f.domain, term2Domains.map(_._2))
 
-                  case f: TermFunction =>
-                    fatal("Recursive function definitions are not supported.")
-                }
-
-              println(s"term domains of dynamic function '${f.toText} = {${dynFDomains.mkString(",")}}'")
-
-              val dynFSchema = AtomSignature(f.symbol+"$L"+literalIdx, f.arity) -> (f.domain, dynFDomains.map(_._1).toVector)
-
-              println(s"schema of dynamic function '${f.toText} = {$dynFSchema}'")*/
-
-              /*error("Dynamic functions are not supported!") //todo
-              sys.exit(1)*/
-              //queue ++= f.terms.zip(dynamicFunctions(f.signature))
             case _ => //do nothing
           }
         }
@@ -209,7 +211,7 @@ class GroundingSpecTest2 extends FunSpec with Matchers with Logging {
 
 
 
-      (result, staticDomain2ConstantSets ++ dynConstants)
+      (result, staticDomain2ConstantSets ++ dynConstants, functionSchema ++ dynFunctionSchema)
     }
 
     // theta:
@@ -228,7 +230,8 @@ class GroundingSpecTest2 extends FunSpec with Matchers with Logging {
     //
     val theta = new Array[Int](clause.variables.size + clause.constants.size)
 
-    val (flatTerms, domain2ConstantSets) = mkFlatTermDomains(orderedLiterals, mln.predicateSchema, mln.functionSchema, mln.constants)
+    val (flatTerms, domain2ConstantSets, functionSchema) =
+      mkFlatTermDomains(orderedLiterals, mln.predicateSchema, mln.functionSchema, mln.constants)
     var term2Pos = Map[Term, Int]()
 
 
@@ -248,6 +251,8 @@ class GroundingSpecTest2 extends FunSpec with Matchers with Logging {
     //println("TERMS: " + flatTerms.mkString(", "))
 
     println("DOMAINS: "+domain2ConstantSets.mkString(", "))
+
+    println("FUNCTIONS: "+functionSchema.mkString(", "))
 
     println("TERMS: " + flatTerms.map(e => e +"["+term2Pos(e._1)+"]").mkString(", "))
 
