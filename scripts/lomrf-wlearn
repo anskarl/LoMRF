@@ -23,7 +23,7 @@ declare -r lib_dir="$base_dir/lib"
 # take the parameters
 . $base_dir/bin/inc.env.sh
 
-declare -r INFER_JAVA_OPTS=$VM_ARGS" -XX:+AggressiveOpts"
-declare -r INFER_CLASSPATH=$PRJ_COMMONS_CLASSPATH
+declare -r WLEARN_JAVA_OPTS=$VM_ARGS" -XX:+AggressiveOpts"
+declare -r WLEARN_CLASSPATH=$PRJ_COMMONS_CLASSPATH
 
-nice java $INFER_JAVA_OPTS -cp $INFER_CLASSPATH lomrf.app.InferenceCLI $@
+nice java $WLEARN_JAVA_OPTS -cp $WLEARN_CLASSPATH lomrf.app.WeightLearningCLI $@
