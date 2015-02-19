@@ -39,6 +39,7 @@ import lomrf.mln.model.{AtomIdentifier, MLN}
 import lomrf.tests.ECExampleDomain1._
 import lomrf.util.{AtomEvidenceDB, ConstantsSet}
 import org.scalatest.{FunSpec, Matchers}
+import scala.collection.breakOut
 
 
 /**
@@ -135,12 +136,16 @@ class GroundingSpecTest2 extends FunSpec with Matchers with Logging {
 
     def mkFlatTermDomains(literals: Iterable[Literal],
                           predicateSchema: collection.Map[AtomSignature, collection.Seq[String]],
-                          functionSchema: collection.Map[AtomSignature, (String, collection.Seq[String])]): Vector[(Term, String)] = {
+                          functionSchema: collection.Map[AtomSignature, (String, collection.Seq[String])],
+                          staticDomain2ConstantSets: collection.Map[String, ConstantsSet]): (Vector[(Term, String)], collection.Map[String, ConstantsSet]) = {
 
       val queue = collection.mutable.Queue[(Term, String)]()
 
       var memory = Set[Term]()
+      // Term -> domain name
       var result = Vector[(Term, String)]()
+
+      var dynConstants = Map[String, ConstantsSet]()
 
       for ((literal, literalIdx) <- literals.zipWithIndex) {
 
@@ -163,28 +168,48 @@ class GroundingSpecTest2 extends FunSpec with Matchers with Logging {
               //val unarySets = matchedTerms(f.terms, _.isConstant).map(c => ConstantsSet(c.symbol))
               //unarySets.foreach(println)
 
-              val dynFDomains =
+              queue ++= (
                 for((term, termIdx) <- f.terms.zipWithIndex) yield term match {
-                  case v: Variable => (v.domain, mln.constants(v.domain))
-                  case c: Constant => ("D"+literalIdx+":"+termIdx, ConstantsSet(c.symbol))
-                  case f: TermFunction => fatal("Recursive function definitions are not supported.")
+                  case v: Variable => (v, v.domain)
+
+                  case c: Constant =>
+                    val dynDomainName = "_D"+literalIdx+":"+termIdx
+                    dynConstants += (dynDomainName -> ConstantsSet(c.symbol))
+                    (c, dynDomainName)
+
+                  case f: TermFunction =>
+                    fatal("Recursive function definitions are not supported.")
+                })(breakOut)
+
+              /*val dynFDomains =
+                for((term, termIdx) <- f.terms.zipWithIndex) yield term match {
+                  case v: Variable =>
+                    (v.domain, mln.constants(v.domain))
+
+                  case c: Constant =>
+                    ("D"+literalIdx+":"+termIdx, ConstantsSet(c.symbol))
+
+                  case f: TermFunction =>
+                    fatal("Recursive function definitions are not supported.")
                 }
 
               println(s"term domains of dynamic function '${f.toText} = {${dynFDomains.mkString(",")}}'")
 
               val dynFSchema = AtomSignature(f.symbol+"$L"+literalIdx, f.arity) -> (f.domain, dynFDomains.map(_._1).toVector)
 
-              println(s"schema of dynamic function '${f.toText} = {$dynFSchema}'")
+              println(s"schema of dynamic function '${f.toText} = {$dynFSchema}'")*/
 
-              error("Dynamic functions are not supported!") //todo
-              sys.exit(1)
+              /*error("Dynamic functions are not supported!") //todo
+              sys.exit(1)*/
               //queue ++= f.terms.zip(dynamicFunctions(f.signature))
             case _ => //do nothing
           }
         }
       }
 
-      result
+
+
+      (result, staticDomain2ConstantSets ++ dynConstants)
     }
 
     // theta:
@@ -203,21 +228,26 @@ class GroundingSpecTest2 extends FunSpec with Matchers with Logging {
     //
     val theta = new Array[Int](clause.variables.size + clause.constants.size)
 
-    val flatTerms = mkFlatTermDomains(orderedLiterals, mln.predicateSchema, mln.functionSchema)
+    val (flatTerms, domain2ConstantSets) = mkFlatTermDomains(orderedLiterals, mln.predicateSchema, mln.functionSchema, mln.constants)
     var term2Pos = Map[Term, Int]()
 
 
-    for( ((term, domain), index) <- flatTerms.zipWithIndex) {
+    for( ((term, domain: String), index) <- flatTerms.zipWithIndex) {
 
       term2Pos += (term -> index)
 
       theta(index) = term match {
-        case c: Constant => mln.constants(domain).get(c.symbol).get
-        case _ => mln.constants(domain).size - 1
+        case c: Constant =>
+          if (domain.startsWith("_D")) 0
+          else domain2ConstantSets(domain)(c.symbol)
+
+        case _ => domain2ConstantSets(domain).size - 1
       }
     }
 
     //println("TERMS: " + flatTerms.mkString(", "))
+
+    println("DOMAINS: "+domain2ConstantSets.mkString(", "))
 
     println("TERMS: " + flatTerms.map(e => e +"["+term2Pos(e._1)+"]").mkString(", "))
 
