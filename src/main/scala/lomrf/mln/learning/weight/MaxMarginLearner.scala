@@ -79,9 +79,12 @@ final class MaxMarginLearner(mrf: MRF, annotationDB: Map[AtomSignature, AtomEvid
   // Number of first-order CNF clauses
   val numberOfClauses = mrf.mln.clauses.length
 
+  /* The number of examples is the number of ground atoms, because the non evidence (annotated data)
+   * are always the ones which are used as query atoms in order to build the ground network.
+   */
   val numberOfExamples = mrf.atoms.size()
 
-  // Initialise weights of the first-order clauses (default 0.0)
+  // Initialise weights of the first-order clauses to zero (useless)
   val weights = Array.fill[Double](numberOfClauses)(0.0)
 
   // Create an mrf state
@@ -89,6 +92,9 @@ final class MaxMarginLearner(mrf: MRF, annotationDB: Map[AtomSignature, AtomEvid
 
   // Get the dependency map for the ground network if any exist
   val dependencyMap = mrf.dependencyMap.getOrElse(sys.error("Dependency map does not exists."))
+
+  // Maybe is usefull to have something like that here
+  //implicit val mln = mrf.mln
 
   // ILP solver for inference
   //val solver = new ILP(mrf, annotationDB = annotationDB, lossAugmented = lossAugmented)
@@ -113,11 +119,21 @@ final class MaxMarginLearner(mrf: MRF, annotationDB: Map[AtomSignature, AtomEvid
     annotation(atomID)
   }
 
+  /**
+   * Count the number of true groundings of each clause in the data.
+   * In order to do this, we compute the satisfied literals of each
+   * ground clause given an MRF state (annotation or inferred). Then
+   * if the number of satisfied literals are greater than zero and
+   * the weight of the clause that produced it has not been flipped
+   * we can count it as true ground clause. On the other hand if the
+   * weight has been flipped then in order to count it the number of
+   * satisfied literals should be zero.
+   *
+   * @return count of true groundings of the clauses
+   */
   @inline private def countGroundings(): Array[Int] = {
 
     val counts = Array.fill[Int](numberOfClauses)(0)
-
-    info("Initialize counts to zero : [" + counts.deep.mkString(" , ") + "]")
 
     val constraintIterator = mrf.constraints.iterator()
 
@@ -146,11 +162,11 @@ final class MaxMarginLearner(mrf: MRF, annotationDB: Map[AtomSignature, AtomEvid
         iterator.advance()
         val clauseIdx = iterator.key()
         val frequency = iterator.value()
-        if( (frequency < 0 && nsat <= 0) || (frequency > 0 && nsat > 0) )
-          counts(clauseIdx) += frequency.toInt // TODO: This may be problematic!!
-        //val (frequency, invertedWts) = iterator.value()
-        //if( (invertedWts && nsat <= 0) || (!invertedWts && nsat > 0) )
-        //  counts(clauseIdx) += frequency
+
+        // If weight is flipped then we want to count the opposite type of grounding
+        // Use math abs because frequency may be negative to indicate a weight is flipped
+        if( (frequency < 0 && nsat == 0) || (frequency > 0 && nsat > 0) )
+          counts(clauseIdx) += math.abs(frequency.toInt) // TODO: This may be problematic when clauses do not have rounded frequencies
       }
 
       // --- --- --- --- --- --- --- --- --- ---
@@ -179,15 +195,20 @@ final class MaxMarginLearner(mrf: MRF, annotationDB: Map[AtomSignature, AtomEvid
 
   info("True Counts: [" + trueCounts.deep.mkString(", ") + "]")
 
-  //state.evaluateState() // seem useless, se will see!
-
-  // currently working only for Hamming loss
+  /**
+   * Calculates the total loss of inferred atom truth values. The
+   * result is not divided by the number of examples.
+   *
+   * Currently working only for Hamming loss
+   *
+   * @return the total loss
+   */
   @inline private def calculateLoss(): Double = {
     var totalLoss = 0.0
 
     info("Calculating misclassifed loss...")
 
-    val iterator = mrf.atoms.iterator() // there are all ground atoms possible here or not?
+    val iterator = mrf.atoms.iterator()
     while(iterator.hasNext) {
       iterator.advance()
       val atom = iterator.value()
@@ -201,10 +222,15 @@ final class MaxMarginLearner(mrf: MRF, annotationDB: Map[AtomSignature, AtomEvid
     totalLoss
   }
 
-  // update constraint weights from the sum of parent weights
+  /**
+   * Update constraint weights from the sum of newly found parent
+   * weights in order to reconstruct the ground network faster in
+   * order to run inference.
+   */
   @inline private def updateConstraintWeights() = {
 
     val constraints = mrf.constraints.iterator()
+
     while(constraints.hasNext) {
       constraints.advance()
       val constraint = constraints.value()
@@ -213,13 +239,14 @@ final class MaxMarginLearner(mrf: MRF, annotationDB: Map[AtomSignature, AtomEvid
       constraint.weight = 0.0
       while(iterator.hasNext) {
         iterator.advance()
+
         val clauseIdx = iterator.key()
         val frequency = iterator.value()
+
         // TODO: This should be tested
-        if(mrf.mln.clauses(clauseIdx).isHard)
-          constraint.weight += mrf.weightHard * frequency
-        else
-          constraint.weight += weights(clauseIdx) * frequency
+        if(mrf.mln.clauses(clauseIdx).isHard) constraint.weight += mrf.weightHard * frequency
+        else constraint.weight += weights(clauseIdx) * frequency
+
         //val tuple = iterator.value()
         //if(tuple._2) constraint.weight -= weights(clauseIdx) * tuple._1
         //else constraint.weight += weights(clauseIdx) * tuple._1
@@ -228,6 +255,10 @@ final class MaxMarginLearner(mrf: MRF, annotationDB: Map[AtomSignature, AtomEvid
     }
   }
 
+  /**
+   * Reconstruct the ground network without running the grounding procedure
+   * and then perform inference.
+   */
   @inline private def infer() = {
     updateConstraintWeights()
     state.unfixAll()
@@ -240,6 +271,8 @@ final class MaxMarginLearner(mrf: MRF, annotationDB: Map[AtomSignature, AtomEvid
 
     info("2-norm max margin weight learning using cutting plane method: \n" +
          "Number of weights: " + numberOfClauses)
+
+    val sLearning = System.currentTimeMillis()
 
     var error = 1e+5
     var slack = -1e+5
@@ -282,7 +315,9 @@ final class MaxMarginLearner(mrf: MRF, annotationDB: Map[AtomSignature, AtomEvid
 
         // Optimize function subject to the constraints introduced
         //minimize(objective)
+        val s = System.currentTimeMillis()
         start()
+        info(Utilities.msecTimeToText("Optimization time: ", System.currentTimeMillis() - s))
         //release()
 
         info(
@@ -326,7 +361,7 @@ final class MaxMarginLearner(mrf: MRF, annotationDB: Map[AtomSignature, AtomEvid
       infer()
       info("Done")
 
-      val loss = (calculateLoss() /*/ numberOfExamples*/) * lossScale
+      val loss = calculateLoss() * lossScale
       info("Current loss: " + loss)
 
       info("Count inferred counts")
@@ -338,8 +373,7 @@ final class MaxMarginLearner(mrf: MRF, annotationDB: Map[AtomSignature, AtomEvid
       val delta = Array.fill[Int](numberOfClauses)(0)
       for (clauseIdx <- 0 until numberOfClauses) {
         if(!mrf.mln.clauses(clauseIdx).isHard)
-          delta(clauseIdx) = (trueCounts(clauseIdx) - inferredCounts(clauseIdx))
-          //delta :+= (trueCounts(clauseIdx) - inferredCounts(clauseIdx)) /*/ numberOfExamples*/
+          delta(clauseIdx) = trueCounts(clauseIdx) - inferredCounts(clauseIdx)
         currentError += weights(clauseIdx) * delta(clauseIdx)
       }
 
@@ -369,8 +403,17 @@ final class MaxMarginLearner(mrf: MRF, annotationDB: Map[AtomSignature, AtomEvid
 
       iteration += 1
     }
+
+    val eLearning = System.currentTimeMillis()
+    info(Utilities.msecTimeToText("Total learning time: ", eLearning - sLearning))
   }
 
+  /**
+   * Write clauses and their corresponding learned weights in the output
+   * mln file together with the predicate and function schema if any exists.
+   *
+   * @param out Selected output stream (default is console)
+   */
   def writeResults(out: PrintStream = System.out) = {
 
     val numFormat = new DecimalFormat("0.############")
@@ -394,11 +437,9 @@ final class MaxMarginLearner(mrf: MRF, annotationDB: Map[AtomSignature, AtomEvid
     val clauses = mrf.mln.clauses
     out.println("// Clauses")
     for(clauseIdx <- 0 until clauses.size) {
-      if(clauses(clauseIdx).isHard) {
-        info("XAXAXAXA")
-        out.println(clauses(clauseIdx).literals.map(_.toString).reduceLeft(_ + " v " + _) + ".")
-      }
-      else out.println(numFormat.format(weights(clauseIdx)) + " " + clauses(clauseIdx).literals.map(_.toString).reduceLeft(_ + " v " + _))
+      if(clauses(clauseIdx).isHard)
+        out.println(clauses(clauseIdx).literals.map(_.toText).reduceLeft(_ + " v " + _) + ".\n")
+      else out.println(numFormat.format(weights(clauseIdx)) + " " + clauses(clauseIdx).literals.map(_.toText).reduceLeft(_ + " v " + _) + "\n")
     }
   }
 

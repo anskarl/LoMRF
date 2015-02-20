@@ -103,12 +103,12 @@ final class MRFState private(val mrf: MRF,
     var delta = 0.0
 
     for(i <- (0 until Unsatisfied.size).optimized) {
-      val constraint = Unsatisfied.apply(i)
+      val constraint = Unsatisfied(i)
 
-      if(constraint.literals.contains(atomID))
+      if(constraint.containsLiteral(atomID))
         if (constraint.weight > 1000) delta += 1000 else delta += constraint.weight
 
-      else if(constraint.literals.contains(-atomID))
+      else if(constraint.containsLiteral(-atomID))
         if (constraint.weight > 1000) delta -= 1000 else delta -= constraint.weight
     }
     delta
@@ -121,9 +121,12 @@ final class MRFState private(val mrf: MRF,
    * @param atomID atom id
    */
   def refineState(atomID: Int): Unit = {
+
+    val atomState = state(atomID)
+
     for(i <- (0 until Unsatisfied.size).optimized) {
-      val constraint = Unsatisfied.apply(i)
-      if( state(atomID) && constraint.literals.contains(atomID) || (!state(atomID) && constraint.literals.contains(-atomID)))
+      val constraint = Unsatisfied(i)
+      if( (atomState && constraint.containsLiteral(atomID)) || (!atomState && constraint.containsLiteral(-atomID)) )
         Unsatisfied -= constraint
     }
   }

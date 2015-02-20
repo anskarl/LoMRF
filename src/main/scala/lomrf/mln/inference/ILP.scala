@@ -137,8 +137,15 @@ final class ILP(mrf: MRF, annotationDB: Map[AtomSignature, AtomEvidenceDB] = Map
       // Step 1: Introduce variables for each ground atom and create possible constraints
       for (literal <- constraint.literals) {
         val atomID = math.abs(literal)
+
         if(!literalLPVars.containsKey(atomID)) {
           literalLPVars.put(atomID, MPFloatVar("y" + atomID, 0, 1))
+
+          /* In case of loss augmented inference, Hamming distance is used which
+           * is equivalent to adding 1 to the coefficient of ground atom y if the
+           * true (annotated) value of y is FALSE and subtracting 1 from the
+           * coefficient of y if the true value of y is TRUE.
+           */
           if(lossAugmented) {
             val loss = if (getAnnotation(atomID) == TRUE) -1.0 else 1.0
             expressions ::= loss * literalLPVars.get(atomID)
@@ -171,8 +178,8 @@ final class ILP(mrf: MRF, annotationDB: Map[AtomSignature, AtomEvidenceDB] = Map
             else (-constraint.weight) * literalLPVars.get(math.abs(constraint.literals(0)))
           }
         }
-        else {
-          clauseLPVars.putIfAbsent(cid, MPFloatVar("z" + cid, 0, 1))
+        else { // there is no case where the same clause is going to create another z variable, so use put not putIfAbsent
+          clauseLPVars.put(cid, MPFloatVar("z" + cid, 0, 1))
           expressions ::= math.abs(constraint.weight) * clauseLPVars.get(cid)
         }
 

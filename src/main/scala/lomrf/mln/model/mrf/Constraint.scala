@@ -95,6 +95,16 @@ final class Constraint(private[mln] var weight: Double, val literals: Array[Int]
   def isSatisfied = nsat > 0
 
   /**
+   * Checks if the given literal is contained in this constraint. It uses
+   * binary search as it guarentees O(logn) complexity to find it fast. The
+   * literals array is always sorted.
+   *
+   * @param lit the given literal number
+   * @return true if the literal is contained
+   */
+  def containsLiteral(lit: Int) = java.util.Arrays.binarySearch(literals, lit) >= 0
+
+  /**
    * This is the cost when violating this constraint. If we are in MaxWalkSAT mode then the cost depends on the
    * weight of the constraint, otherwise in SampleSAT mode all costs are unit.
    * <ul>

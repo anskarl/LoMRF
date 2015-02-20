@@ -33,7 +33,6 @@
 package lomrf.app
 
 import java.io.{FileOutputStream, PrintStream}
-import gnu.trove.map.hash.TIntObjectHashMap
 import auxlib.log.Logging
 import auxlib.opt.OptionParser
 import lomrf.logic.AtomSignature
@@ -41,7 +40,6 @@ import lomrf.mln.grounding.MRFBuilder
 import lomrf.mln.inference.LossFunction
 import lomrf.mln.model.MLN
 import lomrf.mln.learning.weight.MaxMarginLearner
-import lomrf.util._
 import lomrf.util.parseAtomSignature
 
 /**
@@ -65,7 +63,7 @@ object WeightLearningCLI extends OptionParser with Logging {
   private var _nonEvidenceAtoms = Set[AtomSignature]()
 
   // Add unit clauses to the MLN output file
-  private var _noAddUnitClauses = false
+  private var _addUnitClauses = false
 
   // Regularization parameter
   private var _C = 1e+3
@@ -132,9 +130,6 @@ object WeightLearningCLI extends OptionParser with Logging {
     + "Each atom must be defined using its identity (i.e. Name/arity). "
     + "For example the identity of NonEvidenceAtom(arg1,arg2) is NonEvidenceAtom/2", _.split(',').foreach(v => addNonEvidenceAtom(v)))
 
-  booleanOpt("noAddUnitClauses", "no-add-unit-clauses", "If specified, unit clauses are not included in the output MLN file" +
-    " (default is " + _noAddUnitClauses + ").", _noAddUnitClauses = _)
-
   doubleOpt("C", "C", "Regularization parameter (default is " + _C + ").", {
     v: Double => _C = v
   })
@@ -151,9 +146,7 @@ object WeightLearningCLI extends OptionParser with Logging {
     v: Int => if (v < 0) fatal("The maximum iterations value must be any integer above zero, but you gave: " + v) else _iterations = v
   })
 
-  opt("dynamic", "dynamic-implementations", "<string>", "Comma separated paths to search recursively for dynamic predicates/functions implementations (*.class and *.jar files).", {
-    path: String => if (!path.isEmpty) _implPaths = Some(path.split(','))
-  })
+  flagOpt("addUnitClauses", "add-unit-clauses", "If specified, unit clauses are included in the output MLN file.", {_addUnitClauses = true})
 
   flagOpt("L1Regularization", "L1-regularization", "Use L1 regularization instead of L2.", {_L1Regularization = true})
 
@@ -162,6 +155,10 @@ object WeightLearningCLI extends OptionParser with Logging {
   flagOpt("lossAugmented", "loss-augmented", "Perform loss augmented inference.", {_lossAugmented = true})
 
   flagOpt("nonMarginRescaling", "non-margin-rescaling", "Don't scale the margin by the loss.", {_nonMarginRescaling = true})
+
+  opt("dynamic", "dynamic-implementations", "<string>", "Comma separated paths to search recursively for dynamic predicates/functions implementations (*.class and *.jar files).", {
+    path: String => if (!path.isEmpty) _implPaths = Some(path.split(','))
+  })
 
   flagOpt("noNegWeights", "eliminate-negative-weights", "Eliminate negative weight values from ground clauses.", {_noNeg = true})
 
@@ -195,7 +192,7 @@ object WeightLearningCLI extends OptionParser with Logging {
 
     info("Parameters:"
       + "\n\t(ne) Non-evidence predicate(s): " + _nonEvidenceAtoms.map(_.toString).reduceLeft((left, right) => left + "," + right)
-      + "\n\t(noAddUnitClauses) Include unit clauses in the output MLN file: " + _noAddUnitClauses
+      + "\n\t(addUnitClauses) Include unit clauses in the output MLN file: " + _addUnitClauses
       + "\n\t(C) Regularization parameter: " + _C
       + "\n\t(epsilon) Stopping parameter: " + _epsilon
       + "\n\t(lossScale) Scale the loss value by: " + _lossScale
@@ -229,12 +226,13 @@ object WeightLearningCLI extends OptionParser with Logging {
     val mrfBuilder = new MRFBuilder(mln, noNegWeights = _noNeg, eliminateNegatedUnit = _eliminateNegatedUnit, createDependencyMap = true)
     val mrf = mrfBuilder.buildNetwork
 
-    info("--------------------------------------------------------------------------------------------------------------")
+    /*info("--------------------------------------------------------------------------------------------------------------")
     info("GC: " + mrf.dependencyMap.get.size())
     val newMap = mrf.dependencyMap.get.iterator()
     while(newMap.hasNext) {
       newMap.advance()
-      println(mrf.constraints.get(newMap.key()).literals.map {lit =>
+      val groundclause = mrf.constraints.get(newMap.key())
+      println(groundclause.weight + ":" + groundclause.literals.map {lit =>
         decodeLiteral(lit)(mln).get
       }.reduceLeft(_+" v "+_) + " :")
       val dependency = newMap.value().iterator()
@@ -243,7 +241,7 @@ object WeightLearningCLI extends OptionParser with Logging {
         if(mln.clauses(dependency.key()).isHard) println("XAXAXAXAXA")
         println(mln.clauses(dependency.key()) + " " + dependency.value())
       }
-    }
+    }*/
 
     val learner = new MaxMarginLearner(mrf = mrf, annotationDB = annotationDB, nonEvidenceAtoms = _nonEvidenceAtoms,
                                         iterations = _iterations, C = _C, epsilon = _epsilon,
