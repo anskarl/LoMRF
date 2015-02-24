@@ -209,11 +209,13 @@ object InferenceCLI extends OptionParser with Logging {
     }
   })
 
-  booleanOpt("satHardUnit", "sat-hard-unit", "Trivially satisfy hard constrained unit clauses (default is " + _satHardUnit + ")" +
-    " in MaxWalkSAT.", _satHardUnit = _)
+  flagOpt("satHardUnit", "sat-hard-unit", "Trivially satisfy hard constrained unit clauses in MaxWalkSAT.", {
+    _satHardUnit = true
+  })
 
-  booleanOpt("satHardPriority", "sat-hard-priority", "Priority to hard constrained clauses (default is " + _satHardPriority + ")" +
-    " in MaxWalkSAT.", _satHardPriority = _)
+  flagOpt("satHardPriority", "sat-hard-priority", "Priority to hard constrained clauses in MaxWalkSAT.", {
+    _satHardPriority = true
+  })
 
   opt("ilpRounding", "ilp-rounding", "<roundup | mws>", "Rounding algorithm for ILP (default is RoundUp).", {
     v: String => v.trim.toLowerCase match {
@@ -274,14 +276,17 @@ object InferenceCLI extends OptionParser with Logging {
       "Disabling lateSA (= false) causes MC-SAT to converge slower, since in every iteration simulated annealing is performed (with probability = 'pSA'). " +
       "By default lateSA is '" + _lateSA + "'", _lateSA = _)
 
-  booleanOpt("noNeg", "eliminate-negative-weights", "Eliminate negative weight values from ground clauses (default is " + _noNeg + ").", _noNeg = _)
+  flagOpt("noNegWeights", "eliminate-negative-weights", "Eliminate negative weight values from ground clauses.", {
+    _noNeg = true
+  })
 
-  booleanOpt("noNegatedUnit", "eliminate-negated-unit", "Eliminate negated unit ground clauses (default is " + _eliminateNegatedUnit + ").", _eliminateNegatedUnit = _)
+  flagOpt("noNegatedUnit", "eliminate-negated-unit", "Eliminate negated unit ground clauses.", {
+    _eliminateNegatedUnit = true
+  })
 
   opt("dynamic", "dynamic-implementations", "<string>", "Comma separated paths to search recursively for dynamic predicates/functions implementations (*.class and *.jar files).", {
     path: String => if (!path.isEmpty) _implPaths = Some(path.split(','))
   })
-
 
   flagOpt("f:dpart", "flag:domain-partition", "Try to partition the domain and create several smaller MLNs.", {
     _domainPartition = true

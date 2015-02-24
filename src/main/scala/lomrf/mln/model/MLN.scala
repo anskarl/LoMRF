@@ -353,7 +353,7 @@ object MLN extends Logging {
   }
 
 
-  def forLearning(mlnFileName: String,
+  def learning(mlnFileName: String,
             trainingFileNames: List[String],
             nonEvidenceAtoms: collection.Set[AtomSignature],
             pcm: PredicateCompletionMode = Decomposed,
@@ -401,7 +401,7 @@ object MLN extends Logging {
     val queryAtoms = nonEvidenceAtoms
     val finalCWA = evidenceAtoms
     val finalOWA = nonEvidenceAtoms
-    val triStateAtoms = Set.empty[AtomSignature]
+    val triStateAtoms = atomStateDB.filter(db => db._2.isTriStateDB).map(_._1).toSet // is required for grounding
 
     (new MLN(kb.formulas, kb.predicateSchema, kb.functionSchema, kb.dynamicPredicates, kb.dynamicFunctions,
       evidence.constants, functionMapperz, queryAtoms, finalCWA, finalOWA, probabilisticAtoms, triStateAtoms, evidence.identities,

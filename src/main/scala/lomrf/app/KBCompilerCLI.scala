@@ -90,7 +90,6 @@ object KBCompilerCLI extends Logging {
     }
   }
 
-
   def compile(source: String, evidence: String, target: String, profile: Profile,
               includeDomain: Boolean,
               includePredicateDefinitions: Boolean,
@@ -350,19 +349,16 @@ object KBCompilerCLI extends Logging {
 
       weightsMode match {
         case KEEP =>
-          //println("KEEP")
           if (clause.weight.isInfinity) txtLiterals + "."
           else if (!clause.weight.isNaN) numFormat.format(clause.weight) + " " + txtLiterals
           else txtLiterals
         case RM_SOFT =>
-          //println("RM_SOFT")
           if (clause.weight.isInfinity) txtLiterals + "."
           else txtLiterals
         case RM_ALL => txtLiterals
       }
     }
   }
-
 
   private class KBCOptions extends OptionParser {
 
@@ -377,7 +373,7 @@ object KBCompilerCLI extends Logging {
     var includeDomain: Boolean = false
     var includePredicateDefinitions: Boolean = true
     var includeFunctionDefinitions: Boolean = true
-    //var includeWeights: Boolean = true
+
     var weightsMode = KEEP
     var pcm: PredicateCompletionMode = Simplification
     var cnf: Boolean = true
@@ -404,7 +400,6 @@ object KBCompilerCLI extends Logging {
       }
     })
 
-
     opt("w", "weights", "<keep | removeSoft | removeAll>",
     "(keep) Keep all given weights, " +
       "or (removeSoft) eliminate the weighs from all soft-constrained formulas, " +
@@ -425,7 +420,6 @@ object KBCompilerCLI extends Logging {
         case _ => sys.error("Unknown predicate completion mode '" + pc + "'.")
       }
     })
-
 
     booleanOpt("fDomain", "flag-domain", "boolean", "Write domain definitions (default is false)", {
       v: Boolean => includeDomain = v
