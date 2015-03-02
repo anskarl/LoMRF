@@ -338,7 +338,7 @@ object InferenceCLI extends OptionParser with Logging {
       + "\n\t(tabuLength) Minimum number of flips between flipping the same atom: " + _tabuLength
       + "\n\t(numSolutions) Number of solutions in MC-SAT: " + _numSolutions
       + "\n\t(lateSA) Simulated annealing is performed only when MC-SAT reaches a plateau: " + _lateSA
-      + "\n\t(noNeg) Eliminate negative weights: " + _noNeg
+      + "\n\t(noNegWeights) Eliminate negative weights: " + _noNeg
       + "\n\t(noNegatedUnit) Eliminate negated ground unit clauses: " + _eliminateNegatedUnit
       + "\n\t(unitProp) Perform unit-propagation: " + _unitProp
     )
