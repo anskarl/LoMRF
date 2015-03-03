@@ -97,7 +97,7 @@ final class ILP(mrf: MRF, annotationDB: Map[AtomSignature, AtomEvidenceDB] = Map
     annotation(atomID)
   }
 
-  def infer() {
+  def infer(): MRFState = {
 
     if(lossAugmented) {
       assert(annotationDB.nonEmpty, "Annotation database does not exist!")
@@ -330,6 +330,8 @@ final class ILP(mrf: MRF, annotationDB: Map[AtomSignature, AtomEvidenceDB] = Map
                                                       (eSolver - sSolver) +
                                                       (eRoundUp - sRoundUp)
     ))
+
+    state
   }
 
   /**

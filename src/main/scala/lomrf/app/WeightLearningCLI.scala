@@ -37,7 +37,8 @@ import auxlib.log.Logging
 import auxlib.opt.OptionParser
 import lomrf.logic.AtomSignature
 import lomrf.mln.grounding.MRFBuilder
-import lomrf.mln.inference.LossFunction
+import lomrf.mln.inference.Solver
+import lomrf.mln.learning.weight.LossFunction
 import lomrf.mln.model.MLN
 import lomrf.mln.learning.weight.MaxMarginLearner
 import lomrf.util.parseAtomSignature
@@ -61,6 +62,9 @@ object WeightLearningCLI extends OptionParser with Logging {
 
   // The set of non evidence atoms (in the form of AtomName/Arity)
   private var _nonEvidenceAtoms = Set[AtomSignature]()
+
+  // Solver used by ILP map inference
+  private var _ilpSolver = Solver.LPSOLVE
 
   // Add unit clauses to the MLN output file
   private var _addUnitClauses = false
@@ -152,6 +156,14 @@ object WeightLearningCLI extends OptionParser with Logging {
 
   flagOpt("printLearnedWeightsPerIteration", "print-learned-weights-per-iteration", "Print the learned weights for each iteration.", { _printLearnedWeightsPerIteration = true})
 
+  opt("ilpSolver", "ilp-solver", "<gurobi | lpsolve>", "Solver used by ILP (default is LPSolve).", {
+    v: String => v.trim.toLowerCase match {
+      case "gurobi" => _ilpSolver = Solver.GUROBI
+      case "lpsolve" => _ilpSolver = Solver.LPSOLVE
+      case _ => fatal("Unknown parameter for ILP solver type '" + v + "'.")
+    }
+  })
+
   flagOpt("lossAugmented", "loss-augmented", "Perform loss augmented inference.", {_lossAugmented = true})
 
   flagOpt("nonMarginRescaling", "non-margin-rescaling", "Don't scale the margin by the loss.", {_nonMarginRescaling = true})
@@ -193,15 +205,16 @@ object WeightLearningCLI extends OptionParser with Logging {
     info("Parameters:"
       + "\n\t(ne) Non-evidence predicate(s): " + _nonEvidenceAtoms.map(_.toString).reduceLeft((left, right) => left + "," + right)
       + "\n\t(addUnitClauses) Include unit clauses in the output MLN file: " + _addUnitClauses
-      + "\n\t(C) Regularization parameter: " + _C
-      + "\n\t(epsilon) Stopping parameter: " + _epsilon
+      + "\n\t(C) Soft-margin regularization parameter: " + _C
+      + "\n\t(epsilon) Stopping criterion parameter: " + _epsilon
       + "\n\t(lossScale) Scale the loss value by: " + _lossScale
       + "\n\t(iterations) Number of iterations for learning: " + _iterations
       + "\n\t(L1Regularization) Use L1 regularization instead of L2: " + _L1Regularization
       + "\n\t(printLearnedWeightsPerIteration) Print learned weights for each iteration: " + _printLearnedWeightsPerIteration
+      + "\n\t(ilpSolver) Solver used by ILP map inference: " + ( if(_ilpSolver == Solver.GUROBI) "Gurobi" else "LPSolve")
       + "\n\t(lossAugmented) Perform loss augmented inference: " + _lossAugmented
       + "\n\t(nonMarginRescaling) Don't scale the margin by the loss: " + _nonMarginRescaling
-      + "\n\t(noNeg) Eliminate negative weights: " + _noNeg
+      + "\n\t(noNegWeights) Eliminate negative weights: " + _noNeg
       + "\n\t(noNegatedUnit) Eliminate negated ground unit clauses: " + _eliminateNegatedUnit
     )
 
@@ -220,33 +233,32 @@ object WeightLearningCLI extends OptionParser with Logging {
 
     info("Number of CNF clauses = " + mln.clauses.size)
     info("List of CNF clauses: ")
-    mln.clauses.zipWithIndex.foreach{case (c, idx) => info(idx+": "+c)}
+    mln.clauses.zipWithIndex.foreach{case (c, idx) => info(idx + ": " + c)}
 
     info("Creating MRF...")
     val mrfBuilder = new MRFBuilder(mln, noNegWeights = _noNeg, eliminateNegatedUnit = _eliminateNegatedUnit, createDependencyMap = true)
     val mrf = mrfBuilder.buildNetwork
 
-    /*info("--------------------------------------------------------------------------------------------------------------")
-    info("GC: " + mrf.dependencyMap.get.size())
+    /*import lomrf.util._
+
     val newMap = mrf.dependencyMap.get.iterator()
-    while(newMap.hasNext) {
+    while (newMap.hasNext) {
       newMap.advance()
       val groundclause = mrf.constraints.get(newMap.key())
-      println(groundclause.weight + ":" + groundclause.literals.map {lit =>
-        decodeLiteral(lit)(mln).get
-      }.reduceLeft(_+" v "+_) + " :")
       val dependency = newMap.value().iterator()
-      while(dependency.hasNext) {
+      println(groundclause.weight + ":" + groundclause.literals.map {
+        lit => decodeLiteral(lit)(mln).get
+      }.reduceLeft(_ + " v " + _) + " :")
+      while (dependency.hasNext) {
         dependency.advance()
-        if(mln.clauses(dependency.key()).isHard) println("XAXAXAXAXA")
-        println(mln.clauses(dependency.key()) + " " + dependency.value())
+        info(mln.clauses(dependency.key()) + " " + dependency.value())
       }
     }*/
 
-    val learner = new MaxMarginLearner(mrf = mrf, annotationDB = annotationDB, nonEvidenceAtoms = _nonEvidenceAtoms,
-                                        iterations = _iterations, C = _C, epsilon = _epsilon,
-                                        lossScale = _lossScale, nonMarginRescaling = _nonMarginRescaling, lossAugmented = _lossAugmented,
-                                        printLearnedWeightsPerIteration = _printLearnedWeightsPerIteration)
+    val learner = new MaxMarginLearner(mrf = mrf, annotationDB = annotationDB, nonEvidenceAtoms = _nonEvidenceAtoms, iterations = _iterations,
+                                       ilpSolver = _ilpSolver, C = _C, epsilon = _epsilon, lossScale = _lossScale,
+                                       nonMarginRescaling = _nonMarginRescaling, lossAugmented = _lossAugmented, lossFunction = _lossFunction,
+                                       L1Regularization = _L1Regularization, printLearnedWeightsPerIteration = _printLearnedWeightsPerIteration)
 
     learner.learn()
     learner.writeResults(outputWriter)
