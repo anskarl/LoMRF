@@ -33,20 +33,18 @@
 package lomrf.util
 
 import java.nio.file.Path
-
 import auxlib.log.Logging
 import lomrf.logic.{FALSE, TRUE, AtomSignature}
 import lomrf.mln.model.mrf.MRF
-
 import scala.collection.mutable
 import java.io.{IOException, File}
-
 import scala.reflect._
 
 /**
  * Various utility functions.
  *
  * @author Anastasios Skarlatidis
+ * @author Vagelis Michelioudakis
  */
 object Utilities extends Logging {
 
@@ -173,14 +171,15 @@ object Utilities extends Logging {
   object Metrics {
 
     /**
-     * Calculates the F1 score relative to an annotated state of ground atoms.
+     * Calculates the FMeasure relative to an annotated state of ground atoms.
      *
-     * @param mrf The ground Markov network
+     * @param mrf the ground Markov network
      * @param annotationDB the annotated state of ground atoms
+     * @param beta parameter for specific FMeasure function (i.e. for beta = 1 we get F1Score)
      *
-     * @return F1 score
+     * @return FMeasure
      */
-    def F1Score(mrf: MRF, annotationDB: Map[AtomSignature, AtomEvidenceDB]): Double = {
+    def FMeasure(mrf: MRF, annotationDB: Map[AtomSignature, AtomEvidenceDB], beta: Double): Double = {
 
       var Tpositive, Tnegative, Fpositive, Fnegative = 0.0
 
@@ -205,7 +204,7 @@ object Utilities extends Logging {
       if(Tpositive + Fnegative != 0.0) recall = Tpositive / (Tpositive + Fnegative)
 
       if(precision + recall != 0)
-        (2* precision * recall) / (precision + recall)
+        ((1 + math.pow(beta, 2)) * precision * recall) / ((math.pow(beta, 2) * precision) + recall)
       else
         0.0
     }
