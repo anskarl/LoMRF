@@ -218,7 +218,7 @@ object WeightLearningCLI extends OptionParser with Logging {
       + "\n\t(noNegatedUnit) Eliminate negated ground unit clauses: " + _eliminateNegatedUnit
     )
 
-    val (mln, annotationDB) = MLN.learning(strMLNFileName, strTrainingFileNames, _nonEvidenceAtoms)
+    val (mln, annotationDB) = MLN.learning(strMLNFileName, strTrainingFileNames, _nonEvidenceAtoms, addUnitClauses = _addUnitClauses)
 
     info("Markov Logic:"
       + "\n\tConstant domains   : " + mln.constants.size
