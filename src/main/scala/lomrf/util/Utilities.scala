@@ -33,7 +33,6 @@
 package lomrf.util
 
 import java.nio.file.Path
-import auxlib.log.Logging
 import lomrf.logic.{FALSE, TRUE, AtomSignature}
 import lomrf.mln.model.mrf.MRF
 import scala.collection.mutable
@@ -46,7 +45,7 @@ import scala.reflect._
  * @author Anastasios Skarlatidis
  * @author Vagelis Michelioudakis
  */
-object Utilities extends Logging {
+object Utilities {
 
   /**
    * Calculates the actual time in hours, minutes, seconds and milliseconds given the

@@ -42,7 +42,6 @@ import gnu.trove.set.hash.TIntHashSet
 import lomrf._
 import lomrf.logic.{AtomSignature, AtomicFormula, Clause, Variable}
 import lomrf.mln.model.MLN
-import scalaxy.loops._
 
 import scala.collection.breakOut
 
@@ -73,7 +72,6 @@ private final class GroundingMaster(mln: MLN,
   private var workerIdx = 0
   private var cliqueStartID = 0
   private var groundingIterations = 1
-  //private var remainingClauses: Set[Clause] = mln.clauses
   private var remainingClauses: Vector[(Clause, Int)] = mln.clauses.zipWithIndex
   private var atomSignatures: Set[AtomSignature] = mln.queryAtoms.toSet
 
@@ -105,10 +103,13 @@ private final class GroundingMaster(mln: MLN,
     // To make sure that all ground query predicates will be stored in the network,
     // insert all ground query predicates as zero weighted unit clauses
     for ((signature, qidx) <- mln.queryAtoms.zipWithIndex) {
-      val terms = mln.predicateSchema(signature).view.zipWithIndex.map {
-        case (argType: String, idx: Int) => Variable("v" + idx, argType, idx)
-      }.toVector
-      //remainingClauses += Clause(0, AtomicFormula(signature.symbol, terms))
+      val terms = mln.predicateSchema(signature)
+        .view
+        .zipWithIndex.map {
+          case (argType: String, idx: Int) => Variable("v" + idx, argType, idx)
+        }
+        .toVector
+
       remainingClauses :+=(Clause(0, AtomicFormula(signature.symbol, terms)), numberOfClauses + qidx)
     }
 

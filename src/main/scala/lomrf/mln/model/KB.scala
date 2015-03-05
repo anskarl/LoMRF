@@ -38,12 +38,10 @@ import collection.immutable.HashMap
 import collection.mutable
 import java.io.{BufferedReader, File, FileReader}
 import java.util.regex.Pattern
-import lomrf.debugMsg
 import lomrf.logic.PredicateCompletionMode._
 import lomrf.logic._
 import lomrf.logic.dynamic.{DynamicAtomBuilder, DynamicFunctionBuilder}
 import lomrf.util.{ ImplFinder, ConstantsSetBuilder}
-import scala.collection.breakOut
 
 /**
  * KB
@@ -124,9 +122,7 @@ private[model] object KB extends Logging {
     // that appear only in the formulas and not in the evidence.
     // Important note: this procedure is not applied to dynamic functions/predicates
     def _findUndefinedConstants(formula: Formula) {
-      if (debugMsg) {
-        println("Looking for constants in:  " + formula.toText)
-      }
+      debug("Looking for constants in:  " + formula.toText)
 
       def parseTerm(term: Term, key: String) {
         term match {
@@ -210,28 +206,32 @@ private[model] object KB extends Logging {
     var definiteClauses = new mutable.LinkedHashSet[WeightedDefiniteClause]()
     val queue = mutable.Queue[IncludeFile]()
 
-    val kbExpressions: List[MLNExpression] = kbParser.parseAll(kbParser.mln, fileReader) match {
+    val kbExpressions: Iterable[MLNExpression] = kbParser.parseAll(kbParser.mln, fileReader) match {
       case kbParser.Success(exprs, _) => exprs
       case x => fatal("Can't parse the following expression: " + x + " in file: " + kbFile)
     }
 
-    for (expr <- kbExpressions) {
-      if (debugMsg) {
-        println("KB expression: " + expr)
-      }
-
-      expr match {
-        case f: WeightedFormula =>
+    def processMLNExpression(expr: MLNExpression): Unit = expr match {
+      case f: WeightedFormula =>
+        if(f.weight == 0.0)
+          warn(s"Ignoring zero weighted formula '${f.toText}'")
+        else {
           formulas += f
           _findUndefinedConstants(f)
-        case c: WeightedDefiniteClause =>
+        }
+      case c: WeightedDefiniteClause =>
+        if (c.weight == 0.0)
+          warn(s"Ignoring zero weighted definite clause '${c.toText}'")
+        else {
           definiteClauses += c
           _findUndefinedConstants(c.clause.body)
           _findUndefinedConstants(c.clause.head)
-        case inc: IncludeFile => queue += inc
-        case _ => warn("Ignoring expression: " + expr)
-      }
+        }
+      case inc: IncludeFile => queue += inc
+      case _ => warn("Ignoring expression: " + expr)
     }
+
+    kbExpressions.foreach(processMLNExpression)
 
     while (queue.nonEmpty) {
       val inc = queue.dequeue()
@@ -245,22 +245,13 @@ private[model] object KB extends Logging {
         }
       }
 
-      val curr_expressions = kbParser.parseAll(kbParser.mln, new FileReader(incFile)) match {
+      val curr_expressions: Iterable[MLNExpression] = kbParser.parseAll(kbParser.mln, new FileReader(incFile)) match {
         case kbParser.Success(exprs, _) => exprs
         case x => fatal("Can't parse the following expression: " + x + " in file: " + incFile)
       }
 
-      for (expr <- curr_expressions) expr match {
-        case f: WeightedFormula =>
-          formulas += f
-          _findUndefinedConstants(f)
-        case c: WeightedDefiniteClause =>
-          definiteClauses += c
-          _findUndefinedConstants(c.clause.body)
-          _findUndefinedConstants(c.clause.head)
-        case inc: IncludeFile => queue += inc
-        case _ => warn("Ignoring expression: " + expr)
-      }
+      curr_expressions.foreach(processMLNExpression)
+
     }
 
     val resultingFormulas = PredicateCompletion(formulas, definiteClauses, pcMode)(predicateSchema, functionSchema)
@@ -274,10 +265,12 @@ private[model] object KB extends Logging {
       case _ => predicateSchema
     }
 
-    if (debugMsg) {
-      constants.foreach(entry => println("|" + entry._1 + "|=" + entry._2.size))
+    whenDebug {
+      constants.foreach(entry => debug("|" + entry._1 + "|=" + entry._2.size))
     }
 
+    if(resultingFormulas.isEmpty)
+      warn("The given theory is empty (i.e., contains empty set of non-zeroed formulas).")
 
     new KB(constants, resultingPredicateSchema, functionSchema, resultingFormulas, kbParser.getDynamicPredicates, kbParser.getDynamicFunctions)
   }
