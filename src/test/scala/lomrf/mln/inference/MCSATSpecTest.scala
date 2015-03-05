@@ -131,8 +131,7 @@ final class MCSATSpecTest extends FunSpec with Matchers {
 
       val solver = new MCSAT(mrf)
       solver.infer()
-      solver.writeResults(new PrintStream(new FileOutputStream(prefix + ".mcsat.result"), true),
-                          new PrintStream(new FileOutputStream(prefix + ".mcsat.counts"), true))
+      solver.writeResults(new PrintStream(new FileOutputStream(prefix + ".mcsat.result"), true))
 
       info("Inspecting result file: '" + prefix + ".mcsat.result'")
 
