@@ -44,9 +44,14 @@ import lomrf.logic.dynamic.{DynamicAtomBuilder, DynamicFunctionBuilder}
 import lomrf.util.{ ImplFinder, ConstantsSetBuilder}
 
 /**
- * KB
+ * This class contains the parsed components of an MLN theory.
  *
- * @author Anastasios Skarlatidis
+ * @param constants holds a mapping of 'domain name' to its 'constants set builder'.
+ * @param predicateSchema  holds a mapping of 'atom signature' to a sequence of the domain names of its terms.
+ * @param functionSchema  holds a mapping of 'function signature' to its return domain name, as well as a sequence of the domain names of its terms.
+ * @param formulas contains a collection of (weighted) formulas in first-order logic form.
+ * @param dynamicPredicates contains definitions of dynamic predicates
+ * @param dynamicFunctions contains definitions of dynamic functions
  */
 private[model] class KB(val constants: mutable.HashMap[String, ConstantsSetBuilder],
                         val predicateSchema: Map[AtomSignature, Seq[String]],
