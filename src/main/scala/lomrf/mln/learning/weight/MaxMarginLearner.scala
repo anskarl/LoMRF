@@ -281,7 +281,11 @@ final class MaxMarginLearner(mrf: MRF, annotationDB: Map[AtomSignature, AtomEvid
 
   def learn() = {
 
-    info("2-norm max margin weight learning using cutting plane method: \n" +
+    if(L1Regularization)
+      info("1-norm max margin weight learning using cutting plane method: \n" +
+        "Number of weights: " + numberOfClauses)
+    else
+      info("2-norm max margin weight learning using cutting plane method: \n" +
          "Number of weights: " + numberOfClauses)
 
     val sLearning = System.currentTimeMillis()
@@ -294,22 +298,44 @@ final class MaxMarginLearner(mrf: MRF, annotationDB: Map[AtomSignature, AtomEvid
     var expressions = List[Expression]()
     var constraints = List[Expression]()
 
-    /*
-     * Preprocessing step: Define the objective function before learning process begins.
-     *
-     * 1/2 ||w||^2 + slack
-     *
-     * where both w and slack variables are vectors.
-     *
-     * Step 1: Introduce variables for each first-order clause weight and one slack variable
-     * Step 2: Create sub-expressions for objective function (quadratic problem)
-     */
-    for(clauseIdx <- 0 until numberOfClauses) {
-      LPVars.putIfAbsent(clauseIdx, MPFloatVar("w" + clauseIdx, Double.NegativeInfinity, Double.PositiveInfinity))
-      expressions :+= ( 0.5 * LPVars.get(clauseIdx) * LPVars.get(clauseIdx) )
+    if(L1Regularization) {
+      /*
+       * Preprocessing step: Define the objective function before learning process begins.
+       *
+       * w + slack
+       *
+       * where both w and slack variables are vectors.
+       *
+       * Step 1: Introduce two variables for each first-order clause weight and one slack variable
+       * Step 2: Create sub-expressions for objective function (quadratic problem)
+       *
+       * Note: Weights are positive only!
+       */
+      for(clauseIdx <- (0 until 2 * numberOfClauses).optimized) {
+        LPVars.putIfAbsent(clauseIdx, MPFloatVar("w" + clauseIdx)) // bounds are [0.0, inf] because L1 norm has absolute values
+        expressions :+= LPVars.get(clauseIdx)
+      }
+      LPVars.putIfAbsent(2 * numberOfClauses, MPFloatVar("slack")) // bounds are by default [0.0, inf]
+      expressions ::= ( C * LPVars.get(numberOfClauses) )
     }
-    LPVars.putIfAbsent(numberOfClauses, MPFloatVar("slack")) // bounds are by default [0.0, inf]
-    expressions ::= ( C * LPVars.get(numberOfClauses) )
+    else {
+      /*
+       * Preprocessing step: Define the objective function before learning process begins.
+       *
+       * 1/2 ||w||^2 + slack
+       *
+       * where both w and slack variables are vectors.
+       *
+       * Step 1: Introduce variables for each first-order clause weight and one slack variable
+       * Step 2: Create sub-expressions for objective function (quadratic problem)
+       */
+      for (clauseIdx <- (0 until numberOfClauses).optimized) {
+        LPVars.putIfAbsent(clauseIdx, MPFloatVar("w" + clauseIdx, Double.NegativeInfinity, Double.PositiveInfinity))
+        expressions :+= (0.5 * LPVars.get(clauseIdx) * LPVars.get(clauseIdx))
+      }
+      LPVars.putIfAbsent(numberOfClauses, MPFloatVar("slack")) // bounds are by default [0.0, inf]
+      expressions ::= (C * LPVars.get(numberOfClauses))
+    }
 
     debug("Expressions: [" + expressions.mkString(", ") + "]")
 
@@ -340,7 +366,9 @@ final class MaxMarginLearner(mrf: MRF, annotationDB: Map[AtomSignature, AtomEvid
         var converged = true
         var nonZero = 0
         for (clauseIdx <- (0 until numberOfClauses).optimized) {
-          val value = LPVars.get(clauseIdx).value.get
+          val value =
+            if(L1Regularization) LPVars.get(clauseIdx).value.get - LPVars.get(clauseIdx + numberOfClauses).value.get
+            else LPVars.get(clauseIdx).value.get
 
           // set learned weights before inference if they have been changed
           if(weights(clauseIdx) != value) {
@@ -353,7 +381,9 @@ final class MaxMarginLearner(mrf: MRF, annotationDB: Map[AtomSignature, AtomEvid
         nonZero = weights.count(w => w != 0.0)
         info("Non-zero weights: " + nonZero)
 
-        val value = LPVars.get(numberOfClauses).value.get
+        val value =
+          if(L1Regularization) LPVars.get(2 * numberOfClauses).value.get
+          else LPVars.get(numberOfClauses).value.get
         if(slack != value) slack = value
 
         info("Current slack value: " + slack)
@@ -378,10 +408,15 @@ final class MaxMarginLearner(mrf: MRF, annotationDB: Map[AtomSignature, AtomEvid
 
       // Calculate true counts minus inferred counts
       var currentError = 0.0
-      val delta = Array.fill[Int](numberOfClauses)(0)
+      val delta =
+        if(L1Regularization) Array.fill[Int](2 * numberOfClauses)(0)
+        else Array.fill[Int](numberOfClauses)(0)
+
       for (clauseIdx <- (0 until numberOfClauses).optimized) {
-        if(!mrf.mln.clauses(clauseIdx).isHard)
+        if(!mrf.mln.clauses(clauseIdx).isHard) {
           delta(clauseIdx) = trueCounts(clauseIdx) - inferredCounts(clauseIdx)
+          if(L1Regularization) delta(clauseIdx + numberOfClauses) = -delta(clauseIdx)
+        }
         currentError += weights(clauseIdx) * delta(clauseIdx)
       }
 
@@ -391,9 +426,18 @@ final class MaxMarginLearner(mrf: MRF, annotationDB: Map[AtomSignature, AtomEvid
 
       // Add next constraint to the quadratic solver in order to refine weights
       constraints = Nil
-      for(clauseIdx <- (0 until numberOfClauses).optimized)
-        constraints ::= LPVars.get(clauseIdx) * delta(clauseIdx)
-      add(sum(constraints) >= loss - LPVars.get(numberOfClauses))
+      if(L1Regularization) {
+        for (variableIdx <- (0 until 2 * numberOfClauses).optimized)
+          constraints ::= LPVars.get(variableIdx) * delta(variableIdx)
+      }
+      else {
+        for (clauseIdx <- (0 until numberOfClauses).optimized)
+          constraints ::= LPVars.get(clauseIdx) * delta(clauseIdx)
+      }
+
+      // Do not scale the margin by the loss if required
+      if(nonMarginRescaling) add(sum(constraints) >= 1 - LPVars.get(numberOfClauses))
+      else add(sum(constraints) >= loss - LPVars.get(numberOfClauses))
 
       debug(sum(constraints) + " >= " + (loss - LPVars.get(numberOfClauses)))
 

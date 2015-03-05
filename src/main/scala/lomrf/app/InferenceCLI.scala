@@ -165,12 +165,15 @@ object InferenceCLI extends OptionParser with Logging {
   opt("i", "input", "<kb file>", "Markov Logic file", {
     v: String => _mlnFileName = Some(v)
   })
+
   opt("e", "evidence", "<db file(s)>", "Comma separated evidence database files.", {
     v: String => _evidenceFileNames = Some(v.split(',').toList)
   })
+
   opt("r", "result", "<result file>", "Results file", {
     v: String => _resultsFileName = Some(v)
   })
+
 
   opt("q", "query", "<string>", "Comma separated query atoms. "
     + "Each atom must be defined using its identity (i.e. Name/arity). "
@@ -309,7 +312,8 @@ object InferenceCLI extends OptionParser with Logging {
   }
 
   def infer() {
-    //First load the KB and the evidence files
+
+    // First load the KB and the evidence files
     val strMLNFileName = _mlnFileName.getOrElse(fatal("Please specify an input MLN file."))
     val strEvidenceFileNames = _evidenceFileNames.getOrElse(fatal("Please specify input evidence file(s)."))
     val resultsWriter = _resultsFileName match {
