@@ -55,7 +55,7 @@ package object lomrf {
       o   o o-o-o  o  o-o o-o o o o     o    | o-o o  o-o o-o
     """
 
-  val debugMsg = false
+
 
   val processors = sys.runtime.availableProcessors
 
