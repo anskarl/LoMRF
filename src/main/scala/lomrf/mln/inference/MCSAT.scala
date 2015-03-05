@@ -292,9 +292,10 @@ final case class MCSAT(mrf: MRF, pBest: Double = 0.5, pSA: Double = 0.1, maxFlip
   /**
    * Write the results of inference into the selected output stream.
    *
-   * @param out Selected output stream (default is console)
+   * @param result Selected output stream for results (default is console)
+   * @param counts Selected output stream for counts (default is console)
    */
-  def writeResults(out: PrintStream = System.out) {
+  def writeResults(result: PrintStream = System.out, counts: PrintStream = System.out) {
     import lomrf.util.decodeAtom
     val numFormat = new DecimalFormat("0.0######")
 
@@ -310,7 +311,9 @@ final case class MCSAT(mrf: MRF, pBest: Double = 0.5, pSA: Double = 0.1, maxFlip
         // Add Gaussian noise for P=0.0 and P=1.0. Also reformat the displayed probability result in order to have at maximum 7 floating point decimals
         //val txtProbability = if (probability == 0.0) "4.9995e-05" else if(probability == 1.0) "0.99995" else numFormat.format(probability)
         decodeAtom(iterator.key()) match {
-          case Some(txtAtom) => out.println(txtAtom + " " + numFormat.format(probability))
+          case Some(txtAtom) =>
+            counts.println(txtAtom + " " + groundAtom.getTruesCount)
+            result.println(txtAtom + " " + numFormat.format(probability))
           case _ => error("failed to decode id:" + atomID)
         }
       }

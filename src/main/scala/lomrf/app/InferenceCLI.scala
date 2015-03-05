@@ -312,9 +312,12 @@ object InferenceCLI extends OptionParser with Logging {
     //First load the KB and the evidence files
     val strMLNFileName = _mlnFileName.getOrElse(fatal("Please specify an input MLN file."))
     val strEvidenceFileNames = _evidenceFileNames.getOrElse(fatal("Please specify input evidence file(s)."))
-    val resultsWriter = _resultsFileName match {
-      case Some(fileName) => new PrintStream(new FileOutputStream(fileName), true)
-      case None => System.out
+    val (resultsWriter, countsWriter) = _resultsFileName match {
+      case Some(fileName) =>
+        val parts = fileName.split("\\.")
+        val countsFile = parts.slice(0, parts.size - 1).foldLeft("")(_ + _) + ".counts"
+        (new PrintStream(new FileOutputStream(fileName), true), new PrintStream(new FileOutputStream(countsFile), true))
+      case None => (System.out, System.out)
     }
 
     info("Parameters:"
@@ -372,7 +375,7 @@ object InferenceCLI extends OptionParser with Logging {
         saTemperature = _saTemperature, samples = _samples, lateSA = _lateSA, unitPropagation = _unitProp, satHardPriority = _satHardPriority, tabuLength = _tabuLength
       )
       solver.infer()
-      solver.writeResults(resultsWriter)
+      solver.writeResults(resultsWriter, countsWriter)
     }
     else { // MAP inference methods
       if(_mws) {
