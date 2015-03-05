@@ -33,23 +33,40 @@
 package lomrf.util
 
 import java.nio.file.Path
-
 import auxlib.log.Logging
-
+import lomrf.logic.{FALSE, TRUE, AtomSignature}
+import lomrf.mln.model.mrf.MRF
 import scala.collection.mutable
 import java.io.{IOException, File}
-
 import scala.reflect._
 
 /**
+ * Various utility functions.
+ *
  * @author Anastasios Skarlatidis
+ * @author Vagelis Michelioudakis
  */
-
 object Utilities extends Logging {
 
-
+  /**
+   * Calculates the actual time in hours, minutes, seconds and milliseconds given the
+   * total time in milliseconds and concatenates it along a given message.
+   *
+   * @param msg the message to be displayed along the actual time
+   * @param milliseconds the total time in milliseconds
+   *
+   * @return the converted time along with the given message
+   */
   def msecTimeToText(msg: String, milliseconds: Long): String = msg + " = " + msecTimeToText(milliseconds)
 
+  /**
+   * Calculates the actual time in hours, minutes, seconds and milliseconds given the
+   * total time in milliseconds.
+   *
+   * @param milliseconds the total time in milliseconds
+   *
+   * @return the converted time
+   */
   def msecTimeToText(milliseconds: Long): String = {
     val time = milliseconds / 1000
     val seconds = time % 60
@@ -59,12 +76,46 @@ object Utilities extends Logging {
     hours + "h " + minutes + "m " + seconds + "s " + (milliseconds % 1000) + "ms"
   }
 
+  /**
+   * Calculates the actual time in hours, minutes, seconds and milliseconds until now
+   * given a starting time in milliseconds and concatenates it along a given message.
+   *
+   * @param msg the message to be displayed along the actual time
+   * @param fromTime the starting time in milliseconds
+   *
+   * @return the converted time until now along with the given message
+   */
   def msecTimeToTextUntilNow(msg: String, fromTime: Long) = msg + " = " + msecTimeToText(System.currentTimeMillis - fromTime)
 
+  /**
+   * Calculates the actual time in hours, minutes, seconds and milliseconds until now
+   * given a starting time in milliseconds
+   *
+   * @param fromTime the starting time in milliseconds
+   *
+   * @return the converted time until now
+   */
   def msecTimeToTextUntilNow(fromTime: Long) = msecTimeToText(System.currentTimeMillis - fromTime)
 
+  /**
+   * Calculates the actual time in seconds, milliseconds and nanoseconds given the
+   * total time in nanoseconds and concatenates it along a given message.
+   *
+   * @param msg the message to be displayed along the actual time
+   * @param nanoseconds the total time in nanoseconds
+   *
+   * @return the converted time along with the given message
+   */
   def nsecTimeToText(msg: String, nanoseconds: Long): String = msg + " = " + nsecTimeToText(nanoseconds)
 
+  /**
+   * Calculates the actual time in seconds, milliseconds and nanoseconds given the
+   * total time in nanoseconds.
+   *
+   * @param nanoseconds the total time in nanoseconds
+   *
+   * @return the converted time
+   */
   def nsecTimeToText(nanoseconds: Long): String = {
     val nsec = nanoseconds % 1000000L
     val milliseconds = nanoseconds / 1000000L
@@ -77,6 +128,7 @@ object Utilities extends Logging {
 
   /**
    * Measures the time spend in a function call
+   *
    * @return a tuple: (total execution time, result)
    */
   def time[T](f: () => T) = {
@@ -116,6 +168,49 @@ object Utilities extends Logging {
     }
   }
 
+  object Metrics {
+
+    /**
+     * Calculates the FMeasure relative to an annotated state of ground atoms.
+     *
+     * @param mrf the ground Markov network
+     * @param annotationDB the annotated state of ground atoms
+     * @param beta parameter for specific FMeasure function (i.e. for beta = 1 we get F1Score)
+     *
+     * @return FMeasure
+     */
+    def FMeasure(mrf: MRF, annotationDB: Map[AtomSignature, AtomEvidenceDB], beta: Double): Double = {
+
+      var Tpositive, Tnegative, Fpositive, Fnegative = 0.0
+
+      // Count true positives and negatives as well as false positives and negatives
+      val atoms = mrf.atoms.iterator()
+      while(atoms.hasNext) {
+        atoms.advance()
+        val atomID = atoms.key()
+        val value = atoms.value().getState
+        val annotation = annotationDB(signatureOf(atomID)(mrf.mln))(atomID)
+        (annotation, value) match {
+          case (TRUE, true) => Tpositive += 1
+          case (FALSE, false) => Tnegative += 1
+          case (FALSE, true) => Fpositive += 1
+          case _ => Fnegative +=1
+        }
+      }
+
+      // Calculate precision and recall
+      var precision, recall = 0.0
+      if(Tpositive + Fpositive != 0.0) precision = Tpositive / (Tpositive + Fpositive)
+      if(Tpositive + Fnegative != 0.0) recall = Tpositive / (Tpositive + Fnegative)
+
+      if(precision + recall != 0)
+        ((1 + math.pow(beta, 2)) * precision * recall) / ((math.pow(beta, 2) * precision) + recall)
+      else
+        0.0
+    }
+
+  }
+
   /**
    * Safe dereference operator.
    *
@@ -133,9 +228,9 @@ object Utilities extends Logging {
 
   object io {
 
-    implicit def strToFile(str: String) = new File(str)
+    implicit def strToFile(str: String): File = new File(str)
 
-    implicit def pathToFile(path: Path) = path.toFile
+    implicit def pathToFile(path: Path): File = path.toFile
 
     /**
      * Search recursively for files/directories in a directory.
@@ -265,10 +360,8 @@ object Utilities extends Logging {
         case "double" => isPrimitiveClass[java.lang.Double]
         case _  => isRegularClass
       }
-
     }
 
   }
-
 
 }

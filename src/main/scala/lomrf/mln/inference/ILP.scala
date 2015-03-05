@@ -35,12 +35,11 @@ package lomrf.mln.inference
 import lomrf.logic.{TRUE, TriState, AtomSignature}
 import java.io.PrintStream
 import auxlib.log.Logging
-import lomrf.mln.inference.LossFunction.LossFunction
 import lomrf.mln.inference.RoundingScheme.RoundingScheme
 import lomrf.mln.inference.Solver.Solver
 import lomrf.mln.model.mrf._
 import lomrf.util._
-import gnu.trove.map.hash.{TIntDoubleHashMap, TIntObjectHashMap}
+import gnu.trove.map.hash.TIntObjectHashMap
 import optimus.algebra._
 import optimus.lqprog._
 import scalaxy.loops._
@@ -55,17 +54,18 @@ import auxlib.trove.TroveConversions._
  * Knowledge Discovery in Databases (ECML-PKDD 2011), Vol. 2, pp. 81-96, 2011.
  *
  * @param mrf The ground Markov network
+ * @param annotationDB Annotation database holding the ground truth values for non evidence
+ *                     atoms. Required when performing loss augmented inference.
  * @param outputAll Show 0/1 results for all query atoms (default is true)
  * @param ilpRounding Rounding algorithm selection option (default is RoundUp)
  * @param ilpSolver Solver type selection option (default is LPSolve)
- * @param lossFunction Loss function type (default is hamming distance)
- * @param lossAugmented Perform loss augmented inference (default is false)
+ * @param lossAugmented Perform loss augmented inference using hamming distance (default is false)
  *
  * @author Anastasios Skarlatidis
  * @author Vagelis Michelioudakis
  */
-final class ILP(mrf: MRF, annotationDB: Map[AtomSignature, AtomEvidenceDB] = Map.empty[AtomSignature, AtomEvidenceDB], outputAll: Boolean = true,
-                ilpRounding: RoundingScheme = RoundingScheme.ROUNDUP, ilpSolver: Solver = Solver.LPSOLVE, lossFunction: LossFunction = LossFunction.HAMMING,
+final class ILP(mrf: MRF, annotationDB: Map[AtomSignature, AtomEvidenceDB] = Map.empty[AtomSignature, AtomEvidenceDB],
+                outputAll: Boolean = true, ilpRounding: RoundingScheme = RoundingScheme.ROUNDUP, ilpSolver: Solver = Solver.LPSOLVE,
                 lossAugmented: Boolean = false) extends Logging {
 
   // Select the appropriate mathematical programming solver
@@ -97,9 +97,12 @@ final class ILP(mrf: MRF, annotationDB: Map[AtomSignature, AtomEvidenceDB] = Map
     annotation(atomID)
   }
 
-  def infer() {
+  def infer(): MRFState = {
 
-    if(lossAugmented) info("Running loss augmented inference...")
+    if(lossAugmented) {
+      assert(annotationDB.nonEmpty, "Annotation database does not exist!")
+      info("Running loss augmented inference...")
+    }
 
     val sTranslation = System.currentTimeMillis()
 
@@ -116,6 +119,26 @@ final class ILP(mrf: MRF, annotationDB: Map[AtomSignature, AtomEvidenceDB] = Map
      * {{{ weight * LP variable}}}
      */
     var expressions = List[Expression]()
+
+    val atomsIterator = mrf.atoms.iterator()
+
+    // Step 1: Introduce variables for each ground atom
+    while(atomsIterator.hasNext) {
+      atomsIterator.advance()
+      val atomID = math.abs(atomsIterator.key())
+
+      literalLPVars.put(atomID, MPFloatVar("y" + atomID, 0, 1))
+
+      /* In case of loss augmented inference, Hamming distance is used which
+       * is equivalent to adding 1 to the coefficient of ground atom y if the
+       * true (annotated) value of y is FALSE and subtracting 1 from the
+       * coefficient of y if the true value of y is TRUE.
+       */
+      if(lossAugmented) {
+        val loss = if (getAnnotation(atomID) == TRUE) -1.0 else 1.0
+        expressions ::= loss * literalLPVars.get(atomID)
+      }
+    }
 
     val constraintsIterator = mrf.constraints.iterator()
 
@@ -137,13 +160,6 @@ final class ILP(mrf: MRF, annotationDB: Map[AtomSignature, AtomEvidenceDB] = Map
       // Step 1: Introduce variables for each ground atom and create possible constraints
       for (literal <- constraint.literals) {
         val atomID = math.abs(literal)
-        if(!literalLPVars.containsKey(atomID)) {
-          literalLPVars.put(atomID, MPFloatVar("y" + atomID, 0, 1))
-          if(lossAugmented) {
-            val loss = if (getAnnotation(atomID) == TRUE) -1.0 else 1.0
-            expressions ::= loss * literalLPVars.get(atomID)
-          }
-        }
         val floatVar = literalLPVars.get(atomID)
 
         if ((constraint.weight > 0 || constraint.weight.isInfinite || constraint.weight.isNaN ||
@@ -171,8 +187,8 @@ final class ILP(mrf: MRF, annotationDB: Map[AtomSignature, AtomEvidenceDB] = Map
             else (-constraint.weight) * literalLPVars.get(math.abs(constraint.literals(0)))
           }
         }
-        else {
-          clauseLPVars.putIfAbsent(cid, MPFloatVar("z" + cid, 0, 1))
+        else { // there is no case where the same clause is going to create another z variable, so use put not putIfAbsent
+          clauseLPVars.put(cid, MPFloatVar("z" + cid, 0, 1))
           expressions ::= math.abs(constraint.weight) * clauseLPVars.get(cid)
         }
 
@@ -201,7 +217,7 @@ final class ILP(mrf: MRF, annotationDB: Map[AtomSignature, AtomEvidenceDB] = Map
     }
 
     val eTranslation = System.currentTimeMillis()
-    info(Utilities.msecTimeToText("Total translation time: ", eTranslation - sTranslation))
+    info(Utilities.msecTimeToText("Translation time: ", eTranslation - sTranslation))
 
     info(
         "\nGround Atoms: " + mrf.numberOfAtoms +
@@ -216,7 +232,7 @@ final class ILP(mrf: MRF, annotationDB: Map[AtomSignature, AtomEvidenceDB] = Map
     release()
 
     val eSolver = System.currentTimeMillis()
-    info(Utilities.msecTimeToText("Total solver time: ", eSolver - sSolver))
+    info(Utilities.msecTimeToText("Solver time: ", eSolver - sSolver))
 
     info(
         "\n=========================== Solution ===========================" +
@@ -226,73 +242,97 @@ final class ILP(mrf: MRF, annotationDB: Map[AtomSignature, AtomEvidenceDB] = Map
 
 
     whenDebug {
-      literalLPVars.iterator.foreach{ case (k: Int, v: MPFloatVar) => debug(v.symbol + " = " + v.value.get)}
-      clauseLPVars.iterator.foreach{ case (k: Int, v: MPFloatVar) => debug(v.symbol + " = " + v.value.get)}
+      literalLPVars.iterator.foreach { case (k: Int, v: MPFloatVar) =>
+        debug(v.symbol + " = " + v.value.getOrElse("Value does not exist for this ground atom variable!"))
+      }
+      clauseLPVars.iterator.foreach { case (k: Int, v: MPFloatVar) =>
+        debug(v.symbol + " = " + v.value.getOrElse("Value does not exist for this constraint variable"))
+      }
     }
 
-    val solution = new TIntDoubleHashMap(literalLPVars.size())
-    var fractionalSolutions = List[(Int, Double)]()
-
-    // create MRF state
+    // Create MRF state and assume every constraint to be unsatisfied
     val state = MRFState(mrf)
-    state.makeAllUnsatisfied()
+    state.unfixAll()
 
     // Search for fractional solutions and fix atom values of non fractional solutions
     var nonIntegralSolutionsCounter = 0
-    for ((id, lpVar) <- literalLPVars.iterator()) {
+    var fractionalSolutions = Vector[Int]()
+
+    for ( (id, lpVar) <- literalLPVars.iterator() ) {
+      /*
+       * Round values very close to 0 and 1 in using this naive approach because they
+       * probably arised from rounding error of the solver.
+       */
       val value = if (lpVar.value.get > 0.99) 1.0 else lpVar.value.get
+
       if (value != 0.0 && value != 1.0) {
         nonIntegralSolutionsCounter += 1
-        fractionalSolutions +:= ((id, value))
+        fractionalSolutions +:= id
       }
       else {
-        fetchAtom(id).fixedValue = if (value == 0.0) -1 else 1
-        fetchAtom(id).state = if (value == 0.0) false else true
+        val currentAtom = fetchAtom(id)
+        currentAtom.fixedValue = if (value == 0.0) -1 else 1
+        currentAtom.state = if (value == 0.0) false else true
         state.refineState(id)
       }
-      solution.put(id, value)
     }
 
     info("Number of non-integral solutions: " + nonIntegralSolutionsCounter)
-    assert(state.countUnfixAtoms() == nonIntegralSolutionsCounter)
+    assert(state.countUnfixAtoms() == nonIntegralSolutionsCounter, "Variables introduced are less than actual ground atoms!")
 
     val sRoundUp = System.currentTimeMillis()
 
     if(nonIntegralSolutionsCounter > 0) {
-
-      // 1. RoundUp algorithm
+      /*
+       * RoundUp algorithm:
+       *
+       * Used for rounding non integral solutions produced by an LP relaxed
+       * solution. It can have different results from original alchemy implementation
+       * for several key reasons.
+       *
+       * 1. The solver return a solution before rounding takes place if there are more
+       *    than one global optimus points in the objective function. In this case this
+       *    points should yield equivalent solution in terms of quality
+       *
+       * 2. Loss of significance in alchemy during subtraction of doubles and long doubles
+       *    (which have different precision) results in the phenomenon of catastrophic cancelation
+       *    effect. Therefore delta can be significantly larger or smaller than zero.
+       *
+       * Note: Maybe is better to keep delta >= 0 for true values and < for false.
+       */
       if(ilpRounding == RoundingScheme.ROUNDUP) {
-        whenDebug { state.printStatistics() }
+
         for (i <- (fractionalSolutions.size - 1 to 0 by -1).optimized) {
-          val id = fractionalSolutions(i)._1
+          val id = fractionalSolutions(i)
+          val currentAtom = fetchAtom(id)
           if(state.computeDelta(id) > 0) {
-            fetchAtom(id).fixedValue = 1
-            fetchAtom(id).state = true
+            currentAtom.fixedValue = 1
+            currentAtom.state = true
           }
           else {
-            fetchAtom(id).fixedValue = -1
-            fetchAtom(id).state = false
+            currentAtom.fixedValue = -1
+            currentAtom.state = false
           }
           state.refineState(id)
-          whenDebug { state.printStatistics() }
         }
       }
-      // 2. MaxWalkSAT algorithm
+      // MaxWalkSAT algorithm
       else MaxWalkSAT(mrf).infer(state)
     }
 
     debug("Unfixed atoms: " + state.countUnfixAtoms())
 
     val eRoundUp = System.currentTimeMillis()
-    info(Utilities.msecTimeToText("Total roundup time: ", eRoundUp - sRoundUp))
+    info(Utilities.msecTimeToText("Roundup time: ", eRoundUp - sRoundUp))
 
     state.printStatistics()
     info(Utilities.msecTimeToText("Total ILP time: ", (eTranslation - sTranslation) +
                                                       (eSolver - sSolver) +
                                                       (eRoundUp - sRoundUp)
     ))
-  }
 
+    state
+  }
 
   /**
    * Write the results of inference into the selected output stream.
@@ -339,12 +379,4 @@ object RoundingScheme extends Enumeration {
 object Solver extends Enumeration {
   type Solver = Value
   val GUROBI, LPSOLVE = Value
-}
-
-/**
- * Object holding constants for loss function type.
- */
-object LossFunction extends Enumeration {
-  type LossFunction = Value
-  val HAMMING = Value
 }

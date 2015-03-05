@@ -118,7 +118,7 @@ final class ILPSpecTest extends FunSpec with Matchers {
       }
     }
 
-    describe("The result of MAP inference using MaxWalkSAT") {
+    describe("The result of MAP inference using ILP") {
 
       val prefix = mlnFile.getParent.getAbsolutePath + sep + dbFile.getName.split(".db")(0)
 

@@ -102,45 +102,51 @@ final class MRFState private(val mrf: MRF,
   def computeDelta(atomID: Int): Double = {
     var delta = 0.0
 
-    for(i <- (0 until Unsatisfied.size).optimized) {
-      val constraint = Unsatisfied.apply(i)
+    val pos = mrf.pLit2Constraints.get(atomID)
+    val neg = mrf.nLit2Constraints.get(atomID)
 
-      if(constraint.literals.contains(atomID))
-        if (constraint.weight > 1000) delta += 1000 else delta += constraint.weight
-
-      else if(constraint.literals.contains(-atomID))
-        if (constraint.weight > 1000) delta -= 1000 else delta -= constraint.weight
+    if(pos ne null) {
+      val positive = pos.iterator
+      while (positive.hasNext) {
+        val currentConstraint = positive.next()
+        if (!currentConstraint.isSatisfiedByFixed)
+          if (currentConstraint.weight > 1000) delta += 1000 else delta += currentConstraint.weight
+      }
     }
+
+    if(neg ne null) {
+      val negative = neg.iterator
+      while (negative.hasNext) {
+        val currentConstraint = negative.next()
+        if (!currentConstraint.isSatisfiedByFixed)
+          if (currentConstraint.weight > 1000) delta -= 1000 else delta -= currentConstraint.weight
+      }
+    }
+
     delta
   }
 
   /**
-   * Refine state by removing satisfied constraints by this atom from the
-   * unsatisfied list. Used by ILP roundup procedure.
+   * Refine current state by setting constraints to satisfied by fixed atom if the
+   * previously fixed atom given appears as a positive or negative literal in
+   * the constraint. Used by ILP roundup procedure.
    *
    * @param atomID atom id
    */
   def refineState(atomID: Int): Unit = {
-    for(i <- (0 until Unsatisfied.size).optimized) {
-      val constraint = Unsatisfied.apply(i)
-      if( state(atomID) && constraint.literals.contains(atomID) || (!state(atomID) && constraint.literals.contains(-atomID)))
-        Unsatisfied -= constraint
-    }
-  }
 
-  /**
-   * Make all constraints unsatisfied by appending the to the
-   * unsatisfied list. Used by the ILP roundup procedure.
-   */
-  def makeAllUnsatisfied(): Unit = {
-    val iterator = mrf.constraints.iterator()
+    val atomState = state(atomID)
+    val pos = mrf.pLit2Constraints.get(atomID)
+    val neg = mrf.nLit2Constraints.get(atomID)
 
-    var currentConstraint: Constraint = null
+    val constraints = if(atomState) pos else neg
 
-    while (iterator.hasNext) {
-      iterator.advance()
-      currentConstraint = iterator.value()
-      Unsatisfied += currentConstraint
+    // It doesn't matter if it is already true
+    if(constraints ne null) {
+      val constraintsIterator = constraints.iterator
+      while (constraintsIterator.hasNext) {
+        constraintsIterator.next().isSatisfiedByFixed = true
+      }
     }
   }
 
