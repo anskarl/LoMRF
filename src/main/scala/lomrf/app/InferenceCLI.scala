@@ -56,6 +56,9 @@ object InferenceCLI extends OptionParser with Logging {
   // The path to the results file
   private var _resultsFileName: Option[String] = None
 
+  // The path to the counts file
+  private var _countsFileName: Option[String] = None
+
   // Input evidence file(s) (path)
   private var _evidenceFileNames: Option[List[String]] = None
 
@@ -165,11 +168,17 @@ object InferenceCLI extends OptionParser with Logging {
   opt("i", "input", "<kb file>", "Markov Logic file", {
     v: String => _mlnFileName = Some(v)
   })
+
   opt("e", "evidence", "<db file(s)>", "Comma separated evidence database files.", {
     v: String => _evidenceFileNames = Some(v.split(',').toList)
   })
+
   opt("r", "result", "<result file>", "Results file", {
     v: String => _resultsFileName = Some(v)
+  })
+
+  opt("c", "counts", "<counts file>", "Counts file used when running MCSAT, in any other case is ignored.", {
+    v: String => _countsFileName = Some(v)
   })
 
   opt("q", "query", "<string>", "Comma separated query atoms. "
@@ -309,15 +318,17 @@ object InferenceCLI extends OptionParser with Logging {
   }
 
   def infer() {
-    //First load the KB and the evidence files
+
+    // First load the KB and the evidence files
     val strMLNFileName = _mlnFileName.getOrElse(fatal("Please specify an input MLN file."))
     val strEvidenceFileNames = _evidenceFileNames.getOrElse(fatal("Please specify input evidence file(s)."))
-    val (resultsWriter, countsWriter) = _resultsFileName match {
-      case Some(fileName) =>
-        val parts = fileName.split("\\.")
-        val countsFile = parts.slice(0, parts.size - 1).foldLeft("")(_ + _) + ".counts"
-        (new PrintStream(new FileOutputStream(fileName), true), new PrintStream(new FileOutputStream(countsFile), true))
-      case None => (System.out, System.out)
+    val resultsWriter = _resultsFileName match {
+      case Some(fileName) => new PrintStream(new FileOutputStream(fileName), true)
+      case None => System.out
+    }
+    val countsWriter = _countsFileName match {
+      case Some(fileName) if _marginalInference => new PrintStream(new FileOutputStream(fileName), true)
+      case _ => System.out
     }
 
     info("Parameters:"
