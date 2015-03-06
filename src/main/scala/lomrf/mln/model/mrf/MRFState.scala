@@ -42,7 +42,7 @@ import lomrf.util._
 import scala.collection.mutable.ArrayBuffer
 import scala.collection.mutable
 import scala.collection.parallel.mutable.ParArray
-import scalaxy.loops._
+import scalaxy.streams.optimize
 
 /**
  * This class represents the MRF state.
@@ -165,8 +165,10 @@ final class MRFState private(val mrf: MRF,
 
     var countNeg = 0
 
-    for(i <- (0 until unsatisfied).optimized)
-      if(Unsatisfied(i).weight < 0) countNeg += 1
+    optimize{
+      for(i <- 0 until unsatisfied)
+        if(Unsatisfied(i).weight < 0) countNeg += 1
+    }
 
     var likelihood, likelihoodUB = ZERO
 
@@ -313,8 +315,8 @@ final class MRFState private(val mrf: MRF,
     while (nIterator.hasNext) {
       nIterator.advance()
       val constraint = nIterator.value()
-      if (!constraint.inactive && !constraint.isPositive && !constraint.isSatisfiedByFixed) {
-        for (i <- (0 until constraint.literals.length).optimized)
+      if (!constraint.inactive && !constraint.isPositive && !constraint.isSatisfiedByFixed) optimize{
+        for (i <- 0 until constraint.literals.length)
           fixAtom(math.abs(constraint.literals(i)), constraint.literals(i) < 0)
       }
     }

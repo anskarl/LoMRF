@@ -43,7 +43,7 @@ import auxlib.log.Logging
 
 import scala.collection._
 import scala.language.postfixOps
-import scalaxy.loops._
+import scalaxy.streams.optimize
 
 /**
  *
@@ -176,20 +176,23 @@ class ClauseGrounderImplNew private(
         var owaIdx = 0
         val cliqueVariables = new Array[Int](idx)
 
-        for (i <- (0 until idx).optimized) {
-          //val currentLiteral = iterator.next()
-          val currentAtomID = currentVariables(i)
-          cliqueVariables(i) = if (owaLiterals(owaIdx).isPositive) currentAtomID else -currentAtomID
+        optimize{
+          for (i <- 0 until idx) {
+            //val currentLiteral = iterator.next()
+            val currentAtomID = currentVariables(i)
+            cliqueVariables(i) = if (owaLiterals(owaIdx).isPositive) currentAtomID else -currentAtomID
 
-          // Examine whether the current literal is included to the atomsDB. If it isn't,
-          // the current clause will be omitted from the MRF
-          val atomsDBSegment = atomsDB(currentAtomID % atomsDBBatches)
+            // Examine whether the current literal is included to the atomsDB. If it isn't,
+            // the current clause will be omitted from the MRF
+            val atomsDBSegment = atomsDB(currentAtomID % atomsDBBatches)
 
-          if (!canSend && (atomsDBSegment ne null)) canSend = atomsDBSegment.contains(currentAtomID)
-          else if (atomsDBSegment eq null) canSend = true // this case happens only for Query literals
+            if (!canSend && (atomsDBSegment ne null)) canSend = atomsDBSegment.contains(currentAtomID)
+            else if (atomsDBSegment eq null) canSend = true // this case happens only for Query literals
 
-          owaIdx += 1
+            owaIdx += 1
+          }
         }
+
 
         if (canSend) {
           // Finally, the current ground clause will be included in the MRF.
@@ -207,9 +210,11 @@ class ClauseGrounderImplNew private(
             }
             else {
               val posWeight = -clause.weight / cliqueVariables.length
-              for(i <- (0 until cliqueVariables.length).optimized){
-                store(posWeight, Array(-cliqueVariables(i)), -1)
-                groundClausesCounter += 1
+              optimize{
+                for(i <- 0 until cliqueVariables.length){
+                  store(posWeight, Array(-cliqueVariables(i)), -1)
+                  groundClausesCounter += 1
+                }
               }
             }
           }

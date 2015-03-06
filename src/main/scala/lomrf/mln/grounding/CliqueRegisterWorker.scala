@@ -39,11 +39,10 @@ import auxlib.log.Logging
 import gnu.trove.list.array.TIntArrayList
 import gnu.trove.map.TIntFloatMap
 import gnu.trove.map.hash.{TIntFloatHashMap, TIntObjectHashMap}
-import gnu.trove.set.hash.TIntHashSet
 import lomrf._
 
 import scala.language.postfixOps
-import scalaxy.loops._
+import scalaxy.streams.optimize
 
 
 /**
@@ -177,8 +176,8 @@ private final class CliqueRegisterWorker(
 
     @inline def put(fid: Int, clique: CliqueEntry) = cliques.put(fid, clique)
 
-    @inline def registerVariables(variables: Array[Int]) {
-      for (i <- (0 until variables.length).optimized) {
+    @inline def registerVariables(variables: Array[Int]): Unit = optimize {
+      for (i <- 0 until variables.length) {
         val atomID = math.abs(variables(i))
         atomRegisters(atomID % numOfAtomBatches) ! atomID
       }
