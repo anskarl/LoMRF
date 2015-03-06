@@ -33,7 +33,6 @@
 package lomrf.logic
 
 import org.scalatest.{FunSpec, Matchers}
-import org.junit.Assert._
 import lomrf.mln.model.MLN
 import lomrf.util.ConstantsSet
 
@@ -100,9 +99,10 @@ final class NormalFormSpecTest extends FunSpec with Matchers{
     it("results to a single valid clause"){
       clauses.size shouldEqual 1
       val literals = clauses.head.literals
-      assertEquals(2, literals.size)
-      assertTrue(literals.contains(kbParser.parseLiteral("!InitiatedAt(Fight,t)")))
-      assertTrue(literals.contains(kbParser.parseLiteral("Happens(Abrupt, t)")))
+      literals.size shouldBe 2
+
+      assert(literals.contains(kbParser.parseLiteral("!InitiatedAt(Fight,t)")))
+      assert(literals.contains(kbParser.parseLiteral("Happens(Abrupt, t)")))
     }
   }
 
@@ -125,7 +125,7 @@ final class NormalFormSpecTest extends FunSpec with Matchers{
     val clauses0 = f0.toCNF(constants)
 
     it("produces three valid clauses"){
-      assertEquals(3, clauses0.size)
+      clauses0.size shouldBe  3
       assertContainsClause(clauses0, "{InitiatedAt(Fight, t) | !Happens(Abrupt, t) | !Close(10,t)}")
       assertContainsClause(clauses0, "{Happens(Abrupt,t) | !InitiatedAt(Fight, t)}")
       assertContainsClause(clauses0, "{Close(10,t) | !InitiatedAt(Fight, t)}")
@@ -150,7 +150,7 @@ final class NormalFormSpecTest extends FunSpec with Matchers{
     val clauses_1and2 = f1.toCNF(constants) ++ f2.toCNF(constants)
 
     they("produce three valid clauses"){
-      assertEquals(3, clauses_1and2.size)
+      clauses_1and2.size shouldBe 3
 
       assertContainsClause(clauses_1and2, "{InitiatedAt(Fight, t) | !Happens(Abrupt, t) | !Close(10,t)}")
       assertContainsClause(clauses_1and2, "{Happens(Abrupt,t) | !InitiatedAt(Fight, t)}")
@@ -342,7 +342,7 @@ final class NormalFormSpecTest extends FunSpec with Matchers{
     var literals = Set[Literal]()
 
     for (lit <- txtLiterals) literals += kbParser.parseLiteral(lit)
-    assertTrue {
+    assert {
       clauses.find(c => c.literals == literals) match {
         case Some(_) => true
         case _ => false

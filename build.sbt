@@ -7,7 +7,7 @@ version := "0.3.0-beta_201502"
 
 organization := "com.github.anskarl"
 
-scalaVersion := "2.10.4"
+scalaVersion := "2.11.6"
 
 autoScalaLibrary := true
 
@@ -69,10 +69,8 @@ libraryDependencies ++= Seq(
 libraryDependencies += "net.sf.trove4j" % "trove4j" % "3.0.3"
 
 // Unit testing
-libraryDependencies ++= Seq(
-	"junit" % "junit" % "4.12" % "test",
-	"org.scalatest" %% "scalatest" % "2.2.1" % "test"
-)
+libraryDependencies += "org.scalatest" %% "scalatest" % "2.2.4" % "test"
+
 
 // Optimized Range foreach loops
 libraryDependencies += "com.nativelibs4java" %% "scalaxy-loops" % "0.3.3" % "provided"
