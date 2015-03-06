@@ -36,6 +36,7 @@ import auxlib.log.Logging
 import lomrf.logic._
 import lomrf.util._
 import scala.collection
+import scala.collection.breakOut
 
 /**
  * A Markov Logic Networks knowledge base and evidence data.
@@ -357,7 +358,8 @@ object MLN extends Logging {
             trainingFileNames: List[String],
             nonEvidenceAtoms: collection.Set[AtomSignature],
             pcm: PredicateCompletionMode = Decomposed,
-            dynamicDefinitions: Option[ImplFinder.ImplementationsMap] = None): (MLN, Map[AtomSignature, AtomEvidenceDB]) = {
+            dynamicDefinitions: Option[ImplFinder.ImplementationsMap] = None,
+            addUnitClauses: Boolean = false): (MLN, Map[AtomSignature, AtomEvidenceDB]) = {
 
     info(
       "Stage 0: Loading an MLN instance from data..." +
@@ -403,7 +405,24 @@ object MLN extends Logging {
     val finalOWA = nonEvidenceAtoms
     val triStateAtoms = atomStateDB.filter(db => db._2.isTriStateDB).map(_._1).toSet // is required for grounding
 
-    (new MLN(kb.formulas, kb.predicateSchema, kb.functionSchema, kb.dynamicPredicates, kb.dynamicFunctions,
+    // In case we want to learn weights for unit clauses
+    val formulas =
+      if(addUnitClauses){
+        val unitClauses = kb.predicateSchema.map {
+          case (signature, termTypes) =>
+
+            // Find variables for the current predicate
+            val variables: Vector[Variable] =
+              (for((termType, idx) <- termTypes.zipWithIndex)
+                yield Variable("v" + idx, termType))(breakOut)
+
+            WeightedFormula(1.0, AtomicFormula(signature.symbol, variables))
+        }
+        kb.formulas ++ unitClauses
+      }
+      else kb.formulas
+
+    (new MLN(formulas, kb.predicateSchema, kb.functionSchema, kb.dynamicPredicates, kb.dynamicFunctions,
       evidence.constants, functionMapperz, queryAtoms, finalCWA, finalOWA, probabilisticAtoms, triStateAtoms, evidence.identities,
       atomStateDB, evidence.orderedStartIDs, evidence.orderedAtomSignatures, evidence.queryStartID,
       evidence.queryEndID), annotationDB)

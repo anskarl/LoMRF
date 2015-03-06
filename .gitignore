@@ -74,5 +74,5 @@ project/target/
 .scala_dependencies
 .worksheet
 
-# ignore localy managed libraries
+# ignore locally managed libraries
 lib/

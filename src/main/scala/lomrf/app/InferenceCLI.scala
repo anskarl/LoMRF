@@ -165,12 +165,15 @@ object InferenceCLI extends OptionParser with Logging {
   opt("i", "input", "<kb file>", "Markov Logic file", {
     v: String => _mlnFileName = Some(v)
   })
+
   opt("e", "evidence", "<db file(s)>", "Comma separated evidence database files.", {
     v: String => _evidenceFileNames = Some(v.split(',').toList)
   })
+
   opt("r", "result", "<result file>", "Results file", {
     v: String => _resultsFileName = Some(v)
   })
+
 
   opt("q", "query", "<string>", "Comma separated query atoms. "
     + "Each atom must be defined using its identity (i.e. Name/arity). "
@@ -309,7 +312,8 @@ object InferenceCLI extends OptionParser with Logging {
   }
 
   def infer() {
-    //First load the KB and the evidence files
+
+    // First load the KB and the evidence files
     val strMLNFileName = _mlnFileName.getOrElse(fatal("Please specify an input MLN file."))
     val strEvidenceFileNames = _evidenceFileNames.getOrElse(fatal("Please specify input evidence file(s)."))
     val resultsWriter = _resultsFileName match {
@@ -338,7 +342,7 @@ object InferenceCLI extends OptionParser with Logging {
       + "\n\t(tabuLength) Minimum number of flips between flipping the same atom: " + _tabuLength
       + "\n\t(numSolutions) Number of solutions in MC-SAT: " + _numSolutions
       + "\n\t(lateSA) Simulated annealing is performed only when MC-SAT reaches a plateau: " + _lateSA
-      + "\n\t(noNeg) Eliminate negative weights: " + _noNeg
+      + "\n\t(noNegWeights) Eliminate negative weights: " + _noNeg
       + "\n\t(noNegatedUnit) Eliminate negated ground unit clauses: " + _eliminateNegatedUnit
       + "\n\t(unitProp) Perform unit-propagation: " + _unitProp
     )
