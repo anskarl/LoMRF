@@ -48,7 +48,7 @@ import lomrf.{DEFAULT_CAPACITY, DEFAULT_LOAD_FACTOR, NO_ENTRY_KEY}
 
 import scala.concurrent.Await
 import scala.language.postfixOps
-import scalaxy.loops._
+import scalaxy.streams.optimize
 
 
 /**
@@ -185,33 +185,36 @@ final class MRFBuilder(val mln: MLN,
       }
     }
 
-    for (segmentIdx <- (0 until result.cliques.length).optimized) {
-      if (result.cliques(segmentIdx) ne null) {
-        val clausesIterator = result.cliques(segmentIdx).iterator()
-        while (clausesIterator.hasNext) {
-          clausesIterator.advance()
-          val clique = clausesIterator.value()
-          require(!clique.weight.isNaN, "Found a clause with weight == NaN (possible bug?).")
+    optimize {
 
-          if (clique.weight.isInfinite)
-            constraints.put(clausesIterator.key(), new Constraint(weightHard, clique.variables, true, 1.0, clausesIterator.key()))
-          else if (clique.weight != 0)
-            constraints.put(clausesIterator.key(), new Constraint(clique.weight, clique.variables, false,
-              1 - math.exp(-math.abs(clique.weight) * mcSatParam), clausesIterator.key()))
+      for (segmentIdx <- 0 until result.cliques.length) {
+        if (result.cliques(segmentIdx) ne null) {
+          val clausesIterator = result.cliques(segmentIdx).iterator()
+          while (clausesIterator.hasNext) {
+            clausesIterator.advance()
+            val clique = clausesIterator.value()
+            require(!clique.weight.isNaN, "Found a clause with weight == NaN (possible bug?).")
 
-          // println(constraint.weight+" "+constraint.literals.mkString(" "))
+            if (clique.weight.isInfinite)
+              constraints.put(clausesIterator.key(), new Constraint(weightHard, clique.variables, true, 1.0, clausesIterator.key()))
+            else if (clique.weight != 0)
+              constraints.put(clausesIterator.key(), new Constraint(clique.weight, clique.variables, false,
+                1 - math.exp(-math.abs(clique.weight) * mcSatParam), clausesIterator.key()))
 
+            // println(constraint.weight+" "+constraint.literals.mkString(" "))
+
+          }
+
+          val atomsIterator = result.atom2Cliques(segmentIdx).iterator()
+
+          while (atomsIterator.hasNext) {
+            atomsIterator.advance()
+            val atomId = atomsIterator.key()
+            atoms.putIfAbsent(atomId, new GroundAtom(atomId, weightHard))
+          }
         }
 
-        val atomsIterator = result.atom2Cliques(segmentIdx).iterator()
-
-        while (atomsIterator.hasNext) {
-          atomsIterator.advance()
-          val atomId = atomsIterator.key()
-          atoms.putIfAbsent(atomId, new GroundAtom(atomId, weightHard))
-        }
       }
-
     }
 
     info("Grounding completed:" +

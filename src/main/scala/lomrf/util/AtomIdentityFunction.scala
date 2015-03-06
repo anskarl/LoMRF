@@ -269,7 +269,7 @@ final class AtomIdentityFunction private(
 
   private class MatchingIDsIterator(rangesMap: Map[Int, Range], iteratorsMap: mutable.Map[Int, Iterator[Int]], values: Array[Int]) extends Iterator[Int] {
 
-    import scalaxy.loops._
+    import scalaxy.streams.optimize
 
 
     private val _length = rangesMap.map(_._2.size).product
@@ -285,28 +285,30 @@ final class AtomIdentityFunction private(
     def next(): Int = {
       if (counter < _length) {
         sum = startID
-        for (idx <- (0 until values.length).optimized) {
+        optimize{
+          for (idx <- 0 until values.length) {
 
-          //1. encode
-          val constantID = values(idx)
-          val step = constantsAndStep(idx)._2
-          val offset = constantID * step
-          sum += (offset + constantID)
+            //1. encode
+            val constantID = values(idx)
+            val step = constantsAndStep(idx)._2
+            val offset = constantID * step
+            sum += (offset + constantID)
 
-          //2. advance
-          iteratorsMap.get(idx) match {
-            case Some(currentIter) =>
-              values(idx) =
-                if (currentIter.hasNext) {
-                  currentIter.next()
-                } else {
-                  val nouvaIter = rangesMap(idx).iterator
-                  iteratorsMap(idx) = nouvaIter
-                  nouvaIter.next()
-                }
-            case _ => //do nothing
+            //2. advance
+            iteratorsMap.get(idx) match {
+              case Some(currentIter) =>
+                values(idx) =
+                  if (currentIter.hasNext) {
+                    currentIter.next()
+                  } else {
+                    val nouvaIter = rangesMap(idx).iterator
+                    iteratorsMap(idx) = nouvaIter
+                    nouvaIter.next()
+                  }
+              case _ => //do nothing
+            }
+
           }
-
         }
         counter += 1
       }

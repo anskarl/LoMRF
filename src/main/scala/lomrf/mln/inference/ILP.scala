@@ -42,7 +42,7 @@ import lomrf.util._
 import gnu.trove.map.hash.TIntObjectHashMap
 import optimus.algebra._
 import optimus.lqprog._
-import scalaxy.loops._
+import scalaxy.streams.optimize
 import scala.language.postfixOps
 import auxlib.trove.TroveConversions._
 
@@ -300,9 +300,9 @@ final class ILP(mrf: MRF, annotationDB: Map[AtomSignature, AtomEvidenceDB] = Map
        *
        * Note: Maybe is better to keep delta >= 0 for true values and < for false.
        */
-      if(ilpRounding == RoundingScheme.ROUNDUP) {
+      if(ilpRounding == RoundingScheme.ROUNDUP) optimize {
 
-        for (i <- (fractionalSolutions.size - 1 to 0 by -1).optimized) {
+        for (i <- fractionalSolutions.size - 1 to 0 by -1) {
           val id = fractionalSolutions(i)
           val currentAtom = fetchAtom(id)
           if(state.computeDelta(id) > 0) {

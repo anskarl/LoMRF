@@ -3,7 +3,7 @@ import com.typesafe.sbt.SbtNativePackager._
 /** Project */
 name := "LoMRF"
 
-version := "0.3.0-beta_201502"
+version := "0.3.1-beta_201503"
 
 organization := "com.github.anskarl"
 
@@ -17,16 +17,17 @@ packageArchetype.java_application
 
 
 // Append several options to the list of options passed to the Java compiler
-javacOptions ++= Seq("-source", "1.7", "-target", "1.7", "-Xlint:unchecked", "-Xlint:deprecation")
+javacOptions ++= Seq("-source", "1.8", "-target", "1.8", "-Xlint:unchecked", "-Xlint:deprecation")
 
 // Append scalac options
 scalacOptions ++= Seq(
-	"-optimise",
+	//"-optimise", // old optimisation is removed
 	"-Yclosure-elim",
 	"-Yinline",
 	"-feature",
-	"-target:jvm-1.7",
-	"-language:implicitConversions"
+	"-target:jvm-1.8",
+	"-language:implicitConversions",
+  "-Ybackend:GenBCode" //use the new optimisation level
 )
 
 
@@ -37,7 +38,7 @@ fork := true
 fork in Test := true
 
 // add a JVM option to use when forking a JVM for 'run'
-javaOptions += "-Xmx1G"
+javaOptions += "-Xmx4G"
 
 
 /** Dependencies */
@@ -53,16 +54,16 @@ libraryDependencies ++= Seq(
 
 // Akka.io
 libraryDependencies ++= Seq(
-	"com.typesafe.akka" %% "akka-actor"  % "2.3.7",
-	"com.typesafe.akka" %% "akka-remote" % "2.3.7",
-	"com.typesafe.akka" %% "akka-slf4j"  % "2.3.7"
+	"com.typesafe.akka" %% "akka-actor"  % "2.3.9",
+	"com.typesafe.akka" %% "akka-remote" % "2.3.9",
+	"com.typesafe.akka" %% "akka-slf4j"  % "2.3.9"
 )
 
 // Logging with slf4j and logback
 libraryDependencies ++= Seq(
 	"ch.qos.logback" % "logback-classic" % "1.1.2",
 	"ch.qos.logback" % "logback-core" % "1.1.2",
-	"org.slf4j" % "slf4j-api" % "1.7.7"
+	"org.slf4j" % "slf4j-api" % "1.7.10"
 )
 
 // GNU Trove4j for high performance and memory efficient data-structures
@@ -73,7 +74,8 @@ libraryDependencies += "org.scalatest" %% "scalatest" % "2.2.4" % "test"
 
 
 // Optimized Range foreach loops
-libraryDependencies += "com.nativelibs4java" %% "scalaxy-loops" % "0.3.3" % "provided"
+//libraryDependencies += "com.nativelibs4java" %% "scalaxy-loops" % "0.3.4" % "provided"
+libraryDependencies += "com.nativelibs4java" %% "scalaxy-streams" % "0.3.4" % "provided"
 
 // JTS Topology API for modelling and manipulating 2-dimensional linear geometry
 libraryDependencies += "com.vividsolutions" % "jts" % "1.13"
