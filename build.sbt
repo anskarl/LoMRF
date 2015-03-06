@@ -27,7 +27,7 @@ scalacOptions ++= Seq(
 	"-feature",
 	"-target:jvm-1.8",
 	"-language:implicitConversions",
-  "-Ybackend:GenBCode" //use the new optimisation level
+        "-Ybackend:GenBCode" //use the new optimisation level
 )
 
 
@@ -51,6 +51,9 @@ libraryDependencies ++= Seq(
   "org.scala-lang" % "scala-library" % scalaVersion.value,
   "org.scala-lang" % "scala-reflect" % scalaVersion.value
 )
+
+// Scala-modules
+libraryDependencies += "org.scala-lang.modules" %% "scala-parser-combinators" % "1.0.3"
 
 // Akka.io
 libraryDependencies ++= Seq(
