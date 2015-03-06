@@ -36,9 +36,8 @@ import java.util
 
 import lomrf.logic.Variable
 
-import scala.collection.mutable
 import scala.{collection => scol}
-import scalaxy.loops._
+import scalaxy.streams.optimize
 import scala.language.postfixOps
 
 /**
@@ -108,10 +107,14 @@ object Cartesian {
         while (!stop) {
           currentIterator = iterators(idx)
           if (currentIterator.hasNext) {
-            for (i <- (0 until idx).optimized) {
-              iterators(i) = sets(i).iterator
-              elements(i) = iterators(i).next()
+
+            optimize{
+              for (i <- 0 until idx) {
+                iterators(i) = sets(i).iterator
+                elements(i) = iterators(i).next()
+              }
             }
+
             elements(idx) = currentIterator.next()
             stop = true
           }

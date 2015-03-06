@@ -44,7 +44,7 @@ import lomrf.util.{AtomIdentityFunction, Cartesian}
 
 import scala.collection._
 import scala.language.postfixOps
-import scalaxy.loops._
+import scalaxy.streams.optimize
 
 /**
  * @author Anastasios Skarlatidis
@@ -170,19 +170,22 @@ class ClauseGrounderImpl(
         var owaIdx = 0
         val cliqueVariables = new Array[Int](idx)
 
-        for (i <- (0 until idx).optimized) {
-          //val currentLiteral = iterator.next()
-          val currentAtomID = currentVariables(i)
-          cliqueVariables(i) = if (owaLiterals(owaIdx).isPositive) currentAtomID else -currentAtomID
+        optimize {
+          for (i <- 0 until idx) {
+            //val currentLiteral = iterator.next()
+            val currentAtomID = currentVariables(i)
+            cliqueVariables(i) = if (owaLiterals(owaIdx).isPositive) currentAtomID else -currentAtomID
 
-          // Examine whether the current literal is included to the atomsDB. If it isn't,
-          // the current clause will be omitted from the MRF
-          val atomsDBSegment = atomsDB(currentAtomID % atomsDBBatches)
-          if (!canSend && (atomsDBSegment ne null)) canSend = atomsDBSegment.contains(currentAtomID)
-          else if (atomsDBSegment eq null) canSend = true // this case happens only for Query literals
+            // Examine whether the current literal is included to the atomsDB. If it isn't,
+            // the current clause will be omitted from the MRF
+            val atomsDBSegment = atomsDB(currentAtomID % atomsDBBatches)
+            if (!canSend && (atomsDBSegment ne null)) canSend = atomsDBSegment.contains(currentAtomID)
+            else if (atomsDBSegment eq null) canSend = true // this case happens only for Query literals
 
-          owaIdx += 1
+            owaIdx += 1
+          }
         }
+
 
         if (canSend) {
           // Finally, the current ground clause will be included in the MRF.
