@@ -56,9 +56,6 @@ object InferenceCLI extends OptionParser with Logging {
   // The path to the results file
   private var _resultsFileName: Option[String] = None
 
-  // The path to the counts file
-  private var _countsFileName: Option[String] = None
-
   // Input evidence file(s) (path)
   private var _evidenceFileNames: Option[List[String]] = None
 
@@ -175,10 +172,6 @@ object InferenceCLI extends OptionParser with Logging {
 
   opt("r", "result", "<result file>", "Results file", {
     v: String => _resultsFileName = Some(v)
-  })
-
-  opt("c", "counts", "<counts file>", "Counts file used when running MCSAT, in any other case is ignored.", {
-    v: String => _countsFileName = Some(v)
   })
 
   opt("q", "query", "<string>", "Comma separated query atoms. "
@@ -326,10 +319,6 @@ object InferenceCLI extends OptionParser with Logging {
       case Some(fileName) => new PrintStream(new FileOutputStream(fileName), true)
       case None => System.out
     }
-    val countsWriter = _countsFileName match {
-      case Some(fileName) if _marginalInference => new PrintStream(new FileOutputStream(fileName), true)
-      case _ => System.out
-    }
 
     info("Parameters:"
       + "\n\t(q) Query predicate(s): " + _queryAtoms.map(_.toString).reduceLeft((left, right) => left + "," + right)
@@ -386,7 +375,7 @@ object InferenceCLI extends OptionParser with Logging {
         saTemperature = _saTemperature, samples = _samples, lateSA = _lateSA, unitPropagation = _unitProp, satHardPriority = _satHardPriority, tabuLength = _tabuLength
       )
       solver.infer()
-      solver.writeResults(resultsWriter, countsWriter)
+      solver.writeResults(resultsWriter)
     }
     else { // MAP inference methods
       if(_mws) {
