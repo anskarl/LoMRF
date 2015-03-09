@@ -44,7 +44,7 @@ import scala.{collection => sc}
 
 
 /**
- * @author Anastasios Skarlatidis
+ *
  */
 class GroundingSpecTest2 extends FunSpec with Matchers with Logging {
 

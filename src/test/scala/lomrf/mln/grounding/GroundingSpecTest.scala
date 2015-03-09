@@ -44,7 +44,7 @@ import lomrf.tests.ECExampleDomain1._
 import scala.collection.mutable
 
 /**
- * @author Anastasios Skarlatidis
+ *
  */
 class GroundingSpecTest extends FunSpec with Matchers with Logging {
 

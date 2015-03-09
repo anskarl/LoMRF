@@ -50,7 +50,7 @@ import scalaxy.streams.optimize
  * Experimental implementation of efficient grounding.
  *
  *
- * @author Anastasios Skarlatidis
+ *
  */
 class ClauseGrounderImplNew private(
                           val clause: Clause,

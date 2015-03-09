@@ -41,7 +41,7 @@ import lomrf.util.AtomEvidenceDB
 import org.scalatest.{FunSpec, Matchers}
 
 /**
- * @author Anastasios Skarlatidis
+ *
  */
 object GroundingMLNExp extends App with Logging {
 
