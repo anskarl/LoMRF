@@ -32,8 +32,6 @@
 
 package lomrf.mln.model.mrf
 
-import scala.annotation.switch
-
 /**
  * This class contains the information of a ground atom in the generated MRF.
  *
@@ -158,13 +156,15 @@ final class GroundAtom(val id: Int, weightHard: Double) {
   /**
    * The given constraint will become satisfied when this atom is flipped (UNSAT -> SAT).
    */
-  private[mln] def assignSatPotential(constraint: Constraint) {
-    (constraint.mode: @switch) match {
-      case MRF.MODE_MWS =>
-        if(constraint.isPositive) makeCost += constraint.weight else breakCost -= constraint.weight
-      case MRF.MODE_SAMPLE_SAT =>
-        val unit = if(constraint.weight > 0) 1 else -1
-        if(constraint.isPositive) makeCost += unit else breakCost -= unit
+  private[mln] def assignSatPotential(constraint: Constraint): Unit = {
+    // When mode is set to MaxWalkSat:
+    if(constraint.mode == MRF.MODE_MWS) {
+      if(constraint.isPositive) makeCost += constraint.weight else breakCost -= constraint.weight
+    }
+    // otherwise, we assume that mode is set to MC-SAT:
+    else {
+      val unit = if(constraint.weight > 0) 1 else -1
+      if(constraint.isPositive) makeCost += unit else breakCost -= unit
     }
   }
 
@@ -172,12 +172,14 @@ final class GroundAtom(val id: Int, weightHard: Double) {
    * The given constraint will become unsatisfied when this atom is flipped (SAT -> UNSAT).
    */
   private[mln] def assignUnsatPotential(constraint: Constraint) {
-    (constraint.mode: @switch) match {
-      case MRF.MODE_MWS =>
-        if(constraint.isPositive) breakCost += constraint.weight else makeCost -= constraint.weight
-      case MRF.MODE_SAMPLE_SAT =>
-        val unit = if(constraint.weight > 0) 1 else -1
-        if(constraint.isPositive) breakCost += unit else makeCost -= unit
+    // When mode is set to MaxWalkSat:
+    if(constraint.mode == MRF.MODE_MWS) {
+      if(constraint.isPositive) breakCost += constraint.weight else makeCost -= constraint.weight
+    }
+    // otherwise, we assume that mode is set to MC-SAT:
+    else {
+      val unit = if(constraint.weight > 0) 1 else -1
+      if(constraint.isPositive) breakCost += unit else makeCost -= unit
     }
   }
 
@@ -185,12 +187,14 @@ final class GroundAtom(val id: Int, weightHard: Double) {
    * The given constraint will no longer becomes unsatisfied when this atom is flipped.
    */
   private[mln] def revokeSatPotential(constraint: Constraint) {
-    (constraint.mode: @switch) match {
-      case MRF.MODE_MWS =>
-        if(constraint.isPositive) makeCost -= constraint.weight else breakCost += constraint.weight
-      case MRF.MODE_SAMPLE_SAT =>
-        val unit = if(constraint.weight > 0) 1 else -1
-        if(constraint.isPositive) makeCost -= unit else breakCost += unit
+    // When mode is set to MaxWalkSat:
+    if(constraint.mode == MRF.MODE_MWS) {
+      if(constraint.isPositive) makeCost -= constraint.weight else breakCost += constraint.weight
+    }
+    // otherwise, we assume that mode is set to MC-SAT:
+    else {
+      val unit = if(constraint.weight > 0) 1 else -1
+      if(constraint.isPositive) makeCost -= unit else breakCost += unit
     }
   }
 
@@ -198,12 +202,14 @@ final class GroundAtom(val id: Int, weightHard: Double) {
    * The given constraint will no longer becomes satisfied when this atom is flipped.
    */
   private[mln] def revokeUnsatPotential(constraint: Constraint) {
-    (constraint.mode: @switch) match {
-      case MRF.MODE_MWS =>
-        if(constraint.isPositive) breakCost -= constraint.weight else makeCost += constraint.weight
-      case MRF.MODE_SAMPLE_SAT =>
-        val unit = if(constraint.weight > 0) 1 else -1
-        if(constraint.isPositive) breakCost -= unit else makeCost += unit
+    // When mode is set to MaxWalkSat:
+    if(constraint.mode == MRF.MODE_MWS) {
+      if(constraint.isPositive) breakCost -= constraint.weight else makeCost += constraint.weight
+    }
+    // otherwise, we assume that mode is set to MC-SAT:
+    else {
+      val unit = if(constraint.weight > 0) 1 else -1
+      if(constraint.isPositive) breakCost -= unit else makeCost += unit
     }
   }
 

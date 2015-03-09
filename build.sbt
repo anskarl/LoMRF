@@ -13,6 +13,8 @@ autoScalaLibrary := true
 
 managedScalaInstance := true
 
+logLevel := Level.Warn
+
 packageArchetype.java_application
 
 
