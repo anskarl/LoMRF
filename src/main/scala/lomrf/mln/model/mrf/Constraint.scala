@@ -117,10 +117,9 @@ final class Constraint(private[mln] var weight: Double, val literals: Array[Int]
    */
   def cost: LongDouble = {
     if( (isPositive && nsat == 0) || (!isPositive && nsat > 0) ) {
-      (mode: @switch) match {
-        case MRF.MODE_MWS => hpWeight.abs()
-        case MRF.MODE_SAMPLE_SAT => ONE
-      }
+      // when mode is set to MaxWalkSat, return the absolute value the high precision value
+      if( mode == MRF.MODE_MWS) hpWeight.abs()
+      else ONE //otherwise, we assume that mode is set to MC-SAT and return the value 1.
     }
     else ZERO
   }
