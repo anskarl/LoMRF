@@ -62,7 +62,7 @@ sealed trait ConstantsSet extends Iterable[String]{
  *
  *
  */
-final class MultipleConstantsSet private[util](constants2Id: TObjectIntMap[String],
+final class ConstantsSetImpl private[util](constants2Id: TObjectIntMap[String],
                                                id2Constants: mutable.ArrayBuffer[String]) extends ConstantsSet {
 
   import ConstantsSet.NO_ENTRY
@@ -100,7 +100,7 @@ final class MultipleConstantsSet private[util](constants2Id: TObjectIntMap[Strin
     s"MultipleConstantsSet(const2id->{${constants2Id.size()} elements}, id2const->{${id2Constants.size} elements})"
 }
 
-final class UnaryConstantsSet(val element: String) extends ConstantsSet{
+final class ConstantsSetUnaryImpl private[util](val element: String) extends ConstantsSet {
   import ConstantsSet.NO_ENTRY
 
 
@@ -164,11 +164,11 @@ object ConstantsSet {
 
   //def apply: ConstantsSet = new MultipleConstantsSet(new TObjectIntHashMap[String](23, 0.5f, NO_ENTRY), new mutable.ArrayBuffer[String]())
 
-  def apply(entry: String): ConstantsSet = new UnaryConstantsSet(entry)
+  def apply(entry: String): ConstantsSet = new ConstantsSetUnaryImpl(entry)
 
   def apply(entries: String*): ConstantsSet = {
 
-    if(entries.size == 1) new UnaryConstantsSet(entries.head)
+    if(entries.size == 1) new ConstantsSetUnaryImpl(entries.head)
     else {
       val builder = new ConstantsSetBuilder()
       entries.foreach(builder += _)
@@ -209,7 +209,7 @@ final class ConstantsSetBuilder {
 
   def result: ConstantsSet = {
     dirty = true
-    new MultipleConstantsSet(TCollections.unmodifiableMap(constants2Id), id2Constants)
+    new ConstantsSetImpl(TCollections.unmodifiableMap(constants2Id), id2Constants)
   }
 
   def clear() {

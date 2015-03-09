@@ -59,7 +59,7 @@ object ECExampleDomain1 {
     AtomSignature("Next", 2) -> Vector("time", "time")
   )
 
-  lazy val functionsSchema = Map(AtomSignature("next", 1) -> ("time", Vector("time"))) //Map.empty[AtomSignature, (String, Vector[String])]
+  lazy val functionsSchema =  Map.empty[AtomSignature, (String, Vector[String])] //Map(AtomSignature("next", 1) -> ("time", Vector("time")))
 
   lazy val dynamicAtoms = dynAtoms
 

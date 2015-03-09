@@ -23,8 +23,9 @@ javacOptions ++= Seq("-source", "1.8", "-target", "1.8", "-Xlint:unchecked", "-X
 
 // Append scalac options
 scalacOptions ++= Seq(
-	//"-optimise", // old optimisation is removed
 	"-Yclosure-elim",
+	//"-Yinline-warnings",
+	//"-deprecation",
 	"-Yinline",
 	"-feature",
 	"-target:jvm-1.8",

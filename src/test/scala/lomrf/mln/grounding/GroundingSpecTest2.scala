@@ -37,8 +37,9 @@ import gnu.trove.set.hash.TIntHashSet
 import lomrf.logic.{AtomSignature, KBParser, _}
 import lomrf.mln.model.{AtomIdentifier, MLN}
 import lomrf.tests.ECExampleDomain1._
-import lomrf.util.{AtomEvidenceDB, ConstantsSet}
+import lomrf.util.{FunctionMapper, AtomIdentityFunction, AtomEvidenceDB, ConstantsSet}
 import org.scalatest.{FunSpec, Matchers}
+import scala.annotation.tailrec
 import scala.collection.breakOut
 import scala.{collection => sc}
 
@@ -139,7 +140,7 @@ class GroundingSpecTest2 extends FunSpec with Matchers with Logging {
     type FlatDomainDescription = (
       Vector[(Term, String)],
         sc.Map[String, ConstantsSet],
-        sc.Map[AtomSignature, (String, collection.Seq[String])]
+        sc.Map[AtomSignature, (String, collection.Seq[String], FunctionMapper)]
       )
 
 
@@ -158,7 +159,7 @@ class GroundingSpecTest2 extends FunSpec with Matchers with Logging {
       //Map of (Domain Name -> its corresponding constants set)
       var dynConstants = Map[String, ConstantsSet]()
 
-      var dynFunctionSchema = Map[AtomSignature, (String, collection.Seq[String])]()
+      var dynFunctionSchema = Map[AtomSignature, (String, Vector[String], FunctionMapper)]()
 
       for ((literal, literalIdx) <- literals.zipWithIndex) {
 
@@ -182,7 +183,7 @@ class GroundingSpecTest2 extends FunSpec with Matchers with Logging {
               //val unarySets = matchedTerms(f.terms, _.isConstant).map(c => ConstantsSet(c.symbol))
               //unarySets.foreach(println)
 
-              val term2Domains: List[(Term, String)] = (
+              val term2Domains: Vector[(Term, String)] = (
                 for((term, termIdx) <- f.terms.zipWithIndex) yield term match {
                   case v: Variable => (v, v.domain)
 
@@ -202,16 +203,21 @@ class GroundingSpecTest2 extends FunSpec with Matchers with Logging {
               queue ++= term2Domains
 
               // todo: add function position in literals terms
-              dynFunctionSchema += AtomSignature(f.symbol+"@"+literalIdx, f.arity) -> (f.domain, term2Domains.map(_._2))
+              dynFunctionSchema +=
+                AtomSignature(f.symbol+"@"+literalIdx, f.arity) ->
+                  (f.domain, term2Domains.map(_._2), FunctionMapper(dynamicFunctions(f.signature)))
 
             case _ => //do nothing
           }
         }
       }
 
+      val foo = functionSchema.map{
+        case (signature, (resultingDomain, termDomains)) =>
+          signature ->  (resultingDomain, termDomains, functionMappers(signature))
+      }
 
-
-      (result, staticDomain2ConstantSets ++ dynConstants, functionSchema ++ dynFunctionSchema)
+      (result, staticDomain2ConstantSets ++ dynConstants, foo ++ dynFunctionSchema)
     }
 
     // theta:
@@ -229,6 +235,7 @@ class GroundingSpecTest2 extends FunSpec with Matchers with Logging {
     //  - Equal with the number of distinct variables and constants
     //
     val theta = new Array[Int](clause.variables.size + clause.constants.size)
+    val thetaDomains = new Array[String](clause.variables.size + clause.constants.size)
 
     val (flatTerms, domain2ConstantSets, functionSchema) =
       mkFlatTermDomains(orderedLiterals, mln.predicateSchema, mln.functionSchema, mln.constants)
@@ -239,12 +246,16 @@ class GroundingSpecTest2 extends FunSpec with Matchers with Logging {
 
       term2Pos += (term -> index)
 
-      theta(index) = term match {
-        case c: Constant =>
-          if (domain.startsWith("_D")) 0
-          else domain2ConstantSets(domain)(c.symbol)
+      thetaDomains(index) = domain
 
-        case _ => domain2ConstantSets(domain).size - 1
+      term match {
+        case c: Constant =>
+          theta(index) =
+            if (domain.startsWith("_D")) 0
+            else domain2ConstantSets(domain)(c.symbol)
+
+        case _ =>
+          theta(index) = domain2ConstantSets(domain).size - 1
       }
     }
 
@@ -319,7 +330,106 @@ class GroundingSpecTest2 extends FunSpec with Matchers with Logging {
       println("theta_I["+index+"] = <"+l2tEntry.mkString(",")+">\n")
 
 
+    type ThetaEncoder = (Array[Int] => Int)
 
+
+    // Try to compute the theta-substitution
+
+    // step 1: get AtomIdentityFunctions (code is from ClauseGrounderImplNew.apply())
+    val orderedIdentityFunctions = orderedLiterals.map(literal => mln.identityFunctions(literal.sentence.signature))
+
+
+    // step 2: Creation of substitution functions for each literal
+    def createThetaEncoder(literal: Literal, idf: AtomIdentityFunction, entryIds: Array[Int]): ThetaEncoder = {
+
+
+      def functionEncoder(function: TermFunction, entryIds: Array[Int]): Int = {
+        val mapper = functionSchema(function.signature)._3
+
+        val constants = function.terms.zipWithIndex.map (
+          entry => entry._1 match {
+          case f: TermFunction => functionEncoder(f, l2t(entry._2))
+          case _ => theta(entryIds(entry._2))
+        })
+
+        ???
+      }
+
+
+      if(literal.sentence.functions.isEmpty) (theta: Array[Int]) => idf.encode(entryIds, theta)
+      else {
+        (theta: Array[Int]) => {
+          val constantIds = new Array[Int](literal.sentence.terms.size)
+
+          for((term, idx) <- literal.sentence.terms.zipWithIndex) {
+            constantIds(idx) = term match {
+              case f: TermFunction => functionEncoder(f, l2t(idx))
+              case _ => theta(entryIds(idx))
+            }
+          }
+
+          idf.encode2(constantIds)
+        }
+      }
+
+
+    }
+
+
+
+
+    // step 3: substitute (through encoding) and check the result (through decoding)
+
+    val thetaDomainsStr =
+      theta
+        .zip(thetaDomains)
+        .map{case (thetaIdx, domainName) => domain2ConstantSets(domainName)(thetaIdx)}
+        .mkString(", ")
+
+    val thetaDomainSet =
+      theta
+        .zip(thetaDomains)
+        .map{case (thetaIdx, domainName) => domain2ConstantSets(domainName)(thetaIdx)}
+        .toSet
+
+    for{
+      i <- 0 until orderedLiterals.length
+      literal = orderedLiterals(i)
+      idf = orderedIdentityFunctions(i)
+      entryIds = l2t(i)
+      replacer = createThetaEncoder(literal, idf, entryIds)} {
+
+
+      if (literal.sentence.functions.isEmpty){
+        println("Encoding literal: "+literal.toText+" --- theta = {"+thetaDomainsStr+"}")
+        val encoded = idf.encode(entryIds, theta)
+        println("\t encoded: "+encoded)
+
+        val encoded2 = replacer(theta)
+        assert(encoded2 == encoded)
+
+        idf.decode(encoded2) match{
+          case Some(decoded) =>
+            println("\t decoded: "+decoded+"\n\n")
+            assert(decoded.forall(thetaDomainSet.contains))
+          case None =>
+            error("decoding has failed!")
+        }
+
+      }
+      else {
+        println("Huston we got a problem, we have at least one function!")
+        println("entryIds := "+entryIds.mkString(", "))
+        println("Literal  := "+literal.toText)
+      }
+
+
+
+    }
+
+
+    // Manually change the time variable
+    //theta(1) = 7
 
 
   }
