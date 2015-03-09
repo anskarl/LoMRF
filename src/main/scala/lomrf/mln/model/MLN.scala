@@ -369,11 +369,11 @@ object MLN extends Logging {
     var (annotationDB, atomStateDB) = evidence.atomsEvDB.partition(e => nonEvidenceAtoms.contains(e._1))
 
     for (signature <- annotationDB.keysIterator)
-      atomStateDB += (signature -> AtomEvidenceDB(evidence.identities(signature),UNKNOWN))//, kb.predicateSchema(signature).zipWithIndex.toMap, UNKNOWN))
+      atomStateDB += (signature -> AtomEvidenceDB(evidence.identities(signature), UNKNOWN))
 
     for (signature <- nonEvidenceAtoms; if !annotationDB.contains(signature)){
       warn("Annotation was not given in the training file(s) for predicate '"+signature+"', assuming FALSE state for all its groundings.")
-      annotationDB += (signature -> AtomEvidenceDB(evidence.identities(signature),FALSE))//, kb.predicateSchema(signature).zipWithIndex.toMap, FALSE))
+      annotationDB += (signature -> AtomEvidenceDB(evidence.identities(signature), FALSE))
     }
 
     val probabilisticAtoms = Set.empty[AtomSignature]
@@ -381,6 +381,11 @@ object MLN extends Logging {
     val finalCWA = evidenceAtoms
     val finalOWA = nonEvidenceAtoms
     val triStateAtoms = atomStateDB.filter(db => db._2.isTriStateDB).map(_._1).toSet // is required for grounding
+
+    for (signature <- kb.predicateSchema.keysIterator; if !atomStateDB.contains(signature)) {
+      if (finalCWA.contains(signature))
+        atomStateDB += (signature -> AtomEvidenceDB(evidence.identities(signature), FALSE))
+    }
 
     // In case we want to learn weights for unit clauses
     val formulas =

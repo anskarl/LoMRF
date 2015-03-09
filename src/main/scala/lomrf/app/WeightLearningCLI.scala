@@ -38,10 +38,9 @@ import auxlib.opt.OptionParser
 import lomrf.logic.AtomSignature
 import lomrf.mln.grounding.MRFBuilder
 import lomrf.mln.inference.Solver
-import lomrf.mln.learning.weight.LossFunction
+import lomrf.mln.learning.weight.{OnlineLearner, LossFunction, MaxMarginLearner}
 import lomrf.mln.model.MLN
-import lomrf.mln.learning.weight.MaxMarginLearner
-import lomrf.util.parseAtomSignature
+import lomrf.util.{Utilities, parseAtomSignature}
 
 /**
  * Command-line tool for weight learning
@@ -63,11 +62,26 @@ object WeightLearningCLI extends OptionParser with Logging {
   // The set of non evidence atoms (in the form of AtomName/Arity)
   private var _nonEvidenceAtoms = Set[AtomSignature]()
 
+  // Algorithm type for learning
+  private var _algorithm = Algorithm.MAX_MARGIN
+
   // Solver used by ILP map inference
   private var _ilpSolver = Solver.LPSOLVE
 
   // Add unit clauses to the MLN output file
   private var _addUnitClauses = false
+
+  // Sigma parameter for strongly convex functions (should be positive)
+  private var _sigma = 1.0
+
+  // Lambda regularization parameter for ADAGRAD
+  private var _lambda = 0.01
+
+  // Eta learning rate parameter for ADAGRAD
+  private var _eta = 1.0
+
+  // Delta parameter for ADAGRAD (should be positive or equal zero)
+  private var _delta = 1.0
 
   // Regularization parameter
   private var _C = 1e+3
@@ -126,13 +140,41 @@ object WeightLearningCLI extends OptionParser with Logging {
     v: String => _outputFileName = Some(v)
   })
 
-  opt("t", "training", "<training file>", "Training database file", {
-    v: String => _trainingFileName = Some(v.split(',').toList)
+  opt("t", "training", "<training file | folder>", "Training database file", {
+    v: String =>
+      val file = new java.io.File(v)
+      if(file.isDirectory) _trainingFileName = Some(file.listFiles().filter(file => file.getName.matches(".*[.]db")).map(file => file.getPath).toList)
+      else _trainingFileName = Some(v.split(',').toList)
   })
 
   opt("ne", "non-evidence atoms", "<string>", "Comma separated non-evidence atoms. "
     + "Each atom must be defined using its identity (i.e. Name/arity). "
     + "For example the identity of NonEvidenceAtom(arg1,arg2) is NonEvidenceAtom/2", _.split(',').foreach(v => addNonEvidenceAtom(v)))
+
+  opt("alg", "algorithm", "<MAXMARGIN | CDA | ADAGRAD>", "Algorithm used to perform learning (default is Max-Margin).", {
+    v: String => v.trim.toLowerCase match {
+      case "maxmargin" => _algorithm = Algorithm.MAX_MARGIN
+      case "cda" => _algorithm = Algorithm.COORDINATE_DUAL_ASCEND
+      case "adagrad" => _algorithm = Algorithm.ADAGRAD_FB
+      case _ => fatal("Unknown parameter for learning algorithm type '" + v + "'.")
+    }
+  })
+
+  doubleOpt("sigma", "sigma", "Parameter for strong convexity in CDA (default is " + _sigma + ").", {
+    v: Double => if (v <= 0) fatal("Sigma value must be any number above zero, but you gave: " + v) else _sigma = v
+  })
+
+  doubleOpt("lambda", "lambda", "Regularization parameter for ADAGRAD (default is " + _lambda + ").", {
+    v: Double => _lambda = v
+  })
+
+  doubleOpt("eta", "eta", "Learning rate parameter for ADAGRAD (default is " + _eta + ").", {
+    v: Double => _eta = v
+  })
+
+  doubleOpt("delta", "delta", "Delta parameter for ADAGRAD (default is " + _delta + ").", {
+    v: Double => if(v < 0) fatal("Delta value must be any number greater or equal to zero, but you gave: " + v) else _delta = v
+  })
 
   doubleOpt("C", "C", "Regularization parameter (default is " + _C + ").", {
     v: Double => _C = v
@@ -205,6 +247,10 @@ object WeightLearningCLI extends OptionParser with Logging {
     info("Parameters:"
       + "\n\t(ne) Non-evidence predicate(s): " + _nonEvidenceAtoms.map(_.toString).reduceLeft((left, right) => left + "," + right)
       + "\n\t(addUnitClauses) Include unit clauses in the output MLN file: " + _addUnitClauses
+      + "\n\t(sigma) Parameter for strong convexity in CDA: " + _sigma
+      + "\n\t(lambda) Regularization parameter for ADAGRAD: " + _lambda
+      + "\n\t(eta) Learning rate parameter for ADAGRAD: " + _eta
+      + "\n\t(delta) Delta parameter for ADAGRAD: " + _delta
       + "\n\t(C) Soft-margin regularization parameter: " + _C
       + "\n\t(epsilon) Stopping criterion parameter: " + _epsilon
       + "\n\t(lossScale) Scale the loss value by: " + _lossScale
@@ -212,57 +258,96 @@ object WeightLearningCLI extends OptionParser with Logging {
       + "\n\t(L1Regularization) Use L1 regularization instead of L2: " + _L1Regularization
       + "\n\t(printLearnedWeightsPerIteration) Print learned weights for each iteration: " + _printLearnedWeightsPerIteration
       + "\n\t(ilpSolver) Solver used by ILP map inference: " + ( if(_ilpSolver == Solver.GUROBI) "Gurobi" else "LPSolve")
+      + "\n\t(algorithm) Algorithm used to perform learning: " + ( if(_algorithm == Algorithm.MAX_MARGIN) "Max-Margin"
+                                                                   else if(_algorithm == Algorithm.COORDINATE_DUAL_ASCEND) "Cordinate Dual Ascent"
+                                                                   else "ADAGRAD_FB" )
       + "\n\t(lossAugmented) Perform loss augmented inference: " + _lossAugmented
       + "\n\t(nonMarginRescaling) Don't scale the margin by the loss: " + _nonMarginRescaling
       + "\n\t(noNegWeights) Eliminate negative weights: " + _noNeg
       + "\n\t(noNegatedUnit) Eliminate negated ground unit clauses: " + _eliminateNegatedUnit
     )
 
-    val (mln, annotationDB) = MLN.learning(strMLNFileName, strTrainingFileNames, _nonEvidenceAtoms, addUnitClauses = _addUnitClauses)
+    if(_algorithm == Algorithm.MAX_MARGIN) {
 
-    info("Markov Logic:"
-      + "\n\tConstant domains   : " + mln.constants.size
-      + "\n\tSchema definitions : " + mln.predicateSchema.size
-      + "\n\tFormulas           : " + mln.formulas.size
-      + "\n\tEvidence atoms     : " + mln.cwa.map(_.toString).reduceLeft((left, right) => left + "," + right)
-      + "\n\tNon-evidence atoms : " + mln.owa.map(_.toString).reduceLeft((left, right) => left + "," + right))
+      val (mln, annotationDB) = MLN.learning(strMLNFileName, strTrainingFileNames, _nonEvidenceAtoms, addUnitClauses = _addUnitClauses)
 
-    info("AnnotationDB: "
-      +"\n\tAtoms with annotations: " + annotationDB.keys.map(_.toString).reduceLeft((left, right) => left + "," + right)
-    )
+      info("Markov Logic:"
+        + "\n\tConstant domains   : " + mln.constants.size
+        + "\n\tSchema definitions : " + mln.predicateSchema.size
+        + "\n\tFormulas           : " + mln.formulas.size
+        + "\n\tEvidence atoms     : " + mln.cwa.map(_.toString).reduceLeft((left, right) => left + "," + right)
+        + "\n\tNon-evidence atoms : " + mln.owa.map(_.toString).reduceLeft((left, right) => left + "," + right))
 
-    info("Number of CNF clauses = " + mln.clauses.size)
-    info("List of CNF clauses: ")
-    mln.clauses.zipWithIndex.foreach{case (c, idx) => info(idx + ": " + c)}
+      info("AnnotationDB: "
+        + "\n\tAtoms with annotations: " + annotationDB.keys.map(_.toString).reduceLeft((left, right) => left + "," + right)
+      )
 
-    info("Creating MRF...")
-    val mrfBuilder = new MRFBuilder(mln, noNegWeights = _noNeg, eliminateNegatedUnit = _eliminateNegatedUnit, createDependencyMap = true)
-    val mrf = mrfBuilder.buildNetwork
+      info("Number of CNF clauses = " + mln.clauses.size)
+      info("List of CNF clauses: ")
+      mln.clauses.zipWithIndex.foreach { case (c, idx) => info(idx + ": " + c)}
 
-    /*import lomrf.util._
+      info("Creating MRF...")
+      val mrfBuilder = new MRFBuilder(mln, noNegWeights = _noNeg, eliminateNegatedUnit = _eliminateNegatedUnit, createDependencyMap = true)
+      val mrf = mrfBuilder.buildNetwork
 
-    val newMap = mrf.dependencyMap.get.iterator()
-    while (newMap.hasNext) {
-      newMap.advance()
-      val groundclause = mrf.constraints.get(newMap.key())
-      val dependency = newMap.value().iterator()
-      println(groundclause.weight + ":" + groundclause.literals.map {
-        lit => decodeLiteral(lit)(mln).get
-      }.reduceLeft(_ + " v " + _) + " :")
-      while (dependency.hasNext) {
-        dependency.advance()
-        info(mln.clauses(dependency.key()) + " " + dependency.value())
+      val learner = new MaxMarginLearner(mrf = mrf, annotationDB = annotationDB, nonEvidenceAtoms = _nonEvidenceAtoms, iterations = _iterations,
+                                        ilpSolver = _ilpSolver, C = _C, epsilon = _epsilon, lossScale = _lossScale,
+                                        nonMarginRescaling = _nonMarginRescaling, lossAugmented = _lossAugmented, lossFunction = _lossFunction,
+                                        L1Regularization = _L1Regularization, printLearnedWeightsPerIteration = _printLearnedWeightsPerIteration)
+
+      learner.learn()
+      learner.writeResults(outputWriter)
+    }
+    else {
+
+      var learner: OnlineLearner = null
+      val start = System.currentTimeMillis()
+
+      for (step <- 0 until strTrainingFileNames.length) {
+
+        val (mln, annotationDB) = MLN.learning(strMLNFileName, List(strTrainingFileNames(step)), _nonEvidenceAtoms, addUnitClauses = _addUnitClauses)
+
+        info("Markov Logic:"
+          + "\n\tConstant domains   : " + mln.constants.size
+          + "\n\tSchema definitions : " + mln.predicateSchema.size
+          + "\n\tFormulas           : " + mln.formulas.size
+          + "\n\tEvidence atoms     : " + mln.cwa.map(_.toString).reduceLeft((left, right) => left + "," + right)
+          + "\n\tNon-evidence atoms : " + mln.owa.map(_.toString).reduceLeft((left, right) => left + "," + right))
+
+        info("AnnotationDB: "
+          + "\n\tAtoms with annotations: " + annotationDB.keys.map(_.toString).reduceLeft((left, right) => left + "," + right)
+        )
+
+        info("Number of CNF clauses = " + mln.clauses.size)
+        info("List of CNF clauses: ")
+        mln.clauses.zipWithIndex.foreach { case (c, idx) => info(idx + ": " + c)}
+
+        info("Creating MRF...")
+        val mrfBuilder = new MRFBuilder(mln, noNegWeights = _noNeg, eliminateNegatedUnit = _eliminateNegatedUnit, createDependencyMap = true)
+        val mrf = mrfBuilder.buildNetwork
+
+        if(step == 0) learner = new OnlineLearner(mln = mln, algorithm = _algorithm, lossAugmented = _lossAugmented,
+                                                  ilpSolver = _ilpSolver, lossScale = _lossScale, sigma = _sigma, lambda = _lambda, eta = _eta,
+                                                  delta = _delta, printLearnedWeightsPerIteration = _printLearnedWeightsPerIteration)
+
+        info("Step " + (step + 1) + ": " + strTrainingFileNames(step))
+        learner.learningStep(step + 1, mrf, annotationDB)
       }
-    }*/
 
-    val learner = new MaxMarginLearner(mrf = mrf, annotationDB = annotationDB, nonEvidenceAtoms = _nonEvidenceAtoms, iterations = _iterations,
-                                       ilpSolver = _ilpSolver, C = _C, epsilon = _epsilon, lossScale = _lossScale,
-                                       nonMarginRescaling = _nonMarginRescaling, lossAugmented = _lossAugmented, lossFunction = _lossFunction,
-                                       L1Regularization = _L1Regularization, printLearnedWeightsPerIteration = _printLearnedWeightsPerIteration)
+      info(Utilities.msecTimeToTextUntilNow("Total learning time: ", start))
+      learner.writeResults(outputWriter)
+    }
 
-    learner.learn()
-    learner.writeResults(outputWriter)
   }
 }
 
+/**
+ * Object holding constants for learning algorithm type.
+ */
+object Algorithm extends Enumeration {
+  type Algorithm = Value
+  val ADAGRAD_FB = Value
+  val COORDINATE_DUAL_ASCEND = Value
+  val MAX_MARGIN = Value
+}
 

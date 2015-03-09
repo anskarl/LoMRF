@@ -69,6 +69,8 @@ class MRF(val mln: MLN,
   val numberOfAtoms = atoms.size()
 
   def apply(cid: Int) = constraints.get(cid)
+
+  def fetchAtom(literal: Int) = atoms.get(math.abs(literal))
 }
 
 object MRF {
