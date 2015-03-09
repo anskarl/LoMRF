@@ -38,7 +38,7 @@ package lomrf.logic
  * in the domain. It can be a constant, a variable or a function applied
  * to a tuple of objects.
  *
- * @author Anastasios Skarlatidis
+ *
  */
 sealed trait Term extends MLNExpression {
 

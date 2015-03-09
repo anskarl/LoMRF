@@ -44,7 +44,7 @@ package lomrf.logic
  * According to the above example definitions, the domain ''person'' is composed of two constant symbols (i.e. Alice and Bob).
  * Similarly the domain  ''time'' is composed of the symbols that belong into the range [1, 100].
  *
- * @author Anastasios Skarlatidis
+ *
  */
 sealed abstract class MLNTypeDefinition(name: String) extends MLNDomainExpression {
   def getName = name

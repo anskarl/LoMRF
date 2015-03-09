@@ -46,7 +46,7 @@ import scalaxy.streams.optimize
 
 
 /**
- * @author Anastasios Skarlatidis
+ *
  */
 private final class CliqueRegisterWorker(
                                           val index: Int,

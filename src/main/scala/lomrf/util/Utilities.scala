@@ -42,8 +42,8 @@ import scala.reflect._
 /**
  * Various utility functions.
  *
- * @author Anastasios Skarlatidis
- * @author Vagelis Michelioudakis
+ *
+ *
  */
 object Utilities {
 

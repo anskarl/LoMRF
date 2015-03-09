@@ -37,7 +37,7 @@ import gnu.trove.map.hash.TIntObjectHashMap
 import gnu.trove.TCollections
 
 /**
- * @author Anastasios Skarlatidis
+ *
  */
 
 trait FunctionMapper {

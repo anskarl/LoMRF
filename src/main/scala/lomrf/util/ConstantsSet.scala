@@ -60,7 +60,7 @@ sealed trait ConstantsSet extends Iterable[String]{
 
 /**
  *
- * @author Anastasios Skarlatidis
+ *
  */
 final class MultipleConstantsSet private[util](constants2Id: TObjectIntMap[String],
                                                id2Constants: mutable.ArrayBuffer[String]) extends ConstantsSet {

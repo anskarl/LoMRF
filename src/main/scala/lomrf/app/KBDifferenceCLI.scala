@@ -42,8 +42,8 @@ import java.io.FileWriter
  * Command-line tool for knowledge base difference checking. In particular with this tool we can perform
  * difference checking given two knowledge bases.
  *
- * @author Vagelis Michelioudakis
- * @author Anastasios Skarlatidis
+ *
+ *
  */
 object KBDifferenceCLI extends Logging {
 

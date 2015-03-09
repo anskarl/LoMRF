@@ -35,7 +35,7 @@ package lomrf.logic.dynamic
 import lomrf.logic.{Term, AtomSignature, TermFunction}
 
 /**
- * @author Anastasios Skarlatidis
+ *
  */
 
 trait DynamicFunctionBuilder {

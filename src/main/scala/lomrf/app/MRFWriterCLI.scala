@@ -47,7 +47,7 @@ import lomrf.util._
 /**
  * Commandline tool for exporting ground MRF into various formats.
  *
- * @author Anastasios Skarlatidis
+ *
  */
 object MRFWriterCLI extends Logging {
   private lazy val numFormat = new DecimalFormat("0.#########")

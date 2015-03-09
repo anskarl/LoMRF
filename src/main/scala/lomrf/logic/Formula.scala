@@ -35,7 +35,7 @@ package lomrf.logic
 import lomrf.util.ConstantsSet
 
 /**
- * @author Anastasios Skarlatidis
+ *
  */
 sealed trait Formula extends MLNExpression {
 

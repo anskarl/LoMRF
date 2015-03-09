@@ -39,7 +39,7 @@ import scala.annotation.tailrec
 import scala.collection.breakOut
 
 /**
- * @author Anastasios Skarlatidis
+ *
  */
 package object logic extends Logging {
 

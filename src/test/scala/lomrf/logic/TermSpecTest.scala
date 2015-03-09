@@ -35,7 +35,7 @@ package lomrf.logic
 import org.scalatest.{Matchers, FunSpec}
 
 /**
- * @author Anastasios Skarlatidis
+ *
  */
 final class TermSpecTest extends FunSpec with Matchers {
 

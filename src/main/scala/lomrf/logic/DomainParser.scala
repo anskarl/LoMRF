@@ -33,7 +33,7 @@
 package lomrf.logic
 
 /**
- * @author Anastasios Skarlatidis
+ *
  */
 
 class DomainParser extends CommonsMLNParser {

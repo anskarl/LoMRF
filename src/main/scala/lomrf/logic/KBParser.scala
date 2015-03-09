@@ -37,7 +37,7 @@ import lomrf.logic.dynamic.{DynamicFunctionBuilder, DynamicAtomBuilder}
 import scala.collection.breakOut
 
 /**
- * @author Anastasios Skarlatidis
+ *
  */
 final class KBParser(predicateSchema: Map[AtomSignature, Vector[String]],
                              functionSchema: Map[AtomSignature, (String, Vector[String])],

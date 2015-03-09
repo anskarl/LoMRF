@@ -46,7 +46,7 @@ import lomrf.mln.model.MLN
 import scala.collection.breakOut
 
 /**
- * @author Anastasios Skarlatidis
+ *
  */
 private final class GroundingMaster(mln: MLN,
                                     latch: CountDownLatch,

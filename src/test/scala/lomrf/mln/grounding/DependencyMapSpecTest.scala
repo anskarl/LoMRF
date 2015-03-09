@@ -12,8 +12,8 @@ import org.scalatest.{Matchers, FunSpec}
  * reconstruct the ground network without rerunning the grounding
  * procedure in each iteration.
  *
- * @author Anastasios Skarlatidis
- * @author Vagelis Michelioudakis
+ *
+ *
  */
 class DependencyMapSpecTest extends FunSpec with Matchers {
 
