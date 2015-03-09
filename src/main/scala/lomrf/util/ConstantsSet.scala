@@ -39,7 +39,7 @@ import gnu.trove.map.TObjectIntMap
 
 /**
  *
- * @author Anastasios Skarlatidis
+ *
  */
 final class ConstantsSet private[util](val constants2Id: TObjectIntMap[String],
                                        id2Constants: mutable.ArrayBuffer[String]) extends Iterable[String] {

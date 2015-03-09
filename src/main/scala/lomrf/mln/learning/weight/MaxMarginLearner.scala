@@ -77,8 +77,8 @@ import scala.language.postfixOps
  * @param L1Regularization Perform loss augmented inference using hamming distance (default is false)
  * @param printLearnedWeightsPerIteration Print learned weights for each iteration
  *
- * @author Anastasios Skarlatidis
- * @author Vagelis Michelioudakis
+ *
+ *
  */
 final class MaxMarginLearner(mrf: MRF, annotationDB: Map[AtomSignature, AtomEvidenceDB],
                              nonEvidenceAtoms: Set[AtomSignature], iterations: Int = 1000, C: Double = 1e+3, epsilon: Double = 0.001,

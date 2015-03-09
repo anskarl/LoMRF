@@ -36,7 +36,7 @@ import lomrf.util.Cartesian.CartesianIteratorArithmeticImpl
 import org.scalatest.{Matchers, FunSpec}
 
 /**
- * @author Anastasios Skarlatidis
+ *
  */
 class CartesianSpecTest extends FunSpec with Matchers {
 

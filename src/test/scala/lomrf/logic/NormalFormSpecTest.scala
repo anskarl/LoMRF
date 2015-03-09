@@ -37,7 +37,7 @@ import lomrf.mln.model.MLN
 import lomrf.util.ConstantsSet
 
 /**
- * @author Anastasios Skarlatidis
+ *
  */
 
 final class NormalFormSpecTest extends FunSpec with Matchers{

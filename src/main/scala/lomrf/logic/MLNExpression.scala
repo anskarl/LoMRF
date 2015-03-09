@@ -42,7 +42,7 @@ package lomrf.logic
  *   <li>MLN formula (see [[lomrf.logic.Formula]]), e.g. {{{ 1.386 Happens(A,t) ^ Happens(B,t) => InitiatedAt(F, t) }}}</li>
  *   <li>Evidence atom, that is a ground atom with possibly known state (see [[lomrf.logic.EvidenceAtom]] ), e.g. {{{Happens(Some_Event, 10)}}}</li>
  * </ul>
- * @author Anastasios Skarlatidis
+ *
  */
 trait MLNExpression
 
@@ -52,7 +52,7 @@ trait MLNExpression
  * time = {1,...,100}
  * persons = {Anna, Bob, Mike, George, Lisa}
  * }}}
- * @author Anastasios Skarlatidis
+ *
  */
 trait MLNDomainExpression extends MLNExpression
 
@@ -60,7 +60,7 @@ trait MLNDomainExpression extends MLNExpression
  * A pointer to another MLN file.
  *
  * @example {{{#include "file.mln"}}}
- * @author Anastasios Skarlatidis
+ *
  */
 case class IncludeFile(filename: String) extends MLNExpression
 
@@ -77,7 +77,7 @@ case class IncludeFile(filename: String) extends MLNExpression
  *
  * @param predicateName the name of the predicate (e.g. HoldsAt, Happens, InitiatedAt, TerminatedAt, etc.)
  * @param argTypes the argument domain types (e.g. fluent, time, event, etc.)
- * @author Anastasios Skarlatidis
+ *
  */
 case class AtomicType(predicateName: String, argTypes: Vector[String]) extends MLNDomainExpression
 
@@ -94,7 +94,7 @@ case class AtomicType(predicateName: String, argTypes: Vector[String]) extends M
  * @param name the function's name (e.g. walking, running and meeting).
  * @param argTypes the argument domain types (e.g. the domain of ''persons'').
  *
- * @author Anastasios Skarlatidis
+ *
  */
 case class FunctionType(returnType: String, name: String, argTypes: Vector[String]) extends MLNDomainExpression
 
@@ -105,7 +105,7 @@ case class FunctionType(returnType: String, name: String, argTypes: Vector[Strin
  * Happens(Exit, t) => TerminatedAt(F,t). // hard-constrained formula
  * }}}
  *
- * @author Anastasios Skarlatidis
+ *
  */
 trait MLNFormulaExpression extends MLNExpression
 
@@ -121,6 +121,6 @@ trait MLNFormulaExpression extends MLNExpression
  * Happens(B,10) 0.8 //state =unknown and P(Happens(B,10)=true)= 0.8
  * }}}
  *
- * @author Anastasios Skarlatidis
+ *
  */
 trait EvidenceExpression extends MLNExpression

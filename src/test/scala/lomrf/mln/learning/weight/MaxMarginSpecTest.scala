@@ -9,8 +9,8 @@ import lomrf.util._
 /**
  * Specification test for Max-Margin learner
  *
- * @author Anastasios Skarlatidis
- * @author Vagelis Michelioudakis
+ *
+ *
  */
 final class MaxMarginSpecTest extends FunSpec with Matchers with PrivateMethodTester {
 

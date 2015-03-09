@@ -39,7 +39,7 @@ import gnu.trove.map.hash.TIntObjectHashMap
 import gnu.trove.set.hash.TIntHashSet
 
 /**
- * @author Anastasios Skarlatidis
+ *
  */
 private final class AtomRegisterWorker(val index: Int, master: ActorRef) extends Actor with Logging {
 

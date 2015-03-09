@@ -79,7 +79,7 @@ import lomrf.logic.dynamic.DynEqualsBuilder
  * </ul>
  * </p>
  *
- * @author Anastasios Skarlatidis
+ *
  */
 object PredicateCompletion extends Logging {
 

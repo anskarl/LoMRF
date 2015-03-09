@@ -49,7 +49,7 @@ import gnu.trove.map.TIntDoubleMap
  *
  * @param identity the atom identity [[lomrf.util.AtomIdentityFunction]]
  *
- * @author Anastasios Skarlatidis
+ *
  */
 abstract class AtomEvidenceDB(val identity: AtomIdentityFunction) extends Logging {
 

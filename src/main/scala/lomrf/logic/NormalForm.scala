@@ -40,7 +40,7 @@ import lomrf.util.ConstantsSet
  * Contains functions that convert a First Order Logic (FOL) formula into a normal form,
  * such as Negation Normal Form (NNF), Prenex Normal Form (PNF) and Clausal Normal Form (CNF).
  *
- * @author Anastasios Skarlatidis
+ *
  */
 object NormalForm {
   /**

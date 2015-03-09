@@ -46,7 +46,7 @@ import lomrf.util.ImplFinder
  * Command-line tool for knowledge compilation. In particular with this tool we can perform
  * predicate completion, CNF transformation, FOL function transformation, as well as weights elimination.
  *
- * @author Anastasios Skarlatidis
+ *
  */
 object KBCompilerCLI extends Logging {
 

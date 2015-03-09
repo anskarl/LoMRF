@@ -52,7 +52,7 @@ import scalaxy.streams.optimize
  * @param parConstraints parallel array holding the constraints
  * @param satHardPriority Satisfiability priority to hard constrained clauses (default is false)
  *
- * @author Anastasios Skarlatidis
+ *
  */
 final class MRFState private(val mrf: MRF,
                              parAtoms: ParArray[GroundAtom],
@@ -999,7 +999,7 @@ final class MRFState private(val mrf: MRF,
 /**
  * MRFState companion object.
  *
- * @author Anastasios Skarlatidis
+ *
  */
 object MRFState {
 

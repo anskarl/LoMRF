@@ -37,7 +37,7 @@ import auxlib.log.Logging
 import lomrf.mln.model.MLN
 
 /**
- * @author Anastasios Skarlatidis
+ *
  */
 private final class GroundingWorker(mln: MLN, cliqueRegisters: Array[ActorRef], noNegWeights: Boolean, eliminateNegatedUnit: Boolean) extends Actor with Logging {
 

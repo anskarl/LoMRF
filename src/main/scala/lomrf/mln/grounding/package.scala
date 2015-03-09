@@ -41,7 +41,7 @@ import gnu.trove.set.hash.TIntHashSet
 import lomrf.logic.{AtomSignature, Clause}
 
 /**
- * @author Anastasios Skarlatidis
+ *
  */
 package object grounding {
 

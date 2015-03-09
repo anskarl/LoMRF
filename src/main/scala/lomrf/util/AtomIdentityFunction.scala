@@ -43,7 +43,7 @@ import lomrf.logic._
  * This class provides fast and thread-safe functions for encoding ground predicates of the same FOL atom into unique
  * integer numbers, as well as for the opposite (decoding integers to ground predicates).
  *
- * @author Anastasios Skarlatidis
+ *
  */
 final class AtomIdentityFunction private(
                                           val signature: AtomSignature,

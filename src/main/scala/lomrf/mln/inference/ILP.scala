@@ -61,8 +61,8 @@ import auxlib.trove.TroveConversions._
  * @param ilpSolver Solver type selection option (default is LPSolve)
  * @param lossAugmented Perform loss augmented inference using hamming distance (default is false)
  *
- * @author Anastasios Skarlatidis
- * @author Vagelis Michelioudakis
+ *
+ *
  */
 final class ILP(mrf: MRF, annotationDB: Map[AtomSignature, AtomEvidenceDB] = Map.empty[AtomSignature, AtomEvidenceDB],
                 outputAll: Boolean = true, ilpRounding: RoundingScheme = RoundingScheme.ROUNDUP, ilpSolver: Solver = Solver.LPSOLVE,

@@ -44,7 +44,7 @@ import annotation.tailrec
  * @see Wikipedia article [[http://en.wikipedia.org/wiki/Unification_(computing)#Definition_of_unification_for_first-order_logic]]
  * @see Russell, S.J. and Norvig, P. and Canny, J.F. and Malik, J. and Edwards, D.D. Artificial Intelligence: A Modern Approach, chapter 9.2.2 Unification [[http://aima.cs.berkeley.edu/]]
  *
- * @author Anastasios Skarlatidis
+ *
  */
 object Unify {
 

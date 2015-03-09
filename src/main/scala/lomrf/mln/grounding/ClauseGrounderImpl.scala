@@ -47,7 +47,7 @@ import scala.language.postfixOps
 import scalaxy.streams.optimize
 
 /**
- * @author Anastasios Skarlatidis
+ *
  */
 class ClauseGrounderImpl(
                           val clause: Clause,

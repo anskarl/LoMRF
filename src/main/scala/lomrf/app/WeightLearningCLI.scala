@@ -46,8 +46,8 @@ import lomrf.util.parseAtomSignature
 /**
  * Command-line tool for weight learning
  *
- * @author Anastasios Skarlatidis
- * @author Vagelis Michelioudakis
+ *
+ *
  */
 object WeightLearningCLI extends OptionParser with Logging {
 

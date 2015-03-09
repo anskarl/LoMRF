@@ -53,7 +53,7 @@ package lomrf.logic
  * @param symbol atom's/function's name (e.g. predicates ''Happens'', ''HoldsAt'', as well as functions ''walking'' and ''meeting'').
  * @param arity atom's arity (e.g. both example predicates have 2 arguments).
  *
- * @author Anastasios Skarlatidis
+ *
  */
 final class AtomSignature private(val symbol: String, val arity: Int) {
 

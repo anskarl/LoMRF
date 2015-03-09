@@ -64,8 +64,8 @@ import lomrf.util.LongDoubleConversions._
  * @param satHardPriority Satisfiability priority to hard constrained clauses (default is true)
  * @param tabuLength Minimum number of flips between flipping the same atom (default is 10)
  *
- * @author Anastasios Skarlatidis
- * @author Vagelis Michelioudakis
+ *
+ *
  *
  * @todo merge duplicate duplicate code with MaxWalkSAT (= maxWalkSATStep).
  * @todo perform optimisations to improve the performance.

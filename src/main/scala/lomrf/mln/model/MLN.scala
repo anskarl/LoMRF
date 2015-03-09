@@ -57,7 +57,7 @@ import scala.collection.breakOut
  * @param orderedAtomSignatures ordered atom signatures in terms of their start id
  * @param queryStartID the id of the first ground query atom
  * @param queryEndID the id of the last ground query atom
- * @author Anastasios Skarlatidis
+ *
  */
 final class MLN(
            val formulas: collection.Set[Formula],

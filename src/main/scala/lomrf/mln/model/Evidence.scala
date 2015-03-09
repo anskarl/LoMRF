@@ -40,7 +40,7 @@ import scala.collection
 import scala.collection.{mutable, breakOut}
 
 /**
- * @author Anastasios Skarlatidis
+ *
  */
 private[model] class Evidence(
                                val constants: Map[String, ConstantsSet],
