@@ -38,7 +38,7 @@ import lomrf.util.{FunctionMapper, ConstantsSet}
 /**
  * Simple function-free EC domain for testing
  *
- * @author Anastasios Skarlatidis
+ *
  */
 object ECExampleDomain1 {
 

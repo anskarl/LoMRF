@@ -38,7 +38,7 @@ package lomrf.logic
  * @param weight the weight of this clause
  * @param literals a set of literals, representing a disjunction of atoms of their negations.
  *
- * @author Anastasios Skarlatidis
+ *
  */
 final class Clause(val weight: Double, val literals: Set[Literal]){
 

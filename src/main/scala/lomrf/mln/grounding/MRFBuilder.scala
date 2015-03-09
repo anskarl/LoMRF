@@ -95,7 +95,7 @@ import scalaxy.streams.optimize
  * @param noNegWeights transform negative weighted clauses into (possibly several) positive weighted clauses (default is false, since the inference algorithms support negative weights).
  * @param eliminateNegatedUnit eliminate negated unit clauses by transforming them into negative positive unit clauses.
  *
- * @author Anastasios Skarlatidis
+ *
  */
 final class MRFBuilder(val mln: MLN,
                        noNegWeights: Boolean = false,

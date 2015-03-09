@@ -41,7 +41,7 @@ import scalaxy.streams.optimize
 import scala.language.postfixOps
 
 /**
- * @author Anastasios Skarlatidis
+ *
  */
 object Cartesian {
 

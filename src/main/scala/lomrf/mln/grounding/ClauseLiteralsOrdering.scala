@@ -66,7 +66,7 @@ import lomrf.util.AtomEvidenceDB
  * </ul>
  *
  *
- * @author Anastasios Skarlatidis
+ *
  */
 class ClauseLiteralsOrdering(atomStateDB: Map[AtomSignature, AtomEvidenceDB]) extends Ordering[Literal] {
 

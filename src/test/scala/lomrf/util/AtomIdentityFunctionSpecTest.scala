@@ -39,7 +39,7 @@ import gnu.trove.set.hash.TIntHashSet
 import org.scalatest.{FunSpec, Matchers}
 
 /**
- * @author Anastasios Skarlatidis
+ *
  */
 
 final class AtomIdentityFunctionSpecTest extends FunSpec with Matchers {

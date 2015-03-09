@@ -35,7 +35,7 @@ package lomrf.util.collection
 import gnu.trove.set.hash.TIntHashSet
 
 /**
- * @author Anastasios Skarlatidis
+ *
  */
 
 object SatAtomsDB{

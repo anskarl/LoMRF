@@ -35,7 +35,7 @@ package lomrf.mln.grounding
 import lomrf.logic.AtomSignature
 
 /**
- * @author Anastasios Skarlatidis
+ *
  */
 trait ClauseGrounder {
 

@@ -31,7 +31,7 @@
  */
 
 /**
- * @author Anastasios Skarlatidis
+ *
  */
 package object lomrf {
 

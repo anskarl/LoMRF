@@ -40,7 +40,7 @@ import gnu.trove.set.TIntSet
 import scalaxy.streams.optimize
 
 /**
- * @author Anastasios Skarlatidis
+ *
  */
 package object util {
 

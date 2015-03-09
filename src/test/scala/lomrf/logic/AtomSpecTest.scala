@@ -34,7 +34,7 @@ package lomrf.logic
 import org.scalatest.{Matchers, FunSpec}
 
 /**
- * @author Anastasios Skarlatidis
+ *
  */
 final class AtomSpecTest extends FunSpec with Matchers {
 

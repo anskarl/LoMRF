@@ -46,7 +46,7 @@ import auxlib.log.Logging
 /**
  * Command-line tool for inference.
  *
- * @author Anastasios Skarlatidis
+ *
  */
 object InferenceCLI extends OptionParser with Logging {
 

@@ -37,7 +37,7 @@ import lomrf.util.ConstantsSet
 import org.scalatest.{Matchers, FunSpec}
 
 /**
- * @author Anastasios Skarlatidis
+ *
  */
 final class KBParserSpecTest extends FunSpec with Matchers {
 

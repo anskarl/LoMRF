@@ -40,7 +40,7 @@ package lomrf.logic
  *   <li>UNKNOWN</li>
  * </ol>
  *
- * @author Anastasios Skarlatidis
+ *
  */
 sealed trait TriState{
   val value: Byte

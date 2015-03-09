@@ -35,7 +35,7 @@ package lomrf.logic.dynamic
 import lomrf.logic._
 
 /**
- * @author Anastasios Skarlatidis
+ *
  */
 
 trait DynamicAtomBuilder {

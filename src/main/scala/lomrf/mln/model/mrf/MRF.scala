@@ -52,7 +52,7 @@ import lomrf.mln.model.MLN
  * @param maxNumberOfLiterals that is the length of the bigger ground clause in this MRF.
  *
  *
- * @author Anastasios Skarlatidis
+ *
  */
 class MRF(val mln: MLN,
           val constraints: TIntObjectMap[Constraint],
