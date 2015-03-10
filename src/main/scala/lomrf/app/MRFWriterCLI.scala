@@ -173,7 +173,7 @@ object MRFWriterCLI extends Logging {
       fgOutput.newLine()
 
       // write the variables
-      literals.foreach(lit => fgOutput.write(math.abs(lit - 1).toString + " "))
+      literals.foreach(lit => fgOutput.write((math.abs(lit) - 1).toString + " "))
       fgOutput.newLine()
       // write possible values, in our case all variables are simply binary
       (0 until literals.length).foreach(_ => fgOutput.write("2 "))
