@@ -3,11 +3,11 @@ import com.typesafe.sbt.SbtNativePackager._
 /** Project */
 name := "LoMRF"
 
-version := "0.3.0-beta_201412"
+version := "0.3.0-beta_201503"
 
 organization := "com.github.anskarl"
 
-scalaVersion := "2.10.4"
+scalaVersion := "2.10.5"
 
 autoScalaLibrary := true
 
@@ -87,7 +87,6 @@ libraryDependencies ++= Seq(
 	"com.github.anskarl" %% "auxlib-trove" % "0.1-SNAPSHOT"
 )
 
-// TODO: add abide support (see https://github.com/scala/scala-abide)
 
 // Include utility BASH scripts in the 'bin' directory
 mappings in Universal <++= (packageBin in Compile) map { jar =>
