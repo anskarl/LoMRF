@@ -44,6 +44,8 @@ import lomrf.mln.model.MLN
 import lomrf.mln.model.mrf.MRF
 import lomrf.util._
 
+import scala.collection.mutable.{ArrayBuffer, ListBuffer}
+
 /**
  * Commandline tool for exporting ground MRF into various formats.
  *
@@ -140,6 +142,13 @@ object MRFWriterCLI extends Logging {
     out.close()
   }
 
+  /**
+   * Write as factor graph file format. For more details visit:
+   * https://staff.fnwi.uva.nl/j.m.mooij/libDAI/doc/fileformats.html
+   *
+   * @param mrf input ground Markov Network
+   * @param filePath output path
+   */
   def writeFactorGraph(mrf: MRF, filePath: String) {
     implicit val mln = mrf.mln
     val fgOutput = new BufferedWriter(new FileWriter(filePath))
@@ -169,44 +178,68 @@ object MRFWriterCLI extends Logging {
       fgOutput.write("# " + (if (weight == mrf.weightHard) txtLiterals + "." else weight.toString + " " + txtLiterals))
       fgOutput.newLine()
       // write the number of variables of the factor
+      fgOutput.write("# number of variables:")
+      fgOutput.newLine()
       fgOutput.write(literals.length.toString)
       fgOutput.newLine()
 
       // write the variables
+      fgOutput.write("# variables:")
+      fgOutput.newLine()
       literals.foreach(lit => fgOutput.write((math.abs(lit) - 1).toString + " "))
       fgOutput.newLine()
       // write possible values, in our case all variables are simply binary
+      fgOutput.write("# all variables are binary:")
+      fgOutput.newLine()
       (0 until literals.length).foreach(_ => fgOutput.write("2 "))
       fgOutput.newLine()
-      // write the number of nonzero entries in the factor table
-      fgOutput.write(math.pow(2, literals.length).toInt.toString)
-      fgOutput.newLine()
 
-      // write the factor table
+      // compute the factor table
+      var nonZeroEntriesCounter = 0
+      val entries = ArrayBuffer[String]()
+
+
       val occurrence: Array[Boolean] = literals.map(lit => lit > 0)
       val cartesianIterator = Cartesian.CartesianIterator(literals.map(_ => List(false, true)))
 
       var tableIndex = 0
       while (cartesianIterator.hasNext) {
         val stateEntry = cartesianIterator.next()
-        stateEntry.view.zipWithIndex.find {
-          case (state: Boolean, index: Int) => occurrence(index) == state
-        } match {
-          case Some(_) =>
-            /*out.write("# "+stateEntry.map(_.toString).reduceLeft(_ +", "+ _))
-            out.newLine()*/
-            fgOutput.write(tableIndex.toString + " " + weight)
-            fgOutput.newLine()
-          case None =>
-            /*out.write("# "+stateEntry.map(_.toString).reduceLeft(_ +", "+ _))
-            out.newLine()*/
-            fgOutput.write("#" + tableIndex + " 0.0")
-            fgOutput.newLine()
+
+        stateEntry
+          .view
+          .zipWithIndex
+          .find {
+            case (state: Boolean, index: Int) => occurrence(index) == state
+          } match {
+            case Some(_) =>
+              entries += tableIndex.toString + " " + weight
+              nonZeroEntriesCounter += 1
+            case None =>
+              entries += "#" + tableIndex + " 0.0"
         }
         tableIndex += 1
       }
+
+      // write the number of nonzero entries in the factor table
+      fgOutput.write("# number of nonzero entries in the table:")
+      fgOutput.newLine()
+      fgOutput.write(nonZeroEntriesCounter.toString)
+      fgOutput.newLine()
+
+      // write the factor table
+      fgOutput.write("# factor table:")
+      fgOutput.newLine()
+
+      for(entry <- entries){
+        fgOutput.write(entry)
+        fgOutput.newLine()
+      }
+
       fgOutput.flush()
     }
+
+
     fgOutput.newLine()
     fgOutput.close()
 
