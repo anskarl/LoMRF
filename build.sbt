@@ -103,3 +103,11 @@ mappings in Universal <++= (packageBin in Compile) map { jar =>
     f -> ("lib/native/linux/x86_64/" + f.getName)
   }
 }
+
+// Include logger configuration file to the final distribution
+mappings in Universal <++= (packageBin in Compile) map { jar =>
+  val scriptsDir = new java.io.File("src/main/resources/")
+  scriptsDir.listFiles.toSeq.map { f =>
+    f -> ("etc/" + f.getName)
+  }
+}
