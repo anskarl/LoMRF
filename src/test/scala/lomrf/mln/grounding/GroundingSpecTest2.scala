@@ -203,9 +203,13 @@ class GroundingSpecTest2 extends FunSpec with Matchers with Logging {
               queue ++= term2Domains
 
               // todo: add function position in literals terms
-              dynFunctionSchema +=
+              /*dynFunctionSchema +=
                 AtomSignature(f.symbol+"@"+literalIdx, f.arity) ->
-                  (f.domain, term2Domains.map(_._2), FunctionMapper(dynamicFunctions(f.signature)))
+                  (f.domain, term2Domains.map(_._2), FunctionMapper(dynamicFunctions(f.signature)))*/
+
+              // this is not correct, but I am using it temporally for testing:
+              dynFunctionSchema +=
+                f.signature -> (f.domain, term2Domains.map(_._2), FunctionMapper(dynamicFunctions(f.signature)))
 
             case _ => //do nothing
           }
@@ -334,6 +338,8 @@ class GroundingSpecTest2 extends FunSpec with Matchers with Logging {
 
 
     // Try to compute the theta-substitution
+    // Manually change the time variable
+    theta(1) = theta(1) - 1
 
     // step 1: get AtomIdentityFunctions (code is from ClauseGrounderImplNew.apply())
     val orderedIdentityFunctions = orderedLiterals.map(literal => mln.identityFunctions(literal.sentence.signature))
@@ -344,26 +350,43 @@ class GroundingSpecTest2 extends FunSpec with Matchers with Logging {
 
 
       def functionEncoder(function: TermFunction, entryIds: Array[Int]): Int = {
-        val mapper = functionSchema(function.signature)._3
 
-        val constants = function.terms.zipWithIndex.map (
-          entry => entry._1 match {
-          case f: TermFunction => functionEncoder(f, l2t(entry._2))
-          case _ => theta(entryIds(entry._2))
-        })
+        val (resultDomain, termDomains, mapper) = functionSchema(function.signature)
 
-        ???
+        val constants =
+          for( ((term, termDomain), index) <- function.terms.zip(termDomains).zipWithIndex )
+            yield term match{
+              case f: TermFunction =>
+                val i = math.abs(entryIds(index))
+                domain2ConstantSets(termDomain)(functionEncoder(f, l2t(i)))
+              case _ =>
+                println("entryIds("+index+") = "+entryIds(index))
+                println("theta(entryIds("+index+")) = "+theta(entryIds(index)))
+                domain2ConstantSets(termDomain).apply(theta(entryIds(index)))
+            }
+
+        println("--- FUNCTION: "+function.toText)
+        println("----> resultDomain: "+resultDomain)
+        println("----> termDomains : "+termDomains.mkString(", "))
+        println("----> mapper      : "+mapper)
+        println("----> CONSTANTS: "+ constants.mkString(", "))
+        domain2ConstantSets(resultDomain)(mapper(constants))
+
       }
 
 
-      if(literal.sentence.functions.isEmpty) (theta: Array[Int]) => idf.encode(entryIds, theta)
+      if(literal.sentence.functions.isEmpty)
+        (theta: Array[Int]) => idf.encode(entryIds, theta)
       else {
         (theta: Array[Int]) => {
           val constantIds = new Array[Int](literal.sentence.terms.size)
 
           for((term, idx) <- literal.sentence.terms.zipWithIndex) {
             constantIds(idx) = term match {
-              case f: TermFunction => functionEncoder(f, l2t(idx))
+              case f: TermFunction =>
+                val i = math.abs(entryIds(idx))
+                println("l2t("+i+") -> "+l2t(i).mkString(", "))
+                functionEncoder(f, l2t(i))
               case _ => theta(entryIds(idx))
             }
           }
@@ -397,7 +420,7 @@ class GroundingSpecTest2 extends FunSpec with Matchers with Logging {
       literal = orderedLiterals(i)
       idf = orderedIdentityFunctions(i)
       entryIds = l2t(i)
-      replacer = createThetaEncoder(literal, idf, entryIds)} {
+      encoder = createThetaEncoder(literal, idf, entryIds)} {
 
 
       if (literal.sentence.functions.isEmpty){
@@ -405,7 +428,7 @@ class GroundingSpecTest2 extends FunSpec with Matchers with Logging {
         val encoded = idf.encode(entryIds, theta)
         println("\t encoded: "+encoded)
 
-        val encoded2 = replacer(theta)
+        val encoded2 = encoder(theta)
         assert(encoded2 == encoded)
 
         idf.decode(encoded2) match{
@@ -418,9 +441,20 @@ class GroundingSpecTest2 extends FunSpec with Matchers with Logging {
 
       }
       else {
-        println("Huston we got a problem, we have at least one function!")
+        println("Houston we got a problem, we have at least one function!")
         println("entryIds := "+entryIds.mkString(", "))
         println("Literal  := "+literal.toText)
+
+        val encoded2 = encoder(theta)
+
+        idf.decode(encoded2) match {
+          case Some(decoded) =>
+            println("\t decoded: "+decoded+"\n\n")
+
+          case None =>
+            error("decoding has failed!")
+        }
+
       }
 
 
@@ -428,8 +462,7 @@ class GroundingSpecTest2 extends FunSpec with Matchers with Logging {
     }
 
 
-    // Manually change the time variable
-    //theta(1) = 7
+
 
 
   }
