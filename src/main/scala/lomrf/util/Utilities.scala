@@ -167,48 +167,6 @@ object Utilities {
     }
   }
 
-  object Metrics {
-
-    /**
-     * Calculates the FMeasure relative to an annotated state of ground atoms.
-     *
-     * @param mrf the ground Markov network
-     * @param annotationDB the annotated state of ground atoms
-     * @param beta parameter for specific FMeasure function (i.e. for beta = 1 we get F1Score)
-     *
-     * @return FMeasure
-     */
-    def FMeasure(mrf: MRF, annotationDB: Map[AtomSignature, AtomEvidenceDB], beta: Double): Double = {
-
-      var Tpositive, Tnegative, Fpositive, Fnegative = 0.0
-
-      // Count true positives and negatives as well as false positives and negatives
-      val atoms = mrf.atoms.iterator()
-      while(atoms.hasNext) {
-        atoms.advance()
-        val atomID = atoms.key()
-        val value = atoms.value().getState
-        val annotation = annotationDB(signatureOf(atomID)(mrf.mln))(atomID)
-        (annotation, value) match {
-          case (TRUE, true) => Tpositive += 1
-          case (FALSE, false) => Tnegative += 1
-          case (FALSE, true) => Fpositive += 1
-          case _ => Fnegative +=1
-        }
-      }
-
-      // Calculate precision and recall
-      var precision, recall = 0.0
-      if(Tpositive + Fpositive != 0.0) precision = Tpositive / (Tpositive + Fpositive)
-      if(Tpositive + Fnegative != 0.0) recall = Tpositive / (Tpositive + Fnegative)
-
-      if(precision + recall != 0)
-        ((1 + math.pow(beta, 2)) * precision * recall) / ((math.pow(beta, 2) * precision) + recall)
-      else
-        0.0
-    }
-
-  }
 
   /**
    * Safe dereference operator.
