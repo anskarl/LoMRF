@@ -52,9 +52,9 @@ object Evaluate {
    */
   def apply(atoms: ParIterable[GroundAtom], annotationDB: Map[AtomSignature, AtomEvidenceDB])(implicit mln: MLN): EvaluationStats ={
     atoms
-      .map{ gatom =>
-        val inferredState = gatom.getState
-        val annotationState = annotationDB(signatureOf(gatom.id))(gatom.id)
+      .map{ groundAtom =>
+        val inferredState = groundAtom.getState
+        val annotationState = annotationDB(signatureOf(groundAtom.id))(groundAtom.id)
         evaluateSingle(inferredState, annotationState)
       }
       .reduce(combine)
@@ -72,14 +72,15 @@ object Evaluate {
    * @return the counted true positives, true negatives, false positives and false negatives
    */
   def apply(atoms: ParIterable[GroundAtom], annotationDB: Map[AtomSignature, AtomEvidenceDB], samples: Int, threshold: Double = 0.5)(implicit mln: MLN): EvaluationStats ={
-    require( threshold >0.0 && threshold < 1.0)
-    require( samples > 0 )
+
+    require( threshold > 0.0 && threshold < 1.0, "Threshold value should be between 0 and 1.")
+    require( samples > 0 , "Number of samples should be great than zero.")
 
     atoms
-      .map{ gatom =>
-        val inferredProbability = gatom.getTruesCount * 1.0 / samples
+      .map{ groundAtom =>
+        val inferredProbability = groundAtom.getTruesCount * 1.0 / samples
         val state = inferredProbability >= threshold
-        val annotationState = annotationDB(signatureOf(gatom.id))(gatom.id)
+        val annotationState = annotationDB(signatureOf(groundAtom.id))(groundAtom.id)
         evaluateSingle(state, annotationState)
       }
       .reduce(combine)
