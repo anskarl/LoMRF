@@ -46,11 +46,25 @@ import scala.language.postfixOps
 import scalaxy.streams.optimize
 
 /**
- *
  * Experimental implementation of efficient grounding.
  *
- *
- *
+ * @param clause the FOL clause to ground
+ * @param clauseIndex the index of the clause in the MLN theory
+ * @param mln the MLN theory
+ * @param cliqueRegisters an array of clique registers
+ * @param atomSignatures the signatures of the atoms collected so far by the grounding process
+ * @param atomsDB partitioned collection of atomDBs
+ * @param orderedLiterals an array composed of the clause literals, but sorted according to an Ordering[Literal]
+ * @param orderedIdentityFunctions an array composed of the corresponding AtomIdentifyFunctions, w.r.t. the Ordering[Literal]
+ * @param owaLiterals an array holding the literals with open-world assumption
+ * @param dynamicAtoms a Map of literal position to function that evaluates its state given a vector of constants (i.e., String)
+ * @param length the maximum number of produced random variables,
+ *               i.e., groundings of literals that do not belong to the given evidence.
+ * @param noNegWeights when it is true the negative weight are eliminated by applying the de Morgan's law
+ *                     (translating disjunctions to conjunctions, thus multiple clauses), otherwise negative weight can exist.
+ * @param eliminateNegatedUnit when it is true, the negated single literal in ground unit clauses (i.e., clauses containing
+ *                             only one literal with open-world assumption) are eliminated by inverting their literal and
+ *                             multiplying by -1.0 their corresponding weight values.
  */
 class ClauseGrounderImplNew private(
                           val clause: Clause,

@@ -34,15 +34,12 @@ package lomrf.mln
 
 import java.{util => jutil}
 
-import gnu.trove.map.{TIntFloatMap, TIntIntMap, TIntObjectMap}
-import gnu.trove.map.hash.{TIntIntHashMap, TIntObjectHashMap}
+import gnu.trove.map.{TIntFloatMap, TIntObjectMap}
+import gnu.trove.map.hash.TIntObjectHashMap
 import gnu.trove.set.TIntSet
 import gnu.trove.set.hash.TIntHashSet
 import lomrf.logic.{AtomSignature, Clause}
 
-/**
- *
- */
 package object grounding {
 
   // ----------------------------------------
