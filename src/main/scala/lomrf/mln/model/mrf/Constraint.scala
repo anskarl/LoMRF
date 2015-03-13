@@ -33,9 +33,8 @@
 package lomrf.mln.model.mrf
 
 import lomrf.util.LongDoubleConversions._
-import scala.annotation.switch
 
-final class Constraint(private[mln] var weight: Double, val literals: Array[Int], val isHardConstraint: Boolean, val threshold: Double,
+final class Constraint(private var _weight: Double, val literals: Array[Int], val isHardConstraint: Boolean, val threshold: Double,
                        val id: Int = -1, var mode: Int = MRF.MODE_MWS) {
 
   // ----------------------------------------------------------------
@@ -45,8 +44,7 @@ final class Constraint(private[mln] var weight: Double, val literals: Array[Int]
   /**
    * High precision weight used for inference computations.
    */
-  // TODO: Maybe we should create a custom setter-getter for this one!
-  private[mln] def hpWeight = new LongDouble(weight)
+  private[mln] var hpWeight = new LongDouble(_weight)
 
   /**
    * Number of literals satisfying the constraint.
@@ -81,6 +79,22 @@ final class Constraint(private[mln] var weight: Double, val literals: Array[Int]
    * exactly one literal.
    */
   val isUnit: Boolean = literals.length == 1
+
+  /**
+   * Get weight value of this constraint.
+   */
+  private[mln] def weight = _weight
+
+  /**
+   * Set the weight of this constraint. Also changes
+   * the value of high precision weight.
+   *
+   * @param weight given weight
+   */
+  private[mln] def weight_(weight: Double) = {
+    hpWeight = new LongDouble(weight)
+    _weight = weight
+  }
 
   /**
    * Checks if the constraint is positive.

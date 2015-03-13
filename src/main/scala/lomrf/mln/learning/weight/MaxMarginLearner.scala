@@ -249,7 +249,8 @@ final class MaxMarginLearner(mrf: MRF, annotationDB: Map[AtomSignature, AtomEvid
       val constraint = constraints.value()
       val iterator = dependencyMap.get(constraint.id).iterator()
 
-      constraint.weight = 0.0
+      constraint.weight_(0.0)
+      //constraint.weight = 0.0
       while(iterator.hasNext) {
         iterator.advance()
 
@@ -257,8 +258,8 @@ final class MaxMarginLearner(mrf: MRF, annotationDB: Map[AtomSignature, AtomEvid
         val frequency = iterator.value()
 
         // Frequency would never be negative because we always start using positive unit weights
-        if(mrf.mln.clauses(clauseIdx).isHard) constraint.weight = mrf.weightHard
-        else constraint.weight += weights(clauseIdx) * frequency
+        if(mrf.mln.clauses(clauseIdx).isHard) constraint.weight_(mrf.weightHard) //constraint.weight = mrf.weightHard
+        else constraint.weight_(constraint.weight + weights(clauseIdx) * frequency) //constraint.weight += weights(clauseIdx) * frequency
       }
     }
   }
