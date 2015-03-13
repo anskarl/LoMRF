@@ -40,6 +40,7 @@ import lomrf.mln.model.MLN
 import lomrf.util.AtomIdentityFunction.IDENTITY_NOT_EXIST
 import lomrf.util.AtomIdentityFunction
 import auxlib.log.Logging
+import lomrf.util.collection.PartitionedData
 
 import scala.collection._
 import scala.language.postfixOps
@@ -51,7 +52,7 @@ import scalaxy.streams.optimize
  * @param clause the FOL clause to ground
  * @param clauseIndex the index of the clause in the MLN theory
  * @param mln the MLN theory
- * @param cliqueRegisters an array of clique registers
+ * @param cliqueRegisters partitioned collection of clique registers
  * @param atomSignatures the signatures of the atoms collected so far by the grounding process
  * @param atomsDB partitioned collection of atomDBs
  * @param orderedLiterals an array composed of the clause literals, but sorted according to an Ordering[Literal]
@@ -70,7 +71,7 @@ class ClauseGrounderImplNew private(
                           val clause: Clause,
                           clauseIndex: Int,
                           mln: MLN,
-                          cliqueRegisters: Array[ActorRef],
+                          cliqueRegisters: PartitionedData[ActorRef],
                           atomSignatures: Set[AtomSignature],
                           atomsDB: Array[TIntSet],
                           orderedLiterals: Array[Literal],
@@ -88,7 +89,7 @@ class ClauseGrounderImplNew private(
 
   // The number of clique batches is same with the number of clique registers, by default is the number of available
   // virtual processors
-  private val cliqueBatches = cliqueRegisters.length
+  //private val cliqueBatches = cliqueRegisters.length
 
   // The number of atom DBs. Minimum is equal with the number of query atoms and maximum is the number of query and
   // hidden atoms.
@@ -347,7 +348,7 @@ class ClauseGrounderImplNew private(
     var hashKey = jutil.Arrays.hashCode(variables)
     if (hashKey == 0) hashKey += 1 //required for trove collections, since zero represents the key-not-found value
 
-    cliqueRegisters(math.abs(hashKey % cliqueBatches)) ! CliqueEntry(hashKey, weight, variables, clauseIndex, freq )
+    cliqueRegisters(hashKey) ! CliqueEntry(hashKey, weight, variables, clauseIndex, freq )
   }
 
 }
@@ -365,7 +366,7 @@ object ClauseGrounderImplNew {
    *
    * @return a new instance of ClauseGrounderImplNew
    */
-  def apply(clause: Clause, clauseIndex: Int, mln: MLN, cliqueRegisters: Array[ActorRef], atomSignatures: Set[AtomSignature],
+  def apply(clause: Clause, clauseIndex: Int, mln: MLN, cliqueRegisters: PartitionedData[ActorRef], atomSignatures: Set[AtomSignature],
             atomsDB: Array[TIntSet], noNegWeights: Boolean = false, eliminateNegatedUnit: Boolean = false): ClauseGrounderImplNew = {
 
     /**

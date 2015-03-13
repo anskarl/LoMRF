@@ -85,3 +85,9 @@ private final class AtomRegisterWorker(val index: Int, master: ActorRef) extends
     master ! AtomsBatch(index, atomID2CliqueID, queryAtomIDs)
   }
 }
+
+private object AtomRegisterWorker {
+
+  def apply(index: Int)(implicit master: ActorRef) = new AtomRegisterWorker(index, master)
+
+}

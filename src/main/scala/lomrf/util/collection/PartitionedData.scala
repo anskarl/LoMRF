@@ -32,13 +32,16 @@
 
 package lomrf.util.collection
 
-trait PartitionedData[T] extends (Int => T) {
+import scala.reflect.ClassTag
+import scalaxy.streams.optimize
+
+trait PartitionedData[T] extends (Int => T)  {
 
   def apply(idx: Int): T
 
   def length: Int
 
-  def partitions: Array[T]
+  def partitions: Iterable[T]
 
 }
 
@@ -48,9 +51,20 @@ object PartitionedData {
 
     override def apply(idx: Int) = data(math.abs(idx % data.length))
 
-    override def partitions = data
+    override def partitions = data.toIterable
 
     override def length = data.length
   }
+
+  def apply[T: ClassTag](size: Int, initializer:(Int => T)): PartitionedData[T] = {
+    val data = new Array[T](size)
+    
+    optimize(for(i <- 0 until size) data(i) = initializer(i))
+
+    apply(data)
+  }
+
+  def apply[T: ClassTag](size: Int): PartitionedData[T] = apply( new Array[T](size))
+
 
 }

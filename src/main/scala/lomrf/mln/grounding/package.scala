@@ -39,6 +39,7 @@ import gnu.trove.map.hash.TIntObjectHashMap
 import gnu.trove.set.TIntSet
 import gnu.trove.set.hash.TIntHashSet
 import lomrf.logic.{AtomSignature, Clause}
+import lomrf.util.collection.PartitionedData
 
 package object grounding {
 
@@ -62,15 +63,15 @@ package object grounding {
   private[grounding] case object GRND_Completed
 
   private[grounding] case class Result(
-                                        cliques: Array[TIntObjectMap[CliqueEntry]],
-                                        atom2Cliques: Array[TIntObjectMap[TIntHashSet]],
-                                        queryAtomIDs: Array[TIntSet],
-                                        dependencyMap: Option[Array[DependencyMap]] = None)
+                                        cliques: PartitionedData[TIntObjectMap[CliqueEntry]],
+                                        atom2Cliques: PartitionedData[TIntObjectMap[TIntHashSet]],
+                                        queryAtomIDs: PartitionedData[TIntSet],
+                                        dependencyMap: Option[PartitionedData[DependencyMap]] = None)
 
   private[grounding] case class ClauseGroundingCompleted(clause: Clause, collectedSignatures: Set[AtomSignature])
 
   // Master -> GroundingWorker
-  private[grounding] case class Ground(clause: Clause, clauseIndex: Int, atomSignatures: Set[AtomSignature], atomsDB: Array[TIntSet])
+  private[grounding] case class Ground(clause: Clause, clauseIndex: Int, atomSignatures: Set[AtomSignature], atomsDB: PartitionedData[TIntSet])
 
   // GroundingWorker -> CliqueRegister
   private[grounding] case class CliqueEntry(hashKey: Int, var weight: Double, variables: Array[Int], clauseID: Int, freq: Int) {

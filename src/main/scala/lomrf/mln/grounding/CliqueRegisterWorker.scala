@@ -40,6 +40,7 @@ import gnu.trove.list.array.TIntArrayList
 import gnu.trove.map.TIntFloatMap
 import gnu.trove.map.hash.{TIntFloatHashMap, TIntObjectHashMap}
 import lomrf._
+import lomrf.util.collection.PartitionedData
 
 import scala.language.postfixOps
 import scalaxy.streams.optimize
@@ -48,10 +49,10 @@ import scalaxy.streams.optimize
 /**
  *
  */
-private final class CliqueRegisterWorker(
+private final class CliqueRegisterWorker private(
                                           val index: Int,
                                           master: ActorRef,
-                                          atomRegisters: Array[ActorRef],
+                                          atomRegisters: PartitionedData[ActorRef],
                                           createDependencyMap: Boolean) extends Actor with Logging {
 
   private var hashCode2CliqueIDs = new TIntObjectHashMap[TIntArrayList]()
@@ -73,10 +74,9 @@ private final class CliqueRegisterWorker(
    */
   private var dependencyMap: DependencyMap = _
 
-  private val numOfAtomBatches = atomRegisters.length
+  //private val numOfAtomBatches = atomRegisters.length
 
   private var cliqueID = 0
-
 
 
   override def preStart(): Unit = {
@@ -89,7 +89,7 @@ private final class CliqueRegisterWorker(
 
       debug("CliqueRegister[" + index + "] received '" + ce +"' message.")
       if (ce.weight == 0 && ce.variables.length == 1)
-        atomRegisters(ce.variables(0) % numOfAtomBatches) ! QueryVariable(ce.variables(0))
+        atomRegisters(ce.variables(0)) ! QueryVariable(ce.variables(0))
       else if (ce.weight != 0) storeClique(ce)
 
     case GRND_Completed =>
@@ -165,7 +165,7 @@ private final class CliqueRegisterWorker(
   @inline private def registerAtoms(variables: Array[Int], cliqueID: Int): Unit ={
     // Register (atomID -> cliqueID) mappings
     for (variable <- variables; atomID = math.abs(variable))
-      atomRegisters(atomID % numOfAtomBatches) ! Register(atomID, cliqueID)
+      atomRegisters(atomID) ! Register(atomID, cliqueID)
   }
 
 
@@ -179,7 +179,7 @@ private final class CliqueRegisterWorker(
     @inline def registerVariables(variables: Array[Int]): Unit = optimize {
       for (i <- 0 until variables.length) {
         val atomID = math.abs(variables(i))
-        atomRegisters(atomID % numOfAtomBatches) ! atomID
+        atomRegisters(atomID) ! atomID
       }
     }
 
@@ -260,5 +260,13 @@ private final class CliqueRegisterWorker(
 
     }
   } // store(...)
+
+}
+
+private object CliqueRegisterWorker {
+
+  def apply(index: Int, atomRegisters: PartitionedData[ActorRef], createDependencyMap: Boolean = false)(implicit master: ActorRef) =
+    new CliqueRegisterWorker(index, master, atomRegisters, createDependencyMap)
+
 
 }

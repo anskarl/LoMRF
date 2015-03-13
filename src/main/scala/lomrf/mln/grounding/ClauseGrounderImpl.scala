@@ -40,8 +40,10 @@ import gnu.trove.set.TIntSet
 import lomrf.logic._
 import lomrf.mln.model.MLN
 import lomrf.util.AtomIdentityFunction.IDENTITY_NOT_EXIST
+import lomrf.util.collection.PartitionedData
 import lomrf.util.{AtomIdentityFunction, Cartesian}
 
+import scala.annotation.tailrec
 import scala.collection._
 import scala.language.postfixOps
 import scalaxy.streams.optimize
@@ -53,16 +55,14 @@ class ClauseGrounderImpl(
                           val clause: Clause,
                           clauseIndex: Int,
                           mln: MLN,
-                          cliqueRegisters: Array[ActorRef],
+                          cliqueRegisters: PartitionedData[ActorRef],
                           atomSignatures: Set[AtomSignature],
-                          atomsDB: Array[TIntSet],
+                          atomsDB: PartitionedData[TIntSet],
                           noNegWeights: Boolean = false,
                           eliminateNegatedUnit: Boolean = false) extends ClauseGrounder with Logging{
 
   require(!clause.weight.isNaN, "Found a clause with not a valid weight value (NaN).")
 
-  private val cliqueBatches = cliqueRegisters.length
-  private val atomsDBBatches = atomsDB.length
 
   private val variableDomains: Map[Variable, Iterable[String]] = {
     if (clause.isGround) Map.empty[Variable, Iterable[String]]
@@ -178,7 +178,7 @@ class ClauseGrounderImpl(
 
             // Examine whether the current literal is included to the atomsDB. If it isn't,
             // the current clause will be omitted from the MRF
-            val atomsDBSegment = atomsDB(currentAtomID % atomsDBBatches)
+            val atomsDBSegment = atomsDB(currentAtomID)
             if (!canSend && (atomsDBSegment ne null)) canSend = atomsDBSegment.contains(currentAtomID)
             else if (atomsDBSegment eq null) canSend = true // this case happens only for Query literals
 
@@ -262,7 +262,7 @@ class ClauseGrounderImpl(
     var hashKey = jutil.Arrays.hashCode(variables)
     if (hashKey == 0) hashKey += 1 //required for trove collections, since zero represents the key-not-found value
 
-    cliqueRegisters(math.abs(hashKey % cliqueBatches)) ! CliqueEntry(hashKey, weight, variables, clauseIndex, freq )
+    cliqueRegisters(hashKey) ! CliqueEntry(hashKey, weight, variables, clauseIndex, freq )
   }
 
 }

@@ -30,33 +30,38 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package lomrf.mln.grounding
+package lomrf.util.collection.mutable
 
-import akka.actor.{Actor, ActorRef}
-import auxlib.log.Logging
-import lomrf.mln.model.MLN
-import lomrf.util.collection.PartitionedData
-
-/**
- *
- */
-private final class GroundingWorker(mln: MLN, cliqueRegisters: PartitionedData[ActorRef], noNegWeights: Boolean, eliminateNegatedUnit: Boolean) extends Actor with Logging {
-
-  def receive = {
-    case Ground(clause, clauseIndex, atomSignatures, atomsDB) =>
-      val grounder = new ClauseGrounderImpl(clause, clauseIndex, mln, cliqueRegisters, atomSignatures, atomsDB, noNegWeights, eliminateNegatedUnit)
-      grounder.computeGroundings()
-      debug("Grounding completed for clause " + clause)
-      sender ! ClauseGroundingCompleted(clause, grounder.collectedSignatures)
-
-    case msg => fatal("GroundingWorker --- Received an unknown message '" + msg + "' from " + sender)
-  }
+import scala.reflect.ClassTag
+import scalaxy.streams.optimize
 
 
+trait PartitionedData[T] extends lomrf.util.collection.PartitionedData[T] {
+
+  def update(idx: Int, elem: T)
 }
 
-private object GroundingWorker{
 
-  def apply(mln: MLN, cliqueRegisters: PartitionedData[ActorRef], noNegWeights: Boolean = false, eliminateNegatedUnit: Boolean = false) =
-    new GroundingWorker(mln,cliqueRegisters,noNegWeights, eliminateNegatedUnit)
+object PartitionedData{
+  def apply[T](data: Array[T]): PartitionedData[T] = new PartitionedData[T] {
+
+    override def apply(idx: Int) = data(math.abs(idx % data.length))
+
+    override def partitions = data.toIterable
+
+    override def length = data.length
+
+    override def update(idx: Int, elem: T): Unit = data(idx) = elem
+
+  }
+
+  def apply[T: ClassTag](size: Int, initializer:(Int => T)): PartitionedData[T] = {
+    val data = new Array[T](size)
+
+    optimize(for(i <- 0 until size) data(i) = initializer(i))
+
+    apply(data)
+  }
+
+  def apply[T: ClassTag](size: Int): PartitionedData[T] = apply( new Array[T](size))
 }
