@@ -34,7 +34,7 @@ package lomrf.mln.model.mrf
 
 import lomrf.util.LongDoubleConversions._
 
-final class Constraint(private var _weight: Double, val literals: Array[Int], val isHardConstraint: Boolean, val threshold: Double,
+final class Constraint(private var weight: Double, val literals: Array[Int], val isHardConstraint: Boolean, val threshold: Double,
                        val id: Int = -1, var mode: Int = MRF.MODE_MWS) {
 
   // ----------------------------------------------------------------
@@ -44,7 +44,7 @@ final class Constraint(private var _weight: Double, val literals: Array[Int], va
   /**
    * High precision weight used for inference computations.
    */
-  private[mln] var hpWeight = new LongDouble(_weight)
+  private[mln] var hpWeight = new LongDouble(weight)
 
   /**
    * Number of literals satisfying the constraint.
@@ -79,22 +79,6 @@ final class Constraint(private var _weight: Double, val literals: Array[Int], va
    * exactly one literal.
    */
   val isUnit: Boolean = literals.length == 1
-
-  /**
-   * Get weight value of this constraint.
-   */
-  private[mln] def weight = _weight
-
-  /**
-   * Set the weight of this constraint. Also changes
-   * the value of high precision weight.
-   *
-   * @param weight given weight
-   */
-  private[mln] def weight_(weight: Double) = {
-    hpWeight = new LongDouble(weight)
-    _weight = weight
-  }
 
   /**
    * Checks if the constraint is positive.
@@ -147,6 +131,17 @@ final class Constraint(private var _weight: Double, val literals: Array[Int], va
    * Returns the weight of the constraint
    */
   def getWeight: Double = weight
+
+  /**
+   * Set the weight of the constraint. Also changes
+   * the value of high precision weight.
+   *
+   * @param weight given weight
+   */
+  private[mln] def setWeight(weight: Double) = {
+    hpWeight = new LongDouble(weight)
+    this.weight = weight
+  }
 
   override def hashCode() = id
 
