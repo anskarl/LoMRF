@@ -46,57 +46,135 @@ import lomrf.util.collection.PartitionedData
 import lomrf.util.collection.mutable.{PartitionedData => MPartitionedData}
 
 /**
+ * GroundingMaster orchestrates the grounding procedure, i.e., the procedure in which an MLN theory is translated to a
+ * ground Markov Random Field.
  *
- * @param mln
- * @param latch
- * @param noNegWeights
- * @param eliminateNegatedUnit
- * @param createDependencyMap
+ * @param mln the MLN theory instance
+ * @param latch countdown latch variable to reduce its value when grounding is completed
+ * @param noNegWeights when its true, all negative weights are eliminated (using de Morgans law)
+ * @param eliminateNegatedUnit when its true, unit clauses having a negated literal are ellimintated (using de Morgans law)
+ * @param createDependencyMap when its true, a dependency map is created during grounding (useful for weight learning)
+ * @param parRatio parallelization ratio to use. Should be at least 1.0f, otherwise will be ignored. This value affects
+ *                 the amount of partition/actors to instantiate per worker type.
  */
 private final class GroundingMaster(mln: MLN,
                                     latch: CountDownLatch,
-                                    noNegWeights: Boolean,
-                                    eliminateNegatedUnit: Boolean,
-                                    createDependencyMap: Boolean) extends Actor with Logging {
+                                    noNegWeights: Boolean = false,
+                                    eliminateNegatedUnit: Boolean = false,
+                                    createDependencyMap: Boolean = false,
+                                    parRatio: Float = 1f) extends Actor with Logging {
 
-  private val _variables2Cliques = MPartitionedData[TIntObjectMap[TIntHashSet]](processors) // new Array[TIntObjectMap[TIntHashSet]](processors)
-  private val _cliques =  MPartitionedData[TIntObjectMap[CliqueEntry]](processors) //new Array[TIntObjectMap[CliqueEntry]](processors)
-  private val _queryAtomIDs = MPartitionedData[TIntSet](processors) // new Array[TIntSet](processors)
-  private val atomsDB = MPartitionedData[TIntSet](processors) // new Array[TIntSet](processors)
-  private lazy val _dependencyMap = MPartitionedData[DependencyMap](processors) //new Array[DependencyMap](processors)
+  /**
+   * Number of parallel instances to create per worker type. Also the number of partition to
+   * create for each PartitionedData instance
+   */
+  private val nPar = math.max((parRatio * processors).toInt, processors)
 
+  /**
+   * Partitioned Map that associates variables (i.e., ground atoms) with the set of cliques (i.e., ground clauses) that
+   * they appear. Variables and cliques are represented by their unique ID (integer number).
+   */
+  private val variables2Cliques = MPartitionedData[TIntObjectMap[TIntHashSet]](nPar)
 
+  /**
+   * Partitioned Map that associates clique IDs with CliqueEntries (object representing a clique --- i.e., ground clause)
+   */
+  private val cliques =  MPartitionedData[TIntObjectMap[CliqueEntry]](nPar)
 
-  private var clauseCounter = -mln.queryAtoms.size
+  /**
+   * Partitioned Set of collected query variable IDs (i.e., ground query atoms)
+   */
+  private val queryAtomIDs = MPartitionedData[TIntSet](nPar)
 
+  /**
+   * Partitioned Set of collected variable IDs (i.e., ground atoms)
+   */
+  private val atomsDB = MPartitionedData[TIntSet](nPar)
+
+  /**
+   * Partitioned Map that represents the relations between FOL clauses and their groundings. It is useful for
+   * Machine Learing
+   */
+  private lazy val dependencyMap = MPartitionedData[DependencyMap](nPar)
+
+  /**
+   * Utility counter variable to keep track the number of clauses to ground.
+   */
+  private var clauseCounter = 0// -mln.queryAtoms.size
+
+  /**
+   * Utility counter variable to keep track the number of colleted clique batches
+   */
   private var cliqueBatchesCounter = 0
+
+  /**
+   * Utility counter variable to keep track the number of colleted atom batches
+   */
   private var atomBatchesCounter = 0
+
+  /**
+   * Utility counter variable to keep track the number of colleted ground atom ID batches
+   */
   private var atomIDBatchesCounter = 0
+
+  /**
+   * Number of clause batches
+   */
   private var clausesBatchSize = 0
+
+  /**
+   * Utility flag that indicates when the grounding is completed
+   */
   private var completed = false
 
+  /**
+   * Utility variable holding the current index of a worker
+   */
   private var workerIdx = 0
+
+  /**
+   *
+   */
   private var cliqueStartID = 0
+
+  /**
+   *
+   */
   private var groundingIterations = 1
+
+  /**
+   *
+   */
   private var remainingClauses: Vector[(Clause, Int)] = mln.clauses.zipWithIndex
+
+  /**
+   *
+   */
   private var atomSignatures: Set[AtomSignature] = mln.queryAtoms.toSet
 
   private implicit val master = this.self
 
-  private val atomRegisters:PartitionedData[ActorRef]  =
+  /**
+   * A partitioned collection of instatiated actor references for registering ground atoms
+   */
+  private val atomRegisters: PartitionedData[ActorRef]  =
     PartitionedData(processors,
       partitionIndex =>
         context.actorOf(
           Props(AtomRegisterWorker(partitionIndex)), name = "atom_register-" + partitionIndex))
 
-
+  /**
+   * A partitioned collection of instatiated actor references for registering ground clauses (cliques)
+   */
   private val cliqueRegisters: PartitionedData[ActorRef] =
     PartitionedData(processors,
       partitionIndex =>
         context.actorOf(
           Props(CliqueRegisterWorker(partitionIndex, atomRegisters, createDependencyMap)), name = "clique_register-" + partitionIndex))
 
-
+  /**
+   * A partitioned collection of instatiated actor references of clause grounders
+   */
   private val clauseGroundingWorkers: PartitionedData[ActorRef] =
     PartitionedData(processors,
       partitionIndex =>
@@ -104,8 +182,13 @@ private final class GroundingMaster(mln: MLN,
           Props(GroundingWorker(mln, cliqueRegisters, noNegWeights, eliminateNegatedUnit)), name = "grounding_worker-" + partitionIndex))
 
 
+  /**
+   * Initially
+   */
   override def preStart() {
+
     info("Number of processors: " + lomrf.processors
+      + "\n\tParallelization size is set to: " + nPar
       + "\n\tTotal atom registry workers to use: " + atomRegisters.length
       + "\n\tTotal clique registry workers to use: " + cliqueRegisters.length
       + "\n\tTotal grounding workers to use: " + clauseGroundingWorkers.length)
@@ -115,12 +198,15 @@ private final class GroundingMaster(mln: MLN,
     // To make sure that all ground query predicates will be stored in the network,
     // insert all ground query predicates as zero weighted unit clauses
     for ((signature, qidx) <- mln.queryAtoms.zipWithIndex) {
-      val terms = mln.predicateSchema(signature)
-        .view
-        .zipWithIndex.map {
-          case (argType: String, idx: Int) => Variable("v" + idx, argType, idx)
-        }
-        .toVector
+      val terms =
+        mln
+          .predicateSchema(signature)
+          .view
+          .zipWithIndex
+          .map {
+            case (argType: String, idx: Int) => Variable("v" + idx, argType, idx)
+          }
+          .toVector
 
       remainingClauses :+= (Clause(0, AtomicFormula(signature.symbol, terms)), numberOfClauses + qidx)
     }
@@ -128,6 +214,9 @@ private final class GroundingMaster(mln: MLN,
     performGrounding()
   }
 
+  /**
+   * Grounding step
+   */
   private def performGrounding() {
     var remaining = Vector[(Clause, Int)]()
     var counter = 0
@@ -192,37 +281,41 @@ private final class GroundingMaster(mln: MLN,
       sender ! PoisonPill
       cliqueStartID += size
 
-    case CollectedCliques(index, cliques, dependencyMap) =>
-      _cliques(index) = cliques
+    case CollectedCliques(index, cliquesPart, dependencyMapPart) =>
+      this.cliques(index) = cliquesPart
 
       if(createDependencyMap)
-        _dependencyMap(index) = dependencyMap.getOrElse(fatal("dependencyMap is note defined."))
+        this.dependencyMap(index) = dependencyMapPart.getOrElse(fatal("dependencyMap is note defined."))
 
       cliqueBatchesCounter += 1
       if (cliqueBatchesCounter == processors) atomRegisters.partitions.foreach(_ ! PoisonPill)
 
     case AtomsBatch(index, registry, queryAtoms) =>
-      _variables2Cliques(index) = registry
-      _queryAtomIDs(index) = queryAtoms
+      variables2Cliques(index) = registry
+      queryAtomIDs(index) = queryAtoms
       atomBatchesCounter += 1
 
-      if (atomBatchesCounter == processors) killAll()
+      /**
+       * The grounding process is complete!!!
+       * Stop all workers, mark the internal state as completed and reduce the latch.
+       */
+      if (atomBatchesCounter == processors) {
+
+        cliqueRegisters.partitions.foreach(_ ! PoisonPill)
+        atomRegisters.partitions.foreach(_ ! PoisonPill)
+        clauseGroundingWorkers.partitions.foreach(_ ! PoisonPill)
+
+        completed = true
+        latch.countDown()
+      }
 
 
     case REQUEST_RESULTS =>
-      if (completed)
-        sender ! Result(_cliques, _variables2Cliques, _queryAtomIDs, if(createDependencyMap) Some(_dependencyMap) else None)
+      if (completed) sender ! Result(cliques, variables2Cliques, queryAtomIDs, if(createDependencyMap) Some(dependencyMap) else None)
       else sender ! None
 
-    case msg => fatal("Master --- Received an unknown message '" + msg + "' from " + sender)
+    case msg => debug("Master --- Received an unknown message '" + msg + "' from " + sender)
   }
 
-  private def killAll() {
-    cliqueRegisters.partitions.foreach(_ ! PoisonPill)
-    atomRegisters.partitions.foreach(_ ! PoisonPill)
-    clauseGroundingWorkers.partitions.foreach(_ ! PoisonPill)
-    completed = true
-    latch.countDown()
-  }
 
 }
