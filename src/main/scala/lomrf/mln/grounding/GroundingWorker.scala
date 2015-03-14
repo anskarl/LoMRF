@@ -37,10 +37,9 @@ import auxlib.log.Logging
 import lomrf.mln.model.MLN
 import lomrf.util.collection.PartitionedData
 
-/**
- *
- */
 private final class GroundingWorker(mln: MLN, cliqueRegisters: PartitionedData[ActorRef], noNegWeights: Boolean, eliminateNegatedUnit: Boolean) extends Actor with Logging {
+
+  import messages._
 
   def receive = {
     case Ground(clause, clauseIndex, atomSignatures, atomsDB) =>

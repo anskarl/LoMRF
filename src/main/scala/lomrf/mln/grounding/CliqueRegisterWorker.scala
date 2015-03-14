@@ -55,6 +55,8 @@ private final class CliqueRegisterWorker private(
                                           atomRegisters: PartitionedData[ActorRef],
                                           createDependencyMap: Boolean) extends Actor with Logging {
 
+  import messages._
+
   private var hashCode2CliqueIDs = new TIntObjectHashMap[TIntArrayList]()
   private var cliques = new TIntObjectHashMap[CliqueEntry](DEFAULT_CAPACITY, DEFAULT_LOAD_FACTOR, NO_ENTRY_KEY)
 

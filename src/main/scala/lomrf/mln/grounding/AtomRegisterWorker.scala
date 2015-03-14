@@ -43,6 +43,8 @@ import gnu.trove.set.hash.TIntHashSet
  */
 private final class AtomRegisterWorker(val index: Int, master: ActorRef) extends Actor with Logging {
 
+  import messages._
+
   private lazy val atomID2CliqueID = new TIntObjectHashMap[TIntHashSet]()
   private val queryAtomIDs = new TIntHashSet()
   private val atomIDs = new TIntHashSet()

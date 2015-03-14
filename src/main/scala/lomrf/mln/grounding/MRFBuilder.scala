@@ -102,6 +102,8 @@ final class MRFBuilder(val mln: MLN,
                        eliminateNegatedUnit: Boolean = false,
                        createDependencyMap: Boolean = false) extends Logging {
 
+  import messages._
+
   private val mcSatParam = 1
 
   private val system = ActorSystem.create("MRFBuilder")

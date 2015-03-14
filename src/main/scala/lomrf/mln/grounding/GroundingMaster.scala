@@ -65,6 +65,8 @@ private final class GroundingMaster(mln: MLN,
                                     createDependencyMap: Boolean = false,
                                     parRatio: Float = 1f) extends Actor with Logging {
 
+  import messages._
+
   /**
    * Number of parallel instances to create per worker type. Also the number of partition to
    * create for each PartitionedData instance
@@ -163,8 +165,8 @@ private final class GroundingMaster(mln: MLN,
   /**
    * A partitioned collection of instantiated actor references for registering ground atoms
    */
-  private val atomRegisters: PartitionedData[ActorRef]  =
-    PartitionedData(processors,
+  private val atomRegisters =
+    PartitionedData(nPar,
       partitionIndex =>
         context.actorOf(
           Props(AtomRegisterWorker(partitionIndex)), name = "atom_register-" + partitionIndex))
@@ -172,8 +174,8 @@ private final class GroundingMaster(mln: MLN,
   /**
    * A partitioned collection of instantiated actor references for registering ground clauses (cliques)
    */
-  private val cliqueRegisters: PartitionedData[ActorRef] =
-    PartitionedData(processors,
+  private val cliqueRegisters =
+    PartitionedData(nPar,
       partitionIndex =>
         context.actorOf(
           Props(CliqueRegisterWorker(partitionIndex, atomRegisters, createDependencyMap)), name = "clique_register-" + partitionIndex))
@@ -181,8 +183,8 @@ private final class GroundingMaster(mln: MLN,
   /**
    * A partitioned collection of instantiated actor references of clause grounders
    */
-  private val clauseGroundingWorkers: PartitionedData[ActorRef] =
-    PartitionedData(processors,
+  private val clauseGroundingWorkers =
+    PartitionedData(nPar,
       partitionIndex =>
         context.actorOf(
           Props(GroundingWorker(mln, cliqueRegisters, noNegWeights, eliminateNegatedUnit)), name = "grounding_worker-" + partitionIndex))
@@ -283,7 +285,7 @@ private final class GroundingMaster(mln: MLN,
     // When nothing is send for grounding start the second phase, since the grounding of the MLN is being completed.
     // Please note that if counter is zero and the collection of remaining clauses is not empty, then the remaining ones
     // are not associated directly or indirectly with query atoms.
-    if (counter == 0) {
+    if (counter == 0) optimize{
       remaining.foreach {
         case (clause,idx) =>
           warn(s"Clause '$clause' is being ignored, since is not associated directly or indirectly with query atoms.")
@@ -298,8 +300,9 @@ private final class GroundingMaster(mln: MLN,
       clauseCounter += 1
       atomSignatures = collectedSignatures ++ atomSignatures
 
-      if (clauseCounter == clausesBatchSize)
+      if (clauseCounter == clausesBatchSize) optimize {
         atomRegisters.partitions.foreach(_ ! GRND_Iteration_Completed)
+      }
 
 
     case CollectedAtomIDs(index, atomIDs) =>
@@ -307,7 +310,7 @@ private final class GroundingMaster(mln: MLN,
       atomsDB(index) = atomIDs
       if (atomIDBatchesCounter == atomRegisters.length) {
         atomIDBatchesCounter = 0
-        if (remainingClauses.isEmpty) {
+        if (remainingClauses.isEmpty) optimize{
           // Start Phase 2 :
           cliqueRegisters.partitions.foreach(_ ! GRND_Completed)
         }
@@ -315,7 +318,7 @@ private final class GroundingMaster(mln: MLN,
           //continue with the remaining clauses
           debug(
             "(MASTER) Continue with the remaining clauses..." +
-              "\n(MASTER) AtomSignatures to focus grounding: " + atomSignatures.map(_.toString).reduceLeft(_ + ", " + _) +
+              "\n(MASTER) AtomSignatures to focus grounding: " + atomSignatures.mkString(", ") +
               "\n(MASTER) Remaining clauses to ground: " + remainingClauses.size + " {" +
               remainingClauses.view.zipWithIndex.foldLeft("\n")((rest, entry) => rest + "\n" + entry._2 + " --- " + entry._1) +
               "\n"
@@ -324,35 +327,40 @@ private final class GroundingMaster(mln: MLN,
         }
       }
 
-    case NumberOfCliques(index, size) =>
+    case NumberOfCliques(partitionIndex, size) =>
       sender ! StartID(cliqueStartID)
       sender ! PoisonPill
       cliqueStartID += size
 
-    case CollectedCliques(index, cliquesPart, dependencyMapPart) =>
-      this.cliques(index) = cliquesPart
+    case CollectedCliques(partitionIndex, cliquesPart, dependencyMapPart) =>
+      this.cliques(partitionIndex) = cliquesPart
 
       if(createDependencyMap)
-        this.dependencyMap(index) = dependencyMapPart.getOrElse(fatal("dependencyMap is note defined."))
+        this.dependencyMap(partitionIndex) = dependencyMapPart.getOrElse(fatal("dependencyMap is note defined."))
 
       cliqueBatchesCounter += 1
-      if (cliqueBatchesCounter == processors) atomRegisters.partitions.foreach(_ ! PoisonPill)
+      if (cliqueBatchesCounter == nPar) optimize{
+        atomRegisters.partitions.foreach(_ ! PoisonPill)
+      }
 
-    case AtomsBatch(index, registry, queryAtoms) =>
-      variables2Cliques(index) = registry
-      queryAtomIDs(index) = queryAtoms
+    case AtomsBatch(partitionIndex, registry, queryAtoms) =>
+      variables2Cliques(partitionIndex) = registry
+      queryAtomIDs(partitionIndex) = queryAtoms
       atomBatchesCounter += 1
 
       /**
        * The grounding process is complete and we collected everything from workers.
        * Stop all workers, mark the internal state as completed and reduce the latch.
        */
-      if (atomBatchesCounter == processors) {
+      if (atomBatchesCounter == nPar) {
 
-        cliqueRegisters.partitions.foreach(_ ! PoisonPill)
-        atomRegisters.partitions.foreach(_ ! PoisonPill)
-        clauseGroundingWorkers.partitions.foreach(_ ! PoisonPill)
-
+        optimize{
+          for(i <- 0 until nPar){
+            cliqueRegisters.indexOf(i) ! PoisonPill
+            atomRegisters.indexOf(i) ! PoisonPill
+            clauseGroundingWorkers.indexOf(i) ! PoisonPill
+          }
+        }
         completed = true
         latch.countDown()
       }

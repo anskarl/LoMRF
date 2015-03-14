@@ -47,13 +47,13 @@ object PartitionedData{
 
     private val positionOf = (idx: Int) => math.abs(idx % data.length)
 
-    override def apply(idx: Int) = data(positionOf(idx))
+    override def apply(idx: Int): T = data(positionOf(idx))
 
     override def partitions = data.toIterable
 
     override def length = data.length
 
-    override def update(idx: Int, elem: T): Unit = data(positionOf(idx)) = elem
+    override def update(idx: Int, elem: T): Unit = data(idx) = elem
 
     override def indexOf(partitionIndex: Int) = data(partitionIndex)
   }

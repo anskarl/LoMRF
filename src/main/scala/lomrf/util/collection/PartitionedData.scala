@@ -35,7 +35,7 @@ package lomrf.util.collection
 import scala.reflect.ClassTag
 import scalaxy.streams.optimize
 
-trait PartitionedData[T] extends (Int => T)  {
+trait PartitionedData[T] extends (Int => T) {
 
   /**
    * Gives the corresponding object that is associated to the specified index value,

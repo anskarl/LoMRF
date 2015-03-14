@@ -262,7 +262,7 @@ class ClauseGrounderImpl(
     var hashKey = jutil.Arrays.hashCode(variables)
     if (hashKey == 0) hashKey += 1 //required for trove collections, since zero represents the key-not-found value
 
-    cliqueRegisters(hashKey) ! CliqueEntry(hashKey, weight, variables, clauseIndex, freq )
+    cliqueRegisters(hashKey) ! messages.CliqueEntry(hashKey, weight, variables, clauseIndex, freq )
   }
 
 }
