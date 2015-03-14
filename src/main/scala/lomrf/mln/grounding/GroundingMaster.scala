@@ -44,6 +44,7 @@ import lomrf.logic.{AtomSignature, AtomicFormula, Clause, Variable}
 import lomrf.mln.model.MLN
 import lomrf.util.collection.PartitionedData
 import lomrf.util.collection.mutable.{PartitionedData => MPartitionedData}
+import scalaxy.streams.optimize
 
 /**
  * GroundingMaster orchestrates the grounding procedure, i.e., the procedure in which an MLN theory is translated to a
@@ -52,7 +53,7 @@ import lomrf.util.collection.mutable.{PartitionedData => MPartitionedData}
  * @param mln the MLN theory instance
  * @param latch countdown latch variable to reduce its value when grounding is completed
  * @param noNegWeights when its true, all negative weights are eliminated (using de Morgans law)
- * @param eliminateNegatedUnit when its true, unit clauses having a negated literal are ellimintated (using de Morgans law)
+ * @param eliminateNegatedUnit when its true, unit clauses having a negated literal are eliminated (using de Morgans law)
  * @param createDependencyMap when its true, a dependency map is created during grounding (useful for weight learning)
  * @param parRatio parallelization ratio to use. Should be at least 1.0f, otherwise will be ignored. This value affects
  *                 the amount of partition/actors to instantiate per worker type.
@@ -93,14 +94,15 @@ private final class GroundingMaster(mln: MLN,
 
   /**
    * Partitioned Map that represents the relations between FOL clauses and their groundings. It is useful for
-   * Machine Learing
+   * Machine Learning
    */
   private lazy val dependencyMap = MPartitionedData[DependencyMap](nPar)
 
   /**
-   * Utility counter variable to keep track the number of clauses to ground.
+   * Utility counter variable to keep track the number of clauses to ground in the current grounding step.
+   * @see [[GroundingMaster#performGrounding]]
    */
-  private var clauseCounter = 0// -mln.queryAtoms.size
+  private var clauseCounter = -mln.queryAtoms.size
 
   /**
    * Utility counter variable to keep track the number of colleted clique batches
@@ -133,29 +135,33 @@ private final class GroundingMaster(mln: MLN,
   private var workerIdx = 0
 
   /**
-   *
+   * The number with which the index of produced cliques (i.e., ground clauses) begins
    */
   private var cliqueStartID = 0
 
   /**
-   *
+   * Counts the number of grounding iterations that have been processed.
    */
   private var groundingIterations = 1
 
   /**
-   *
+   * This variable contains a collection of clauses (accompanied by their index in the MLN theory) that are not yet
+   * grounded. Initially, this variable contains all MLN clauses.
    */
   private var remainingClauses: Vector[(Clause, Int)] = mln.clauses.zipWithIndex
 
   /**
-   *
+   * Collected set of atom signatures. In the beginning, this set contains the signatures of query atoms.
+   * In the end of the grounding process, this set should contain the signatures of FOL atoms that have
+   * at least one grounding in the ground Network.
    */
   private var atomSignatures: Set[AtomSignature] = mln.queryAtoms.toSet
 
+  // implicit definition master actor reference, it is required for some functions below.
   private implicit val master = this.self
 
   /**
-   * A partitioned collection of instatiated actor references for registering ground atoms
+   * A partitioned collection of instantiated actor references for registering ground atoms
    */
   private val atomRegisters: PartitionedData[ActorRef]  =
     PartitionedData(processors,
@@ -164,7 +170,7 @@ private final class GroundingMaster(mln: MLN,
           Props(AtomRegisterWorker(partitionIndex)), name = "atom_register-" + partitionIndex))
 
   /**
-   * A partitioned collection of instatiated actor references for registering ground clauses (cliques)
+   * A partitioned collection of instantiated actor references for registering ground clauses (cliques)
    */
   private val cliqueRegisters: PartitionedData[ActorRef] =
     PartitionedData(processors,
@@ -173,7 +179,7 @@ private final class GroundingMaster(mln: MLN,
           Props(CliqueRegisterWorker(partitionIndex, atomRegisters, createDependencyMap)), name = "clique_register-" + partitionIndex))
 
   /**
-   * A partitioned collection of instatiated actor references of clause grounders
+   * A partitioned collection of instantiated actor references of clause grounders
    */
   private val clauseGroundingWorkers: PartitionedData[ActorRef] =
     PartitionedData(processors,
@@ -183,7 +189,19 @@ private final class GroundingMaster(mln: MLN,
 
 
   /**
-   * Initially
+   * Before starting the grounding phase:
+   * <ul>
+   *   <li> we log some useful information (e.g., the number of instantiated actors per worker type),</li>
+   *   <li> and we finally add all query FOL atoms as unit clauses with zero weights. With that addition, we make
+   *   sure that the groundings of all query atoms will appear in the MRF. Consider, for example, that a specific
+   *   ground clause becomes tautological (e.g, by an evidence fact) and thus is been eliminated by the final MRF.
+   *   In situations where a grounding of a query atom appears only in this ground clause, that specific ground atom
+   *   will also eliminated from the final MRF. By adding these utility unit clauses we simply force to have its
+   *   corresponding random variable in the MRF state.
+   *   </li>
+   * </ul>
+   *
+   * Thereafter, we begin grounding :)
    */
   override def preStart() {
 
@@ -215,31 +233,61 @@ private final class GroundingMaster(mln: MLN,
   }
 
   /**
-   * Grounding step
+   * This function performs a single grounding step.
    */
   private def performGrounding() {
+
+    // utility var to hold remaining clauses, i.e., clauses that are not being ground in this phase
     var remaining = Vector[(Clause, Int)]()
+
+    // counter to keep track how many clauses are send for grounding
     var counter = 0
+
+    // reset the global clause counter
     clauseCounter = 0
-    for ((clause, clauseIndex) <- remainingClauses) {
-      if (clause.literals.exists(literal => atomSignatures.contains(literal.sentence.signature))) {
-        clauseGroundingWorkers(workerIdx) ! Ground(clause, clauseIndex, atomSignatures, atomsDB)
-        workerIdx = if (workerIdx == clauseGroundingWorkers.length - 1) 0 else workerIdx + 1
-        counter += 1
+
+    optimize{
+      for ((clause, clauseIndex) <- remainingClauses) {
+
+        // When the signature of at least one literal is included in the collection of atom signatures (see the
+        // var atomSignatures), then this clause is send for grounding.
+        if (clause.literals.exists(literal => atomSignatures.contains(literal.sentence.signature))) {
+
+          // send the clause to the corresponding worker
+          clauseGroundingWorkers.indexOf(workerIdx) ! Ground(clause, clauseIndex, atomSignatures, atomsDB)
+
+          // reset the index to position zero when the worker index is pointing to the last worker,
+          // otherwise increment by one
+          workerIdx = if (workerIdx == clauseGroundingWorkers.length - 1) 0 else workerIdx + 1
+
+          // increment the number of clauses being send for grounding
+          counter += 1
+        }
+        // Otherwise, add the current clause to the collection of remaining clauses to be considered for grounding
+        // in the next call for grounding
+        else remaining :+=(clause, clauseIndex)
       }
-      else remaining :+=(clause, clauseIndex)
-
-
     }
 
     debug("(MASTER) Grounding iteration " + groundingIterations + " --- total " + counter + " clause(s) selected to ground.")
+
+    // increment by one the global counter of grounding iterations.
     groundingIterations += 1
 
+    // set global remaining clauses collection
     remainingClauses = remaining
+
+    // the batch size of the clauses send for grounding
     clausesBatchSize = counter
 
+    // When nothing is send for grounding start the second phase, since the grounding of the MLN is being completed.
+    // Please note that if counter is zero and the collection of remaining clauses is not empty, then the remaining ones
+    // are not associated directly or indirectly with query atoms.
     if (counter == 0) {
-      // Start Phase 2 :
+      remaining.foreach {
+        case (clause,idx) =>
+          warn(s"Clause '$clause' is being ignored, since is not associated directly or indirectly with query atoms.")
+      }
       cliqueRegisters.partitions.foreach(_ ! GRND_Completed)
     }
   }
@@ -296,7 +344,7 @@ private final class GroundingMaster(mln: MLN,
       atomBatchesCounter += 1
 
       /**
-       * The grounding process is complete!!!
+       * The grounding process is complete and we collected everything from workers.
        * Stop all workers, mark the internal state as completed and reduce the latch.
        */
       if (atomBatchesCounter == processors) {
@@ -314,7 +362,8 @@ private final class GroundingMaster(mln: MLN,
       if (completed) sender ! Result(cliques, variables2Cliques, queryAtomIDs, if(createDependencyMap) Some(dependencyMap) else None)
       else sender ! None
 
-    case msg => debug("Master --- Received an unknown message '" + msg + "' from " + sender)
+    case msg =>
+      debug("Master --- Received an unknown message '" + msg + "' from " + sender)
   }
 
 

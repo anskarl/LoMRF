@@ -45,14 +45,17 @@ trait PartitionedData[T] extends lomrf.util.collection.PartitionedData[T] {
 object PartitionedData{
   def apply[T](data: Array[T]): PartitionedData[T] = new PartitionedData[T] {
 
-    override def apply(idx: Int) = data(math.abs(idx % data.length))
+    private val positionOf = (idx: Int) => math.abs(idx % data.length)
+
+    override def apply(idx: Int) = data(positionOf(idx))
 
     override def partitions = data.toIterable
 
     override def length = data.length
 
-    override def update(idx: Int, elem: T): Unit = data(idx) = elem
+    override def update(idx: Int, elem: T): Unit = data(positionOf(idx)) = elem
 
+    override def indexOf(partitionIndex: Int) = data(partitionIndex)
   }
 
   def apply[T: ClassTag](size: Int, initializer:(Int => T)): PartitionedData[T] = {
