@@ -34,7 +34,7 @@ package lomrf.mln.grounding
 
 import java.util.concurrent.CountDownLatch
 
-import akka.actor.{Actor, ActorRef, PoisonPill, Props}
+import akka.actor.{Actor, PoisonPill, Props}
 import auxlib.log.Logging
 import gnu.trove.map.TIntObjectMap
 import gnu.trove.set.TIntSet
@@ -82,7 +82,7 @@ private final class GroundingMaster(mln: MLN,
   /**
    * Partitioned Map that associates clique IDs with CliqueEntries (object representing a clique --- i.e., ground clause)
    */
-  private val cliques =  MPartitionedData[TIntObjectMap[CliqueEntry]](nPar)
+  private val cliques = MPartitionedData[TIntObjectMap[CliqueEntry]](nPar)
 
   /**
    * Partitioned Set of collected query variable IDs (i.e., ground query atoms)
@@ -193,14 +193,14 @@ private final class GroundingMaster(mln: MLN,
   /**
    * Before starting the grounding phase:
    * <ul>
-   *   <li> we log some useful information (e.g., the number of instantiated actors per worker type),</li>
-   *   <li> and we finally add all query FOL atoms as unit clauses with zero weights. With that addition, we make
-   *   sure that the groundings of all query atoms will appear in the MRF. Consider, for example, that a specific
-   *   ground clause becomes tautological (e.g, by an evidence fact) and thus is been eliminated by the final MRF.
-   *   In situations where a grounding of a query atom appears only in this ground clause, that specific ground atom
-   *   will also eliminated from the final MRF. By adding these utility unit clauses we simply force to have its
-   *   corresponding random variable in the MRF state.
-   *   </li>
+   * <li> we log some useful information (e.g., the number of instantiated actors per worker type),</li>
+   * <li> and we finally add all query FOL atoms as unit clauses with zero weights. With that addition, we make
+   * sure that the groundings of all query atoms will appear in the MRF. Consider, for example, that a specific
+   * ground clause becomes tautological (e.g, by an evidence fact) and thus is been eliminated by the final MRF.
+   * In situations where a grounding of a query atom appears only in this ground clause, that specific ground atom
+   * will also eliminated from the final MRF. By adding these utility unit clauses we simply force to have its
+   * corresponding random variable in the MRF state.
+   * </li>
    * </ul>
    *
    * Thereafter, we begin grounding :)
@@ -224,18 +224,31 @@ private final class GroundingMaster(mln: MLN,
           .view
           .zipWithIndex
           .map {
-            case (argType: String, idx: Int) => Variable("v" + idx, argType, idx)
+          case (argType: String, idx: Int) => Variable("v" + idx, argType, idx)
           }
           .toVector
 
-      remainingClauses :+= (Clause(0, AtomicFormula(signature.symbol, terms)), numberOfClauses + qidx)
+      remainingClauses :+=(Clause(0, AtomicFormula(signature.symbol, terms)), numberOfClauses + qidx)
     }
 
+    // enough with preparation stuff, lets start creating the MRF! :)
     performGrounding()
   }
 
   /**
-   * This function performs a single grounding step.
+   * This function performs a single grounding step. The basic idea is to ground only the minimal number of clauses
+   * that is required to perform inference for the target query atoms. Specifically, at each step we ground clauses
+   * having at least one literal that appears in the collection of known-so-far atom signatures:
+   * <ul>
+   * <li>The grounding process begins with clauses that have at least one query predicate in their literals.</li>
+   * <li>After each iteration, the collection of known-so-far atom signatures is expanded with new signatures that
+   * have been found in the processed clauses. Please note that the collected signatures refer only to predicates
+   * with open-world assumption (i.e., query and other hidden non-evidence predicates)</li>
+   * <li>The process continues until no other clause can be chosen. In situations where the collection of remaining
+   * non-grounded clauses remains non-empty, then these clauses are irrelevant for the inference of the specified
+   * query predicates, and thus they are ignored.
+   * </li>
+   * </ul>
    */
   private def performGrounding() {
 
@@ -248,11 +261,13 @@ private final class GroundingMaster(mln: MLN,
     // reset the global clause counter
     clauseCounter = 0
 
-    optimize{
+    optimize {
       for ((clause, clauseIndex) <- remainingClauses) {
 
-        // When the signature of at least one literal is included in the collection of atom signatures (see the
+        // - When the signature of at least one literal is included in the collection of atom signatures (see the
         // var atomSignatures), then this clause is send for grounding.
+        // - Otherwise, add the current clause to the collection of remaining clauses to be considered for grounding
+        // in the next call for grounding
         if (clause.literals.exists(literal => atomSignatures.contains(literal.sentence.signature))) {
 
           // send the clause to the corresponding worker
@@ -265,8 +280,6 @@ private final class GroundingMaster(mln: MLN,
           // increment the number of clauses being send for grounding
           counter += 1
         }
-        // Otherwise, add the current clause to the collection of remaining clauses to be considered for grounding
-        // in the next call for grounding
         else remaining :+=(clause, clauseIndex)
       }
     }
@@ -285,36 +298,42 @@ private final class GroundingMaster(mln: MLN,
     // When nothing is send for grounding start the second phase, since the grounding of the MLN is being completed.
     // Please note that if counter is zero and the collection of remaining clauses is not empty, then the remaining ones
     // are not associated directly or indirectly with query atoms.
-    if (counter == 0) optimize{
-      remaining.foreach {
-        case (clause,idx) =>
-          warn(s"Clause '$clause' is being ignored, since is not associated directly or indirectly with query atoms.")
-      }
-      cliqueRegisters.partitions.foreach(_ ! GRND_Completed)
-    }
+    if (counter == 0) groundingIsComplete()
   }
 
-  def receive = {
+  def receive: Receive = {
 
-    case ClauseGroundingCompleted(clause, collectedSignatures) =>
-      clauseCounter += 1
-      atomSignatures = collectedSignatures ++ atomSignatures
+    /**
+     * When a clause is fully grounded by some grounding worker, we receive this message containing the collected
+     * signatures of literals with open-world assumption.
+     */
+    case Signatures(collectedSignatures) =>
+      clauseCounter += 1 // increment clause counter, since one more clause is grounded
+      atomSignatures = collectedSignatures ++ atomSignatures // merge the collected clause signatures
 
+      // When clauses of the current batch are all grounded inform all atom register workers that this iteration
+      // is completed, in order to send back the CollectedAtomIDs
       if (clauseCounter == clausesBatchSize) optimize {
         atomRegisters.partitions.foreach(_ ! GRND_Iteration_Completed)
       }
 
+    /**
+     * At the end of each grounding iteration (i.e., grounding of a batch of clauses) each atom register worker sends
+     * back all collected ground atom ids (representing MRF random variables).
+     */
+    case CollectedAtomIDs(partitionIndex, atomIDs) =>
 
-    case CollectedAtomIDs(index, atomIDs) =>
-      atomIDBatchesCounter += 1
-      atomsDB(index) = atomIDs
+      atomIDBatchesCounter += 1 //increment by one the number of completed atom ID batches
+      atomsDB(partitionIndex) = atomIDs // assign to the corresponding partition the received atom IDs
+
+      // When we have collected atom ID batches from all atom registers:
+      // (1) reset the counter for the next grounding iteration, if exists.
+      // (2) check if the there are any other remaining clauses to ground and thus perform another grounding iteration,
+      //     otherwise grounding is complete and process to the second phase of the algorithm, in which we collect the
+      //     produced parts of the MRF.
       if (atomIDBatchesCounter == atomRegisters.length) {
         atomIDBatchesCounter = 0
-        if (remainingClauses.isEmpty) optimize{
-          // Start Phase 2 :
-          cliqueRegisters.partitions.foreach(_ ! GRND_Completed)
-        }
-        else {
+        if (remainingClauses.nonEmpty) {
           //continue with the remaining clauses
           debug(
             "(MASTER) Continue with the remaining clauses..." +
@@ -325,6 +344,8 @@ private final class GroundingMaster(mln: MLN,
           )
           performGrounding()
         }
+        else groundingIsComplete()
+
       }
 
     case NumberOfCliques(partitionIndex, size) =>
@@ -335,13 +356,14 @@ private final class GroundingMaster(mln: MLN,
     case CollectedCliques(partitionIndex, cliquesPart, dependencyMapPart) =>
       this.cliques(partitionIndex) = cliquesPart
 
-      if(createDependencyMap)
+      if (createDependencyMap)
         this.dependencyMap(partitionIndex) = dependencyMapPart.getOrElse(fatal("dependencyMap is note defined."))
 
       cliqueBatchesCounter += 1
-      if (cliqueBatchesCounter == nPar) optimize{
+      if (cliqueBatchesCounter == nPar) optimize {
         atomRegisters.partitions.foreach(_ ! PoisonPill)
       }
+
 
     case AtomsBatch(partitionIndex, registry, queryAtoms) =>
       variables2Cliques(partitionIndex) = registry
@@ -354,8 +376,8 @@ private final class GroundingMaster(mln: MLN,
        */
       if (atomBatchesCounter == nPar) {
 
-        optimize{
-          for(i <- 0 until nPar){
+        optimize {
+          for (i <- 0 until nPar) {
             cliqueRegisters.indexOf(i) ! PoisonPill
             atomRegisters.indexOf(i) ! PoisonPill
             clauseGroundingWorkers.indexOf(i) ! PoisonPill
@@ -365,14 +387,22 @@ private final class GroundingMaster(mln: MLN,
         latch.countDown()
       }
 
-
     case REQUEST_RESULTS =>
-      if (completed) sender ! Result(cliques, variables2Cliques, queryAtomIDs, if(createDependencyMap) Some(dependencyMap) else None)
+      if (completed) sender ! Result(cliques, variables2Cliques, queryAtomIDs, if (createDependencyMap) Some(dependencyMap) else None)
       else sender ! None
 
     case msg =>
       debug("Master --- Received an unknown message '" + msg + "' from " + sender)
   }
 
+  private def groundingIsComplete(): Unit = optimize {
+    remainingClauses.foreach {
+      case (clause, idx) =>
+        warn(s"Clause '$clause' is being ignored, since is not associated directly or indirectly with query atoms.")
+    }
+
+    cliqueRegisters.partitions.foreach(_ ! GRND_Completed)
+
+  }
 
 }

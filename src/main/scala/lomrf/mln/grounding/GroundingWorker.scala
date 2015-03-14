@@ -46,7 +46,7 @@ private final class GroundingWorker(mln: MLN, cliqueRegisters: PartitionedData[A
       val grounder = new ClauseGrounderImpl(clause, clauseIndex, mln, cliqueRegisters, atomSignatures, atomsDB, noNegWeights, eliminateNegatedUnit)
       grounder.computeGroundings()
       debug("Grounding completed for clause " + clause)
-      sender ! ClauseGroundingCompleted(clause, grounder.collectedSignatures)
+      sender ! Signatures(grounder.collectedSignatures)
 
     case msg => fatal("GroundingWorker --- Received an unknown message '" + msg + "' from " + sender)
   }

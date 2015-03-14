@@ -68,7 +68,8 @@ package object grounding {
                        queryAtomIDs: PartitionedData[TIntSet],
                        dependencyMap: Option[PartitionedData[DependencyMap]] = None)
 
-    case class ClauseGroundingCompleted(clause: Clause, collectedSignatures: Set[AtomSignature])
+    // GroundingWorker -> Master
+    case class Signatures(collectedSignatures: Set[AtomSignature])
 
     // Master -> GroundingWorker
     case class Ground(clause: Clause, clauseIndex: Int, atomSignatures: Set[AtomSignature], atomsDB: PartitionedData[TIntSet])
