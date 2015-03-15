@@ -76,8 +76,6 @@ private final class CliqueRegisterWorker private(
    */
   private var dependencyMap: DependencyMap = _
 
-  //private val numOfAtomBatches = atomRegisters.length
-
   private var cliqueID = 0
 
 
@@ -160,11 +158,10 @@ private final class CliqueRegisterWorker private(
       master ! collectedCliques
 
     case msg =>
-      debug("CliqueRegister[" + index + "] received an unknown message '" + msg + "' from " + sender)
-      error("CliqueRegister[" + index + "] received an unknown message.")
+      debug(s"CliqueRegister[$index] received an unknown message '$msg' from ${sender()}")
   }
 
-  @inline private def registerAtoms(variables: Array[Int], cliqueID: Int): Unit ={
+  @inline private def registerAtoms(variables: Array[Int], cliqueID: Int): Unit = optimize {
     // Register (atomID -> cliqueID) mappings
     for (variable <- variables; atomID = math.abs(variable))
       atomRegisters(atomID) ! Register(atomID, cliqueID)
@@ -179,10 +176,9 @@ private final class CliqueRegisterWorker private(
     @inline def put(fid: Int, clique: CliqueEntry) = cliques.put(fid, clique)
 
     @inline def registerVariables(variables: Array[Int]): Unit = optimize {
-      for (i <- 0 until variables.length) {
-        val atomID = math.abs(variables(i))
+      for (i <- 0 until variables.length; atomID = math.abs(variables(i)))
         atomRegisters(atomID) ! atomID
-      }
+
     }
 
     @inline def addToDependencyMap(cliqueID: Int, cliqueEntry: CliqueEntry): Unit = if(createDependencyMap){
@@ -267,7 +263,8 @@ private final class CliqueRegisterWorker private(
 
 private object CliqueRegisterWorker {
 
-  def apply(index: Int, atomRegisters: PartitionedData[ActorRef], createDependencyMap: Boolean = false)(implicit master: ActorRef) =
+  def apply(index: Int, atomRegisters: PartitionedData[ActorRef],
+            createDependencyMap: Boolean = false)(implicit master: ActorRef) =
     new CliqueRegisterWorker(index, master, atomRegisters, createDependencyMap)
 
 

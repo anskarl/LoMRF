@@ -52,18 +52,35 @@ private final class AtomRegisterWorker(val index: Int, master: ActorRef) extends
 
   def receive = {
 
+    /**
+     * Collect a grounding of a query atom
+     */
     case QueryVariable(atomID) => queryAtomIDs.add(atomID)
+
+    /**
+     * Collect an integer that represents a possible grounding of an atom. All integer values are accepted except zero,
+     * since it is the reserved value for representing the absence of a ground atom in the MRF.
+     */
     case atomID: Int =>
-      //println("AtomRegister[" + index + "].received: " + atomID)
       assert(atomID != 0, "atomID cannot be equal to zero.")
 
       if (!atomIDs.contains(atomID)) buffer.add(atomID)
 
+    /**
+     * When a grounding iteration is completed (that, is determined by the grounding Master), Master sends this message
+     * and this worker responds by sending back all collected atom ids.
+     *
+     * [Master] -> GRND_Iteration_Completed
+     * CollectedAtomIDs -> [Master]
+     */
     case GRND_Iteration_Completed =>
       atomIDs.addAll(buffer)
-      sender ! CollectedAtomIDs(index, atomIDs)
+      master ! CollectedAtomIDs(index, atomIDs)
       buffer = new TIntArrayList()
 
+    /**
+     * During grounding
+     */
     case Register(atomID, cliqueID) =>
       assert(atomID != 0, "atomID cannot be equal to zero.")
 
@@ -73,11 +90,11 @@ private final class AtomRegisterWorker(val index: Int, master: ActorRef) extends
         set.add(cliqueID)
         atomID2CliqueID.put(atomID, set)
       }
-      else {
-        cliqueSet.add(cliqueID)
-      }
+      else cliqueSet.add(cliqueID)
 
-    case msg => fatal("AtomRegister[" + index + "] --- Received an unknown message: " + msg)
+
+    case msg =>
+      fatal("AtomRegister[" + index + "] --- Received an unknown message: " + msg)
   }
 
   /**
