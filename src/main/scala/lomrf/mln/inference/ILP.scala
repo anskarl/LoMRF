@@ -151,7 +151,7 @@ final class ILP(mrf: MRF, annotationDB: Map[AtomSignature, AtomEvidenceDB] = Map
       val constraint = constraintsIterator.value()
 
       debug(
-        "Ground Clause: " + constraint.weight + " " +
+        "Ground Clause: " + constraint.getWeight + " " +
           constraint
             .literals
             .map(l => decodeLiteral(l).getOrElse(sys.error("Cannot decode literal: " + l)))
@@ -162,13 +162,13 @@ final class ILP(mrf: MRF, annotationDB: Map[AtomSignature, AtomEvidenceDB] = Map
         val atomID = math.abs(literal)
         val floatVar = literalLPVars.get(atomID)
 
-        if ((constraint.weight > 0 || constraint.weight.isInfinite || constraint.weight.isNaN ||
-          constraint.weight == mrf.weightHard) && literal > 0)
+        if ((constraint.getWeight > 0 || constraint.getWeight.isInfinite || constraint.getWeight.isNaN ||
+          constraint.getWeight == mrf.weightHard) && literal > 0)
           constraints ::= floatVar
-        else if ((constraint.weight > 0 || constraint.weight.isInfinite || constraint.weight.isNaN ||
-          constraint.weight == mrf.weightHard) && literal < 0)
+        else if ((constraint.getWeight > 0 || constraint.getWeight.isInfinite || constraint.getWeight.isNaN ||
+          constraint.getWeight == mrf.weightHard) && literal < 0)
           constraints ::= (1 - floatVar)
-        else if (constraint.weight < 0 && literal < 0)
+        else if (constraint.getWeight < 0 && literal < 0)
           constraints ::= floatVar
         else
           constraints ::= (1 - floatVar)
@@ -179,17 +179,17 @@ final class ILP(mrf: MRF, annotationDB: Map[AtomSignature, AtomEvidenceDB] = Map
       val cid = constraint.id
 
       // Step 2: Create expressions for objective function (only for soft constraints)
-      if (!constraint.weight.isInfinite && !constraint.weight.isNaN && constraint.weight != mrf.weightHard && constraint.weight != 0.0) {
+      if (!constraint.getWeight.isInfinite && !constraint.getWeight.isNaN && constraint.getWeight != mrf.weightHard && constraint.getWeight != 0.0) {
 
         if (constraint.isUnit) {
           expressions ::= {
-            if (constraint.literals(0) > 0) constraint.weight * literalLPVars.get(math.abs(constraint.literals(0)))
-            else (-constraint.weight) * literalLPVars.get(math.abs(constraint.literals(0)))
+            if (constraint.literals(0) > 0) constraint.getWeight * literalLPVars.get(math.abs(constraint.literals(0)))
+            else (-constraint.getWeight) * literalLPVars.get(math.abs(constraint.literals(0)))
           }
         }
         else { // there is no case where the same clause is going to create another z variable, so use put not putIfAbsent
           clauseLPVars.put(cid, MPFloatVar("z" + cid, 0, 1))
-          expressions ::= math.abs(constraint.weight) * clauseLPVars.get(cid)
+          expressions ::= math.abs(constraint.getWeight) * clauseLPVars.get(cid)
         }
 
       }
@@ -201,9 +201,9 @@ final class ILP(mrf: MRF, annotationDB: Map[AtomSignature, AtomEvidenceDB] = Map
         add(sum(constraints) >= 1)
         debug(constraints.mkString(" + ") + " >= 1")
       }
-      else if (!constraint.isUnit && constraint.weight != 0.0) {
+      else if (!constraint.isUnit && constraint.getWeight != 0.0) {
         val clauseVar = clauseLPVars.get(cid)
-        if (constraint.weight > 0) {
+        if (constraint.getWeight > 0) {
           add(sum(constraints) >= clauseVar)
           debug(constraints.mkString(" + ") + " >= " + clauseVar.symbol)
         }
