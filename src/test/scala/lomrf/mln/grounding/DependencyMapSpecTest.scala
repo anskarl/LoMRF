@@ -82,7 +82,7 @@ class DependencyMapSpecTest extends FunSpec with Matchers {
         val constraintID = dmIterator.key()
         val statsIterator = dmIterator.value.iterator()
 
-        val constraintWeight = mrf.constraints.get(constraintID).weight
+        val constraintWeight = mrf.constraints.get(constraintID).getWeight
         var clauseWeight = 0.0
         var total = 0.0
 

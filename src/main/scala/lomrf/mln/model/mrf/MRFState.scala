@@ -110,7 +110,7 @@ final class MRFState private(val mrf: MRF,
       while (positive.hasNext) {
         val currentConstraint = positive.next()
         if (!currentConstraint.isSatisfiedByFixed)
-          if (currentConstraint.weight > 1000) delta += 1000 else delta += currentConstraint.weight
+          if (currentConstraint.getWeight > 1000) delta += 1000 else delta += currentConstraint.getWeight
       }
     }
 
@@ -119,7 +119,7 @@ final class MRFState private(val mrf: MRF,
       while (negative.hasNext) {
         val currentConstraint = negative.next()
         if (!currentConstraint.isSatisfiedByFixed)
-          if (currentConstraint.weight > 1000) delta -= 1000 else delta -= currentConstraint.weight
+          if (currentConstraint.getWeight > 1000) delta -= 1000 else delta -= currentConstraint.getWeight
       }
     }
 
@@ -167,7 +167,7 @@ final class MRFState private(val mrf: MRF,
 
     optimize{
       for(i <- 0 until unsatisfied)
-        if(Unsatisfied(i).weight < 0) countNeg += 1
+        if(Unsatisfied(i).getWeight < 0) countNeg += 1
     }
 
     var likelihood, likelihoodUB = ZERO
@@ -178,7 +178,7 @@ final class MRFState private(val mrf: MRF,
       iterator.advance()
       val c = iterator.value()
       if(c.isSatisfied) likelihood += c.hpWeight
-      if(c.weight > 0 || c.isHardConstraint) likelihoodUB += c.hpWeight
+      if(c.getWeight > 0 || c.isHardConstraint) likelihoodUB += c.hpWeight
     }
 
     info {
@@ -639,7 +639,7 @@ final class MRFState private(val mrf: MRF,
             //
             //    a. Remove this constraint from the set of unsatisfied constraints
             //       only when it is positive, otherwise do the opposite.
-            if (constraint.weight > 0) {
+            if (constraint.getWeight > 0) {
               Unsatisfied -= constraint
               totalCost -= (if(mode == MRF.MODE_MWS) constraint.hpWeight.abs() else ONE)
               if(constraint.isHardConstraint && priorityBuffer.contains(constraint)) priorityBuffer -= constraint
@@ -718,7 +718,7 @@ final class MRFState private(val mrf: MRF,
             //
             //    a. Insert this constraint to the set of unsatisfied constraints
             //       only when it is positive, otherwise do the opposite
-            if (constraint.weight > 0) {
+            if (constraint.getWeight > 0) {
               Unsatisfied += constraint
               totalCost += (if(mode == MRF.MODE_MWS) constraint.hpWeight.abs() else ONE)
               if(constraint.isHardConstraint) priorityBuffer += constraint
