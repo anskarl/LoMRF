@@ -34,7 +34,6 @@ package lomrf.mln.grounding
 
 import akka.actor.{Actor, ActorRef}
 import auxlib.log.Logging
-import gnu.trove.list.array.TIntArrayList
 import gnu.trove.map.hash.TIntObjectHashMap
 import gnu.trove.set.hash.TIntHashSet
 
@@ -50,16 +49,31 @@ private final class AtomRegisterWorker(val index: Int, master: ActorRef) extends
 
   import messages._
 
+  /**
+   * A collection that keeps the relation between ground atoms and ground clauses.
+   */
   private lazy val atomID2CliqueID = new TIntObjectHashMap[TIntHashSet]()
+
+  /**
+   * A collection of ground atom ids that have been produced by query predicates.
+   */
   private val queryAtomIDs = new TIntHashSet()
+
+  /**
+   * Collection of ground atom ids, discovered in previous iterations. Initially, the set is empty.
+   */
   private val atomIDs = new TIntHashSet()
+
+  /**
+   * Collection of ground atom ids, discovered in the current iteration. Initially, the set is empty.
+   */
   private var buffer = new TIntHashSet()
 
   /**
    * AtomRegisterWorker actor behaviour:
    * <ul>
-   *   <li>Collects ground query atoms directly from GroundingWorkers</li>
-   *   <li>Collects associations between ground atoms from CliqueRegisters</li>
+   *   <li>Collects ground query atoms from GroundingWorkers</li>
+   *   <li>Collects relations between ground atoms from CliqueRegisters</li>
    * </ul>
    *
    * @return a partial function with the actor logic for collecting ground atoms and their relations to ground clauses.
@@ -84,11 +98,11 @@ private final class AtomRegisterWorker(val index: Int, master: ActorRef) extends
       buffer = new TIntHashSet()
 
     /**
+     * (1) Collect an integer that represents a possible grounding of an atom, from a CliqueRegister. All integer
+     * values are accepted except zero, since it is the reserved value for representing the absence of a ground atom
+     * in the MRF.
      *
-     * (1) Collect an integer that represents a possible grounding of an atom, from a CliqueRegister. All integer values
-     * are accepted except zero, since it is the reserved value for representing the absence of a ground atom in the MRF.
-     *
-     * (2) Collect the association between a ground atom and a ground clause.
+     * (2) Collect the relation between a ground atom and a ground clause.
      *
      */
     case Register(atomID, cliqueID) =>
@@ -110,7 +124,7 @@ private final class AtomRegisterWorker(val index: Int, master: ActorRef) extends
   }
 
   /**
-   * When the AtomRegistryWorker is stopped, it sent the results to the master actor.
+   * Before AtomRegistryWorker is stopped, it will first sent the results to the master actor.
    */
   override def postStop() {
     master ! AtomsBatch(index, atomID2CliqueID, queryAtomIDs)

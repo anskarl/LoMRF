@@ -47,7 +47,15 @@ import scalaxy.streams.optimize
 
 
 /**
+ * CliqueRegisterWorker stores a partition of ground clauses that result from grounding workers.
  *
+ * @param index the worker index (since we have multiple CliqueRegisterWorker instances),
+ *              it also represents the partition index.
+ * @param master reference to master actor, it is required in order to send the results back to master actor.
+ * @param atomRegisters partitioned collection of AtomRegisterWorker actors, in order to send messages about ground
+ *                      atom ids and their relation to ground clauses.
+ * @param createDependencyMap when it is true the worker stores additional information about the relations between
+ *                            FOL clauses and their groundings.
  */
 private final class CliqueRegisterWorker private(
                                           val index: Int,
@@ -72,7 +80,6 @@ private final class CliqueRegisterWorker private(
    *
    * Please note that when the 'Freq' number is negative, then we implicitly declare that the  weight of the
    * corresponding FOL 'Clause[ID:Int]' has been inverted during the grounding process.
-   *
    */
   private var dependencyMap: DependencyMap = _
 

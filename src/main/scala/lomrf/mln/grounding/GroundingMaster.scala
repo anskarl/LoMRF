@@ -63,7 +63,7 @@ private final class GroundingMaster(mln: MLN,
                                     noNegWeights: Boolean = false,
                                     eliminateNegatedUnit: Boolean = false,
                                     createDependencyMap: Boolean = false,
-                                    parRatio: Float = 1f) extends Actor with Logging {
+                                    parRatio: Float = 2f) extends Actor with Logging {
 
   import messages._
   import context._
@@ -74,32 +74,36 @@ private final class GroundingMaster(mln: MLN,
    */
   private val nPar = math.max((parRatio * processors).toInt, processors)
 
-  /**
-   * Partitioned Map that associates variables (i.e., ground atoms) with the set of cliques (i.e., ground clauses) that
-   * they appear. Variables and cliques are represented by their unique ID (integer number).
-   */
-  private val variables2Cliques = MPartitionedData[TIntObjectMap[TIntHashSet]](nPar)
+  private object partitioned {
+    /**
+     * Partitioned Map that associates variables (i.e., ground atoms) with the set of cliques (i.e., ground clauses) that
+     * they appear. Variables and cliques are represented by their unique ID (integer number).
+     */
+    val variables2Cliques = MPartitionedData[TIntObjectMap[TIntHashSet]](nPar)
 
-  /**
-   * Partitioned Map that associates clique IDs with CliqueEntries (object representing a clique --- i.e., ground clause)
-   */
-  private val cliques = MPartitionedData[TIntObjectMap[CliqueEntry]](nPar)
+    /**
+     * Partitioned Map that associates clique IDs with CliqueEntries (object representing a clique --- i.e., ground clause)
+     */
+    val cliques = MPartitionedData[TIntObjectMap[CliqueEntry]](nPar)
 
-  /**
-   * Partitioned Set of collected query variable IDs (i.e., ground query atoms)
-   */
-  private val queryAtomIDs = MPartitionedData[TIntSet](nPar)
+    /**
+     * Partitioned Set of collected query variable IDs (i.e., ground query atoms)
+     */
+    val queryAtomIDs = MPartitionedData[TIntSet](nPar)
 
-  /**
-   * Partitioned Set of collected variable IDs (i.e., ground atoms)
-   */
-  private val atomsDB = MPartitionedData[TIntSet](nPar)
+    /**
+     * Partitioned Set of collected variable IDs (i.e., ground atoms)
+     */
+    val atomsDB = MPartitionedData[TIntSet](nPar)
 
-  /**
-   * Partitioned Map that represents the relations between FOL clauses and their groundings. It is useful for
-   * Machine Learning
-   */
-  private lazy val dependencyMap = MPartitionedData[DependencyMap](nPar)
+    /**
+     * Partitioned Map that represents the relations between FOL clauses and their groundings. It is useful for
+     * Machine Learning
+     */
+    lazy val dependencyMap = MPartitionedData[DependencyMap](nPar)
+  }
+
+
 
   /**
    * Utility counter variable to keep track the number of clauses to ground in the current grounding step.
@@ -209,10 +213,10 @@ private final class GroundingMaster(mln: MLN,
   override def preStart() {
 
     info("Number of processors: " + lomrf.processors
-      + "\n\tParallelization size is set to: " + nPar
-      + "\n\tTotal atom registry workers to use: " + atomRegisters.length
-      + "\n\tTotal clique registry workers to use: " + cliqueRegisters.length
-      + "\n\tTotal grounding workers to use: " + clauseGroundingWorkers.length)
+      + "\n\t\tParallelization ratio is set to: " + parRatio
+      + "\n\t\tTotal number of atom registry workers: " + atomRegisters.length
+      + "\n\t\tTotal number of clique registry workers: " + cliqueRegisters.length
+      + "\n\t\tTotal number of grounding workers: " + clauseGroundingWorkers.length)
 
     val numberOfClauses = remainingClauses.size
 
@@ -272,7 +276,7 @@ private final class GroundingMaster(mln: MLN,
         if (clause.literals.exists(literal => atomSignatures.contains(literal.sentence.signature))) {
 
           // send the clause to the corresponding worker
-          clauseGroundingWorkers.indexOf(workerIdx) ! Ground(clause, clauseIndex, atomSignatures, atomsDB)
+          clauseGroundingWorkers.indexOf(workerIdx) ! Ground(clause, clauseIndex, atomSignatures, partitioned.atomsDB)
 
           // reset the index to position zero when the worker index is pointing to the last worker,
           // otherwise increment by one
@@ -285,7 +289,7 @@ private final class GroundingMaster(mln: MLN,
       }
     }
 
-    debug("(MASTER) Grounding iteration " + groundingIterations + " --- total " + counter + " clause(s) selected to ground.")
+    debug(s"(MASTER) Grounding iteration $groundingIterations --- total $counter clause(s) selected to ground.")
 
     // increment by one the global counter of grounding iterations.
     groundingIterations += 1
@@ -313,8 +317,8 @@ private final class GroundingMaster(mln: MLN,
    *  actor changes its behaviour and proceeds to the next phase.</li>
    *
    *  <li>In the second phase, the master assigns starting IDs to each clique register worker and collects all cliques
-   *  (i.e., ground clauses) and atom ids (i.e., ground atoms/random variables) from clique register and atoms register workers,
-   *  respectively. Once all cliques and atom ids are being collected, the master stops all worker nodes and
+   *  (i.e., ground clauses) and atom ids (i.e., ground atoms/random variables) from clique register and atoms register
+   *  workers, respectively. Once all cliques and atom ids are being collected, the master stops all worker nodes and
    *  proceeds to the final phase.</li>
    *
    *  <li>In the final phase, the entire MRF has being collected and this master waits to be asked for the produced MRF,
@@ -354,7 +358,7 @@ private final class GroundingMaster(mln: MLN,
       case CollectedAtomIDs(partitionIndex, atomIDs) =>
 
         atomIDBatchesCounter += 1 //increment by one the number of completed atom ID batches
-        atomsDB(partitionIndex) = atomIDs // assign to the corresponding partition the received atom IDs
+        partitioned.atomsDB(partitionIndex) = atomIDs // assign to the corresponding partition the received atom IDs
 
         // When we have collected atom ID batches from all atom registers:
         // (1) reset the counter for the next grounding iteration, if exists.
@@ -401,11 +405,11 @@ private final class GroundingMaster(mln: MLN,
      * MRF data.
      */
     case CollectedCliques(partitionIndex, cliquesPart, dependencyMapPart) =>
-      this.cliques(partitionIndex) = cliquesPart // store the partition of ground clauses
+      partitioned.cliques(partitionIndex) = cliquesPart // store the partition of ground clauses
 
       // store partition of createDependencyMap, when the creation of dependency map is enabled.
       if (createDependencyMap)
-        this.dependencyMap(partitionIndex) = dependencyMapPart.getOrElse(fatal("dependencyMap is note defined."))
+        partitioned.dependencyMap(partitionIndex) = dependencyMapPart.getOrElse(fatal("dependencyMap is note defined."))
 
       cliqueBatchesCounter += 1 // we have stored the partition, increase the counter by one.
 
@@ -420,8 +424,8 @@ private final class GroundingMaster(mln: MLN,
      */
     case AtomsBatch(partitionIndex, registry, queryAtoms) =>
       // store the partitioned data
-      variables2Cliques(partitionIndex) = registry
-      queryAtomIDs(partitionIndex) = queryAtoms
+      partitioned.variables2Cliques(partitionIndex) = registry
+      partitioned.queryAtomIDs(partitionIndex) = queryAtoms
 
       atomBatchesCounter += 1  // we have stored the partition, increase the counter by one.
 
@@ -455,7 +459,7 @@ private final class GroundingMaster(mln: MLN,
      * Give the resulting MRF data
      */
     case REQUEST_RESULTS =>
-      sender ! Result(cliques, variables2Cliques, queryAtomIDs, if (createDependencyMap) Some(dependencyMap) else None)
+      sender ! Result(partitioned.cliques, partitioned.variables2Cliques, partitioned.queryAtomIDs, if (createDependencyMap) Some(partitioned.dependencyMap) else None)
   }: Receive) orElse handleUnknownMessage
 
   /**
@@ -464,7 +468,7 @@ private final class GroundingMaster(mln: MLN,
    * @return a partial function with the actor logic when an unknown message is being received.
    */
   private def handleUnknownMessage: Receive ={
-    case msg => error("Master --- Received an unknown message '" + msg + "' from " + sender)
+    case msg => error(s"Master --- Received an unknown message '${msg.toString}' from '${sender().toString}'")
   }
 
   private def groundingIsComplete(): Unit = {
