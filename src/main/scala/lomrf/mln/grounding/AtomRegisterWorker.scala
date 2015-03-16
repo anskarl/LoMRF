@@ -39,7 +39,12 @@ import gnu.trove.map.hash.TIntObjectHashMap
 import gnu.trove.set.hash.TIntHashSet
 
 /**
+ * AtomRegisterWorker collects a partition of ground atoms, represented by integer values, as well as in which ground
+ * clauses the they appear.
  *
+ * @param index the worker index (since we have multiple AtomRegisterWorker instances),
+ *              it also represents the partition index.
+ * @param master reference to master actor, it is required in order to send the results back to master actor.
  */
 private final class AtomRegisterWorker(val index: Int, master: ActorRef) extends Actor with Logging {
 
@@ -48,23 +53,23 @@ private final class AtomRegisterWorker(val index: Int, master: ActorRef) extends
   private lazy val atomID2CliqueID = new TIntObjectHashMap[TIntHashSet]()
   private val queryAtomIDs = new TIntHashSet()
   private val atomIDs = new TIntHashSet()
-  private var buffer = new TIntArrayList()
+  private var buffer = new TIntHashSet()
 
+  /**
+   * AtomRegisterWorker actor behaviour:
+   * <ul>
+   *   <li>Collects ground query atoms directly from GroundingWorkers</li>
+   *   <li>Collects associations between ground atoms from CliqueRegisters</li>
+   * </ul>
+   *
+   * @return a partial function with the actor logic for collecting ground atoms and their relations to ground clauses.
+   */
   def receive = {
 
     /**
-     * Collect a grounding of a query atom
+     * Collect a grounding of a query atom directly from a GroundingWorker
      */
     case QueryVariable(atomID) => queryAtomIDs.add(atomID)
-
-    /**
-     * Collect an integer that represents a possible grounding of an atom. All integer values are accepted except zero,
-     * since it is the reserved value for representing the absence of a ground atom in the MRF.
-     */
-    case atomID: Int =>
-      assert(atomID != 0, "atomID cannot be equal to zero.")
-
-      if (!atomIDs.contains(atomID)) buffer.add(atomID)
 
     /**
      * When a grounding iteration is completed (that, is determined by the grounding Master), Master sends this message
@@ -76,13 +81,20 @@ private final class AtomRegisterWorker(val index: Int, master: ActorRef) extends
     case GRND_Iteration_Completed =>
       atomIDs.addAll(buffer)
       master ! CollectedAtomIDs(index, atomIDs)
-      buffer = new TIntArrayList()
+      buffer = new TIntHashSet()
 
     /**
-     * During grounding
+     *
+     * (1) Collect an integer that represents a possible grounding of an atom, from a CliqueRegister. All integer values
+     * are accepted except zero, since it is the reserved value for representing the absence of a ground atom in the MRF.
+     *
+     * (2) Collect the association between a ground atom and a ground clause.
+     *
      */
     case Register(atomID, cliqueID) =>
       assert(atomID != 0, "atomID cannot be equal to zero.")
+
+      buffer.add(atomID)
 
       val cliqueSet = atomID2CliqueID.get(atomID)
       if (cliqueSet == null) {
@@ -94,7 +106,7 @@ private final class AtomRegisterWorker(val index: Int, master: ActorRef) extends
 
 
     case msg =>
-      fatal("AtomRegister[" + index + "] --- Received an unknown message: " + msg)
+      error("AtomRegister[" + index + "] --- Received an unknown message: " + msg)
   }
 
   /**

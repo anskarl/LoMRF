@@ -175,11 +175,6 @@ private final class CliqueRegisterWorker private(
 
     @inline def put(fid: Int, clique: CliqueEntry) = cliques.put(fid, clique)
 
-    @inline def registerVariables(variables: Array[Int]): Unit = optimize {
-      for (i <- 0 until variables.length; atomID = math.abs(variables(i)))
-        atomRegisters(atomID) ! atomID
-
-    }
 
     @inline def addToDependencyMap(cliqueID: Int, cliqueEntry: CliqueEntry): Unit = if(createDependencyMap){
       val clauseStats = new TIntFloatHashMap(DEFAULT_CAPACITY, DEFAULT_LOAD_FACTOR, NO_ENTRY_KEY, 0)
@@ -226,7 +221,6 @@ private final class CliqueRegisterWorker private(
         // The constraint is not merged, thus we simply store it.
         put(cliqueID, cliqueEntry)
         storedCliqueIDs.add(cliqueID)
-        registerVariables(cliqueEntry.variables)
 
         // add to dependencyMap:
         addToDependencyMap(cliqueID, cliqueEntry)
@@ -254,7 +248,6 @@ private final class CliqueRegisterWorker private(
         // next cliqueID
         cliqueID += 1
       }
-      registerVariables(cliqueEntry.variables)
 
     }
   } // store(...)

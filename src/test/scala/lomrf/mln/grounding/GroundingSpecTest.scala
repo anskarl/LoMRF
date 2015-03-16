@@ -32,347 +32,102 @@
 
 package lomrf.mln.grounding
 
-import auxlib.log.Logging
-import gnu.trove.set.hash.TIntHashSet
-import lomrf.logic._
-import lomrf.logic.{Literal, AtomSignature, KBParser}
-import lomrf.mln.model.{AtomIdentifier, MLN}
-import lomrf.util.{ConstantsSet, Utilities, AtomEvidenceDB}
-import org.scalatest.{FunSpec, Matchers}
-import lomrf.tests.ECExampleDomain1._
+import java.io.File
 
-import scala.collection.mutable
+import lomrf.logic.AtomSignature
+import lomrf.mln.model.MLN
+import lomrf.util.Utilities.io._
+import lomrf.util.Utilities.{measureTime, msecTimeToText}
+import org.scalatest.{FunSpec, Matchers}
+
+import scala.io.Source
 
 /**
+ * Specification test for grounding
  *
  */
-class GroundingSpecTest extends FunSpec with Matchers with Logging {
+final class GroundingSpecTest extends FunSpec with Matchers {
+
+  private val sep = System.getProperty("file.separator")
+
+  private val mainPath = System.getProperty("user.dir") + sep +
+    "Examples" + sep + "data" + sep + "tests" + sep + "inference" + sep + "caviar" + sep + "DN"
+
+  val queryAtoms = Set(AtomSignature("HoldsAt", 2))
+
+  val cwa = Set(
+    AtomSignature("Happens", 2), AtomSignature("Close", 4), AtomSignature("Next", 2),
+    AtomSignature("OrientationMove", 3), AtomSignature("StartTime", 1))
 
 
-  private val parser = new KBParser(predicateSchema, functionsSchema)
+  var totalTime = 0L
+  var iterations = 0
 
-  private val atomIdentifier = AtomIdentifier(predicateSchema, constants, queryAtoms, hiddenAtoms)
+  for {
+    inertiaConfiguration <- List("HI", "SI", "SI_h")
 
-  // Manually create sample evidence
-  private val atomStateDB: Map[AtomSignature, AtomEvidenceDB] = {
+    fold <- 0 to 9
 
-    var result = Map[AtomSignature, AtomEvidenceDB]()
+    currentPath = new File(mainPath + sep + inertiaConfiguration + sep + "meet" + sep + "fold_" + fold)
+    if currentPath.exists
 
-    // All predicates with open-world assumption have unknown state values --- i.e., HoldsAt/2, InitiatedAt/2 and TerminatedAt/2
-    for (signature <- owa)
-      result += signature -> AtomEvidenceDB.OWA(atomIdentifier.identities(signature))
+    mlnFile = findFirstFile(currentPath, _.getName.endsWith(".mln"))
+      .getOrElse(sys.error("Cannot find MLN in '"+currentPath+"'"))
 
-    // Add all positive instantiations of predicate Next/2 (for time points 1 to 100)
-    val nextSignature = AtomSignature("Next", 2)
-    val nextIDF = atomIdentifier.identities(nextSignature)
-    val nextPositives = new TIntHashSet()
-    (1 until LAST_TIME_POINT).map(t => nextIDF.encode(Seq((t + 1).toString, t.toString))).foreach(nextPositives.add)
-    result += (nextSignature -> AtomEvidenceDB.CWA(nextPositives, nextIDF))
+    expectedResultFiles = findFiles(currentPath, _.getName.endsWith(".mws.golden"))
 
-    // Assume true All instantiations of predicate Happens/2 having its first argument equals with 'walking' and
-    // the rest instantiations are false.
-    val happensSignature = AtomSignature("Happens", 2)
-    val happensIDF = atomIdentifier.identities(happensSignature)
-    val happensPositives = new TIntHashSet()
-    (1 to LAST_TIME_POINT).map(t => happensIDF.encode(Seq("Walking", t.toString))).foreach(happensPositives.add)
-    result += (happensSignature -> AtomEvidenceDB.CWA(happensPositives, happensIDF))
+    dbFile <- findFiles(currentPath, _.getName.endsWith(".db"))
+  } describe("Loading MLN theory from file '" + mlnFile + "', with evidence from file '" + dbFile) {
 
-    result
-  }
+    val mln = MLN(mlnFile.getAbsolutePath, dbFile.getAbsolutePath, queryAtoms, cwa)
 
+    val stats = Source
+      .fromFile(dbFile.getAbsolutePath.replace(".db", ".statistics"))
+      .getLines()
+      .map(line => line.split('='))
+      .map(entries => entries(0) -> entries(1))
+      .toMap
 
-  val formulaStr = "HoldsAt(f,t) ^ !TerminatedAt(f,t) ^ Next(t,tNext) => HoldsAt(f,tNext)."
-  //val formulaStr = "HoldsAt(f,t) ^ !TerminatedAt(f,t) ^ Next(t,tNext) => HoldsAt(f, t+1)."
-
-  //val formulaStr = "HoldsAt(f,t) ^ !TerminatedAt(f,t) ^ !TerminatedAt(f,t1) ^ Next(t,tNext) => HoldsAt(f,tNext)."
-
-  describe("Formula '" + formulaStr + "'") {
-    val formula = parser.parseFormula(formulaStr)
-    val clauses = formula.toCNF(constants)
-
-    it("produces a single clause") {
-      clauses.size should be(1)
+    it(s"should contain ${stats("mln.formulas.size")} formulas") {
+      mln.formulas.size should be(stats("mln.formulas.size").toInt)
     }
 
-    val clause = clauses.head
-
-    it("contains three variables") {
-      clause.variables.size should be(3)
+    it(s"should constants ${stats("mln.constants.size")} constants sets (domains)") {
+      mln.constants.size should be(stats("mln.constants.size").toInt)
     }
 
-    val mln = new MLN(
-      formulas = Set(formula),
-      predicateSchema,
-      functionsSchema,
-      dynamicAtoms,
-      dynamicFunctions,
-      constants,
-      functionMappers,
-      queryAtoms,
-      cwa,
-      owa,
-      probabilisticAtoms = Set.empty[AtomSignature],
-      tristateAtoms = Set.empty[AtomSignature],
-      atomStateDB,
-      atomIdentifier
-    )
-
-
-    val orderedLiterals =
-      clause
-        .literals
-        .toArray
-        .sortBy(l => l)(ClauseLiteralsOrdering(mln))
-
-    info("original sequence of literals : " + clause.literals.map(_.toString).mkString(" v ") + "\n" +
-      "ordered sequence of literals  : " + orderedLiterals.map(_.toString).mkString(" v "))
-
-    val orderedIdentityFunctions = orderedLiterals.map(literal => mln.identityFunctions(literal.sentence.signature))
-
-    // extract the sequence of unique variables
-    val uniqOrderedVars = uniqueOrderedVariablesIn(orderedLiterals)
-
-
-
-    info(uniqOrderedVars.mkString(", "))
-
-    // ordered unique variables to corresponding domain sizes
-    val varDomains = uniqOrderedVars.map(v => constants(v.domain).size).toArray
-    info("Domain sizes of the ordered unique variables: " + varDomains.mkString(", "))
-
-
-    val var2Idx: Map[Variable, Int] = uniqOrderedVars.zipWithIndex.toMap
-
-    val litLastVarIdx = orderedLiterals.map(literal => var2Idx(variablesIn(literal.sentence.terms).last))
-
-    val varIdx2ConstantSet: Map[Int, ConstantsSet] = var2Idx.map{ case (v: Variable, idx: Int) => idx -> mln.constants(v.domain)}.toMap
-
-    val matchTerms = matchedTermsInLiterals(orderedLiterals, !_.isFunction)
-
-
-
-
-    println(matchTerms.mkString(", "))
-
-
-
-    /*private def substituteTerm(theta: collection.Map[Variable, String])(term: Term): String = term match {
-        case c: Constant => c.symbol
-        case v: Variable => theta(v)
-        case f: TermFunction =>
-          mln.functionMappers.get(f.signature) match {
-            case Some(m) => m(f.terms.map(a => substituteTerm(theta)(a)))
-            case None => fatal("Cannot apply substitution using theta: " + theta + " in function " + f.signature)
-          }
-      }*/
-
-    def substituteTerm(sentence: AtomicFormula)(theta: Array[Int])(index: Int): Int ={
-      sentence.terms(index) match {
-        case f: TermFunction =>
-          val mapper = mln
-            .functionMappers
-            .getOrElse(f.signature,
-              fatal("Cannot apply substitution using indexed theta: " + theta.mkString(", ") + " in function " + f.signature))
-
-
-        case _ => theta(index)
-      }
-
-      -1
+    it(s"should contain ${stats("mln.predicateSchema.size")} predicate schemas") {
+      mln.predicateSchema.size should be(stats("mln.predicateSchema.size").toInt)
     }
 
+    it(s"should contain ${stats("mln.functionSchema.size")} function schemas") {
+      mln.functionSchema.size should be(stats("mln.functionSchema.size").toInt)
+    }
 
-    //
-    // Cartesian products
-    //
-    /*def cartesianProducts(source: Array[Int]): Set[Array[Int]] = {
-      var products =  Set[Array[Int]]()
+    info("Creating MRF...")
+    val mrfBuilder = new MRFBuilder(mln, createDependencyMap = false)
 
-      // cartesian factors: current domain indexes for each unique ordered variable
-      val indexes = util.Arrays.copyOf(source.map(_ - 1), source.length)
-      val factors = util.Arrays.copyOf(indexes, indexes.length)
+    val (time, mrf) = measureTime(mrfBuilder.buildNetwork)
+    totalTime += time
+    iterations += 1
 
-      val MAX = source.product
-
-
-      val LAST_VARIABLE_INDEX = factors.length - 1
-      var stop_inner = false
-      var variable_idx = LAST_VARIABLE_INDEX
-      var product_counter = 0
-
-      val startTime = System.currentTimeMillis()
-      while (variable_idx >= 0 && (product_counter < MAX)) {
-
-        products += factors.clone()
-        product_counter += 1
-
-        stop_inner = false
-        variable_idx = LAST_VARIABLE_INDEX
-
-        while (!stop_inner && variable_idx >= 0) {
-          //iterations += 1
-          if (factors(variable_idx) > 0) {
-            factors(variable_idx) -= 1
-            stop_inner = true
-
-            val pos = variable_idx + 1
-
-            if (pos <= LAST_VARIABLE_INDEX)
-              System.arraycopy(indexes, pos, factors, pos, LAST_VARIABLE_INDEX - pos + 1)
-          }
-          else variable_idx -= 1
-        }
-
-
-
+    describe("The constructed MRF") {
+      it(s"should contain ${stats("mrf.atoms.size")} ground atoms") {
+        mrf.atoms.size should be(stats("mrf.atoms.size").toInt)
       }
-      val endTime = System.currentTimeMillis()
-      info("Total number of groundings: " + product_counter + " of " + MAX)
-      info("Total number of stored groundings: " + products.size)
-      info("Total time:" + Utilities.msecTimeToText(endTime - startTime))
 
-      products
-    }*/
-
-    /*val LT_IDX = 3
-    val tautology = (factors: Array[Int]) => factors(0) == factors(LT_IDX)
-
-    def cartesianProductsT(source: Array[Int]): Set[Array[Int]] = {
-      var products =  Set[Array[Int]]()
-      var groundings = List[Array[Int]]()
-
-
-
-      // cartesian factors: current domain indexes for each unique ordered variable
-      val indexes = util.Arrays.copyOf(source.map(_ - 1), source.length)
-      val factors = util.Arrays.copyOf(indexes, indexes.length)
-
-      val MAX_PRODUCT = source.product
-
-
-      val LAST_VARIABLE_INDEX = factors.length - 1
-      var stop_inner = false
-      var variable_idx = LAST_VARIABLE_INDEX
-      var product_counter = 0
-      //var iterations = 0
-      //var outerIterations = 0
-      //var copies = 0
-
-      // Last tautological index
-      /* val LT_IDX = 3
-      val tautology = () => factors(0) == factors(LT_IDX)*/
-
-      val startTime = System.currentTimeMillis()
-      while (variable_idx >= 0 && (product_counter < MAX_PRODUCT)) {
-
-
-        //println(counter + " : "+factors.mkString(", "))
-        //outerIterations += 1
-
-        if(!tautology(factors)) {
-          variable_idx = LAST_VARIABLE_INDEX
-          products += factors.clone()
-          product_counter += 1
-        }
-        else
-          variable_idx = LT_IDX
-
-        //reset stop flag
-        stop_inner = false
-
-        while (!stop_inner && variable_idx >= 0) {
-          //iterations += 1
-          if (factors(variable_idx) > 0) {
-            factors(variable_idx) -= 1
-            stop_inner = true
-
-            val pos = variable_idx + 1
-
-            if (pos <= LAST_VARIABLE_INDEX)
-              System.arraycopy(indexes, pos, factors, pos, LAST_VARIABLE_INDEX - pos + 1)
-          }
-          else variable_idx -= 1
-        }
-
-
-
+      it(s"should contain ${stats("mrf.constraints.size")} ground clauses") {
+        mrf.constraints.size should be(stats("mrf.constraints.size").toInt)
       }
-      val endTime = System.currentTimeMillis()
-      info("Total number of groundings: " + product_counter + " of " + MAX_PRODUCT)
-      info("Total number of stored groundings: " + products.size)
-      /*info("Total number of iterations: " + iterations)
-      info("Total number of outer iterations: " + outerIterations)
-      info("Total number of inner iterations: " + (iterations - outerIterations))*/
-      info("Total time:" + Utilities.msecTimeToText(endTime - startTime))
-      //info("Total copies:" + copies)
 
-      products
-    }*/
-
-
-    //
-    // TEST PRODUCTS
-    //
-
-    /*val products = cartesianProducts(varDomains)
-    val productsT = cartesianProductsT(varDomains)
-
-    val productsTStr = productsT.map(_.mkString(":"))
-    val productsStr = products.map(_.mkString(":"))
-
-    println("productsStr.size:="+productsStr.size)
-    println("productsTStr.size:="+productsTStr.size)
-
-    println("\nMISSING:")
-    val missing = productsStr -- productsTStr
-    val missingStr = missing.toArray.sorted
-
-    missingStr.foreach(x => println("\t"+x))
-
-    // ERROR 1
-    val error1 = missing.filter(x => !tautology(x.split(":").map(_.toInt)))
-    println("\nWRONG MISSING ENTRIES: "+error1.size)
-    error1.foreach(x => println("\t"+x))
-
-    // ERROR 2
-    val error2 = productsTStr.filter(x => tautology(x.split(":").map(_.toInt)))
-    println("\nWRONG COLLECTED ENTRIES: "+error2.size)
-    error2.foreach(x => println("\t"+x))*/
-
-
-    // Note: the given domains should always be above zero
-    /*val domainList = List(
-      Array(10, 5, 2),
-      Array(10, 1, 2),
-      Array(1, 1, 10),
-      Array(1, 10),
-      Array(5, 10),
-      Array(10),
-      Array(1),
-      Array(1000, 1000, 2, 1000),
-      Array(1000, 1000, 2, 2, 2, 1, 1, 2)
-    )
-
-    require(domainList.forall(_.forall(_ > 0)))
-
-    for (domain <- domainList; (l, iteration) <- domain.permutations.zipWithIndex) {
-      val elements = l.map(_ - 1)
-      val expectedIterations = l.product // this is the correct number of products
-      describe("Cartesian product of domains [" + elements.mkString(", ") + "]") {
-
-        val result = cartesianProducts(l)
-        info("iteration: " + iteration + "\n" +
-          "\telements = [" + elements.map(_.toString).reduceLeft(_ + ", " + _) + "]\n" +
-          "\texpected = " + expectedIterations + "\n" +
-          "\tproduced = " + result)
-
-        it("produces " + expectedIterations + " distinct Cartesian products") {
-          assert(expectedIterations == result)
-        }
+      it(s"should has ${stats("mrf.weightHard")} as hard weight value") {
+        mrf.weightHard should be(stats("mrf.weightHard").toDouble)
       }
-    }*/
+    }
 
   }
 
+  info(msecTimeToText("Total time spend for grounding : ", totalTime))
+  info(msecTimeToText("Average time spend for grounding : ", totalTime / iterations))
 
 }
