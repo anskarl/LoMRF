@@ -13,10 +13,10 @@ autoScalaLibrary := true
 
 managedScalaInstance := true
 
-logLevel := Level.Warn
-
 packageArchetype.java_application
 
+logLevel in Test := Level.Info
+logLevel in Compile := Level.Error
 
 // Append several options to the list of options passed to the Java compiler
 javacOptions ++= Seq("-source", "1.8", "-target", "1.8", "-Xlint:unchecked", "-Xlint:deprecation")
@@ -41,7 +41,15 @@ fork := true
 fork in Test := true
 
 // add a JVM option to use when forking a JVM for 'run'
-javaOptions += "-Xmx4G"
+javaOptions ++= Seq(
+        "-XX:+DoEscapeAnalysis",
+        "-XX:+UseFastAccessorMethods",
+        "-XX:+OptimizeStringConcat",
+        "-XX:+UseCompressedOops",
+        "-Xms2g",
+        "-Xmx4g",
+        "-Xss32m",
+        "-Dlogback.configurationFile=src/main/resources/logback.xml")
 
 
 /** Dependencies */

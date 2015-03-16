@@ -58,12 +58,13 @@ import scalaxy.streams.optimize
  *                            FOL clauses and their groundings.
  */
 private final class CliqueRegisterWorker private(
-                                          val index: Int,
-                                          master: ActorRef,
-                                          atomRegisters: PartitionedData[ActorRef],
-                                          createDependencyMap: Boolean) extends Actor with Logging {
+                                                  val index: Int,
+                                                  master: ActorRef,
+                                                  atomRegisters: PartitionedData[ActorRef],
+                                                  createDependencyMap: Boolean) extends Actor with Logging {
 
   import messages._
+  import context._
 
   private var hashCode2CliqueIDs = new TIntObjectHashMap[TIntArrayList]()
   private var cliques = new TIntObjectHashMap[CliqueEntry](DEFAULT_CAPACITY, DEFAULT_LOAD_FACTOR, NO_ENTRY_KEY)
@@ -86,45 +87,80 @@ private final class CliqueRegisterWorker private(
   private var cliqueID = 0
 
 
+  /**
+   * At the beginning, initialize the local dependency map (if it is set to store clause dependencies)
+   */
   override def preStart(): Unit = {
-    if(createDependencyMap)
+    if (createDependencyMap)
       dependencyMap = new TIntObjectHashMap[TIntFloatMap](DEFAULT_CAPACITY, DEFAULT_LOAD_FACTOR, NO_ENTRY_KEY)
   }
 
-  def receive = {
+  def receive = storeCliques
+
+  /**
+   * Accepts messages about ground clauses, in order to store them.
+   *
+   * @return a partial function with the actor logic for collecting ground clauses.
+   */
+  def storeCliques = ({
+    /**
+     * There are two procedures that can be performed for storing a ground clause:
+     * <ul>
+     * <li>(1) When the ground clause has a non-zero weight value, it is going to be stored.</li>
+     * <li>(2) When the ground clause is unit and has weight equals to zero, then it is assumed as a ground query atom.
+     * In that case the ground query atom is simple forwarded to the corresponding atom register.</li>
+     * </ul>
+     * Otherwise, the weight is zero and the clause will be ignored.
+     *
+     */
     case ce: CliqueEntry =>
 
-      debug("CliqueRegister[" + index + "] received '" + ce +"' message.")
-      if (ce.weight == 0 && ce.variables.length == 1)
+      debug(s"CliqueRegister[$index] received '$ce' message.")
+
+      // (1) Clause with some weight value, store the clause.
+      // (2) Unit clause with zero weight is a query ground atom, thus forward to the corresponding atom register.
+      if (ce.weight != 0) storeClique(ce)
+      else if (ce.weight == 0 && ce.variables.length == 1)
         atomRegisters(ce.variables(0)) ! QueryVariable(ce.variables(0))
-      else if (ce.weight != 0) storeClique(ce)
 
+    /**
+     * When the grounding of the MRF is complete, change the actor behaviour to 'results' and sent the total number of
+     * collected ground clauses to master.
+     */
     case GRND_Completed =>
-      debug(s"CliqueRegister[$index] received 'GRND_Completed' message.")
       debug(s"CliqueRegister[$index] collected total ${cliques.size} cliques.")
-
+      become(results) //change the actor logic
       sender ! NumberOfCliques(index, cliques.size())
 
+  }: Receive) orElse handleUnknownMessage
+
+  /**
+   *
+   * @return a partial function with the actor logic for clause re-indexing.
+   */
+  def results = ({
     case StartID(offset: Int) =>
-      debug("CliqueRegister[" + index + "] received 'StartID("+offset+")' message.")
+      debug("CliqueRegister[" + index + "] received 'StartID(" + offset + ")' message.")
 
       val collectedCliques =
-        if(offset == 0) { //do not adjust clique ids
+        if (offset == 0) {
+          //do not adjust clique ids
           // Register (atomID -> cliqueID) mappings
           val iterator = cliques.iterator()
           while (iterator.hasNext) {
             iterator.advance()
             registerAtoms(iterator.value().variables, iterator.key())
           }
-          CollectedCliques(index, cliques, if(createDependencyMap) Some(dependencyMap) else None)
+          CollectedCliques(index, cliques, if (createDependencyMap) Some(dependencyMap) else None)
         }
-        else {//adjust clique ids
+        else {
+          //adjust clique ids
           hashCode2CliqueIDs = null //not needed anymore (allow GC to delete it)
 
           val resultingCliques = new TIntObjectHashMap[CliqueEntry](cliques.size() + 1, DEFAULT_LOAD_FACTOR, NO_ENTRY_KEY)
 
           val resultingDependencyMap: Option[DependencyMap] =
-            if(createDependencyMap)
+            if (createDependencyMap)
               Some(new TIntObjectHashMap[TIntFloatMap](DEFAULT_CAPACITY, DEFAULT_LOAD_FACTOR, NO_ENTRY_KEY))
             else None
 
@@ -160,20 +196,30 @@ private final class CliqueRegisterWorker private(
 
 
 
-      debug(s"CliqueRegister[$index] sending to master the CollectedCliques message, containing ${collectedCliques.cliques.size} cliques.")
+      debug(s"CliqueRegister[$index] sending to master the CollectedCliques message, " +
+            s"containing ${collectedCliques.cliques.size} cliques.")
 
+      // send the collected and re-indexed partition of ground clauses to master.
       master ! collectedCliques
 
+  }: Receive) orElse handleUnknownMessage
+
+  /**
+   * Reports as an error when an unknown message is being received.
+   *
+   * @return a partial function with the actor logic when an unknown message is being received.
+   */
+  private def handleUnknownMessage: Receive = {
     case msg =>
-      debug(s"CliqueRegister[$index] received an unknown message '$msg' from ${sender()}")
+      error(s"CliqueRegister[$index] received an unknown message '$msg' from ${sender()}")
   }
+
 
   @inline private def registerAtoms(variables: Array[Int], cliqueID: Int): Unit = optimize {
     // Register (atomID -> cliqueID) mappings
     for (variable <- variables; atomID = math.abs(variable))
       atomRegisters(atomID) ! Register(atomID, cliqueID)
   }
-
 
   private def storeClique(cliqueEntry: CliqueEntry) {
     //statReceived += 1
@@ -183,7 +229,7 @@ private final class CliqueRegisterWorker private(
     @inline def put(fid: Int, clique: CliqueEntry) = cliques.put(fid, clique)
 
 
-    @inline def addToDependencyMap(cliqueID: Int, cliqueEntry: CliqueEntry): Unit = if(createDependencyMap){
+    @inline def addToDependencyMap(cliqueID: Int, cliqueEntry: CliqueEntry): Unit = if (createDependencyMap) {
       val clauseStats = new TIntFloatHashMap(DEFAULT_CAPACITY, DEFAULT_LOAD_FACTOR, NO_ENTRY_KEY, 0)
       clauseStats.put(cliqueEntry.clauseID, cliqueEntry.freq)
       dependencyMap.put(cliqueID, clauseStats)
@@ -235,7 +281,7 @@ private final class CliqueRegisterWorker private(
         // next cliqueID
         cliqueID += 1
       }
-      else if(createDependencyMap){
+      else if (createDependencyMap) {
         // Add or adjust the corresponding frequency in the dependencyMap
         dependencyMap.get(storedId).adjustOrPutValue(cliqueEntry.clauseID, cliqueEntry.freq, cliqueEntry.freq)
       }
@@ -263,8 +309,7 @@ private final class CliqueRegisterWorker private(
 
 private object CliqueRegisterWorker {
 
-  def apply(index: Int, atomRegisters: PartitionedData[ActorRef],
-            createDependencyMap: Boolean = false)(implicit master: ActorRef) =
+  def apply(index: Int, atomRegisters: PartitionedData[ActorRef], createDependencyMap: Boolean = false)(implicit master: ActorRef) =
     new CliqueRegisterWorker(index, master, atomRegisters, createDependencyMap)
 
 

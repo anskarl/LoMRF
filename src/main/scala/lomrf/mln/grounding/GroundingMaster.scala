@@ -103,8 +103,6 @@ private final class GroundingMaster(mln: MLN,
     lazy val dependencyMap = MPartitionedData[DependencyMap](nPar)
   }
 
-
-
   /**
    * Utility counter variable to keep track the number of clauses to ground in the current grounding step.
    * @see [[GroundingMaster#performGrounding]]

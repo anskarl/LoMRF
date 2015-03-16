@@ -48,9 +48,9 @@ private final class GroundingWorker(mln: MLN, cliqueRegisters: PartitionedData[A
       debug("Grounding completed for clause " + clause)
       sender ! Signatures(grounder.collectedSignatures)
 
-    case msg => fatal("GroundingWorker --- Received an unknown message '" + msg + "' from " + sender)
+    case msg =>
+      error(s"GroundingWorker --- Received an unknown message '$msg' from ${sender().toString()}")
   }
-
 
 }
 
