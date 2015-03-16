@@ -33,8 +33,7 @@
 package lomrf.util
 
 import java.nio.file.Path
-import lomrf.logic.{FALSE, TRUE, AtomSignature}
-import lomrf.mln.model.mrf.MRF
+import lomrf.util.Utilities.TimeGranularity.TimeGranularity
 import scala.collection.mutable
 import java.io.{IOException, File}
 import scala.reflect._
@@ -42,10 +41,9 @@ import scala.reflect._
 /**
  * Various utility functions.
  *
- *
- *
  */
 object Utilities {
+
 
   /**
    * Calculates the actual time in hours, minutes, seconds and milliseconds given the
@@ -126,45 +124,33 @@ object Utilities {
   }
 
   /**
+   * 
    * Measures the time spend in a function call
    *
+   * @param body a function representing the execution of code to be measured
+   * @param granularity the time granularity to use (default is millisecond)
+   * @tparam T the type of the result when executing
    * @return a tuple: (total execution time, result)
    */
-  def time[T](f: () => T) = {
-    val begin = System.currentTimeMillis
-    val result = f()
-    (System.currentTimeMillis - begin, result)
+  def measureTime[T](body: => T, granularity: TimeGranularity = TimeGranularity.Millisecond) = granularity match {
+    case TimeGranularity.Millisecond =>
+      val begin = System.currentTimeMillis
+      val result = body
+      (System.currentTimeMillis - begin, result)
+
+    case TimeGranularity.Nanosecond =>
+      val begin = System.nanoTime()
+      val result = body
+      (System.nanoTime() - begin, result)
   }
 
   def powerSet[T](xs: Set[T]) = (Set(Set.empty[T]) /: xs)((xss, x) => xss ++ xss.map(_ + x))
 
   def naturals: Stream[Int] = Stream.cons(1, naturals.map(_ + 1))
 
-  def printTable(table: Array[Array[String]], firstRowAsHeader: Boolean = true) {
-    // Find the maximum number of columns
-    var maxColumns = 0
-    for (i <- 0 until table.length) {
-      if (table(i).length > maxColumns) maxColumns = table(i).length
-    }
-
-    // Find the maximum length of a string in each column
-    val lengths = new Array[Int](maxColumns)
-    for (i <- 0 until table.length) {
-      for (j <- 0 until table(i).length) {
-        if (lengths(j) < table(i)(j).length()) lengths(j) = table(i)(j).length()
-      }
-    }
-
-    for (i <- 0 until table.length) {
-      if (firstRowAsHeader && i == 1) println()
-
-      for (j <- 0 until table(i).length) {
-        printf(
-          "%1$" + lengths(j) + "s" + (if (j + 1 == lengths.length) "\n" else " "),
-          table(i)(j)
-        )
-      }
-    }
+  object TimeGranularity extends Enumeration {
+    type TimeGranularity = Value
+    val Millisecond, Nanosecond = Value
   }
 
 
