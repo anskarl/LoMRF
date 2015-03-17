@@ -57,11 +57,11 @@ import scalaxy.streams.optimize
  * @param createDependencyMap when it is true the worker stores additional information about the relations between
  *                            FOL clauses and their groundings.
  */
-private final class CliqueRegisterWorker private(
-                                                  val index: Int,
-                                                  master: ActorRef,
-                                                  atomRegisters: PartitionedData[ActorRef],
-                                                  createDependencyMap: Boolean) extends Actor with Logging {
+private[grounding] final class CliqueRegisterWorker private(
+                                          val index: Int,
+                                          master: ActorRef,
+                                          atomRegisters: PartitionedData[ActorRef],
+                                          createDependencyMap: Boolean) extends Actor with Logging {
 
   import messages._
   import context._
@@ -111,7 +111,6 @@ private final class CliqueRegisterWorker private(
      * In that case the ground query atom is simple forwarded to the corresponding atom register.</li>
      * </ul>
      * Otherwise, the weight is zero and the clause will be ignored.
-     *
      */
     case ce: CliqueEntry =>
 
@@ -119,7 +118,7 @@ private final class CliqueRegisterWorker private(
 
       // (1) Clause with some weight value, store the clause.
       // (2) Unit clause with zero weight is a query ground atom, thus forward to the corresponding atom register.
-      if (ce.weight != 0) storeClique(ce)
+      if (ce.weight != 0) store(ce)
       else if (ce.weight == 0 && ce.variables.length == 1)
         atomRegisters(ce.variables(0)) ! QueryVariable(ce.variables(0))
 
@@ -135,6 +134,7 @@ private final class CliqueRegisterWorker private(
   }: Receive) orElse handleUnknownMessage
 
   /**
+   * Master sends the offset, with which the collected clauses should be
    *
    * @return a partial function with the actor logic for clause re-indexing.
    */
@@ -221,13 +221,20 @@ private final class CliqueRegisterWorker private(
       atomRegisters(atomID) ! Register(atomID, cliqueID)
   }
 
-  private def storeClique(cliqueEntry: CliqueEntry) {
-    //statReceived += 1
+  /**
+   * Attempt to store the specified ground clause (i.e., constraint/clique). The specified grounding may either:
+   * <ul>
+   *   <li> Merged with another ground clause that has the same literals, but possibly different weight value.</li>
+   *   <li> Or otherwise, store as it is, since is unique.</li>
+   * </ul>
+   *
+   * @param current the ground clause to store.
+   */
+  private def store(current: CliqueEntry) {
 
     @inline def fetchClique(fid: Int): CliqueEntry = cliques.get(fid)
 
     @inline def put(fid: Int, clique: CliqueEntry) = cliques.put(fid, clique)
-
 
     @inline def addToDependencyMap(cliqueID: Int, cliqueEntry: CliqueEntry): Unit = if (createDependencyMap) {
       val clauseStats = new TIntFloatHashMap(DEFAULT_CAPACITY, DEFAULT_LOAD_FACTOR, NO_ENTRY_KEY, 0)
@@ -235,82 +242,115 @@ private final class CliqueRegisterWorker private(
       dependencyMap.put(cliqueID, clauseStats)
     }
 
-    val storedCliqueIDs = hashCode2CliqueIDs.get(cliqueEntry.hashKey)
+    // Check if we have constrained with similar hash codes. In that case it may be possible to have constraints with
+    // the same literals.
+    val storedCliqueIDs = hashCode2CliqueIDs.get(current.hashKey)
 
-    // (1) check for a stored clique with the same variables
+    // Check for a stored constraint with the same literals. If a similar constraint is found, then merge their weight
+    // values. Otherwise store this constraint.
     if (storedCliqueIDs ne null) {
 
+      // Iterator to iterate through constraints of the same group (i.e., they have the same hashKey,
+      // but different literals).
       val iterator = storedCliqueIDs.iterator()
-      var merged = false
-      var storedId = -1
+
+      var merged = false // flag to indicate that merge is completed
+      var storedId = -1 // utility variable to temporally keep the ground clause id of a stored constraint
+
       while (iterator.hasNext && !merged) {
         storedId = iterator.next()
         val storedClique = fetchClique(storedId)
 
-        if (jutil.Arrays.equals(storedClique.variables, cliqueEntry.variables)) {
-          if (storedClique.weight != Double.PositiveInfinity) {
-            // merge these cliques
-            if (cliqueEntry.weight == Double.PositiveInfinity) {
-              // When the stored constraint (from a previous run/iteration) is soft and
-              // the new one is hard; then the resulting constraint will be hard.
-              storedClique.weight = Double.PositiveInfinity
-            }
-            else {
-              // When both stored and new constraints are soft, then merge these constraints
-              storedClique.weight += cliqueEntry.weight
-            }
+        if (jutil.Arrays.equals(storedClique.variables, current.variables)) {
+
+          // (*) When the stored constraint is not hard-constrained (i.e., does not have infinite weight value), then
+          //     merge both constraints (stored and current)
+          // (*) When both stored and current constraints are hard-constrained, then they should have the same sign.
+          //     If not, then the grounding process cannot continue (wrong MLN theory or, even worse, a possible bug).
+          // (*) Otherwise, we assume that either (1) the stored constraint is hard and the current is soft or (2) both
+          //     are constraints are hard, but with the same sign to their weights. In both cases, the resulting merge
+          //     produces exactly the same constraint with the already stored constraint. Therefore, we virtually assume
+          //     that merge is performed, without changing anything.
+          if (!storedClique.weight.isInfinite) {
+            // Merge these constraints (i.e., ground clauses):
+            // (*) When the stored constraint (from a previous run/iteration) is soft and
+            //     the new one is hard; then the resulting constraint will be hard.
+            // (*) Or when both stored and new constraints are soft. The resulting constraint will have weight the sum
+            //     of the two constraints.
+            storedClique.weight =
+              if (current.weight.isInfinite) current.weight
+              else storedClique.weight + current.weight
           }
+          else if(storedClique.weight.isInfinite && storedClique.weight != storedClique.weight )
+            fatal(
+              "Cannot merge hard-constrained ground clauses with opposite infinite weights (-Inf with +Inf). " +
+                "Something may wrong in the given MLN theory.")
+
           // Otherwise, the stored constrain is hard, do not change anything and
           // thus ignore the current constraint.
 
-          //state that a merging operation is performed.
+          // the stored constraint is merged.
           merged = true
-          //statMerged += 1
         }
-      } // while
+      }
 
 
       if (!merged) {
-        // The constraint is not merged, thus we simply store it.
-        put(cliqueID, cliqueEntry)
+        // The current constraint is not merged, thus we simply store it inside the same group.
+        put(cliqueID, current)
         storedCliqueIDs.add(cliqueID)
 
         // add to dependencyMap:
-        addToDependencyMap(cliqueID, cliqueEntry)
+        addToDependencyMap(cliqueID, current)
 
         // next cliqueID
         cliqueID += 1
       }
       else if (createDependencyMap) {
         // Add or adjust the corresponding frequency in the dependencyMap
-        dependencyMap.get(storedId).adjustOrPutValue(cliqueEntry.clauseID, cliqueEntry.freq, cliqueEntry.freq)
+        dependencyMap.get(storedId).adjustOrPutValue(current.clauseID, current.freq, current.freq)
       }
 
     }
     else {
-      // (2) Otherwise store this clique
-      if (cliqueEntry.weight != 0) {
-        put(cliqueID, cliqueEntry)
+      // Store the current constraint is not similar to any other stored constrain, therefore store it in a new group.
+      if (current.weight != 0) {
+
+        put(cliqueID, current)
         val newEntries = new TIntArrayList()
         newEntries.add(cliqueID)
-        hashCode2CliqueIDs.put(cliqueEntry.hashKey, newEntries)
+        hashCode2CliqueIDs.put(current.hashKey, newEntries)
 
         // add to dependencyMap:
-        addToDependencyMap(cliqueID, cliqueEntry)
+        addToDependencyMap(cliqueID, current)
 
         // next cliqueID
         cliqueID += 1
       }
 
     }
-  } // store(...)
+  }
 
 }
 
-private object CliqueRegisterWorker {
+/**
+ * Companion object for creating CliqueRegisterWorkers.
+ */
+object CliqueRegisterWorker {
 
+  /**
+   * Creates a CliqueRegisterWorker instance.
+   *
+   * @param index the worker index (since we have multiple CliqueRegisterWorker instances),
+   *              it also represents the partition index.
+   * @param atomRegisters partitioned collection of AtomRegisterWorker actors, in order to send messages about ground
+   *                      atom ids and their relation to ground clauses.
+   * @param createDependencyMap when it is true the worker stores additional information about the relations between
+   *                            FOL clauses and their groundings.
+   * @param master reference to master actor, it is required in order to send the results back to master actor.
+   *               
+   * @return a CliqueRegisterWorker instance
+   */
   def apply(index: Int, atomRegisters: PartitionedData[ActorRef], createDependencyMap: Boolean = false)(implicit master: ActorRef) =
     new CliqueRegisterWorker(index, master, atomRegisters, createDependencyMap)
-
-
 }

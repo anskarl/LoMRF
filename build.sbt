@@ -30,7 +30,7 @@ scalacOptions ++= Seq(
 	"-feature",
 	"-target:jvm-1.8",
 	"-language:implicitConversions",
-        "-Ybackend:GenBCode" //use the new optimisation level
+    "-Ybackend:GenBCode" //use the new optimisation level
 )
 
 

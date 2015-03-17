@@ -224,22 +224,6 @@ final class MRFBuilder(val mln: MLN,
       + "\n\tTotal ground clauses: " + constraints.size()
       + "\n\tTotal ground atoms: " + atoms.size())
 
-
-    //---------------------------------------------
-    // Todo: add this as a unit test
-    // This code tests if the Clique IDs are continuous
-    /*val keys = constraints.keys()
-    var fail = false
-    util.Arrays.sort(keys)
-    for((key,idx) <- keys.zipWithIndex) {
-      if(key != idx){
-        println(key+" != "+idx)
-        fail = true
-      }
-    }
-    if(fail) sys.exit() // */
-    //---------------------------------------------
-
     MRF(mln, constraints, atoms, weightHard, mln.queryStartID, mln.queryEndID, mergedDependencyMapOpt)
   }
 }
