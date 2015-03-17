@@ -57,7 +57,7 @@ import scalaxy.streams.optimize
  * @param createDependencyMap when it is true the worker stores additional information about the relations between
  *                            FOL clauses and their groundings.
  */
-private[grounding] final class CliqueRegisterWorker private(
+final class CliqueRegisterWorker private(
                                           val index: Int,
                                           master: ActorRef,
                                           atomRegisters: PartitionedData[ActorRef],
@@ -84,6 +84,7 @@ private[grounding] final class CliqueRegisterWorker private(
    */
   private var dependencyMap: DependencyMap = _
 
+  // utility variable to count ground clauses, and to use as an internal identity.
   private var cliqueID = 0
 
 
@@ -108,7 +109,7 @@ private[grounding] final class CliqueRegisterWorker private(
      * <ul>
      * <li>(1) When the ground clause has a non-zero weight value, it is going to be stored.</li>
      * <li>(2) When the ground clause is unit and has weight equals to zero, then it is assumed as a ground query atom.
-     * In that case the ground query atom is simple forwarded to the corresponding atom register.</li>
+     *         In that case the ground query atom is simple forwarded to the corresponding atom register.</li>
      * </ul>
      * Otherwise, the weight is zero and the clause will be ignored.
      */
@@ -348,7 +349,7 @@ object CliqueRegisterWorker {
    * @param createDependencyMap when it is true the worker stores additional information about the relations between
    *                            FOL clauses and their groundings.
    * @param master reference to master actor, it is required in order to send the results back to master actor.
-   *               
+   *
    * @return a CliqueRegisterWorker instance
    */
   def apply(index: Int, atomRegisters: PartitionedData[ActorRef], createDependencyMap: Boolean = false)(implicit master: ActorRef) =

@@ -137,7 +137,7 @@ final class GroundingSpecTest extends FunSpec with Matchers {
         }
       }
 
-      fail should be false
+      fail should be(false)
     }
 
   }

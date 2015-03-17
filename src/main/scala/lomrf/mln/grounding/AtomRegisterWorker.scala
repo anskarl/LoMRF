@@ -41,11 +41,11 @@ import gnu.trove.set.hash.TIntHashSet
  * AtomRegisterWorker collects a partition of ground atoms, represented by integer values, as well as in which ground
  * clauses the they appear.
  *
- * @param index the worker index (since we have multiple AtomRegisterWorker instances),
- *              it also represents the partition index.
+ * @param index the worker index (since we have multiple AtomRegisterWorker instances), it also represents the
+ *              partition index.
  * @param master reference to master actor, it is required in order to send the results back to master actor.
  */
-private final class AtomRegisterWorker(val index: Int, master: ActorRef) extends Actor with Logging {
+final class AtomRegisterWorker private(val index: Int, master: ActorRef) extends Actor with Logging {
 
   import messages._
 

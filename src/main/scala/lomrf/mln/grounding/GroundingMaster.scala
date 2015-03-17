@@ -58,12 +58,12 @@ import scalaxy.streams.optimize
  * @param parRatio parallelization ratio to use. Should be at least 1.0f, otherwise will be ignored. This value affects
  *                 the amount of partition/actors to instantiate per worker type.
  */
-private final class GroundingMaster(mln: MLN,
-                                    latch: CountDownLatch,
-                                    noNegWeights: Boolean = false,
-                                    eliminateNegatedUnit: Boolean = false,
-                                    createDependencyMap: Boolean = false,
-                                    parRatio: Float = 2f) extends Actor with Logging {
+final class GroundingMaster(mln: MLN,
+                            latch: CountDownLatch,
+                            noNegWeights: Boolean = false,
+                            eliminateNegatedUnit: Boolean = false,
+                            createDependencyMap: Boolean = false,
+                            parRatio: Float = 2f) extends Actor with Logging {
 
   import messages._
   import context._

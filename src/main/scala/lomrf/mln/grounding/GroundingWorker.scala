@@ -37,11 +37,28 @@ import auxlib.log.Logging
 import lomrf.mln.model.MLN
 import lomrf.util.collection.PartitionedData
 
-private final class GroundingWorker(mln: MLN, cliqueRegisters: PartitionedData[ActorRef], noNegWeights: Boolean, eliminateNegatedUnit: Boolean) extends Actor with Logging {
+/**
+ * Actor responsible for running grounding for each FOL clause in the MLN theory.
+ *
+ * @param mln MLN instance, containing the collection of clauses to ground.
+ * @param cliqueRegisters a partitioned collection of all clique register actors.
+ * @param noNegWeights flag to eliminate negative weights. If it is true the sign of negative weights in clauses is
+ *                     inverted, as well as all disjunctions become conjunctions (de Morgan's law).
+ * @param eliminateNegatedUnit When it is true, unit clauses with negative literal become unit clauses with positive
+ *                             literal and inverted sign in their corresponding weight.
+ */
+final class GroundingWorker private(mln: MLN,
+                                    cliqueRegisters: PartitionedData[ActorRef],
+                                    noNegWeights: Boolean,
+                                    eliminateNegatedUnit: Boolean) extends Actor with Logging {
 
   import messages._
 
+  /**
+   * @return a partial function with the actor logic for clause grounding.
+   */
   def receive = {
+
     case Ground(clause, clauseIndex, atomSignatures, atomsDB) =>
       val grounder = new ClauseGrounderImpl(clause, clauseIndex, mln, cliqueRegisters, atomSignatures, atomsDB, noNegWeights, eliminateNegatedUnit)
       grounder.computeGroundings()
@@ -54,8 +71,19 @@ private final class GroundingWorker(mln: MLN, cliqueRegisters: PartitionedData[A
 
 }
 
-private object GroundingWorker{
+private object GroundingWorker {
 
+  /**
+   * Creates a new GroundingWorker instance.
+   *
+   * @param mln MLN instance, containing the collection of clauses to ground.
+   * @param cliqueRegisters a partitioned collection of all clique register actors.
+   * @param noNegWeights flag to eliminate negative weights. If it is true the sign of negative weights in clauses is
+   *                     inverted, as well as all disjunctions become conjunctions (de Morgan's law).
+   * @param eliminateNegatedUnit When it is true, unit clauses with negative literal become unit clauses with positive
+   *                             literal and inverted sign in their corresponding weight.
+   * @return a new GroundingWorker instance.
+   */
   def apply(mln: MLN, cliqueRegisters: PartitionedData[ActorRef], noNegWeights: Boolean = false, eliminateNegatedUnit: Boolean = false) =
     new GroundingWorker(mln,cliqueRegisters,noNegWeights, eliminateNegatedUnit)
 }
