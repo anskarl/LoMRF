@@ -75,7 +75,6 @@ final case class MaxWalkSAT(mrf: MRF, pBest: Double = 0.5, maxFlips: Int = 10000
                        tabuLength: Int = 10) extends Logging {
 
   private val TARGET_COST = new LongDouble(targetCost + 0.0001)
-  //private val random = new Random()
 
   /**
    * Fetch atom given its literal code.
@@ -127,7 +126,7 @@ final case class MaxWalkSAT(mrf: MRF, pBest: Double = 0.5, maxFlips: Int = 10000
     @inline def maxWalkSATStep(): GroundAtom = {
       val lucky = state.getRandomUnsatConstraint
 
-      if (lucky.id == NO_CONSTRAINT.id) return NO_ATOM
+      if (lucky.id == MRF.NO_CONSTRAINT_ID) return NO_ATOM
 
       bufferIdx = 0
       var idx = 0

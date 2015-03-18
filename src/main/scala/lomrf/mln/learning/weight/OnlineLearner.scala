@@ -43,10 +43,35 @@ import lomrf.mln.inference.Solver._
 import lomrf.mln.model.MLN
 import lomrf.mln.model.mrf.MRF
 import lomrf.util._
+import scalaxy.streams.optimize
+import scala.language.postfixOps
 
 /**
- * @author Anastasios Skarlatidis
- * @author Vagelis Michelioudakis
+ * This is an implementation of online weight learning algorithms for parameter estimation in Markov Logic Networks.
+ * Details about the online algorithm for MLNs can be found in the following publications:
+ *
+ * <ul>
+ * <li> Tuyen N. Huynh and Raymond J. Mooney. Online Max-Margin Weight Learning for Markov Logic Networks (2011)
+ * In Proceedings of the Eleventh SIAM International Conference on Data Mining (SDM11) pp. 642--651, Mesa, Arizona, USA, April 2011.
+ * The paper can be found in [[http://www.cs.utexas.edu/users/ai-lab/?huynh:sdm11]]
+ * </li>
+ * <li> Duchi J. Hazan E. and Singer Y. Adaptive Subgradient Methods for Online Learning and Stochastic Optimization (2011)
+ * The Journal of Machine Learning Research, Vol. 12, pp. 2121--2159, July 2011
+ * The paper can be found in [[http://jmlr.org/papers/v12/duchi11a.html]]
+ * </li>
+ * </ul>
+ *
+ * @param mln Markov logic network of the current problem
+ * @param algorithm Algorithm type selection option for online optimization
+ * @param lossAugmented Use loss augmented inference
+ * @param lossScale Loss scaling parameter
+ * @param ilpSolver Solver type selection option for ILP inference (default is LPSolve)
+ * @param sigma Sigma parameter for strongly convex functions (should be positive)
+ * @param lambda Regularization parameter for ADAGRAD
+ * @param eta Learning rate parameter for ADAGRAD
+ * @param delta Delta parameter for ADAGRAD (should be positive or equal zero)
+ * @param printLearnedWeightsPerIteration Print learned weights for each iteration
+ *
  */
 final class OnlineLearner(mln: MLN, algorithm: Algorithm, lossAugmented: Boolean = false, lossScale: Double = 1.0,
                           ilpSolver: Solver = Solver.LPSOLVE, sigma: Double = 1.0, lambda: Double = 0.01, eta: Double = 1.0,
@@ -62,6 +87,8 @@ final class OnlineLearner(mln: MLN, algorithm: Algorithm, lossAugmented: Boolean
 
   // Initialise weights of the first-order clauses to zero (useless)
   val weights = Array.fill[Double](numberOfClauses)(0.0)
+
+  val sumSquareGradients = Array.fill[Int](numberOfClauses)(0)
 
   /**
    * Fetch annotation from database for the given atom id. Annotation
@@ -153,10 +180,10 @@ final class OnlineLearner(mln: MLN, algorithm: Algorithm, lossAugmented: Boolean
    *
    * Currently working only for Hamming loss
    *
-   * @return the total loss
+   * @return the total error
    */
   @inline private def calculateError(mrf: MRF, annotationDB: Map[AtomSignature, AtomEvidenceDB]): Double = {
-    var totalLoss = 0.0
+    var totalError = 0.0
     val numberOfExamples = mrf.atoms.size()
 
     info("Calculating misclassifed loss...")
@@ -167,11 +194,11 @@ final class OnlineLearner(mln: MLN, algorithm: Algorithm, lossAugmented: Boolean
       val atom = iterator.value()
       val annotation = getAnnotation(atom.id, mrf, annotationDB)
       if( (atom.state && annotation == FALSE) || (!atom.state && annotation == TRUE) )
-        totalLoss += 1.0
+        totalError += 1.0
     }
 
-    info("Total inferred error: " + totalLoss + "/" + numberOfExamples)
-    totalLoss
+    info("Total inferred error: " + totalError + "/" + numberOfExamples)
+    totalError
   }
 
   /**
@@ -229,70 +256,101 @@ final class OnlineLearner(mln: MLN, algorithm: Algorithm, lossAugmented: Boolean
 
   def learningStep(t: Int, mrf: MRF, annotationDB: Map[AtomSignature, AtomEvidenceDB]) = {
 
-    val defaultLearningRate = 1.0 / (sigma * t)
-
+    // Set the annotated state and count true groundings
     setAnnotatedState(mrf, annotationDB)
-
     val trueCounts = countGroundings(mrf)
-
     info("True Counts: [" + trueCounts.deep.mkString(", ") + "]")
 
+    // Perform inference for the current weight vector and count true groundings
     infer(mrf, annotationDB)
-
-    val error = calculateError(mrf, annotationDB) * lossScale
-    info("Current loss: " + error)
-
     val inferredCounts = countGroundings(mrf)
     info("Inferred Counts: [" + inferredCounts.deep.mkString(", ") + "]")
 
-    // Calculate true counts minus inferred counts
     var weightedDeltaPhi = 0.0
-    val delta = Array.fill[Int](numberOfClauses)(0)
-
-    for (clauseIdx <- 0 until numberOfClauses) {
-      if(!mrf.mln.clauses(clauseIdx).isHard)
-        delta(clauseIdx) = trueCounts(clauseIdx) - inferredCounts(clauseIdx)
-      weightedDeltaPhi += weights(clauseIdx) * delta(clauseIdx)
-    }
-
-    val deltaPhi = delta.map( dif => Math.abs(dif) ).sum
-
-    info("\nDelta = [" + delta.deep.mkString(", ") + "]" +
-         "\nAbsolute delta phi: " + deltaPhi +
-         "\nWeighted delta phi: " + weightedDeltaPhi)
-
-    var loss = error - weightedDeltaPhi
-    if(loss < 0) loss = 0.0
 
     if(algorithm == Algorithm.COORDINATE_DUAL_ASCEND) {
+
+      // Set default learning rate
+      val defaultLearningRate = 1.0 / (sigma * t)
+
+      val error = calculateError(mrf, annotationDB) * lossScale
+      info("Current loss: " + error)
+
+      // Calculate true counts minus inferred counts
+      val delta = Array.fill[Int](numberOfClauses)(0)
+      optimize{
+        for (clauseIdx <- 0 until numberOfClauses) {
+          if (!mrf.mln.clauses(clauseIdx).isHard)
+            delta(clauseIdx) = trueCounts(clauseIdx) - inferredCounts(clauseIdx)
+          weightedDeltaPhi += weights(clauseIdx) * delta(clauseIdx)
+        }
+      }
+      val deltaPhi = delta.map( dif => Math.abs(dif) ).sum
+
+      info("\nDelta = [" + delta.deep.mkString(", ") + "]" +
+           "\nAbsolute delta phi: " + deltaPhi +
+           "\nWeighted delta phi: " + weightedDeltaPhi)
+
+      var loss = error - weightedDeltaPhi
+      if(loss < 0) loss = 0.0
 
       val square2NormDeltaPhi = delta.map( dif => dif * dif).sum
 
       val learningRate = if(square2NormDeltaPhi <= 0) 0.0
-                         else Math.min(defaultLearningRate, (error - ((t - 1) * weightedDeltaPhi) / t) / square2NormDeltaPhi)
+      else Math.min(defaultLearningRate, (error - ((t - 1) * weightedDeltaPhi) / t) / square2NormDeltaPhi)
 
       info("Learning rate: " + learningRate)
 
-      for (clauseIdx <- 0 until numberOfClauses)
-        weights(clauseIdx) = (t - 1) * weights(clauseIdx) / t + learningRate * delta(clauseIdx)
-
+      // Update weights
+      optimize {
+        for (clauseIdx <- 0 until numberOfClauses)
+          weights(clauseIdx) = (t - 1) * weights(clauseIdx) / t + learningRate * delta(clauseIdx)
+      }
     }
     else if(algorithm == Algorithm.ADAGRAD_FB) {
 
-      warn("ADAGRAD algorithm currently not working!")
-      sys.exit(0)
-      /*val subgradients = Array.fill[Int](numberOfClauses)(0)
-      for (clauseIdx <- 0 until numberOfClauses) {
-        if(!mrf.mln.clauses(clauseIdx).isHard)
-          subgradients(clauseIdx) = inferredCounts(clauseIdx) - trueCounts(clauseIdx)
-            weightedDeltaPhi += weights(clauseIdx) * subgradients(clauseIdx)
-      }*/
+      // Compute subgradients for all clausese
+      val subgradients = Array.fill[Int](numberOfClauses)(0)
+      optimize {
+        for (clauseIdx <- 0 until numberOfClauses) {
+          if (!mrf.mln.clauses(clauseIdx).isHard)
+            subgradients(clauseIdx) = inferredCounts(clauseIdx) - trueCounts(clauseIdx)
+          weightedDeltaPhi += weights(clauseIdx) * subgradients(clauseIdx)
+        }
+      }
 
+      var clauseIdx = 0
+      while (clauseIdx < numberOfClauses) {
+
+        sumSquareGradients(clauseIdx) += subgradients(clauseIdx) * subgradients(clauseIdx)
+
+        val coefficient = eta / (this.delta + math.sqrt(sumSquareGradients(clauseIdx)))
+        val value = weights(clauseIdx) - coefficient * subgradients(clauseIdx)
+        val difference = math.abs(value) - (lambda * coefficient)
+
+        if (difference > 0)
+          weights(clauseIdx) = if (value >= 0) difference else -difference
+        else weights(clauseIdx) = 0.0
+
+        clauseIdx += 1
+      }
+
+      /*for (clauseIdx <- 0 until numberOfClauses) {
+        sumSquareGradients(clauseIdx) += subgradients(clauseIdx) * subgradients(clauseIdx)
+
+        val coefficient = eta / (this.delta + math.sqrt(sumSquareGradients(clauseIdx)))
+        val value = weights(clauseIdx) - coefficient * subgradients(clauseIdx)
+        val difference = math.abs(value) - (lambda * coefficient)
+
+        if (difference > 0)
+          weights(clauseIdx) = if (value >= 0) difference else -difference
+        else weights(clauseIdx) = 0.0
+      }*/
     }
 
     if (printLearnedWeightsPerIteration) {
-        info("Learned weights on step " + t + ":\n" +
-             "[" + weights.deep.mkString(", ") + "]")
+      info("Learned weights on step " + t + ":\n" +
+        "[" + weights.deep.mkString(", ") + "]")
     }
   }
 
@@ -306,7 +364,7 @@ final class OnlineLearner(mln: MLN, algorithm: Algorithm, lossAugmented: Boolean
 
     val numFormat = new DecimalFormat("0.############")
 
-    out.println("\n// Predicate definitions")
+    out.println("// Predicate definitions")
     for ((signature, args) <- mln.predicateSchema) {
       val line = signature.symbol + (
         if (args.isEmpty) "\n"

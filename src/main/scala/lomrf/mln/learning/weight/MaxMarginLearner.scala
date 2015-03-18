@@ -480,7 +480,7 @@ final class MaxMarginLearner(mrf: MRF, annotationDB: Map[AtomSignature, AtomEvid
 
     val numFormat = new DecimalFormat("0.############")
 
-    out.println("\n// Predicate definitions")
+    out.println("// Predicate definitions")
     for ((signature, args) <- mrf.mln.predicateSchema) {
       val line = signature.symbol + (
         if (args.isEmpty) "\n"
