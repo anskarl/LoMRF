@@ -230,7 +230,7 @@ final class OnlineLearner(mln: MLN, algorithm: Algorithm, lossAugmented: Boolean
       val constraint = constraints.value()
       val iterator = dependencyMap.get(constraint.id).iterator()
 
-      constraint.weight = 0.0
+      constraint.setWeight(0.0)
       while(iterator.hasNext) {
         iterator.advance()
 
@@ -238,8 +238,8 @@ final class OnlineLearner(mln: MLN, algorithm: Algorithm, lossAugmented: Boolean
         val frequency = iterator.value()
 
         // Frequency would never be negative because we always start using positive unit weights
-        if(mrf.mln.clauses(clauseIdx).isHard) constraint.weight = mrf.weightHard
-        else constraint.weight += weights(clauseIdx) * frequency
+        if(mrf.mln.clauses(clauseIdx).isHard) constraint.setWeight(mrf.weightHard)
+        else constraint.setWeight(constraint.getWeight + weights(clauseIdx) * frequency)
       }
     }
   }
