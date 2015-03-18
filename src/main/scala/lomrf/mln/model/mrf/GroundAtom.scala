@@ -159,11 +159,11 @@ final class GroundAtom(val id: Int, weightHard: Double) {
   private[mln] def assignSatPotential(constraint: Constraint): Unit = {
     // When mode is set to MaxWalkSat:
     if(constraint.mode == MRF.MODE_MWS) {
-      if(constraint.isPositive) makeCost += constraint.weight else breakCost -= constraint.weight
+      if(constraint.isPositive) makeCost += constraint.getWeight else breakCost -= constraint.getWeight
     }
     // otherwise, we assume that mode is set to MC-SAT:
     else {
-      val unit = if(constraint.weight > 0) 1 else -1
+      val unit = if(constraint.getWeight > 0) 1 else -1
       if(constraint.isPositive) makeCost += unit else breakCost -= unit
     }
   }
@@ -174,11 +174,11 @@ final class GroundAtom(val id: Int, weightHard: Double) {
   private[mln] def assignUnsatPotential(constraint: Constraint) {
     // When mode is set to MaxWalkSat:
     if(constraint.mode == MRF.MODE_MWS) {
-      if(constraint.isPositive) breakCost += constraint.weight else makeCost -= constraint.weight
+      if(constraint.isPositive) breakCost += constraint.getWeight else makeCost -= constraint.getWeight
     }
     // otherwise, we assume that mode is set to MC-SAT:
     else {
-      val unit = if(constraint.weight > 0) 1 else -1
+      val unit = if(constraint.getWeight > 0) 1 else -1
       if(constraint.isPositive) breakCost += unit else makeCost -= unit
     }
   }
@@ -189,11 +189,11 @@ final class GroundAtom(val id: Int, weightHard: Double) {
   private[mln] def revokeSatPotential(constraint: Constraint) {
     // When mode is set to MaxWalkSat:
     if(constraint.mode == MRF.MODE_MWS) {
-      if(constraint.isPositive) makeCost -= constraint.weight else breakCost += constraint.weight
+      if(constraint.isPositive) makeCost -= constraint.getWeight else breakCost += constraint.getWeight
     }
     // otherwise, we assume that mode is set to MC-SAT:
     else {
-      val unit = if(constraint.weight > 0) 1 else -1
+      val unit = if(constraint.getWeight > 0) 1 else -1
       if(constraint.isPositive) makeCost -= unit else breakCost += unit
     }
   }
@@ -204,11 +204,11 @@ final class GroundAtom(val id: Int, weightHard: Double) {
   private[mln] def revokeUnsatPotential(constraint: Constraint) {
     // When mode is set to MaxWalkSat:
     if(constraint.mode == MRF.MODE_MWS) {
-      if(constraint.isPositive) breakCost -= constraint.weight else makeCost += constraint.weight
+      if(constraint.isPositive) breakCost -= constraint.getWeight else makeCost += constraint.getWeight
     }
     // otherwise, we assume that mode is set to MC-SAT:
     else {
-      val unit = if(constraint.weight > 0) 1 else -1
+      val unit = if(constraint.getWeight > 0) 1 else -1
       if(constraint.isPositive) breakCost -= unit else makeCost += unit
     }
   }

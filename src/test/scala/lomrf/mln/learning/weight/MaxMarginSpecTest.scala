@@ -104,7 +104,7 @@ final class MaxMarginSpecTest extends FunSpec with Matchers with PrivateMethodTe
 
       if (constraint.isHardConstraint) {
         it(s"constraint { $string } should be having a hard weight") {
-          constraint.weight shouldBe mrf.weightHard
+          constraint.getWeight shouldBe mrf.weightHard
         }
       }
       else {
@@ -115,7 +115,7 @@ final class MaxMarginSpecTest extends FunSpec with Matchers with PrivateMethodTe
           result += learner.weights(iterator.key()) * iterator.value()
         }
         it(s"constraint { $string } should be having weight equal to $result") {
-          constraint.weight shouldBe result
+          constraint.getWeight shouldBe result
         }
       }
     }
