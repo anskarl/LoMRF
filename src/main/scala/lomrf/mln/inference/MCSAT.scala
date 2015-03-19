@@ -75,7 +75,6 @@ final case class MCSAT(mrf: MRF, pBest: Double = 0.5, pSA: Double = 0.1, maxFlip
                       unitPropagation: Boolean = true, satHardPriority: Boolean = false, tabuLength: Int = 10) extends Logging {
 
   private val TARGET_COST = new LongDouble(targetCost + 0.0001)
-  //private val random = new Random()
 
   /**
    * Fetch atom given its literal code.

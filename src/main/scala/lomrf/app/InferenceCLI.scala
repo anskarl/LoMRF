@@ -174,7 +174,6 @@ object InferenceCLI extends OptionParser with Logging {
     v: String => _resultsFileName = Some(v)
   })
 
-
   opt("q", "query", "<string>", "Comma separated query atoms. "
     + "Each atom must be defined using its identity (i.e. Name/arity). "
     + "For example the identity of QueryAtom(arg1,arg2) is QueryAtom/2", _.split(',').foreach(v => addQueryAtom(v)))
