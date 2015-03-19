@@ -48,6 +48,7 @@ tmp
 *.log
 .directory
 *.result
+*.counts
 *.fg
 *.description
 

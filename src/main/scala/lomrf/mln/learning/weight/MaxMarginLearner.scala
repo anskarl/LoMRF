@@ -197,15 +197,15 @@ final class MaxMarginLearner(mrf: MRF, annotationDB: Map[AtomSignature, AtomEvid
   }
 
   /**
-   * Calculates the total loss of inferred atom truth values. The
+   * Calculates the total error of inferred atom truth values. The
    * result is not divided by the number of examples.
    *
    * Currently working only for Hamming loss
    *
-   * @return the total loss
+   * @return the total error
    */
-  @inline private def calculateLoss(): Double = {
-    var totalLoss = 0.0
+  @inline private def calculateError(): Double = {
+    var totalError = 0.0
 
     info("Calculating misclassifed loss...")
 
@@ -215,11 +215,11 @@ final class MaxMarginLearner(mrf: MRF, annotationDB: Map[AtomSignature, AtomEvid
       val atom = iterator.value()
       val annotation = getAnnotation(atom.id)
       if( (atom.state && annotation == FALSE) || (!atom.state && annotation == TRUE) )
-        totalLoss += 1.0
+        totalError += 1.0
     }
 
-    info("Total inferred error: " + totalLoss + "/" + numberOfExamples)
-    totalLoss
+    info("Total inferred error: " + totalError + "/" + numberOfExamples)
+    totalError
   }
 
   /**
@@ -406,7 +406,7 @@ final class MaxMarginLearner(mrf: MRF, annotationDB: Map[AtomSignature, AtomEvid
       // Run inference for learned weights of this iteration
       infer()
 
-      val loss = calculateLoss() * lossScale
+      val loss = calculateError() * lossScale
       info("Current loss: " + loss)
 
       val inferredCounts = countGroundings()
@@ -480,7 +480,7 @@ final class MaxMarginLearner(mrf: MRF, annotationDB: Map[AtomSignature, AtomEvid
 
     val numFormat = new DecimalFormat("0.############")
 
-    out.println("\n// Predicate definitions")
+    out.println("// Predicate definitions")
     for ((signature, args) <- mrf.mln.predicateSchema) {
       val line = signature.symbol + (
         if (args.isEmpty) "\n"
