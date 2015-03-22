@@ -88,7 +88,14 @@ The resulting documentation is located inside the `./target/site/scaladocs` dire
 Depending your requirements you may want to adjust the heap memory parameters of the Java VM. You can edit `inc.env.sh` bash file (located inside the `bin` directory) and change the `-Xms` and `-Xmx` parameters (for details write `java -X` in the command line).
 
 
+##### LoMRF is powered by:
+
+[![Java profiler](http://www.ej-technologies.com/images/product_banners/jprofiler_medium.png)](http://www.ej-technologies.com/products/jprofiler/overview.html)
+
+
 ##### References
+
+Many of algorithms implemeted in the LoMRF library are based on the following publications:
 
 * Domingos, P., & Lowd, D. (2009). Markov Logic: An Interface Layer for Artificial Intelligence. Synthesis Lectures on Artiﬁcial Intelligence and Machine Learning. Morgan & Claypool Publishers.
 
