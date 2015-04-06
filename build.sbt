@@ -93,7 +93,7 @@ libraryDependencies ++= Seq(
 )
 
 // Adding optimus library requires local publishing (for details see https://github.com/vagm/Optimus)
-libraryDependencies += "com.github.vagm" %% "optimus" % "1.0"
+libraryDependencies += "com.github.vagm" %% "optimus" % "1.2"
 
 // Include utility bash scripts in the 'bin' directory
 mappings in Universal <++= (packageBin in Compile) map { jar =>

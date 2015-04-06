@@ -44,7 +44,7 @@ import auxlib.log.Logging
 import lomrf.logic.AtomSignature
 import lomrf.util.AtomEvidenceDB
 import lomrf.mln.model.mrf._
-import optimus.lqprog._
+import optimus.optimization._
 import optimus.algebra._
 import scalaxy.streams.optimize
 import scala.language.postfixOps
@@ -87,7 +87,7 @@ final class MaxMarginLearner(mrf: MRF, annotationDB: Map[AtomSignature, AtomEvid
                              printLearnedWeightsPerIteration: Boolean = false) extends Logging {
 
   // Select the appropriate mathematical programming solver
-  implicit val problem = new LQProblem(SolverLib.gurobi)
+  implicit val problem = LQProblem(SolverLib.gurobi)
 
   // Number of first-order CNF clauses
   val numberOfClauses = mrf.mln.clauses.length
@@ -357,7 +357,7 @@ final class MaxMarginLearner(mrf: MRF, annotationDB: Map[AtomSignature, AtomEvid
 
         // Optimize function subject to the constraints introduced
         val s = System.currentTimeMillis()
-        start()
+        start(PreSolve.CONSERVATIVE)
         info(Utilities.msecTimeToText("Optimization time: ", System.currentTimeMillis() - s))
 
         info(
