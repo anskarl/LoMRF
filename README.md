@@ -10,7 +10,7 @@ This program comes with ABSOLUTELY NO WARRANTY. This is free software, and you a
 
 1. Parallel grounding algorithm based on [Akka actors library](http://akka.io/).
 2. Marginal (MC-SAT) and MAP (MaxWalkSAT and LP-relaxed Integer Linear Programming) inference.
-3. Experimental support for batch and on-line max-margin weight learning (lomrf-wlearn).
+3. Experimental support for batch and online weight learning (max-margin and ADAGRAD) (lomrf-wlearn).
 4. MLN knowledge base compilation (mlnc):
   * Predicate completion.
   * Knowledge base simplification.
@@ -42,9 +42,9 @@ Step 3. Include lp_solve, Gurobi and oJalgo library dependencies to `./lib`, as 
 |-- gurobi.jar
 |-- lpsolve55j.jar
 |-- mosek.jar
-|-- ojalgo-37.0.jar
-|-- ojalgo-biz-37.0.jar
-|-- ojalgo-ext-37.0.jar
+|-- ojalgo-37.1.jar
+|-- ojalgo-biz-37.1.jar
+|-- ojalgo-ext-37.1.jar
 
 ```
 
@@ -63,6 +63,7 @@ The resulting documentation is located inside the `./target/site/scaladocs` dire
 * mlnc: Compiles MLN files (predicate completion, CNF, etc.; write `mlnc -h` for help).
 * mrfwriter: Exports ground MRF into various formats (MLN, DIMACS and libDAI Factor graph; write `mrfwriter -h` for help).
 * lomrf: Performs probabilistic inference (see `lomrf -h` for help).
+* lomrf-wlearn: Performs weight learning (see `lomrf-wlearn -h` for help)
 * mlndiff: Displays differences between MLN files. The theories are compated only in [CNF](http://en.wikipedia.org/wiki/Conjunctive_normal_form) form.
 
 
@@ -99,3 +100,4 @@ Many of algorithms implemeted in the LoMRF library are based on the following pu
 
 * Tuyen N. Huynh and Raymond J. Mooney. (2011). Online Max-Margin Weight Learning for Markov Logic Networks. In Proceedings of the Eleventh SIAM International Conference on Data Mining (SDM11), USA, April 2011.
 
+* John Duchi, Elad Hazan, Yoram Singer. (2011). Adaptive Subgradient Methods for Online Learning and Stochastic Optimization. The Journal of Machine Learning Research, Vol. 12, pp. 2121--2159, July 2011
