@@ -125,6 +125,21 @@ final class GroundingSpecTest extends FunSpec with Matchers {
       }
     }
 
+    it("has continuous index of ground clause ids"){
+      val keys = mrf.constraints.keys()
+      var fail = false
+      java.util.Arrays.sort(keys)
+
+      for((key,idx) <- keys.zipWithIndex) {
+        if(key != idx){
+          info(key+" != "+idx)
+          fail = true
+        }
+      }
+
+      fail should be(false)
+    }
+
   }
 
   info(msecTimeToText("Total time spend for grounding : ", totalTime))

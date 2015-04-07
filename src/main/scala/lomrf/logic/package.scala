@@ -349,6 +349,99 @@ package object logic extends Logging {
   }
 
 
+  def flatMatchedTerms(literals: Iterable[Literal], matcher: Term => Boolean): Vector[Term] = {
+    val queue = mutable.Queue[Term]()
+
+    var result = Vector[Term]()
+
+    for (literal <- literals) {
+      queue ++= literal.sentence.terms
+
+      while (queue.nonEmpty) {
+        val candidate = queue.dequeue()
+        if (matcher(candidate))
+          result ++= Vector(candidate)
+        else candidate match {
+          case f: TermFunction => queue ++= f.terms
+          case _ => //do nothing
+        }
+      }
+    }
+
+    result
+  }
+
+
+  def uniqFlatMatchedTerms(literals: Iterable[Literal], matcher: Term => Boolean): Vector[Term] = {
+    val queue = mutable.Queue[Term]()
+
+    var memory = Set[Term]()
+    var result = Vector[Term]()
+
+    for (literal <- literals) {
+      queue ++= literal.sentence.terms
+
+      while (queue.nonEmpty) {
+        val candidate = queue.dequeue()
+
+        if (matcher(candidate) && !memory.contains(candidate)){
+          result ++= Vector(candidate)
+          memory += candidate
+        }
+        else candidate match {
+          case f: TermFunction => queue ++= f.terms
+          case _ => //do nothing
+        }
+      }
+    }
+
+    result
+  }
+
+  def matchedTermsInLiterals(literals: Iterable[Literal], matcher: Term => Boolean): Vector[Vector[Term]] = {
+    val stack = mutable.Stack[Term]()
+
+    var result = Vector[Vector[Term]]()
+
+    for (literal <- literals) {
+      stack.pushAll(literal.sentence.terms)
+      var matchedTerms = Vector[Term]()
+
+      while (stack.nonEmpty) {
+        val candidate = stack.pop()
+        if (matcher(candidate))
+          matchedTerms ++= Vector(candidate)
+        else candidate match {
+          case f: TermFunction => stack.pushAll(f.terms)
+          case _ => //do nothing
+        }
+      }
+      result ++= Vector(matchedTerms)
+    }
+
+    result
+  }
+
+  def matchedTerms(terms: Iterable[Term], matcher: Term => Boolean): Vector[Term] = {
+    var matchedTerms = Vector[Term]()
+    val stack = mutable.Stack[Term]()
+
+    stack.pushAll(terms)
+
+    while (stack.nonEmpty) {
+      val candidate = stack.pop()
+      if (matcher(candidate))
+        matchedTerms ++= Vector(candidate)
+      else candidate match {
+        case f: TermFunction => stack.pushAll(f.terms)
+        case _ => //do nothing
+      }
+    }
+
+    matchedTerms
+  }
+
+
   object predef {
 
     val dynAtomBuilders: Map[AtomSignature, DynamicAtomBuilder] =

@@ -102,6 +102,8 @@ final class MRFBuilder(val mln: MLN,
                        eliminateNegatedUnit: Boolean = false,
                        createDependencyMap: Boolean = false) extends Logging {
 
+  import messages._
+
   private val mcSatParam = 1
 
   private val system = ActorSystem.create("MRFBuilder")
@@ -133,9 +135,9 @@ final class MRFBuilder(val mln: MLN,
     info("Hard weight value is set to: " + weightHard)
 
     // Conversion to flat version
-    val numConstraints = if (result.cliques ne null) result.cliques.map(fs => if (fs ne null) fs.size() else 0).sum else 0
-    var numAtoms = if (result.cliques ne null) result.atom2Cliques.map(as => if (as ne null) as.size() else 0).sum else 0
-    if (numAtoms == 0) numAtoms = if (result.queryAtomIDs ne null) result.queryAtomIDs.map(qas => if (qas ne null) qas.size() else 0).sum else 0
+    val numConstraints = if (result.cliques ne null) result.cliques.partitions.map(fs => if (fs ne null) fs.size() else 0).sum else 0
+    var numAtoms = if (result.cliques ne null) result.atom2Cliques.partitions.map(as => if (as ne null) as.size() else 0).sum else 0
+    if (numAtoms == 0) numAtoms = if (result.queryAtomIDs ne null) result.queryAtomIDs.partitions.map(qas => if (qas ne null) qas.size() else 0).sum else 0
 
     if (numAtoms == 0) fatal("The ground MRF is empty.")
 
@@ -159,7 +161,7 @@ final class MRFBuilder(val mln: MLN,
         val dependencyMapPartitions = result.dependencyMap.getOrElse(fatal("DependencyMap is not computed."))
 
         if (noNegWeights) for {
-          partition <- dependencyMapPartitions.par
+          partition <- dependencyMapPartitions.partitions.par
           (_, frequencies) <- partition.iterator()} {
 
           val iterator = frequencies.iterator()
@@ -170,14 +172,14 @@ final class MRFBuilder(val mln: MLN,
           }
         }
 
-        dependencyMapPartitions.foreach(mergedDependencyMap.putAll)
+        dependencyMapPartitions.partitions.foreach(mergedDependencyMap.putAll)
 
         Some(mergedDependencyMap)
       }
       else None
 
 
-    for (qas <- result.queryAtomIDs) {
+    for (qas <- result.queryAtomIDs.partitions) {
       val iterator = qas.iterator()
       while (iterator.hasNext) {
         val atomID = iterator.next()
@@ -221,22 +223,6 @@ final class MRFBuilder(val mln: MLN,
       "\n\tTotal grounding time: " + Utilities.msecTimeToText(endTime - startTime)
       + "\n\tTotal ground clauses: " + constraints.size()
       + "\n\tTotal ground atoms: " + atoms.size())
-
-
-    //---------------------------------------------
-    // Todo: add this as a unit test
-    // This code tests if the Clique IDs are continuous
-    /*val keys = constraints.keys()
-    var fail = false
-    util.Arrays.sort(keys)
-    for((key,idx) <- keys.zipWithIndex) {
-      if(key != idx){
-        println(key+" != "+idx)
-        fail = true
-      }
-    }
-    if(fail) sys.exit() // */
-    //---------------------------------------------
 
     MRF(mln, constraints, atoms, weightHard, mln.queryStartID, mln.queryEndID, mergedDependencyMapOpt)
   }

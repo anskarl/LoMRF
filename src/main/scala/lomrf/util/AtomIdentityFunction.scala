@@ -115,7 +115,7 @@ final class AtomIdentityFunction private(
     sum
   }
 
-  /*def encode(constantIds: Array[Int]): Int = {
+  def encode2(constantIds: Array[Int]): Int = {
     var sum = startID
     var idx = 0
     while (idx < constantIds.length) {
@@ -128,7 +128,7 @@ final class AtomIdentityFunction private(
     }
 
     sum
-  }*/
+  }
 
   /**
    * Gives the ID (positive integer) of the corresponding constant ids. This is the fastest

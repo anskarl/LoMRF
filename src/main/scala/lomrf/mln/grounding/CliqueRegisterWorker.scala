@@ -40,19 +40,31 @@ import gnu.trove.list.array.TIntArrayList
 import gnu.trove.map.TIntFloatMap
 import gnu.trove.map.hash.{TIntFloatHashMap, TIntObjectHashMap}
 import lomrf._
+import lomrf.util.collection.PartitionedData
 
 import scala.language.postfixOps
 import scalaxy.streams.optimize
 
 
 /**
+ * CliqueRegisterWorker stores a partition of ground clauses that result from grounding workers.
  *
+ * @param index the worker index (since we have multiple CliqueRegisterWorker instances),
+ *              it also represents the partition index.
+ * @param master reference to master actor, it is required in order to send the results back to master actor.
+ * @param atomRegisters partitioned collection of AtomRegisterWorker actors, in order to send messages about ground
+ *                      atom ids and their relation to ground clauses.
+ * @param createDependencyMap when it is true the worker stores additional information about the relations between
+ *                            FOL clauses and their groundings.
  */
-private final class CliqueRegisterWorker(
+final class CliqueRegisterWorker private(
                                           val index: Int,
                                           master: ActorRef,
-                                          atomRegisters: Array[ActorRef],
+                                          atomRegisters: PartitionedData[ActorRef],
                                           createDependencyMap: Boolean) extends Actor with Logging {
+
+  import messages._
+  import context._
 
   private var hashCode2CliqueIDs = new TIntObjectHashMap[TIntArrayList]()
   private var cliques = new TIntObjectHashMap[CliqueEntry](DEFAULT_CAPACITY, DEFAULT_LOAD_FACTOR, NO_ENTRY_KEY)
@@ -69,55 +81,87 @@ private final class CliqueRegisterWorker(
    *
    * Please note that when the 'Freq' number is negative, then we implicitly declare that the  weight of the
    * corresponding FOL 'Clause[ID:Int]' has been inverted during the grounding process.
-   *
    */
   private var dependencyMap: DependencyMap = _
 
-  private val numOfAtomBatches = atomRegisters.length
-
+  // utility variable to count ground clauses, and to use as an internal identity.
   private var cliqueID = 0
 
 
-
+  /**
+   * At the beginning, initialize the local dependency map (if it is set to store clause dependencies)
+   */
   override def preStart(): Unit = {
-    if(createDependencyMap)
+    if (createDependencyMap)
       dependencyMap = new TIntObjectHashMap[TIntFloatMap](DEFAULT_CAPACITY, DEFAULT_LOAD_FACTOR, NO_ENTRY_KEY)
   }
 
-  def receive = {
+  def receive = storeCliques
+
+  /**
+   * Accepts messages about ground clauses, in order to store them.
+   *
+   * @return a partial function with the actor logic for collecting ground clauses.
+   */
+  def storeCliques = ({
+    /**
+     * There are two procedures that can be performed for storing a ground clause:
+     * <ul>
+     * <li>(1) When the ground clause has a non-zero weight value, it is going to be stored.</li>
+     * <li>(2) When the ground clause is unit and has weight equals to zero, then it is assumed as a ground query atom.
+     *         In that case the ground query atom is simple forwarded to the corresponding atom register.</li>
+     * </ul>
+     * Otherwise, the weight is zero and the clause will be ignored.
+     */
     case ce: CliqueEntry =>
 
-      debug("CliqueRegister[" + index + "] received '" + ce +"' message.")
-      if (ce.weight == 0 && ce.variables.length == 1)
-        atomRegisters(ce.variables(0) % numOfAtomBatches) ! QueryVariable(ce.variables(0))
-      else if (ce.weight != 0) storeClique(ce)
+      debug(s"CliqueRegister[$index] received '$ce' message.")
 
+      // (1) Clause with some weight value, store the clause.
+      // (2) Unit clause with zero weight is a query ground atom, thus forward to the corresponding atom register.
+      if (ce.weight != 0) store(ce)
+      else if (ce.weight == 0 && ce.variables.length == 1)
+        atomRegisters(ce.variables(0)) ! QueryVariable(ce.variables(0))
+
+    /**
+     * When the grounding of the MRF is complete, change the actor behaviour to 'results' and sent the total number of
+     * collected ground clauses to master.
+     */
     case GRND_Completed =>
-      debug(s"CliqueRegister[$index] received 'GRND_Completed' message.")
       debug(s"CliqueRegister[$index] collected total ${cliques.size} cliques.")
-
+      become(results) //change the actor logic
       sender ! NumberOfCliques(index, cliques.size())
 
+  }: Receive) orElse handleUnknownMessage
+
+  /**
+   * Master sends the offset, with which the collected clauses should be
+   *
+   * @return a partial function with the actor logic for clause re-indexing.
+   */
+  def results = ({
     case StartID(offset: Int) =>
-      debug("CliqueRegister[" + index + "] received 'StartID("+offset+")' message.")
+      debug("CliqueRegister[" + index + "] received 'StartID(" + offset + ")' message.")
 
       val collectedCliques =
-        if(offset == 0) { //do not adjust clique ids
+        if (offset == 0) {
+          //do not adjust clique ids
           // Register (atomID -> cliqueID) mappings
           val iterator = cliques.iterator()
           while (iterator.hasNext) {
             iterator.advance()
             registerAtoms(iterator.value().variables, iterator.key())
           }
-          CollectedCliques(index, cliques, if(createDependencyMap) Some(dependencyMap) else None)
+          CollectedCliques(index, cliques, if (createDependencyMap) Some(dependencyMap) else None)
         }
-        else {//adjust clique ids
+        else {
+          //adjust clique ids
           hashCode2CliqueIDs = null //not needed anymore (allow GC to delete it)
 
           val resultingCliques = new TIntObjectHashMap[CliqueEntry](cliques.size() + 1, DEFAULT_LOAD_FACTOR, NO_ENTRY_KEY)
 
           val resultingDependencyMap: Option[DependencyMap] =
-            if(createDependencyMap)
+            if (createDependencyMap)
               Some(new TIntObjectHashMap[TIntFloatMap](DEFAULT_CAPACITY, DEFAULT_LOAD_FACTOR, NO_ENTRY_KEY))
             else None
 
@@ -153,112 +197,161 @@ private final class CliqueRegisterWorker(
 
 
 
-      debug(s"CliqueRegister[$index] sending to master the CollectedCliques message, containing ${collectedCliques.cliques.size} cliques.")
+      debug(s"CliqueRegister[$index] sending to master the CollectedCliques message, " +
+            s"containing ${collectedCliques.cliques.size} cliques.")
 
+      // send the collected and re-indexed partition of ground clauses to master.
       master ! collectedCliques
 
+  }: Receive) orElse handleUnknownMessage
+
+  /**
+   * Reports as an error when an unknown message is being received.
+   *
+   * @return a partial function with the actor logic when an unknown message is being received.
+   */
+  private def handleUnknownMessage: Receive = {
     case msg =>
-      debug("CliqueRegister[" + index + "] received an unknown message '" + msg + "' from " + sender)
-      error("CliqueRegister[" + index + "] received an unknown message.")
+      error(s"CliqueRegister[$index] received an unknown message '$msg' from ${sender()}")
   }
 
-  @inline private def registerAtoms(variables: Array[Int], cliqueID: Int): Unit ={
+
+  @inline private def registerAtoms(variables: Array[Int], cliqueID: Int): Unit = optimize {
     // Register (atomID -> cliqueID) mappings
     for (variable <- variables; atomID = math.abs(variable))
-      atomRegisters(atomID % numOfAtomBatches) ! Register(atomID, cliqueID)
+      atomRegisters(atomID) ! Register(atomID, cliqueID)
   }
 
-
-  private def storeClique(cliqueEntry: CliqueEntry) {
-    //statReceived += 1
+  /**
+   * Attempt to store the specified ground clause (i.e., constraint/clique). The specified grounding may either:
+   * <ul>
+   *   <li> Merged with another ground clause that has the same literals, but possibly different weight value.</li>
+   *   <li> Or otherwise, store as it is, since is unique.</li>
+   * </ul>
+   *
+   * @param current the ground clause to store.
+   */
+  private def store(current: CliqueEntry) {
 
     @inline def fetchClique(fid: Int): CliqueEntry = cliques.get(fid)
 
     @inline def put(fid: Int, clique: CliqueEntry) = cliques.put(fid, clique)
 
-    @inline def registerVariables(variables: Array[Int]): Unit = optimize {
-      for (i <- 0 until variables.length) {
-        val atomID = math.abs(variables(i))
-        atomRegisters(atomID % numOfAtomBatches) ! atomID
-      }
-    }
-
-    @inline def addToDependencyMap(cliqueID: Int, cliqueEntry: CliqueEntry): Unit = if(createDependencyMap){
+    @inline def addToDependencyMap(cliqueID: Int, cliqueEntry: CliqueEntry): Unit = if (createDependencyMap) {
       val clauseStats = new TIntFloatHashMap(DEFAULT_CAPACITY, DEFAULT_LOAD_FACTOR, NO_ENTRY_KEY, 0)
       clauseStats.put(cliqueEntry.clauseID, cliqueEntry.freq)
       dependencyMap.put(cliqueID, clauseStats)
     }
 
-    val storedCliqueIDs = hashCode2CliqueIDs.get(cliqueEntry.hashKey)
+    // Check if we have constrained with similar hash codes. In that case it may be possible to have constraints with
+    // the same literals.
+    val storedCliqueIDs = hashCode2CliqueIDs.get(current.hashKey)
 
-    // (1) check for a stored clique with the same variables
+    // Check for a stored constraint with the same literals. If a similar constraint is found, then merge their weight
+    // values. Otherwise store this constraint.
     if (storedCliqueIDs ne null) {
 
+      // Iterator to iterate through constraints of the same group (i.e., they have the same hashKey,
+      // but different literals).
       val iterator = storedCliqueIDs.iterator()
-      var merged = false
-      var storedId = -1
+
+      var merged = false // flag to indicate that merge is completed
+      var storedId = -1 // utility variable to temporally keep the ground clause id of a stored constraint
+
       while (iterator.hasNext && !merged) {
         storedId = iterator.next()
         val storedClique = fetchClique(storedId)
 
-        if (jutil.Arrays.equals(storedClique.variables, cliqueEntry.variables)) {
-          if (storedClique.weight != Double.PositiveInfinity) {
-            // merge these cliques
-            if (cliqueEntry.weight == Double.PositiveInfinity) {
-              // When the stored constraint (from a previous run/iteration) is soft and
-              // the new one is hard; then the resulting constraint will be hard.
-              storedClique.weight = Double.PositiveInfinity
-            }
-            else {
-              // When both stored and new constraints are soft, then merge these constraints
-              storedClique.weight += cliqueEntry.weight
-            }
+        if (jutil.Arrays.equals(storedClique.variables, current.variables)) {
+
+          // (*) When the stored constraint is not hard-constrained (i.e., does not have infinite weight value), then
+          //     merge both constraints (stored and current)
+          // (*) When both stored and current constraints are hard-constrained, then they should have the same sign.
+          //     If not, then the grounding process cannot continue (wrong MLN theory or, even worse, a possible bug).
+          // (*) Otherwise, we assume that either (1) the stored constraint is hard and the current is soft or (2) both
+          //     are constraints are hard, but with the same sign to their weights. In both cases, the resulting merge
+          //     produces exactly the same constraint with the already stored constraint. Therefore, we virtually assume
+          //     that merge is performed, without changing anything.
+          if (!storedClique.weight.isInfinite) {
+            // Merge these constraints (i.e., ground clauses):
+            // (*) When the stored constraint (from a previous run/iteration) is soft and
+            //     the new one is hard; then the resulting constraint will be hard.
+            // (*) Or when both stored and new constraints are soft. The resulting constraint will have weight the sum
+            //     of the two constraints.
+            storedClique.weight =
+              if (current.weight.isInfinite) current.weight
+              else storedClique.weight + current.weight
           }
+          else if(storedClique.weight.isInfinite && storedClique.weight != storedClique.weight )
+            fatal(
+              "Cannot merge hard-constrained ground clauses with opposite infinite weights (-Inf with +Inf). " +
+                "Something may wrong in the given MLN theory.")
+
           // Otherwise, the stored constrain is hard, do not change anything and
           // thus ignore the current constraint.
 
-          //state that a merging operation is performed.
+          // the stored constraint is merged.
           merged = true
-          //statMerged += 1
         }
-      } // while
+      }
 
 
       if (!merged) {
-        // The constraint is not merged, thus we simply store it.
-        put(cliqueID, cliqueEntry)
+        // The current constraint is not merged, thus we simply store it inside the same group.
+        put(cliqueID, current)
         storedCliqueIDs.add(cliqueID)
-        registerVariables(cliqueEntry.variables)
 
         // add to dependencyMap:
-        addToDependencyMap(cliqueID, cliqueEntry)
+        addToDependencyMap(cliqueID, current)
 
         // next cliqueID
         cliqueID += 1
       }
-      else if(createDependencyMap){
+      else if (createDependencyMap) {
         // Add or adjust the corresponding frequency in the dependencyMap
-        dependencyMap.get(storedId).adjustOrPutValue(cliqueEntry.clauseID, cliqueEntry.freq, cliqueEntry.freq)
+        dependencyMap.get(storedId).adjustOrPutValue(current.clauseID, current.freq, current.freq)
       }
 
     }
     else {
-      // (2) Otherwise store this clique
-      if (cliqueEntry.weight != 0) {
-        put(cliqueID, cliqueEntry)
+      // Store the current constraint is not similar to any other stored constrain, therefore store it in a new group.
+      if (current.weight != 0) {
+
+        put(cliqueID, current)
         val newEntries = new TIntArrayList()
         newEntries.add(cliqueID)
-        hashCode2CliqueIDs.put(cliqueEntry.hashKey, newEntries)
+        hashCode2CliqueIDs.put(current.hashKey, newEntries)
 
         // add to dependencyMap:
-        addToDependencyMap(cliqueID, cliqueEntry)
+        addToDependencyMap(cliqueID, current)
 
         // next cliqueID
         cliqueID += 1
       }
-      registerVariables(cliqueEntry.variables)
 
     }
-  } // store(...)
+  }
 
+}
+
+/**
+ * Companion object for creating CliqueRegisterWorkers.
+ */
+object CliqueRegisterWorker {
+
+  /**
+   * Creates a CliqueRegisterWorker instance.
+   *
+   * @param index the worker index (since we have multiple CliqueRegisterWorker instances),
+   *              it also represents the partition index.
+   * @param atomRegisters partitioned collection of AtomRegisterWorker actors, in order to send messages about ground
+   *                      atom ids and their relation to ground clauses.
+   * @param createDependencyMap when it is true the worker stores additional information about the relations between
+   *                            FOL clauses and their groundings.
+   * @param master reference to master actor, it is required in order to send the results back to master actor.
+   *
+   * @return a CliqueRegisterWorker instance
+   */
+  def apply(index: Int, atomRegisters: PartitionedData[ActorRef], createDependencyMap: Boolean = false)(implicit master: ActorRef) =
+    new CliqueRegisterWorker(index, master, atomRegisters, createDependencyMap)
 }

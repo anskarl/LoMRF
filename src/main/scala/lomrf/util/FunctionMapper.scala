@@ -107,4 +107,6 @@ final class FunctionMapperSpecialImpl private[util](func: Vector[String] => Stri
 
   def get(args: Vector[String]): Option[String] = Some(func(args))
 
+  override def toString = "FunctionMapperSpecialImpl of function "+func
+
 }

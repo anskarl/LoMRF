@@ -1,6 +1,6 @@
 ## LoMRF: Logical Markov Random Fields
 
-LoMRF is an open-source library for Markov Logic Networks (MLN) written in [Scala programming language](http://scala-lang.org).
+LoMRF is an experimental library for Markov Logic Networks (MLN) written in [Scala programming language](http://scala-lang.org).
 
 ## Licence 
 
@@ -8,22 +8,22 @@ This program comes with ABSOLUTELY NO WARRANTY. This is free software, and you a
 
 #### Features overview:
 
-1. Parallel grounding algorithm based on [Akka actors library](http://akka.io/).
-2. Marginal (MC-SAT) and MAP (MaxWalkSAT and LP-relaxed Integer Linear Programming) inference.
-3. Experimental support for batch and on-line max-margin weight learning (lomrf-wlearn).
-4. MLN knowledge base compilation (mlnc):
+1. MLN knowledge base compilation (mlnc):
   * Predicate completion.
   * Knowledge base simplification.
   * Clausal form transformation.
   * Replacement of functions with utility predicates and vice versa.
   * Reads and produces Alchemy compatible MLN files.
-5. Can export ground MRF in various formats (mrfwriter).
-6. Can compare MLN theories (mlndiff).  
+2. Support for marginal (MC-SAT) and MAP (via MaxWalkSAT and LP-relaxed Integer Linear Programming) inference.
+3. Parallel grounding algorithm based on [Akka actors library](http://akka.io/).
+4. Can export ground MRF in various formats (mrfwriter).
+
+What is missing? Many features, but most important weight learning algorithms.
 
 
 ## Instrunctions to build LoMRF from source
 
-In order to build LoMRF from source, you need to have Java SE Development Kit 8 (e.g., OpenJDK) and [sbt](http://www.scala-sbt.org/) (v0.13.x) installed in your system. Furthermore, LoMRF build depends on the [auxlib](https://github.com/anskarl/auxlib) (v0.1-SNAPSHOT), as well as to [Optimus](https://github.com/vagm/Optimus), [lp_solve](http://lpsolve.sourceforge.net), [Gurobi](http://www.gurobi.com/) and [oJalgo](http://www.ojalgo.org/).
+In order to build LoMRF from source, you need to have Java 7 and [sbt](http://www.scala-sbt.org/) installed in your system. Furthermore, LoMRF build depends on the [auxlib](https://github.com/anskarl/auxlib) (v0.1-SNAPSHOT), as well as to [Optimus](https://github.com/vagm/Optimus), [lp_solve](http://lpsolve.sourceforge.net), [Gurobi](http://www.gurobi.com/) and [oJalgo](http://www.ojalgo.org/).
 
 Step 1. To clone and publish locally the auxlib project, type the following commands:
 
@@ -54,7 +54,7 @@ Step 4. To start building the LoMRF distribution, type the following command:
 $ sbt dist
 ```
 
-After a successful compilation, the LoMRF distribution is located inside the `./target/universal/lomrf-<version>.zip` file. You can extract this file and add the `path/to/lomrf-<version>/bin` in your PATH, in order to execute the LoMRF scripts from terminal. The distribution contains all library dependencies and requires only a Java 8 (or higher runtime). Sources, documentation and the compiled library (without dependencies) are archived as jar files into the `./target/scala-2.11/` directory.
+After a successful compilation, the LoMRF distribution is located inside the `./target/universal/lomrf-<version>.zip` file. You can extract this file and add the `path/to/lomrf-<version>/bin` in your PATH, in order to execute the LoMRF scripts from terminal. The distribution contains all library dependencies and requires only a Java 7 (or higher runtime). Sources, documentation and the compiled library (without dependencies) are archived as jar files into the `./target/scala-2.10/` directory.
 
 The resulting documentation is located inside the `./target/site/scaladocs` directory.
 
@@ -70,14 +70,8 @@ The resulting documentation is located inside the `./target/site/scaladocs` dire
 
 Depending your requirements you may want to adjust the heap memory parameters of the Java VM. You can edit `inc.env.sh` bash file (located inside the `bin` directory) and change the `-Xms` and `-Xmx` parameters (for details write `java -X` in the command line).
 
-##### LoMRF is powered by:
-
-[![Java profiler](http://www.ej-technologies.com/images/product_banners/jprofiler_medium.png)](http://www.ej-technologies.com/products/jprofiler/overview.html)
-
 
 ##### References
-
-Many of algorithms implemeted in the LoMRF library are based on the following publications:
 
 * Domingos, P., & Lowd, D. (2009). Markov Logic: An Interface Layer for Artificial Intelligence. Synthesis Lectures on Artiﬁcial Intelligence and Machine Learning. Morgan & Claypool Publishers.
 
@@ -95,7 +89,6 @@ Many of algorithms implemeted in the LoMRF library are based on the following pu
 
 * Skarlatidis A., Paliouras G., Artikis A. and Vouros G. Probabilistic Event Calculus for Event Recognition. ACM Transactions on Computational Logic, to appear.
 
-* Tuyen N. Huynh and Raymond J. Mooney. (2011). Max-Margin Weight Learning for Markov Logic Networks. In Proceedings of the European Conference on Machine Learning and Principles and Practice of Knowledge Discovery in Databases (ECML-PKDD 2011), Vol. 2, pp. 81-96.
+* Tuyen N. Huynh and Raymond J. Mooney. Max-Margin Weight Learning for Markov Logic Networks. In Proceedings of the European Conference on Machine Learning and Principles and Practice of Knowledge Discovery in Databases (ECML-PKDD 2011), Vol. 2, pp. 81-96, 2011.
 
-* Tuyen N. Huynh and Raymond J. Mooney. (2011). Online Max-Margin Weight Learning for Markov Logic Networks. In Proceedings of the Eleventh SIAM International Conference on Data Mining (SDM11), USA, April 2011.
 
