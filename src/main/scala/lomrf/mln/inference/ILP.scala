@@ -41,7 +41,7 @@ import lomrf.mln.model.mrf._
 import lomrf.util._
 import gnu.trove.map.hash.TIntObjectHashMap
 import optimus.algebra._
-import optimus.lqprog._
+import optimus.optimization._
 import scalaxy.streams.optimize
 import scala.language.postfixOps
 import auxlib.trove.TroveConversions._
@@ -71,9 +71,9 @@ final class ILP(mrf: MRF, annotationDB: Map[AtomSignature, AtomEvidenceDB] = Map
   // Select the appropriate mathematical programming solver
   implicit val problem =
   if(ilpSolver == Solver.GUROBI)
-    new LQProblem(SolverLib.gurobi)
+    LQProblem(SolverLib.gurobi)
   else
-    new LQProblem(SolverLib.lp_solve)
+    LQProblem(SolverLib.lp_solve)
 
   implicit val mln = mrf.mln
 
@@ -228,7 +228,7 @@ final class ILP(mrf: MRF, annotationDB: Map[AtomSignature, AtomEvidenceDB] = Map
 
     // Step 4: Optimize function subject to the constraints introduced
     maximize(sum(expressions))
-    start()
+    start(PreSolve.CONSERVATIVE)
     release()
 
     val eSolver = System.currentTimeMillis()
