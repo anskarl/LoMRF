@@ -38,32 +38,102 @@ import gnu.trove.TCollections
 import scala.collection.mutable
 import gnu.trove.map.TObjectIntMap
 
-sealed trait ConstantsSet extends Iterable[String]{
+/**
+ * A ConstantsSet is an immutable collection of unique and indexed constant symbols. The symbols are represented by
+ * strings and their associated index numbers are represented by positive integers. The association between constant
+ * symbols and their indexes (also referred as identities or IDs) is a bijection, that is, an one-to-one mapping.
+ */
+sealed trait ConstantsSet extends Iterable[String] {
 
+  /**
+   * Gives the constant symbol that is associated to the specified identity, if exists.
+   *
+   * @param id an integer number that represents the identity of a constant.
+   * @return The associated constant symbol, if exists, otherwise null.
+   */
   def apply(id: Int): String
 
+  /**
+   * Gives the identity that is associated to the specified constant symbol, if exists.
+   *
+   * @param constant a string that represents a constant symbol.
+   * @return The associated identity number, if exists, otherwise null.
+   */
   def apply(constant: String): Int
 
+  /**
+   * Gives the constant symbol that is associated to the specified identity, if exists.
+   *
+   * @param id an integer number that represents the identity of a constant.
+   * @return The associated constant symbol wrapped as Option, if exists, otherwise None.
+   */
   def get(id: Int): Option[String]
 
+  /**
+   * Gives the identity that is associated to the specified constant symbol, if exists.
+   *
+   * @param constant a string that represents a constant symbol.
+   * @return The associated identity number wrapped as Option, if exists, otherwise None.
+   */
   def get(constant: String): Option[Int]
 
+  /**
+   * Checks if the specified constant symbol exists in this ConstantsSet
+   *
+   * @param constant the constant symbol to check
+   * @return true if the specified constant symbol exists in this ConstantsSet, otherwise false.
+   */
   def contains(constant: String): Boolean
 
+  /**
+   * Checks if the specified identity exists in this ConstantsSet
+   *
+   * @param id the identity to check
+   * @return true if the specified identity exists in this ConstantsSet, otherwise false.
+   */
+  def contains(id: Int): Boolean
+
+  /**
+   * Gives an iterator over the space of constant symbols that exist in this ConstantSet
+   *
+   * @return an iterator instance over the constant symbols that exist in this ConstantSet
+   */
   def valuesIterator: TObjectIntIterator[String]
 
+  /**
+   * Gives an iterator over the space of identities that are associated to the constant symbols that exist in
+   * this ConstantSet
+   *
+   * @return an iterator instance of the identities that are associated to the constant symbols
+   *         that exist in this ConstantSet
+   */
   def idsIterator: Iterator[Int]
 
+  /**
+   * Gives the range of identities of all constant symbols that exist in this ConstantSet
+   *
+   * @return the range of identities
+   */
   def idsRange: Range
 
 }
 
 /**
+ * Default ConstantsSet implementation, which is backend by a HashMap and an ArrayBuffer. The HashMap gives constant
+ * time near O(1) access to the ID of each constant symbol. On the other hand, the ArrayBuffer gives O(1) access to
+ * the constant symbol given its ID. Internally, the ID is the position to the ArrayBuffer. Since the construction of
+ * this class is private, the only way to construct a ConstantsSet is through a ConstantsSetBuilder or by using the
+ * companion object ConstantsSet.
  *
+ * @param constants2Id Hashmap that associates constant symbols (String) to integers (IDs)
+ * @param id2Constants Array buffer that contains all constant symbols (String). The position of each symbol in the
+ *                     array buffer is the same with its ID.
  *
+ * @see ConstantsSetBuilder
+ * @see ConstantsSet
  */
 final class ConstantsSetImpl private[util](constants2Id: TObjectIntMap[String],
-                                               id2Constants: mutable.ArrayBuffer[String]) extends ConstantsSet {
+                                           id2Constants: mutable.ArrayBuffer[String]) extends ConstantsSet {
 
   import ConstantsSet.NO_ENTRY
 
@@ -71,26 +141,28 @@ final class ConstantsSetImpl private[util](constants2Id: TObjectIntMap[String],
 
   override def last = id2Constants.last
 
-  def apply(id: Int): String = id2Constants(id)
+  override def apply(id: Int): String = id2Constants(id)
 
-  def apply(constant: String): Int = constants2Id.get(constant)
+  override def apply(constant: String): Int = constants2Id.get(constant)
 
-  def get(id: Int): Option[String] = if (id <= id2Constants.size) Some(id2Constants(id)) else None
+  override def get(id: Int): Option[String] = if (id <= id2Constants.size) Some(id2Constants(id)) else None
 
-  def get(constant: String): Option[Int] = {
+  override def get(constant: String): Option[Int] = {
     val id = constants2Id.get(constant)
     if (id == NO_ENTRY) None else Some(id)
   }
 
   override def size: Int = constants2Id.size
 
-  def contains(constant: String): Boolean = constants2Id.containsKey(constant)
+  override def contains(constant: String): Boolean = constants2Id.containsKey(constant)
 
-  def valuesIterator = constants2Id.iterator
+  override def contains(id: Int): Boolean = id >=0 && id < id2Constants.length
 
-  def idsIterator: Iterator[Int] = (0 until id2Constants.length).iterator
+  override def valuesIterator = constants2Id.iterator
 
-  def idsRange: Range = 0 until id2Constants.length
+  override def idsIterator: Iterator[Int] = id2Constants.indices.iterator
+
+  override def idsRange: Range = id2Constants.indices
 
   override def iterator = id2Constants.iterator
 
@@ -100,6 +172,16 @@ final class ConstantsSetImpl private[util](constants2Id: TObjectIntMap[String],
     s"MultipleConstantsSet(const2id->{${constants2Id.size()} elements}, id2const->{${id2Constants.size} elements})"
 }
 
+/**
+ * A default implementation of ConstantsSet, when the constant symbol is singular. Since the construction of
+ * this class is private, the only way to construct a ConstantsSet is through a ConstantsSetBuilder or by using the
+ * companion object ConstantsSet.
+ *
+ * @param element the single constant symbol to include this ConstantsSet implementation.
+ *
+ * @see ConstantsSetBuilder
+ * @see ConstantsSet
+ */
 final class ConstantsSetUnaryImpl private[util](val element: String) extends ConstantsSet {
   import ConstantsSet.NO_ENTRY
 
@@ -108,19 +190,21 @@ final class ConstantsSetUnaryImpl private[util](val element: String) extends Con
 
   override def last: String = element
 
-  def apply(id: Int): String = if(id == 0) element else null
+  override def apply(id: Int): String = if(id == 0) element else null
 
-  def apply(constant: String): Int = if(constant == element) 0 else NO_ENTRY
+  override def apply(constant: String): Int = if(constant == element) 0 else NO_ENTRY
 
-  def get(id: Int): Option[String] = if(id == 0) Some(element) else None
+  override def get(id: Int): Option[String] = if(id == 0) Some(element) else None
 
-  def get(constant: String): Option[Int] = if(constant == element) Some(0) else None
+  override def get(constant: String): Option[Int] = if(constant == element) Some(0) else None
 
   override def size: Int = 1
 
-  def contains(constant: String): Boolean = constant == element
+  override def contains(constant: String): Boolean = constant == element
 
-  def valuesIterator = new TObjectIntIterator[String](){
+  override def contains(id: Int): Boolean = id == 0
+
+  override def valuesIterator = new TObjectIntIterator[String](){
     private var hasNextFlag = true
 
     override def key(): String = element
@@ -138,9 +222,9 @@ final class ConstantsSetUnaryImpl private[util](val element: String) extends Con
     override def hasNext: Boolean = hasNextFlag
   }
 
-  def idsIterator: Iterator[Int] = (0 until 1).iterator
+  override def idsIterator: Iterator[Int] = (0 until 1).iterator
 
-  def idsRange: Range = 0 to 0
+  override def idsRange: Range = 0 to 0
 
   override def iterator: Iterator[String] = new Iterator[String]{
     private var hasNextFlag = true
@@ -159,39 +243,85 @@ final class ConstantsSetUnaryImpl private[util](val element: String) extends Con
 
 }
 
+/**
+ * Provides factory functions for building ConstantSets.
+ */
 object ConstantsSet {
+
+  /**
+   * Utility identity that represents no-entry key (should be negative integer)
+   */
   val NO_ENTRY: Int = -1000
 
-  //def apply: ConstantsSet = new MultipleConstantsSet(new TObjectIntHashMap[String](23, 0.5f, NO_ENTRY), new mutable.ArrayBuffer[String]())
+  /**
+   * Creates a unary ConstantSet from the specified constant symbol.
+   *
+   * @param symbol the constant symbol
+   * @return a unary ConstantSet
+   */
+  def apply(symbol: String): ConstantsSet = new ConstantsSetUnaryImpl(symbol)
 
-  def apply(entry: String): ConstantsSet = new ConstantsSetUnaryImpl(entry)
+  /**
+   * Creates a ConstantSet from the specified constant symbols.
+   *
+   * @param symbols the constant symbols to include in the ConstantSet
+   * @return an instance of ConstantSet
+   */
+  def apply(symbols: String*): ConstantsSet = {
 
-  def apply(entries: String*): ConstantsSet = {
-
-    if(entries.size == 1) new ConstantsSetUnaryImpl(entries.head)
+    if(symbols.size == 1) new ConstantsSetUnaryImpl(symbols.head)
     else {
       val builder = new ConstantsSetBuilder()
-      entries.foreach(builder += _)
-      builder.result
+      symbols.foreach(builder += _)
+      builder.result()
     }
 
   }
+
+  /**
+   * Creates a ConstantSet from the specified collection constant symbols.
+   *
+   * @param symbols the iterable collection of constant symbols to include in the ConstantSet
+   * @return an instance of ConstantSet
+   */
+  def apply(symbols: Iterable[String]): ConstantsSet = {
+    if(symbols.size == 1) new ConstantsSetUnaryImpl(symbols.head)
+    else {
+      val builder = new ConstantsSetBuilder()
+      symbols.foreach(builder += _)
+      builder.result()
+    }
+  }
 }
 
-final class ConstantsSetBuilder {
+/**
+ * A builder with which we can incrementally create a ConstantSet.
+ */
+final class ConstantsSetBuilder extends scala.collection.mutable.Builder[String, ConstantsSet]{
 
   import ConstantsSet.NO_ENTRY
+  import gnu.trove.impl.{Constants => TC}
 
+  /**
+   *
+   */
   private var dirty = false
-  private var constants2Id = new TObjectIntHashMap[String](23, 0.5f, NO_ENTRY)
+
+  private var constants2Id = new TObjectIntHashMap[String](TC.DEFAULT_CAPACITY, TC.DEFAULT_LOAD_FACTOR, NO_ENTRY)
   private var id2Constants = new mutable.ArrayBuffer[String]()
   private var _size = 0
 
-  def +=(constant: String) {
-
+  /**
+   * Adds a constant symbol, if it has been never included.
+   *
+   * @param constant the specified constant symbol
+   */
+  override def +=(constant: String) = {
+    // When a ConstantSet has been created from this ConstantsSetBuilder by a previous call of the this.result function,
+    // then before adding the specified symbol, we copy all constant symbols.
+    // The reason behind that copy, is that the resulting ConstantsSets must behave like immutable collections.
     if (dirty) {
-      //copy
-      val cp_constants2Id = new TObjectIntHashMap[String](_size + 23, 0.5f, NO_ENTRY)
+      val cp_constants2Id = new TObjectIntHashMap[String](_size + 23, TC.DEFAULT_LOAD_FACTOR, NO_ENTRY)
       cp_constants2Id.putAll(constants2Id)
       val cp_id2Constants = new mutable.ArrayBuffer[String]()
       id2Constants.foreach(cp_id2Constants += _)
@@ -204,16 +334,33 @@ final class ConstantsSetBuilder {
       id2Constants += constant
       _size += 1
     }
+
+    this
   }
 
 
-  def result: ConstantsSet = {
+  override def sizeHint(size: Int): Unit = {
+    constants2Id.setUp(size)
+    id2Constants.sizeHint(size)
+  }
+
+  /**
+   * Gives the constructed ConstantsSet
+   *
+   * @return a ConstantsSet instance that contains all constant symbols that have been added so far.
+   */
+  override def result(): ConstantsSet = {
+    // Mark builder as dirty, thus if we do another addition we will not have any side effects in the resulting
+    // ConstantsSet, by performing copies.
     dirty = true
     new ConstantsSetImpl(TCollections.unmodifiableMap(constants2Id), id2Constants)
   }
 
-  def clear() {
-    constants2Id = new TObjectIntHashMap[String](23, 0.5f, NO_ENTRY)
+  /**
+   * Empties this builder.
+   */
+  override def clear() {
+    constants2Id = new TObjectIntHashMap[String](TC.DEFAULT_CAPACITY, TC.DEFAULT_LOAD_FACTOR, NO_ENTRY)
     id2Constants = new mutable.ArrayBuffer[String]()
     dirty = false
   }
@@ -222,10 +369,19 @@ final class ConstantsSetBuilder {
     s"ConstantsSetBuilder(constants2Id->{${constants2Id.size()} elements}, id2Constants->{${id2Constants.size} elements})"
 
 
+  /**
+   * @return the number of the unique collected constant symbols
+   */
   def size = _size
 
 }
 
 object ConstantsSetBuilder {
+
   def apply: ConstantsSetBuilder = new ConstantsSetBuilder
+
+  def apply(symbols: Iterable[String]): ConstantsSetBuilder = this.apply ++= symbols
+
+  def apply(symbols: String*): ConstantsSetBuilder = this.apply ++= symbols
+
 }

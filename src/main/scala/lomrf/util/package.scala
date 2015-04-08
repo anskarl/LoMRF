@@ -178,7 +178,7 @@ package object util {
     }
 
     optimize {
-      for(i <- 0 until feature.literals.length){
+      for(i <- feature.literals.indices){
         decodeLiteral(feature.literals(i)) match{
           case Some(litTXT) =>
             buffer.append(litTXT)

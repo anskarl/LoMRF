@@ -216,12 +216,10 @@ final class MLN(
             .map{case (signature, (returnType, terms)) => signature+" -> "+returnType+" = ("+terms.mkString(", ")+")"}
             .mkString("\n\t\t")+"\n\t}\n"+
       "\tDynamic predicates.....................: {\n\t\t"+
-            dynamicPredicates
-              .map(_._1) //display only the signature
+            dynamicPredicates.keys //display only the signature
               .mkString("\n\t\t")+"\n\t}\n"+
       "\tDynamic functions......................: {\n\t\t"+
-            dynamicFunctions
-              .map(_._1) //display only the signature
+            dynamicFunctions.keys //display only the signature
               .mkString("\n\t\t")+"\n\t}\n"+
       "\tConstant types.........................: {\n\t\t"+
           constants
@@ -289,7 +287,7 @@ object MLN extends Logging {
 
     // OWA predicates
     val predicatesOWA = pcm match {
-      case Simplification => queryAtoms ++ owa.filter(atomSignatures.contains)
+      case Simplification => queryAtoms ++ owa.intersect(atomSignatures)
       case _ =>
         owa.find(s => !atomSignatures.contains(s)) match {
           case Some(x) => fatal("The predicate " + x + " that appears in OWA, is not defined in the mln file.")
@@ -343,8 +341,8 @@ object MLN extends Logging {
       atomStateDB += (signature -> db)
     }
 
-    val probabilisticAtoms = atomStateDB.filter(db => db._2.isProbabilistic).map(_._1).toSet
-    val triStateAtoms = atomStateDB.filter(db => db._2.isTriStateDB).map(_._1).toSet
+    val probabilisticAtoms = atomStateDB.filter(db => db._2.isProbabilistic).keySet
+    val triStateAtoms = atomStateDB.filter(db => db._2.isTriStateDB).keySet
 
     // Give the resulting MLN
     new MLN(kb.formulas, kb.predicateSchema, kb.functionSchema, kb.dynamicPredicates, kb.dynamicFunctions,
@@ -403,7 +401,7 @@ object MLN extends Logging {
     val queryAtoms = nonEvidenceAtoms
     val finalCWA = evidenceAtoms
     val finalOWA = nonEvidenceAtoms
-    val triStateAtoms = atomStateDB.filter(db => db._2.isTriStateDB).map(_._1).toSet // is required for grounding
+    val triStateAtoms = atomStateDB.filter(db => db._2.isTriStateDB).keySet // is required for grounding
 
     for (signature <- kb.predicateSchema.keysIterator; if !atomStateDB.contains(signature)) {
       if (finalCWA.contains(signature))
