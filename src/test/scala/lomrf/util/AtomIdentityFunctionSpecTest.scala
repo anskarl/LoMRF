@@ -38,10 +38,6 @@ import lomrf.mln.model.MLN
 import gnu.trove.set.hash.TIntHashSet
 import org.scalatest.{FunSpec, Matchers}
 
-/**
- *
- */
-
 final class AtomIdentityFunctionSpecTest extends FunSpec with Matchers {
 
 

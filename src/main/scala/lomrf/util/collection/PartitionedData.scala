@@ -70,7 +70,7 @@ trait PartitionedData[T] extends (Int => T) {
 object PartitionedData {
 
 
-  object hash {
+  /*object hash {
 
     def apply[T](data: Array[T]): PartitionedData[T] =
       new PartitionedDataImpl(data, (idx: Int) => math.abs(data.length % idx))
@@ -84,33 +84,12 @@ object PartitionedData {
     }
 
     def apply[T: ClassTag](size: Int): PartitionedData[T] = apply( new Array[T](size))
-  }
-/*
-
-  object indexed {
-
-    def apply[T](indices: Array[Int], data: Array[(Int) => T]) = new PartitionedData[T]{
-
-      private val cumulativeIndices = indices.takeRight(indices.length -1).scanLeft(0)(_+_)
-
-      override def apply(idx: Int): T = {
-        val result = java.util.Arrays.binarySearch(indices, math.abs(idx))
-        val partitionIndex = if(result < 0) ( -result ) - 2 else result
-        val entryIndex = idx - cumulativeIndices(partitionIndex)
-        data(partitionIndex)(entryIndex)
-      }
-
-      override def partitions: Iterable[T] = ???
-
-      override def indexOf(partitionIndex: Int): (Int) => T = data(partitionIndex)
-
-      override def length: Int = data.length
-    }
-  }
-*/
+  }*/
 
 
-  @deprecated(message = "use PartitionedData.hash.apply()")
+
+
+  //@deprecated(message = "use PartitionedData.hash.apply()")
   def apply[T](data: Array[T]): PartitionedData[T] = new PartitionedData[T] {
 
     override def apply(idx: Int) = data(math.abs(idx % data.length))
@@ -122,7 +101,7 @@ object PartitionedData {
     override def indexOf(partitionIndex: Int) = data(partitionIndex)
   }
 
-  @deprecated(message = "use PartitionedData.hash.apply()")
+  //@deprecated(message = "use PartitionedData.hash.apply()")
   def apply[T: ClassTag](size: Int, initializer:(Int => T)): PartitionedData[T] = {
     val data = new Array[T](size)
     
@@ -131,12 +110,12 @@ object PartitionedData {
     apply(data)
   }
 
-  @deprecated(message = "use PartitionedData.hash.apply()")
+  //@deprecated(message = "use PartitionedData.hash.apply()")
   def apply[T: ClassTag](size: Int): PartitionedData[T] = apply( new Array[T](size))
 
 
 
-  private class PartitionedDataImpl[T](data: Array[T], fPosition: Int => Int) extends PartitionedData[T]{
+  /*private class PartitionedDataImpl[T](data: Array[T], fPosition: Int => Int) extends PartitionedData[T]{
 
     override def apply(idx: Int) = data(fPosition(idx))
 
@@ -145,6 +124,6 @@ object PartitionedData {
     override def length = data.length
 
     override def indexOf(partitionIndex: Int) = data(partitionIndex)
-  }
+  }*/
 
 }

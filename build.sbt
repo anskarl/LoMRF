@@ -56,6 +56,8 @@ javaOptions ++= Seq(
 resolvers ++= Seq(
 	"typesafe" at "http://repo.typesafe.com/typesafe/releases/",
 	"sonatype-oss-public" at "https://oss.sonatype.org/content/groups/public/")
+
+resolvers += Resolver.sonatypeRepo("snapshots")
 	
 // Scala-lang
 libraryDependencies ++= Seq(
@@ -119,3 +121,4 @@ mappings in Universal <++= (packageBin in Compile) map { jar =>
     f -> ("etc/" + f.getName)
   }
 }
+
