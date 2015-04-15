@@ -36,6 +36,75 @@ import org.scalatest.{Matchers, FunSpec}
 
 
 class GlobalIndexPartitionedSpecTest extends FunSpec with Matchers {
+  
+  val arrayPartitionFetcher: PartitionFetcher[Int, Array[Int], Int] = (key: Int, partition: Array[Int]) => partition(key)
+
+  val scenarios = List(
+    ("A globally indexed partitioned collection of integers (1 to 400), using four equal sized partitions:", Array.fill(4)(100), None),
+
+    ("A globally indexed partitioned collection of integers (1 to 400), using five unequal sized partitions:", Array(11, 102, 167, 101, 19), None),
+
+    ("A globally indexed partitioned collection of integers (1 to 400), using four equal sized partitions and a PartitionFetcher function:",
+      Array.fill(4)(100),
+      Some(arrayPartitionFetcher)),
+
+    ("A globally indexed partitioned collection of integers (1 to 400), using five unequal sized partitions and a PartitionFetcher function:",
+      Array(11, 102, 167, 101, 19),
+      Some(arrayPartitionFetcher))
+  )
+
+  for( (message, partitionSizes, fetcherOpt) <- scenarios) describe(message){
+
+    // the un-partitioned collection of integers
+    val gIndices = (1 to partitionSizes.sum).toArray
+
+    // Create the globally indexed partitioned collection
+    val ipart = fetcherOpt match {
+      case Some(fetcher) =>
+        val data: Array[Array[Int]] = partitionSizes.scanLeft(0)(_ + _).sliding(2).map(x=> (x(0) + 1 to x(1)).toArray).toArray
+
+        GlobalIndexPartitioned.apply1[Array[Int], Int](data, partitionSizes, fetcher)
+
+      case _ =>
+        val data: Array[IndexedSeq[Int]] = partitionSizes.scanLeft(0)(_ + _).sliding(2).map(x=> (x(0) + 1 to x(1)).toIndexedSeq).toArray
+        GlobalIndexPartitioned[IndexedSeq[Int], Int](data)
+    }
+    
+
+    it(s"should contain ${partitionSizes.length} partitions"){
+      ipart.size shouldEqual partitionSizes.length
+    }
+
+    it(s"should have 0 and ${partitionSizes.sum - 1} as first and last key values, respectively"){
+      ipart.firstKey shouldEqual 0
+      ipart.lastKey shouldEqual partitionSizes.sum
+    }
+
+    it("should directly give all indexed collection of integers (with bounds checking, using the 'apply(key: Int): V' function)"){
+      gIndices.indices.forall(idx => ipart(idx) == gIndices(idx)) shouldBe true
+    }
+
+    it("should directly give all indexed collection of integers (with bounds checking, using the 'get(key: Int): Option[V]' function)"){
+      gIndices.indices.forall(idx => ipart.get(idx).getOrElse(fail(s"cannot find element using key '$idx'")) == gIndices(idx)) shouldBe true
+    }
+
+    it("should directly give all indexed collection of integers (without bounds checking, using the 'fetch(key: Int): V' function)"){
+      gIndices.indices.forall(idx => ipart.fetch(idx) == gIndices(idx)) shouldBe true
+    }
+
+    it("should throw IndexOutOfBoundsException when the key is out of bounds (apply(key: Int) function)"){
+      assert(intercept[IndexOutOfBoundsException](ipart(ipart.firstKey -  1)).isInstanceOf[IndexOutOfBoundsException])
+      assert(intercept[IndexOutOfBoundsException](ipart(ipart.lastKey + 1)).isInstanceOf[IndexOutOfBoundsException])
+    }
+
+    it("should give None when the key is out of bounds (get(key: Int) function)"){
+      assert(ipart.get(ipart.firstKey -  1).isEmpty)
+      assert(ipart.get(ipart.lastKey +  1).isEmpty)
+    }
+  }
+
+
+
 
 
 }

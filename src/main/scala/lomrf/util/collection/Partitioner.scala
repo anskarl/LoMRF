@@ -73,10 +73,13 @@ object Partitioner {
   object indexed {
 
     def apply(indices: Array[Int]): Partitioner[Int] = new FixedSizePartitioner[Int](indices.length) {
+
       override def apply(key: Int): Int = {
+
         val searchResult = java.util.Arrays.binarySearch(indices, math.abs(key))
         val partitionIndex = if (searchResult < 0) (-searchResult) - 2 else searchResult
 
+        assert(partitionIndex >= 0)
         partitionIndex
       }
 
@@ -88,6 +91,7 @@ object Partitioner {
         val searchResult = java.util.Arrays.binarySearch(indices, math.abs(f(key)))
         val partitionIndex = if (searchResult < 0) (-searchResult) - 2 else searchResult
 
+        assert(partitionIndex > 0)
         partitionIndex
       }
     }

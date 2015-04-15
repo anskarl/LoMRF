@@ -39,38 +39,74 @@ trait GlobalIndexPartitioned[C, @sp(Byte, Short, Int, Long, Float, Double, Boole
 
   def apply(key: Int): V
 
+  def fetch(key: Int): V
+
+  def get(key: Int): Option[V]
+
   def size: Int
 
   def partitions: Iterable[C]
 
   def indexOf(partitionIndex: Int): C
 
+  def getIndexOf(partitionIndex: Int): Option[C]
+
+  val firstKey: Int
+
+  val lastKey: Int
+
 }
 
 private abstract class AbstractGlobalIndexPartitioned[C, @sp(Byte, Short, Int, Long, Float, Double, Boolean) V]
-(data: Array[C], indices: Array[Int], partitioner: Partitioner[Int]) extends GlobalIndexPartitioned[C, V] {
+(data: Array[C], partitionSizes: Array[Int]) extends GlobalIndexPartitioned[C, V] {
 
-  protected val cumulativeIndices = indices.takeRight(indices.length - 1).scanLeft(0)(_ + _)
+  protected val cumulativeIndices: Array[Int] = partitionSizes.scanLeft(0)(_ + _)
+  protected val partitioner: Partitioner[Int] = Partitioner.indexed(cumulativeIndices)
+
+  override def apply(key: Int): V = {
+    if(key < 0 || key >= cumulativeIndices.last)
+      throw new IndexOutOfBoundsException(s"Invalid index value.")
+
+    fetch(key)
+  }
+
+  override def get(key: Int): Option[V] = {
+    if(key < 0 || key >= cumulativeIndices.last) None
+    else Some(fetch(key))
+  }
 
   override def partitions: Iterable[C] = data.toIterable
 
   override def indexOf(partitionIndex: Int): C = data(partitionIndex)
 
+  override def getIndexOf(partitionIndex: Int): Option[C] = {
+    if(partitionIndex <0 || partitionIndex >= data.length) None
+    else Some(data(partitionIndex))
+  }
+
   override def size: Int = data.length
+
+  override val firstKey: Int = cumulativeIndices.head
+
+  override val lastKey: Int = cumulativeIndices.last
+
+  override def toString: String = s"GlobalIndexPartitioned{cumulativeIndices = (${cumulativeIndices.mkString(",")})}"
+
 }
 
 object GlobalIndexPartitioned {
 
   def apply[C <: IndexedSeq[V], @sp(Byte, Short, Int, Long, Float, Double, Boolean) V]
-  (data: Array[C], indices: Array[Int]): GlobalIndexPartitioned[C, V] = {
+  (data: Array[C]): GlobalIndexPartitioned[C, V] = {
 
-    val partitioner = Partitioner.indexed(indices)
 
-    new AbstractGlobalIndexPartitioned[C, V](data, indices, partitioner) {
 
-      override def apply(idx: Int): V = {
-        val partitionIndex = partitioner(idx)
-        val entryIndex = idx - cumulativeIndices(partitionIndex)
+    new AbstractGlobalIndexPartitioned[C, V](data, data.map(_.size)) {
+
+      override def fetch(key: Int): V = {
+        
+        val partitionIndex = partitioner(key)
+        val entryIndex = key - cumulativeIndices(partitionIndex)
 
         data(partitionIndex)(entryIndex)
       }
@@ -78,16 +114,14 @@ object GlobalIndexPartitioned {
     }
   }
 
-  def apply[C, @sp(Byte, Short, Int, Long, Float, Double, Boolean) V]
-  (data: Array[C], indices: Array[Int], partitionFetcher: PartitionFetcher[Int, C, V]): GlobalIndexPartitioned[C, V] = {
+  def apply1[C, @sp(Byte, Short, Int, Long, Float, Double, Boolean) V]
+  (data: Array[C], partitionSizes: Array[Int], partitionFetcher: PartitionFetcher[Int, C, V]): GlobalIndexPartitioned[C, V] = {
 
-    val partitioner = Partitioner.indexed(indices)
+    new AbstractGlobalIndexPartitioned[C, V](data, partitionSizes) {
 
-    new AbstractGlobalIndexPartitioned[C, V](data, indices, partitioner) {
-
-      override def apply(idx: Int): V = {
-        val partitionIndex = partitioner(idx)
-        val entryIndex = idx - cumulativeIndices(partitionIndex)
+      override def fetch(key: Int): V = {
+        val partitionIndex = partitioner(key)
+        val entryIndex = key - cumulativeIndices(partitionIndex)
         partitionFetcher(entryIndex, data(partitionIndex))
       }
 
