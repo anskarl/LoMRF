@@ -35,7 +35,7 @@ package lomrf.mln.grounding
 import akka.actor.{Actor, ActorRef}
 import auxlib.log.Logging
 import lomrf.mln.model.MLN
-import lomrf.util.collection.PartitionedData
+import lomrf.util.collection.IndexPartitioned
 
 /**
  * Actor responsible for running grounding for each FOL clause in the MLN theory.
@@ -48,7 +48,7 @@ import lomrf.util.collection.PartitionedData
  *                             literal and inverted sign in their corresponding weight.
  */
 final class GroundingWorker private(mln: MLN,
-                                    cliqueRegisters: PartitionedData[ActorRef],
+                                    cliqueRegisters: IndexPartitioned[ActorRef],
                                     noNegWeights: Boolean,
                                     eliminateNegatedUnit: Boolean) extends Actor with Logging {
 
@@ -84,6 +84,6 @@ private object GroundingWorker {
    *                             literal and inverted sign in their corresponding weight.
    * @return a new GroundingWorker instance.
    */
-  def apply(mln: MLN, cliqueRegisters: PartitionedData[ActorRef], noNegWeights: Boolean = false, eliminateNegatedUnit: Boolean = false) =
+  def apply(mln: MLN, cliqueRegisters: IndexPartitioned[ActorRef], noNegWeights: Boolean = false, eliminateNegatedUnit: Boolean = false) =
     new GroundingWorker(mln,cliqueRegisters,noNegWeights, eliminateNegatedUnit)
 }

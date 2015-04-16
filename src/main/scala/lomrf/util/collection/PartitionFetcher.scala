@@ -30,41 +30,14 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package lomrf.util.collection.mutable
+package lomrf.util.collection
 
-import scala.reflect.ClassTag
-import scalaxy.streams.optimize
+trait PartitionFetcher[Key, Collection, Value] {
 
+  def apply(key: Key, collection: Collection): Value
 
-trait PartitionedData[T] extends lomrf.util.collection.PartitionedData[T] {
+  def contains(key: Key, collection: Collection): Boolean
 
-  def update(idx: Int, elem: T)
-}
+  def valuesIterator(key: Key, collection: Collection): Iterator[Value]
 
-
-object PartitionedData{
-  def apply[T](data: Array[T]): PartitionedData[T] = new PartitionedData[T] {
-
-    private val positionOf = (idx: Int) => math.abs(idx % data.length)
-
-    override def apply(idx: Int): T = data(positionOf(idx))
-
-    override def partitions = data.toIterable
-
-    override def length = data.length
-
-    override def update(idx: Int, elem: T): Unit = data(idx) = elem
-
-    override def indexOf(partitionIndex: Int) = data(partitionIndex)
-  }
-
-  def apply[T: ClassTag](size: Int, initializer:(Int => T)): PartitionedData[T] = {
-    val data = new Array[T](size)
-
-    optimize(for(i <- 0 until size) data(i) = initializer(i))
-
-    apply(data)
-  }
-
-  def apply[T: ClassTag](size: Int): PartitionedData[T] = apply( new Array[T](size))
 }

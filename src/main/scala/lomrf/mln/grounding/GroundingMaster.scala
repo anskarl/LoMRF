@@ -42,8 +42,8 @@ import gnu.trove.set.hash.TIntHashSet
 import lomrf._
 import lomrf.logic.{AtomSignature, AtomicFormula, Clause, Variable}
 import lomrf.mln.model.MLN
-import lomrf.util.collection.PartitionedData
-import lomrf.util.collection.mutable.{PartitionedData => MPartitionedData}
+import lomrf.util.collection.IndexPartitioned
+import lomrf.util.collection.mutable.{IndexPartitioned => MPartitionedData}
 import scalaxy.streams.optimize
 
 /**
@@ -169,7 +169,7 @@ final class GroundingMaster(mln: MLN,
    * A partitioned collection of instantiated actor references for registering ground atoms
    */
   private val atomRegisters =
-    PartitionedData(nPar,
+    IndexPartitioned.hash(nPar,
       partitionIndex =>
         context.actorOf(
           Props(AtomRegisterWorker(partitionIndex)), name = "atom_register-" + partitionIndex))
@@ -178,7 +178,7 @@ final class GroundingMaster(mln: MLN,
    * A partitioned collection of instantiated actor references for registering ground clauses (cliques)
    */
   private val cliqueRegisters =
-    PartitionedData(nPar,
+    IndexPartitioned.hash(nPar,
       partitionIndex =>
         context.actorOf(
           Props(CliqueRegisterWorker(partitionIndex, atomRegisters, createDependencyMap)), name = "clique_register-" + partitionIndex))
@@ -187,7 +187,7 @@ final class GroundingMaster(mln: MLN,
    * A partitioned collection of instantiated actor references of clause grounders
    */
   private val clauseGroundingWorkers =
-    PartitionedData(nPar,
+    IndexPartitioned.hash(nPar,
       partitionIndex =>
         context.actorOf(
           Props(GroundingWorker(mln, cliqueRegisters, noNegWeights, eliminateNegatedUnit)), name = "grounding_worker-" + partitionIndex))
@@ -212,9 +212,9 @@ final class GroundingMaster(mln: MLN,
 
     info("Number of processors: " + lomrf.processors
       + "\n\t\tParallelization ratio is set to: " + parRatio
-      + "\n\t\tTotal number of atom registry workers: " + atomRegisters.length
-      + "\n\t\tTotal number of clique registry workers: " + cliqueRegisters.length
-      + "\n\t\tTotal number of grounding workers: " + clauseGroundingWorkers.length)
+      + "\n\t\tTotal number of atom registry workers: " + atomRegisters.size
+      + "\n\t\tTotal number of clique registry workers: " + cliqueRegisters.size
+      + "\n\t\tTotal number of grounding workers: " + clauseGroundingWorkers.size)
 
     val numberOfClauses = remainingClauses.size
 
@@ -274,11 +274,11 @@ final class GroundingMaster(mln: MLN,
         if (clause.literals.exists(literal => atomSignatures.contains(literal.sentence.signature))) {
 
           // send the clause to the corresponding worker
-          clauseGroundingWorkers.indexOf(workerIdx) ! Ground(clause, clauseIndex, atomSignatures, partitioned.atomsDB)
+          clauseGroundingWorkers.partition(workerIdx) ! Ground(clause, clauseIndex, atomSignatures, partitioned.atomsDB)
 
           // reset the index to position zero when the worker index is pointing to the last worker,
           // otherwise increment by one
-          workerIdx = if (workerIdx == clauseGroundingWorkers.length - 1) 0 else workerIdx + 1
+          workerIdx = if (workerIdx == clauseGroundingWorkers.size - 1) 0 else workerIdx + 1
 
           // increment the number of clauses being send for grounding
           counter += 1
@@ -363,7 +363,7 @@ final class GroundingMaster(mln: MLN,
         // (2) check if the there are any other remaining clauses to ground and thus perform another grounding iteration,
         //     otherwise grounding is complete and process to the second phase of the algorithm, in which we collect the
         //     produced parts of the MRF.
-        if (atomIDBatchesCounter == atomRegisters.length) {
+        if (atomIDBatchesCounter == atomRegisters.size) {
           atomIDBatchesCounter = 0
           if (remainingClauses.nonEmpty) {
             //continue with the remaining clauses
@@ -434,9 +434,9 @@ final class GroundingMaster(mln: MLN,
       if (atomBatchesCounter == nPar) {
         optimize {
           for (i <- 0 until nPar) {
-            cliqueRegisters.indexOf(i) ! PoisonPill
-            atomRegisters.indexOf(i) ! PoisonPill
-            clauseGroundingWorkers.indexOf(i) ! PoisonPill
+            cliqueRegisters.partition(i) ! PoisonPill
+            atomRegisters.partition(i) ! PoisonPill
+            clauseGroundingWorkers.partition(i) ! PoisonPill
           }
         }
         completed = true
@@ -466,7 +466,7 @@ final class GroundingMaster(mln: MLN,
    * @return a partial function with the actor logic when an unknown message is being received.
    */
   private def handleUnknownMessage: Receive ={
-    case msg => error(s"Master --- Received an unknown message '${msg.toString}' from '${sender().toString}'")
+    case msg => error(s"Master --- Received an unknown message '${msg.toString}' from '${sender().toString()}'")
   }
 
   private def groundingIsComplete(): Unit = {

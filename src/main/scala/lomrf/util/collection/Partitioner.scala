@@ -86,7 +86,7 @@ object Partitioner {
       override def numPartitions: Int = indices.length
     }
 
-    def apply[K](indices: Array[Int], f: K => Int): Partitioner[K] = new FixedSizePartitioner[K](indices.length) {
+    def apply[@sp(Byte, Short, Int, Long) K](indices: Array[Int], f: K => Int): Partitioner[K] = new FixedSizePartitioner[K](indices.length) {
       override def apply(key: K): Int = {
         val searchResult = java.util.Arrays.binarySearch(indices, math.abs(f(key)))
         val partitionIndex = if (searchResult < 0) (-searchResult) - 2 else searchResult
@@ -95,6 +95,26 @@ object Partitioner {
         partitionIndex
       }
     }
+
+
+    def fromRanges(ranges: Iterable[Range]): Partitioner[Int] = {
+      require(ranges.forall(_.step == 1),
+        "Only ranges with successive values supported, i.e., ranges having step size equal to one.")
+
+      apply(ranges.map(_.size).scanLeft(0)(_ + _).toArray)
+    }
+
+    def fromRanges[@sp(Byte, Short, Int, Long) K](ranges: Iterable[Range], f: K => Int): Partitioner[K] = {
+      require(ranges.forall(_.step == 1),
+        "Only ranges with successive values supported, i.e., ranges having step size equal to one.")
+
+      apply(ranges.map(_.size).scanLeft(0)(_ + _).toArray, f)
+    }
+
+    def fromSizes(sizes: Iterable[Int]): Partitioner[Int] = apply(sizes.scanLeft(0)(_ + _).toArray)
+
+    def fromSizes[@sp(Byte, Short, Int, Long) K](sizes: Iterable[Int], f: K => Int): Partitioner[K] = apply(sizes.scanLeft(0)(_ + _).toArray, f)
+
 
   }
 

@@ -47,9 +47,9 @@ trait GlobalIndexPartitioned[C, @sp(Byte, Short, Int, Long, Float, Double, Boole
 
   def partitions: Iterable[C]
 
-  def indexOf(partitionIndex: Int): C
+  def partition(partitionIndex: Int): C
 
-  def getIndexOf(partitionIndex: Int): Option[C]
+  def getPartition(partitionIndex: Int): Option[C]
 
   val firstKey: Int
 
@@ -77,10 +77,10 @@ private abstract class AbstractGlobalIndexPartitioned[C, @sp(Byte, Short, Int, L
 
   override def partitions: Iterable[C] = data.toIterable
 
-  override def indexOf(partitionIndex: Int): C = data(partitionIndex)
+  override def partition(partitionIndex: Int): C = data(partitionIndex)
 
-  override def getIndexOf(partitionIndex: Int): Option[C] = {
-    if(partitionIndex <0 || partitionIndex >= data.length) None
+  override def getPartition(partitionIndex: Int): Option[C] = {
+    if(partitionIndex < 0 || partitionIndex >= data.length) None
     else Some(data(partitionIndex))
   }
 
@@ -99,22 +99,18 @@ object GlobalIndexPartitioned {
   def apply[C <: IndexedSeq[V], @sp(Byte, Short, Int, Long, Float, Double, Boolean) V]
   (data: Array[C]): GlobalIndexPartitioned[C, V] = {
 
-
-
     new AbstractGlobalIndexPartitioned[C, V](data, data.map(_.size)) {
 
       override def fetch(key: Int): V = {
-        
         val partitionIndex = partitioner(key)
         val entryIndex = key - cumulativeIndices(partitionIndex)
-
         data(partitionIndex)(entryIndex)
       }
 
     }
   }
 
-  def apply1[C, @sp(Byte, Short, Int, Long, Float, Double, Boolean) V]
+  def apply[C, @sp(Byte, Short, Int, Long, Float, Double, Boolean) V]
   (data: Array[C], partitionSizes: Array[Int], partitionFetcher: PartitionFetcher[Int, C, V]): GlobalIndexPartitioned[C, V] = {
 
     new AbstractGlobalIndexPartitioned[C, V](data, partitionSizes) {
@@ -124,7 +120,6 @@ object GlobalIndexPartitioned {
         val entryIndex = key - cumulativeIndices(partitionIndex)
         partitionFetcher(entryIndex, data(partitionIndex))
       }
-
     }
   }
 

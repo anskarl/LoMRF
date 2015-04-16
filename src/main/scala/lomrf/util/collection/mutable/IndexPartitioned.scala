@@ -30,43 +30,41 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package lomrf.util.collection
+package lomrf.util.collection.mutable
 
-import scala.{specialized => sp}
+import scala.reflect.ClassTag
+import scalaxy.streams.optimize
 
-trait KeyPartitioned[C, @sp(Byte, Short, Int, Long) K, @sp(Byte, Short, Int, Long) V] extends (K => V) {
 
-  def apply(key: K): V
+trait IndexPartitioned[T] extends lomrf.util.collection.IndexPartitioned[T] {
 
-  def contains(key: K): Boolean
-
-  def size: Int
-
-  def partitions: Iterable[C]
-
-  def partition(partitionIndex: Int): C
-
+  def update(idx: Int, elem: T)
 }
 
-object KeyPartitioned {
 
-  def apply[C, @sp(Byte, Short, Int, Long) K, @sp(Byte, Short, Int, Long) V]
-  (data: Array[C], partitioner: Partitioner[K], partitionFetcher: PartitionFetcher[K, C, V]): KeyPartitioned[C, K, V] = {
-    new KeyPartitionedImpl[C, K, V](data, partitioner, partitionFetcher)
+object IndexPartitioned{
+  def apply[T](data: Array[T]): IndexPartitioned[T] = new IndexPartitioned[T] {
+
+    private val positionOf = (idx: Int) => math.abs(idx % data.length)
+
+    override def apply(idx: Int): T = data(positionOf(idx))
+
+    override def partitions = data.toIterable
+
+    override def size = data.length
+
+    override def update(idx: Int, elem: T): Unit = data(idx) = elem
+
+    override def partition(partitionIndex: Int) = data(partitionIndex)
   }
 
-  private class KeyPartitionedImpl[C, @sp(Byte, Short, Int, Long) K, @sp(Byte, Short, Int, Long) V]
-  (data: Array[C], partitioner: Partitioner[K], partitionFetcher: PartitionFetcher[K, C, V]) extends KeyPartitioned[C, K, V] {
+  def apply[T: ClassTag](size: Int, initializer:(Int => T)): IndexPartitioned[T] = {
+    val data = new Array[T](size)
 
-    override def apply(key: K): V = partitionFetcher(key, data(partitioner(key)))
+    optimize(for(i <- 0 until size) data(i) = initializer(i))
 
-    override def contains(key: K): Boolean = partitionFetcher.contains(key, data(partitioner(key)))
-
-    override def partitions: Iterable[C] = data.toIterable
-
-    override def partition(partitionIndex: Int): C = data(partitionIndex)
-
-    override def size: Int = data.length
+    apply(data)
   }
 
+  def apply[T: ClassTag](size: Int): IndexPartitioned[T] = apply( new Array[T](size))
 }

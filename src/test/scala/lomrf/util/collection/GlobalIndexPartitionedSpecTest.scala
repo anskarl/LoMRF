@@ -36,8 +36,15 @@ import org.scalatest.{Matchers, FunSpec}
 
 
 class GlobalIndexPartitionedSpecTest extends FunSpec with Matchers {
-  
-  val arrayPartitionFetcher: PartitionFetcher[Int, Array[Int], Int] = (key: Int, partition: Array[Int]) => partition(key)
+
+  val arrayPartitionFetcher = new PartitionFetcher[Int, Array[Int], Int] {
+
+    override def apply(key: Int, collection: Array[Int]): Int = collection(key)
+
+    override def contains(key: Int, collection: Array[Int]): Boolean = collection.contains(key)
+
+    override def valuesIterator(key: Int, collection: Array[Int]): Iterator[Int] = collection.iterator
+  }
 
   val scenarios = List(
     ("A globally indexed partitioned collection of integers (1 to 400), using four equal sized partitions:", Array.fill(4)(100), None),
@@ -62,8 +69,7 @@ class GlobalIndexPartitionedSpecTest extends FunSpec with Matchers {
     val ipart = fetcherOpt match {
       case Some(fetcher) =>
         val data: Array[Array[Int]] = partitionSizes.scanLeft(0)(_ + _).sliding(2).map(x=> (x(0) + 1 to x(1)).toArray).toArray
-
-        GlobalIndexPartitioned.apply1[Array[Int], Int](data, partitionSizes, fetcher)
+        GlobalIndexPartitioned[Array[Int], Int](data, partitionSizes, fetcher)
 
       case _ =>
         val data: Array[IndexedSeq[Int]] = partitionSizes.scanLeft(0)(_ + _).sliding(2).map(x=> (x(0) + 1 to x(1)).toIndexedSeq).toArray
@@ -102,9 +108,6 @@ class GlobalIndexPartitionedSpecTest extends FunSpec with Matchers {
       assert(ipart.get(ipart.lastKey +  1).isEmpty)
     }
   }
-
-
-
 
 
 }

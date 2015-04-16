@@ -189,7 +189,7 @@ final class MRFBuilder(val mln: MLN,
 
     optimize {
 
-      for (segmentIdx <- 0 until result.cliques.length) {
+      for (segmentIdx <- 0 until result.cliques.size) {
         if (result.cliques(segmentIdx) ne null) {
           val clausesIterator = result.cliques(segmentIdx).iterator()
           while (clausesIterator.hasNext) {

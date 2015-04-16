@@ -40,7 +40,7 @@ import lomrf.mln.model.MLN
 import lomrf.util.AtomIdentityFunction.IDENTITY_NOT_EXIST
 import lomrf.util.AtomIdentityFunction
 import auxlib.log.Logging
-import lomrf.util.collection.PartitionedData
+import lomrf.util.collection.IndexPartitioned
 
 import scala.collection._
 import scala.language.postfixOps
@@ -71,7 +71,7 @@ class ClauseGrounderImplNew private(
                           val clause: Clause,
                           clauseIndex: Int,
                           mln: MLN,
-                          cliqueRegisters: PartitionedData[ActorRef],
+                          cliqueRegisters: IndexPartitioned[ActorRef],
                           atomSignatures: Set[AtomSignature],
                           atomsDB: Array[TIntSet],
                           orderedLiterals: Array[Literal],
@@ -82,7 +82,7 @@ class ClauseGrounderImplNew private(
                           noNegWeights: Boolean,
                           eliminateNegatedUnit: Boolean) extends ClauseGrounder with Logging {
 
-  require(orderedLiterals.size == orderedIdentityFunctions.size,
+  require(orderedLiterals.length == orderedIdentityFunctions.length,
     "The number of literals should be the same with the number of identity functions.")
 
   require(!clause.weight.isNaN, "Clause weight cannot be NaN.")
@@ -366,7 +366,7 @@ object ClauseGrounderImplNew {
    *
    * @return a new instance of ClauseGrounderImplNew
    */
-  def apply(clause: Clause, clauseIndex: Int, mln: MLN, cliqueRegisters: PartitionedData[ActorRef], atomSignatures: Set[AtomSignature],
+  def apply(clause: Clause, clauseIndex: Int, mln: MLN, cliqueRegisters: IndexPartitioned[ActorRef], atomSignatures: Set[AtomSignature],
             atomsDB: Array[TIntSet], noNegWeights: Boolean = false, eliminateNegatedUnit: Boolean = false): ClauseGrounderImplNew = {
 
     /**
@@ -406,7 +406,7 @@ object ClauseGrounderImplNew {
 
     // Collect dynamic atoms
     val dynamicAtoms: Map[Int, (Vector[String] => Boolean)] =
-      (for (i <- 0 until orderedLiterals.length; sentence = orderedLiterals(i).sentence; if sentence.isDynamic)
+      (for (i <- orderedLiterals.indices; sentence = orderedLiterals(i).sentence; if sentence.isDynamic)
       yield i -> mln.dynamicPredicates(sentence.signature))(breakOut)
 
 

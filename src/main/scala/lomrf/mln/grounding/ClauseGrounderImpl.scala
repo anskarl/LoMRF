@@ -40,24 +40,21 @@ import gnu.trove.set.TIntSet
 import lomrf.logic._
 import lomrf.mln.model.MLN
 import lomrf.util.AtomIdentityFunction.IDENTITY_NOT_EXIST
-import lomrf.util.collection.PartitionedData
+import lomrf.util.collection.IndexPartitioned
 import lomrf.util.{AtomIdentityFunction, Cartesian}
 
-import scala.annotation.tailrec
 import scala.collection._
 import scala.language.postfixOps
 import scalaxy.streams.optimize
 
-/**
- *
- */
+
 class ClauseGrounderImpl(
                           val clause: Clause,
                           clauseIndex: Int,
                           mln: MLN,
-                          cliqueRegisters: PartitionedData[ActorRef],
+                          cliqueRegisters: IndexPartitioned[ActorRef],
                           atomSignatures: Set[AtomSignature],
-                          atomsDB: PartitionedData[TIntSet],
+                          atomsDB: IndexPartitioned[TIntSet],
                           noNegWeights: Boolean = false,
                           eliminateNegatedUnit: Boolean = false) extends ClauseGrounder with Logging{
 
@@ -94,7 +91,7 @@ class ClauseGrounderImpl(
 
   // Collect dynamic atoms
   private val dynamicAtoms: Map[Int, (Vector[String] => Boolean)] =
-    (for (i <- 0 until orderedLiterals.length; sentence = orderedLiterals(i)._1.sentence; if sentence.isDynamic)
+    (for (i <- orderedLiterals.indices; sentence = orderedLiterals(i)._1.sentence; if sentence.isDynamic)
     yield i -> mln.dynamicPredicates(sentence.signature))(breakOut)
 
 

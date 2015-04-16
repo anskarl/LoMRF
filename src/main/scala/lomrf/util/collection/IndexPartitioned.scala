@@ -35,7 +35,7 @@ package lomrf.util.collection
 import scala.reflect.ClassTag
 import scalaxy.streams.optimize
 
-trait PartitionedData[T] extends (Int => T) {
+trait IndexPartitioned[T] extends (Int => T) {
 
   /**
    * Gives the corresponding object that is associated to the specified index value,
@@ -50,7 +50,7 @@ trait PartitionedData[T] extends (Int => T) {
   /**
    * @return the number of partitions
    */
-  def length: Int
+  def size: Int
 
   /**
    * @return an iterable collection that contains all partitions
@@ -63,19 +63,27 @@ trait PartitionedData[T] extends (Int => T) {
    * @param partitionIndex partition index
    * @return corresponding object
    */
-  def indexOf(partitionIndex: Int): T
+  def partition(partitionIndex: Int): T
 
 }
 
-object PartitionedData {
+object IndexPartitioned {
 
+  object hash {
+    def apply[T](data: Array[T]): IndexPartitioned[T] = new IndexPartitioned[T] {
 
-  /*object hash {
+      private val partitioner = Partitioner.hash[Int](data.length)
 
-    def apply[T](data: Array[T]): PartitionedData[T] =
-      new PartitionedDataImpl(data, (idx: Int) => math.abs(data.length % idx))
+      override def apply(idx: Int) = data(partitioner(idx))
 
-    def apply[T: ClassTag](size: Int, initializer:(Int => T)): PartitionedData[T] = {
+      override def partitions = data.toIterable
+
+      override def size = data.length
+
+      override def partition(partitionIndex: Int) = data(partitionIndex)
+    }
+
+    def apply[T: ClassTag](size: Int, initializer:(Int => T)): IndexPartitioned[T] = {
       val data = new Array[T](size)
 
       optimize(for(i <- 0 until size) data(i) = initializer(i))
@@ -83,26 +91,22 @@ object PartitionedData {
       apply(data)
     }
 
-    def apply[T: ClassTag](size: Int): PartitionedData[T] = apply( new Array[T](size))
-  }*/
+    def apply[T: ClassTag](size: Int): IndexPartitioned[T] = apply( new Array[T](size))
+  }
 
 
-
-
-  //@deprecated(message = "use PartitionedData.hash.apply()")
-  def apply[T](data: Array[T]): PartitionedData[T] = new PartitionedData[T] {
+  /*def apply[T](data: Array[T]): IndexPartitioned[T] = new IndexPartitioned[T] {
 
     override def apply(idx: Int) = data(math.abs(idx % data.length))
 
     override def partitions = data.toIterable
 
-    override def length = data.length
+    override def size = data.length
 
-    override def indexOf(partitionIndex: Int) = data(partitionIndex)
+    override def partition(partitionIndex: Int) = data(partitionIndex)
   }
 
-  //@deprecated(message = "use PartitionedData.hash.apply()")
-  def apply[T: ClassTag](size: Int, initializer:(Int => T)): PartitionedData[T] = {
+  def apply[T: ClassTag](size: Int, initializer:(Int => T)): IndexPartitioned[T] = {
     val data = new Array[T](size)
     
     optimize(for(i <- 0 until size) data(i) = initializer(i))
@@ -110,20 +114,7 @@ object PartitionedData {
     apply(data)
   }
 
-  //@deprecated(message = "use PartitionedData.hash.apply()")
-  def apply[T: ClassTag](size: Int): PartitionedData[T] = apply( new Array[T](size))
+  def apply[T: ClassTag](size: Int): IndexPartitioned[T] = apply( new Array[T](size))*/
 
-
-
-  /*private class PartitionedDataImpl[T](data: Array[T], fPosition: Int => Int) extends PartitionedData[T]{
-
-    override def apply(idx: Int) = data(fPosition(idx))
-
-    override def partitions = data.toIterable
-
-    override def length = data.length
-
-    override def indexOf(partitionIndex: Int) = data(partitionIndex)
-  }*/
 
 }

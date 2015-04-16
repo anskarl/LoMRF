@@ -40,7 +40,7 @@ import gnu.trove.list.array.TIntArrayList
 import gnu.trove.map.TIntFloatMap
 import gnu.trove.map.hash.{TIntFloatHashMap, TIntObjectHashMap}
 import lomrf._
-import lomrf.util.collection.PartitionedData
+import lomrf.util.collection.IndexPartitioned
 
 import scala.language.postfixOps
 import scalaxy.streams.optimize
@@ -60,7 +60,7 @@ import scalaxy.streams.optimize
 final class CliqueRegisterWorker private(
                                           val index: Int,
                                           master: ActorRef,
-                                          atomRegisters: PartitionedData[ActorRef],
+                                          atomRegisters: IndexPartitioned[ActorRef],
                                           createDependencyMap: Boolean) extends Actor with Logging {
 
   import messages._
@@ -352,6 +352,6 @@ object CliqueRegisterWorker {
    *
    * @return a CliqueRegisterWorker instance
    */
-  def apply(index: Int, atomRegisters: PartitionedData[ActorRef], createDependencyMap: Boolean = false)(implicit master: ActorRef) =
+  def apply(index: Int, atomRegisters: IndexPartitioned[ActorRef], createDependencyMap: Boolean = false)(implicit master: ActorRef) =
     new CliqueRegisterWorker(index, master, atomRegisters, createDependencyMap)
 }

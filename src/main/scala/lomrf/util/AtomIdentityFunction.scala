@@ -34,6 +34,7 @@ package lomrf.util
 
 import scala.collection.mutable
 import lomrf.logic._
+import scalaxy.streams.optimize
 
 /**
  * The AtomIdentityFunction represents a bijection between the groundings of an atom and  integer numbers. It is
@@ -189,6 +190,7 @@ final class AtomIdentityFunction private(
   def encode(atom: AtomicFormula, f: Term => String): Int = {
     var sum = startID
     var idx = 0
+
     for (term <- atom.terms) {
       val set: ConstantsSet = constantsAndStep(idx)._1
 
@@ -201,6 +203,7 @@ final class AtomIdentityFunction private(
       sum += (offset + constantID)
       idx += 1
     }
+
 
     sum
   }
@@ -249,19 +252,22 @@ final class AtomIdentityFunction private(
     var iteratorsMap = mutable.Map[Int, Iterator[Int]]()
     val values = new Array[Int](length)
 
-    for (idx <- 0 until length) {
-      val constantSet = constantsAndStep(idx)._1
-      val symbol = constantsAndStep(idx)._4
-      query.get(symbol) match {
-        case Some(constantValue) => values(idx) = constantSet(constantValue)
-        case None =>
-          val range = constantSet.idsRange
-          val iterator = range.iterator
-          rangesMap += (idx -> range)
-          iteratorsMap += (idx -> iterator)
-          values(idx) = iterator.next()
+    optimize {
+      for (idx <- 0 until length) {
+        val constantSet = constantsAndStep(idx)._1
+        val symbol = constantsAndStep(idx)._4
+        query.get(symbol) match {
+          case Some(constantValue) => values(idx) = constantSet(constantValue)
+          case None =>
+            val range = constantSet.idsRange
+            val iterator = range.iterator
+            rangesMap += (idx -> range)
+            iteratorsMap += (idx -> iterator)
+            values(idx) = iterator.next()
+        }
       }
     }
+
 
     new MatchingIDsIterator(rangesMap, iteratorsMap, values)
   }
@@ -285,7 +291,7 @@ final class AtomIdentityFunction private(
     def next(): Int = {
       if (counter < _length) {
         sum = startID
-        optimize{
+        optimize {
           for (idx <- 0 until values.length) {
 
             //1. encode
