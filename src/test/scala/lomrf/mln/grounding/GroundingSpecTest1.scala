@@ -35,23 +35,20 @@ package lomrf.mln.grounding
 import auxlib.log.Logging
 import gnu.trove.set.hash.TIntHashSet
 import lomrf.logic._
-import lomrf.logic.{Literal, AtomSignature, KBParser}
-import lomrf.mln.model.{AtomIdentifier, MLN}
-import lomrf.util.{ConstantsSet, Utilities, AtomEvidenceDB}
+import lomrf.logic.{AtomSignature, KBParser}
+import lomrf.mln.model.{DomainSchema, DomainSpace, MLN}
+import lomrf.util.{ConstantsSet, AtomEvidenceDB}
 import org.scalatest.{FunSpec, Matchers}
 import lomrf.tests.ECExampleDomain1._
 
-import scala.collection.mutable
-
-/**
- *
- */
 class GroundingSpecTest1 extends FunSpec with Matchers with Logging {
 
 
   private val parser = new KBParser(predicateSchema, functionsSchema)
 
-  private val atomIdentifier = AtomIdentifier(predicateSchema, constants, queryAtoms, hiddenAtoms)
+  private val schema = DomainSchema(predicateSchema, functionsSchema, queryAtoms, cwa, owa)
+
+  private val atomIdentifier = DomainSpace(schema, constants)
 
   // Manually create sample evidence
   private val atomStateDB: Map[AtomSignature, AtomEvidenceDB] = {
@@ -100,21 +97,16 @@ class GroundingSpecTest1 extends FunSpec with Matchers with Logging {
       clause.variables.size should be(3)
     }
 
-    val mln = new MLN(
+    val mln =  new MLN(
+      schema,
       formulas = Set(formula),
-      predicateSchema,
-      functionsSchema,
       dynamicAtoms,
       dynamicFunctions,
       constants,
       functionMappers,
-      queryAtoms,
-      cwa,
-      owa,
       probabilisticAtoms = Set.empty[AtomSignature],
       tristateAtoms = Set.empty[AtomSignature],
-      atomStateDB,
-      atomIdentifier
+      atomStateDB
     )
 
 
@@ -127,7 +119,7 @@ class GroundingSpecTest1 extends FunSpec with Matchers with Logging {
     info("original sequence of literals : " + clause.literals.map(_.toString).mkString(" v ") + "\n" +
       "ordered sequence of literals  : " + orderedLiterals.map(_.toString).mkString(" v "))
 
-    val orderedIdentityFunctions = orderedLiterals.map(literal => mln.identityFunctions(literal.sentence.signature))
+    val orderedIdentityFunctions = orderedLiterals.map(literal => mln.space.identities(literal.sentence.signature))
 
     // extract the sequence of unique variables
     val uniqOrderedVars = uniqueOrderedVariablesIn(orderedLiterals)

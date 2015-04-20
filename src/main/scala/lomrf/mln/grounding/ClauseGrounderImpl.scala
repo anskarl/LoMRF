@@ -79,7 +79,7 @@ class ClauseGrounderImpl(
 
   private val identities: Map[AtomSignature, AtomIdentityFunction] =
     (for (literal <- clause.literals if !mln.isDynamicAtom(literal.sentence.signature))
-    yield literal.sentence.signature -> mln.identityFunctions(literal.sentence.signature))(breakOut)
+    yield literal.sentence.signature -> mln.space.identities(literal.sentence.signature))(breakOut)
 
 
 

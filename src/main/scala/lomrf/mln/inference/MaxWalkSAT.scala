@@ -259,7 +259,7 @@ final case class MaxWalkSAT(mrf: MRF, pBest: Double = 0.5, maxFlips: Int = 10000
     while (iterator.hasNext) {
       iterator.advance()
       val atomID = iterator.key()
-      if (atomID >= mln.queryStartID && atomID <= mln.queryEndID) {
+      if (atomID >= mln.space.queryStartID && atomID <= mln.space.queryEndID) {
         val groundAtom = iterator.value()
         val state = if(groundAtom.getState) 1 else 0
         if(outputAll) {

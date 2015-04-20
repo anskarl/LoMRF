@@ -224,7 +224,7 @@ final class MRFBuilder(val mln: MLN,
       + "\n\tTotal ground clauses: " + constraints.size()
       + "\n\tTotal ground atoms: " + atoms.size())
 
-    MRF(mln, constraints, atoms, weightHard, mln.queryStartID, mln.queryEndID, mergedDependencyMapOpt)
+    MRF(mln, constraints, atoms, weightHard, mln.space.queryStartID, mln.space.queryEndID, mergedDependencyMapOpt)
   }
 }
 

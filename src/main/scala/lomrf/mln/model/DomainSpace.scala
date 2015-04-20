@@ -43,42 +43,51 @@ import lomrf.util.{AtomIdentityFunction, ConstantsSet}
  * @param queryStartID the first index of ground query atom in the MRF
  * @param queryEndID the last index of ground query atom in the MRF
  */
-final class AtomIdentifier private(val identities: Map[AtomSignature, AtomIdentityFunction],
-                                   val orderedAtomSignatures: Array[AtomSignature],
-                                   val orderedStartIDs: Array[Int],
-                                   val queryStartID: Int,
-                                   val queryEndID: Int)
+final class DomainSpace private(val identities: Map[AtomSignature, AtomIdentityFunction],
+                                val orderedAtomSignatures: Array[AtomSignature],
+                                val orderedStartIDs: Array[Int],
+                                val queryStartID: Int,
+                                val queryEndID: Int){
 
-object AtomIdentifier {
+  /**
+   * Total number of ground query atoms
+   */
+  val numberOfQueryIDs = queryStartID - queryEndID
+}
+
+object DomainSpace {
 
   private val logger = Logger(this.getClass)
 
+  def apply(domain: DomainSchema, constants: Map[String, ConstantsSet]): DomainSpace =
+    apply(domain.predicateSchema, domain.queryAtoms, domain.hiddenAtoms, constants)
+
   /**
    *
-   * @param schema
-   * @param constants
+   * @param predicateSchema
    * @param queryPredicates
    * @param hiddenPredicates
+   * @param constants
    *
-   * @return a new instance of AtomIdentifier
+   * @return a new instance of DomainSpace
    */
-  def apply(schema: Map[AtomSignature, Seq[String]],
-            constants: Map[String, ConstantsSet],
-            queryPredicates: collection.Set[AtomSignature],
-            hiddenPredicates: collection.Set[AtomSignature]): AtomIdentifier = {
+  def apply(predicateSchema: Map[AtomSignature, Seq[String]],
+            queryPredicates: Set[AtomSignature],
+            hiddenPredicates: Set[AtomSignature],
+            constants: Map[String, ConstantsSet]): DomainSpace = {
 
     def isOWA(signature: AtomSignature) = queryPredicates.contains(signature) || hiddenPredicates.contains(signature)
 
     var identities: Map[AtomSignature, AtomIdentityFunction] = Map[AtomSignature, AtomIdentityFunction]()
 
     var currentID = 1
-    val orderedStartIDs = new Array[Int](schema.size)
-    val orderedAtomSignatures = new Array[AtomSignature](schema.size)
+    val orderedStartIDs = new Array[Int](predicateSchema.size)
+    val orderedAtomSignatures = new Array[AtomSignature](predicateSchema.size)
     var index = 0
 
 
     // Query predicates
-    for ((signature, atomSchema) <- schema; if queryPredicates.contains(signature)) {
+    for ((signature, atomSchema) <- predicateSchema; if queryPredicates.contains(signature)) {
       orderedStartIDs(index) = currentID
       orderedAtomSignatures(index) = signature
       index += 1
@@ -93,7 +102,7 @@ object AtomIdentifier {
 
 
     // Other OWA predicates
-    for ((signature, atomSchema) <- schema; if hiddenPredicates.contains(signature)) {
+    for ((signature, atomSchema) <- predicateSchema; if hiddenPredicates.contains(signature)) {
       orderedStartIDs(index) = currentID
       orderedAtomSignatures(index) = signature
       index += 1
@@ -104,7 +113,7 @@ object AtomIdentifier {
     }
 
     // CWA predicates (Evidence predicates)
-    for ((signature, atomSchema) <- schema; if !isOWA(signature)) {
+    for ((signature, atomSchema) <- predicateSchema; if !isOWA(signature)) {
       orderedStartIDs(index) = currentID
       orderedAtomSignatures(index) = signature
       index += 1
@@ -119,6 +128,6 @@ object AtomIdentifier {
     }
 
 
-    new AtomIdentifier(identities, orderedAtomSignatures, orderedStartIDs, queryStartID, queryEndID)
+    new DomainSpace(identities, orderedAtomSignatures, orderedStartIDs, queryStartID, queryEndID)
   }
 }

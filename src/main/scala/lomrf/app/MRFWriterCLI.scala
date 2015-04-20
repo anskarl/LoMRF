@@ -69,8 +69,8 @@ object MRFWriterCLI extends Logging {
         case Some(paths) =>
           val implFinder = ImplFinder(classOf[DynamicAtomBuilder], classOf[DynamicFunctionBuilder])
           implFinder.searchPaths(paths)
-          MLN(strMLNFileName, strEvidenceFileName, opt.query, opt.cwa, opt.owa, pcm = Decomposed, dynamicDefinitions = Some(implFinder.result))
-        case None => MLN(strMLNFileName, strEvidenceFileName, opt.query, opt.cwa, opt.owa, pcm = Decomposed)
+          MLN(strMLNFileName, opt.query, Some(strEvidenceFileName), opt.cwa, opt.owa, pcm = Decomposed, dynamicDefinitions = Some(implFinder.result))
+        case None => MLN(strMLNFileName, opt.query, Some(strEvidenceFileName), opt.cwa, opt.owa, pcm = Decomposed)
       }
 
 

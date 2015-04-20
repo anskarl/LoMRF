@@ -32,8 +32,6 @@
 
 package lomrf.app
 
-import auxlib.log.Logging
-import auxlib.opt.OptionParser
 import lomrf.mln.model.MLN
 import lomrf.logic.AtomSignature
 import java.io.FileWriter
@@ -42,98 +40,110 @@ import java.io.FileWriter
  * Command-line tool for knowledge base difference checking. In particular with this tool we can perform
  * difference checking given two knowledge bases.
  */
-object KBDifferenceCLI extends Logging {
+object KBDifferenceCLI extends CLIApp {
 
-  def main(args: Array[String]) {
+  private def compare(source: IndexedSeq[String], evidence: IndexedSeq[String], prefixOpt: Option[String]) {
 
-    println(lomrf.ASCIILogo)
-    println(lomrf.BuildVersion)
+    if (source.size != evidence.size)
+      fatal("The number of input files and evidence files must be the same.")
 
-    val opt = new KBCOptions
-    if (args.length == 0) println(opt.usage)
-    else if (opt.parse(args)) {
+    // Iterator[(Seq[Source, Evidence], Index)]
+    val combinations = source.view.zip(evidence).combinations(2).zipWithIndex
 
-      compile(
-        opt.inputFileName.getOrElse(fatal("Please define the input files.")),
-        opt.evidenceFileName.getOrElse(fatal("Please define the evidence files.")),
-        opt.outputFileName.getOrElse(fatal("Please define the output file."))
-      )
+    val queryAtoms = Set.empty[AtomSignature]
+
+    val prefix = prefixOpt.map(_.trim) match {
+      case Some(p) if p.nonEmpty => p + "-"
+      case _ => ""
+    }
+
+    for {
+      (combination, index) <- combinations
+      (sourceAlpha, evidenceAlpha) = combination.head
+      (sourceBeta, evidenceBeta) = combination.last
+      mlnAlpha = MLN(sourceAlpha, queryAtoms, Some(evidenceAlpha))
+      mlnBeta = MLN(sourceBeta, queryAtoms, Some(evidenceBeta))} {
+
+      info(
+        "\nSource KB 1: " + sourceAlpha + "\n" +
+          "\tFound " + mlnAlpha.formulas.size + " formulas.\n" +
+          "\tFound " + mlnAlpha.schema.predicateSchema.size + " predicates.\n" +
+          "\tFound " + mlnAlpha.schema.functionSchema.size + " functions.\n" +
+          "\nSource KB 2: " + sourceBeta + "\n" +
+          "\tFound " + mlnBeta.formulas.size + " formulas.\n" +
+          "\tFound " + mlnBeta.schema.predicateSchema.size + " predicates.\n" +
+          "\tFound " + mlnBeta.schema.functionSchema.size + " functions.")
+
+      val targetFileName = prefix +
+        sourceAlpha.substring(0, sourceAlpha.lastIndexOf('.')) + "-" +
+        sourceBeta.substring(0, sourceBeta.lastIndexOf('.'))
+
+      val fileWriter = new FileWriter(targetFileName)
+
+      val diff1 = mlnAlpha.clauses.par.filter(x => !mlnBeta.clauses.contains(x))
+      val diff2 = mlnBeta.clauses.par.filter(x => !mlnAlpha.clauses.contains(x))
+
+      if (diff1.nonEmpty) {
+        fileWriter.write(s"KB 1 ($sourceAlpha) does not contain the following clauses:\n\n")
+        diff1.seq.foreach(clause => fileWriter.write(clause.toString + "\n"))
+      }
+
+      if (diff2.nonEmpty) {
+        fileWriter.write(s"KB 2 ($sourceBeta ) does not contain the following clauses:\n\n")
+        diff2.seq.foreach(clause => fileWriter.write(clause.toString + "\n"))
+      }
+
+      if (diff1.isEmpty && diff2.isEmpty) info("KBs are exactly the same!")
+
+      fileWriter.flush()
+      fileWriter.close()
 
     }
   }
 
-  def compile(source: Array[String], evidence: Array[String], target: String) {
+  var inputFileName: Option[IndexedSeq[String]] = None
+  var evidenceFileName: Option[IndexedSeq[String]] = None
+  var prefixOpt: Option[String] = None
 
-    if(source.length != 2)
-      fatal("Exactly two input files are required, in order to perform difference operation.")
-    else if(source(0) == target || source(1) == target)
-      fatal("Target file cannot be the same with either of the source files.")
+  opt("i", "input", "<files>", "At least two comma separated input files", {
+    v: String => if (v.nonEmpty) {
+      val fileNames = v.split(',').map(_.trim)
 
-    if(evidence.length != 2)
-      fatal("Exactly two evidence files are required, in order to perform difference operation.")
-    else if(evidence(0) == target || evidence(1) == target)
-      fatal("Target file cannot be the same with either of the evidence files.")
+      if (fileNames.length < 2)
+        fatal("At least two input files are required, in order to perform difference operation.")
 
-    val mln_1 = MLN(source(0), evidence(0), Set[AtomSignature]())
-    val mln_2 = MLN(source(1), evidence(1), Set[AtomSignature]())
-
-    // TODO: Check CNF
-    info("Checking CNF...")
-
-    info(
-      "\nSource KB: " + source(0) + "\n" +
-        "\tFound " + mln_1.formulas.size + " formulas.\n" +
-        "\tFound " + mln_1.schema.predicateSchema.size + " predicates.\n" +
-        "\tFound " + mln_1.schema.functionSchema.size + " functions.\n" +
-      "\nSource KB: " + source(1) + "\n" +
-        "\tFound " + mln_2.formulas.size + " formulas.\n" +
-        "\tFound " + mln_2.schema.predicateSchema.size + " predicates.\n" +
-        "\tFound " + mln_2.schema.functionSchema.size + " functions.")
-
-    val fileWriter = new FileWriter(target)
-
-    val diff1 = mln_1.clauses.par.filter(x => !mln_2.clauses.contains(x))
-    val diff2 = mln_2.clauses.par.filter(x => !mln_1.clauses.contains(x))
-
-    if(diff1.nonEmpty){
-      fileWriter.write("KB 1 (" + source(0) + ") does not contain the following clauses:\n\n")
-      diff1.seq.foreach(clause => fileWriter.write(clause.toString + "\n"))
+      inputFileName = Some(fileNames)
     }
+  })
 
-    if(diff2.nonEmpty){
-      fileWriter.write("KB 2(" + source(1) + ") does not contain the following clauses:\n\n")
-      diff2.seq.foreach(clause => fileWriter.write(clause.toString + "\n"))
+  opt("e", "evidence", "<db files>", "At least two comma separated evidence database files", {
+    v: String => if (v.nonEmpty) {
+      val fileNames = v.split(',').map(_.trim)
+
+      if (fileNames.length < 2)
+        fatal("At least two evidence files are required, in order to perform difference operation.")
+
+      evidenceFileName = Some(fileNames)
     }
+  })
 
-    if(diff1.isEmpty && diff2.isEmpty) info("KBs are exactly the same!")
+  opt("p", "prefix", "<string>", "Prefix for the output difference files (<prefix>-input_filename_1-input_filename_2.diff)", {
+    v: String => prefixOpt = Some(v.trim)
+  })
 
-    fileWriter.flush()
-    fileWriter.close()
+  flagOpt("h", "help", "Print usage options.", {
+    println(usage)
+    sys.exit(0)
+  })
 
-  }
+  if (args.length == 0) println(usage)
+  else if (parse(args)) {
+    compare(
+      inputFileName.getOrElse(fatal("Please define the input files.")),
+      evidenceFileName.getOrElse(fatal("Please define the evidence files.")),
+      prefixOpt
+    )
 
-  private class KBCOptions extends OptionParser {
-
-    var inputFileName: Option[Array[String]] = None
-    var evidenceFileName: Option[Array[String]] = None
-    var outputFileName: Option[String] = None
-
-    opt("i", "input", "<files>", "Two comma separated input files", {
-      v: String => if (!v.isEmpty) inputFileName = Some(v.split(',').map(_.trim))
-    })
-
-    opt("e", "evidence", "<db files>", "Two comma separated evidence database files", {
-      v: String => if (!v.isEmpty) evidenceFileName = Some(v.split(',').map(_.trim))
-    })
-
-    opt("o", "output", "<diff file>", "Output difference file", {
-      v: String => outputFileName = Some(v)
-    })
-
-    flagOpt("h", "help", "Print usage options.", {
-      println(usage)
-      sys.exit(0)
-    })
   }
 
 }

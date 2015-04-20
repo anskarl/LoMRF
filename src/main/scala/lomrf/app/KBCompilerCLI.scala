@@ -72,7 +72,7 @@ object KBCompilerCLI extends Logging {
 
       compile(
         opt.mlnFileName.getOrElse(fatal("Please define the input MLN file.")),
-        opt.evidenceFileName.getOrElse(""),
+        opt.evidenceFileName, //.getOrElse(""),
         opt.outputMLNFileName.getOrElse(fatal("Please define the output MLN file.")),
         opt.profile,
         opt.includeDomain,
@@ -88,7 +88,7 @@ object KBCompilerCLI extends Logging {
     }
   }
 
-  def compile(source: String, evidence: String, target: String, profile: Profile,
+  def compile(source: String, evidenceOpt: Option[String], target: String, profile: Profile,
               includeDomain: Boolean,
               includePredicateDefinitions: Boolean,
               includeFunctionDefinitions: Boolean,
@@ -108,8 +108,8 @@ object KBCompilerCLI extends Logging {
       case Some(paths) =>
         val implFinder = ImplFinder(classOf[DynamicAtomBuilder], classOf[DynamicFunctionBuilder])
         implFinder.searchPaths(paths)
-        MLN(source, evidence, Set[AtomSignature](), Set[AtomSignature](), Set[AtomSignature](), pcm, dynamicDefinitions = Some(implFinder.result))
-      case None => MLN(source, evidence, Set[AtomSignature](), Set[AtomSignature](), Set[AtomSignature](), pcm)
+        MLN(source, Set[AtomSignature](), evidenceOpt, Set[AtomSignature](), Set[AtomSignature](), pcm, dynamicDefinitions = Some(implFinder.result))
+      case None => MLN(source, Set[AtomSignature](), evidenceOpt, Set[AtomSignature](), Set[AtomSignature](), pcm)
     }
 
     info(

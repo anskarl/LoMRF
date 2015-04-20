@@ -45,8 +45,6 @@ import auxlib.log.Logging
 
 /**
  * Command-line tool for inference.
- *
- *
  */
 object InferenceCLI extends OptionParser with Logging {
 
@@ -57,7 +55,7 @@ object InferenceCLI extends OptionParser with Logging {
   private var _resultsFileName: Option[String] = None
 
   // Input evidence file(s) (path)
-  private var _evidenceFileNames: Option[List[String]] = None
+  private var _evidenceFileNames: List[String] = Nil
 
   // The set of query atoms (in the form of AtomName/Arity)
   private var _queryAtoms = Set[AtomSignature]()
@@ -167,7 +165,7 @@ object InferenceCLI extends OptionParser with Logging {
   })
 
   opt("e", "evidence", "<db file(s)>", "Comma separated evidence database files.", {
-    v: String => _evidenceFileNames = Some(v.split(',').toList)
+    v: String => _evidenceFileNames = v.split(',').toList
   })
 
   opt("r", "result", "<result file>", "Results file", {
@@ -314,7 +312,8 @@ object InferenceCLI extends OptionParser with Logging {
 
     // First load the KB and the evidence files
     val strMLNFileName = _mlnFileName.getOrElse(fatal("Please specify an input MLN file."))
-    val strEvidenceFileNames = _evidenceFileNames.getOrElse(fatal("Please specify input evidence file(s)."))
+    if(_evidenceFileNames.isEmpty) warn("You haven't specified any evidence file.")
+
     val resultsWriter = _resultsFileName match {
       case Some(fileName) => new PrintStream(new FileOutputStream(fileName), true)
       case None => System.out
@@ -351,8 +350,8 @@ object InferenceCLI extends OptionParser with Logging {
         case Some(paths) =>
           val implFinder = ImplFinder(classOf[DynamicAtomBuilder], classOf[DynamicFunctionBuilder])
           implFinder.searchPaths(paths)
-          MLN(strMLNFileName, strEvidenceFileNames, _queryAtoms, _cwa, _owa, pcm = Decomposed, dynamicDefinitions = Some(implFinder.result), domainPart =_domainPartition)
-        case None => MLN(strMLNFileName, strEvidenceFileNames, _queryAtoms, _cwa, _owa, pcm = Decomposed, dynamicDefinitions = None, domainPart =_domainPartition)
+          MLN(strMLNFileName, _evidenceFileNames, _queryAtoms, _cwa, _owa, pcm = Decomposed, dynamicDefinitions = Some(implFinder.result), domainPart =_domainPartition)
+        case None => MLN(strMLNFileName, _evidenceFileNames, _queryAtoms, _cwa, _owa, pcm = Decomposed, dynamicDefinitions = None, domainPart =_domainPartition)
       }
 
 

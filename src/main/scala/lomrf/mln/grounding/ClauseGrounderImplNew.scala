@@ -397,7 +397,7 @@ object ClauseGrounderImplNew {
 
     val orderedIdentityFunctions =
       orderedLiterals
-        .map(literal => mln.identityFunctions(literal.sentence.signature))
+        .map(literal => mln.space.identities(literal.sentence.signature))
 
 
     // Collect literals with open-world assumption

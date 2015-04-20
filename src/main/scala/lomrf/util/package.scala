@@ -146,7 +146,7 @@ package object util {
   def decodeLiteral(literal: Int)(implicit mln: MLN): Option[String] = {
     val atomID = math.abs(literal)
     val signature = signatureOf(atomID)
-    val idf = mln.identityFunctions(signature)
+    val idf = mln.space.identities(signature)
     idf.decode(atomID) match{
       case Some(x) => Some((if(literal < 0)"!" else "") + signature.symbol+"("+x.map((t: String) => t).reduceLeft( _ + "," + _ )+")")
       case _ => None
@@ -156,7 +156,7 @@ package object util {
   def decodeAtom(literal: Int)(implicit mln: MLN): Option[String] = {
     val atomID = math.abs(literal)
     val signature = signatureOf(atomID)
-    val idf = mln.identityFunctions(signature)
+    val idf = mln.space.identities(signature)
     idf.decode(atomID) match{
       case Some(x) => Some( signature.symbol+"("+x.map((t: String) => t).reduceLeft( _ + "," + _ )+")")
       case _ => None
@@ -197,10 +197,10 @@ package object util {
   def signatureOf(literal: Int)(implicit mln: MLN): AtomSignature = {
 
     val atomID = math.abs(literal)
-    val result = java.util.Arrays.binarySearch(mln.orderedStartIDs, atomID)
+    val result = java.util.Arrays.binarySearch(mln.space.orderedStartIDs, atomID)
     val position = if(result < 0) (-result) - 2 else result
 
-    mln.orderedAtomSignatures(position)
+    mln.space.orderedAtomSignatures(position)
   }
 
 

@@ -348,7 +348,7 @@ final class ILP(mrf: MRF, annotationDB: Map[AtomSignature, AtomEvidenceDB] = Map
     while (iterator.hasNext) {
       iterator.advance()
       val atomID = iterator.key()
-      if (atomID >= mln.queryStartID && atomID <= mln.queryEndID) {
+      if (atomID >= mln.space.queryStartID && atomID <= mln.space.queryEndID) {
         val groundAtom = iterator.value()
         val state = if(groundAtom.getState) 1 else 0
         if(outputAll) decodeAtom(iterator.key()) match {

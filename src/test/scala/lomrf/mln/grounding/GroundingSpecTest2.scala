@@ -35,24 +35,22 @@ package lomrf.mln.grounding
 import auxlib.log.Logging
 import gnu.trove.set.hash.TIntHashSet
 import lomrf.logic.{AtomSignature, KBParser, _}
-import lomrf.mln.model.{AtomIdentifier, MLN}
+import lomrf.mln.model.{DomainSchema, DomainSpace, MLN}
 import lomrf.tests.ECExampleDomain1._
 import lomrf.util.{FunctionMapper, AtomIdentityFunction, AtomEvidenceDB, ConstantsSet}
 import org.scalatest.{FunSpec, Matchers}
-import scala.annotation.tailrec
 import scala.collection.breakOut
 import scala.{collection => sc}
 
 
-/**
- *
- */
 class GroundingSpecTest2 extends FunSpec with Matchers with Logging {
 
 
   private val parser = new KBParser(predicateSchema, functionsSchema)
 
-  private val atomIdentifier = AtomIdentifier(predicateSchema, constants, queryAtoms, hiddenAtoms)
+  private val schema = DomainSchema(predicateSchema, functionsSchema, queryAtoms, cwa, owa)
+
+  private val atomIdentifier = DomainSpace(schema,constants)
 
   // Manually create sample evidence
   private val atomStateDB: Map[AtomSignature, AtomEvidenceDB] = {
@@ -105,22 +103,17 @@ class GroundingSpecTest2 extends FunSpec with Matchers with Logging {
       clause.variables.size should be(3)
     }*/
 
-    val mln = new MLN(
-      formulas = Set(formula),
-      predicateSchema,
-      functionsSchema,
-      dynamicAtoms,
-      dynamicFunctions,
-      constants,
-      functionMappers,
-      queryAtoms,
-      cwa,
-      owa,
-      probabilisticAtoms = Set.empty[AtomSignature],
-      tristateAtoms = Set.empty[AtomSignature],
-      atomStateDB,
-      atomIdentifier
-    )
+    val mln =  new MLN(
+          schema,
+          formulas = Set(formula),
+          dynamicAtoms,
+          dynamicFunctions,
+          constants,
+          functionMappers,
+          probabilisticAtoms = Set.empty[AtomSignature],
+          tristateAtoms = Set.empty[AtomSignature],
+          atomStateDB
+        )
 
 
     val orderedLiterals =
@@ -342,7 +335,7 @@ class GroundingSpecTest2 extends FunSpec with Matchers with Logging {
     theta(1) = theta(1) - 1
 
     // step 1: get AtomIdentityFunctions (code is from ClauseGrounderImplNew.apply())
-    val orderedIdentityFunctions = orderedLiterals.map(literal => mln.identityFunctions(literal.sentence.signature))
+    val orderedIdentityFunctions = orderedLiterals.map(literal => mln.space.identities(literal.sentence.signature))
 
 
     // step 2: Creation of substitution functions for each literal
