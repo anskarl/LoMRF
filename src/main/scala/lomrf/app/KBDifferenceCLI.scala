@@ -41,9 +41,6 @@ import java.io.FileWriter
 /**
  * Command-line tool for knowledge base difference checking. In particular with this tool we can perform
  * difference checking given two knowledge bases.
- *
- *
- *
  */
 object KBDifferenceCLI extends Logging {
 
@@ -86,12 +83,12 @@ object KBDifferenceCLI extends Logging {
     info(
       "\nSource KB: " + source(0) + "\n" +
         "\tFound " + mln_1.formulas.size + " formulas.\n" +
-        "\tFound " + mln_1.predicateSchema.size + " predicates.\n" +
-        "\tFound " + mln_1.functionSchema.size + " functions.\n" +
+        "\tFound " + mln_1.schema.predicateSchema.size + " predicates.\n" +
+        "\tFound " + mln_1.schema.functionSchema.size + " functions.\n" +
       "\nSource KB: " + source(1) + "\n" +
         "\tFound " + mln_2.formulas.size + " formulas.\n" +
-        "\tFound " + mln_2.predicateSchema.size + " predicates.\n" +
-        "\tFound " + mln_2.functionSchema.size + " functions.")
+        "\tFound " + mln_2.schema.predicateSchema.size + " predicates.\n" +
+        "\tFound " + mln_2.schema.functionSchema.size + " functions.")
 
     val fileWriter = new FileWriter(target)
 

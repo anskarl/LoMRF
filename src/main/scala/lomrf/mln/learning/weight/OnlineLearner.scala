@@ -365,27 +365,27 @@ final class OnlineLearner(mln: MLN, algorithm: Algorithm, lossAugmented: Boolean
     val numFormat = new DecimalFormat("0.############")
 
     out.println("// Predicate definitions")
-    for ((signature, args) <- mln.predicateSchema) {
+    for ((signature, args) <- mln.schema.predicateSchema) {
       val line = signature.symbol + (
         if (args.isEmpty) "\n"
-        else "(" + args.map(_.toString).reduceLeft((left, right) => left + "," + right) + ")\n")
+        else "(" + args.mkString(",") + ")\n")
       out.print(line)
     }
 
-    if(mln.functionSchema.nonEmpty) {
+    if(mln.schema.functionSchema.nonEmpty) {
       out.println("\n// Functions definitions")
-      for ((signature, (retType, args)) <- mln.functionSchema) {
-        val line = retType + " " + signature.symbol + "(" + args.map(_.toString).reduceLeft((left, right) => left + "," + right) + ")\n"
+      for ((signature, (retType, args)) <- mln.schema.functionSchema) {
+        val line = retType + " " + signature.symbol + "(" + args.mkString(",") + ")\n"
         out.print(line)
       }
     }
 
     val clauses = mln.clauses
     out.println("\n// Clauses")
-    for(clauseIdx <- 0 until clauses.size) {
+    for(clauseIdx <- clauses.indices) {
       if(clauses(clauseIdx).isHard)
         out.println(clauses(clauseIdx).literals.map(_.toText).reduceLeft(_ + " v " + _) + ".\n")
-      else out.println(numFormat.format(weights(clauseIdx)) + " " + clauses(clauseIdx).literals.map(_.toText).reduceLeft(_ + " v " + _) + "\n")
+      else out.println(numFormat.format(weights(clauseIdx)) + " " + clauses(clauseIdx).literals.mkString(" v ") + "\n")
     }
   }
 

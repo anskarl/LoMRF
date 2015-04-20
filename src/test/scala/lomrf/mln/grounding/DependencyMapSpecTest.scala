@@ -69,11 +69,11 @@ class DependencyMapSpecTest extends FunSpec with Matchers {
     }
 
     it("should contain 5 predicate schemas") {
-      mln.predicateSchema.size shouldBe 5
+      mln.schema.predicateSchema.size shouldBe 5
     }
 
     it("should not contain any function schemas") {
-      mln.functionSchema.size shouldBe 0
+      mln.schema.functionSchema.size shouldBe 0
     }
   }
 

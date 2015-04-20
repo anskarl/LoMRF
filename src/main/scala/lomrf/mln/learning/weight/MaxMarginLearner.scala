@@ -33,6 +33,7 @@
 package lomrf.mln.learning.weight
 
 import java.text.DecimalFormat
+import java.util
 import lomrf.mln.learning.weight.LossFunction.LossFunction
 import lomrf.mln.inference.Solver.Solver
 import lomrf.mln.inference.{Solver, ILP}
@@ -481,27 +482,26 @@ final class MaxMarginLearner(mrf: MRF, annotationDB: Map[AtomSignature, AtomEvid
     val numFormat = new DecimalFormat("0.############")
 
     out.println("// Predicate definitions")
-    for ((signature, args) <- mrf.mln.predicateSchema) {
+    for ((signature, args) <- mrf.mln.schema.predicateSchema) {
       val line = signature.symbol + (
         if (args.isEmpty) "\n"
-        else "(" + args.map(_.toString).reduceLeft((left, right) => left + "," + right) + ")\n")
+        else "(" + args.mkString(",") + ")\n")
       out.print(line)
     }
 
-    if(mrf.mln.functionSchema.nonEmpty) {
+    if(mrf.mln.schema.functionSchema.nonEmpty) {
       out.println("\n// Functions definitions")
-      for ((signature, (retType, args)) <- mrf.mln.functionSchema) {
-        val line = retType + " " + signature.symbol + "(" + args.map(_.toString).reduceLeft((left, right) => left + "," + right) + ")\n"
+      for ((signature, (retType, args)) <- mrf.mln.schema.functionSchema) {
+        val line = retType + " " + signature.symbol + "(" + args.mkString(",") + ")\n"
         out.print(line)
       }
     }
 
     val clauses = mrf.mln.clauses
     out.println("\n// Clauses")
-    for(clauseIdx <- 0 until clauses.size) {
-      if(clauses(clauseIdx).isHard)
-        out.println(clauses(clauseIdx).literals.map(_.toText).reduceLeft(_ + " v " + _) + ".\n")
-      else out.println(numFormat.format(weights(clauseIdx)) + " " + clauses(clauseIdx).literals.map(_.toText).reduceLeft(_ + " v " + _) + "\n")
+    for(clauseIdx <- clauses.indices) {
+      if(clauses(clauseIdx).isHard) out.println(clauses(clauseIdx).literals.mkString(" v ") + ".\n")
+      else out.println(numFormat.format(weights(clauseIdx)) + " " + clauses(clauseIdx).literals.mkString(" v ") + "\n")
     }
   }
 

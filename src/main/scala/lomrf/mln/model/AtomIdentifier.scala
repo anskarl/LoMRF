@@ -37,16 +37,11 @@ import lomrf.logic.AtomSignature
 import lomrf.util.{AtomIdentityFunction, ConstantsSet}
 
 /**
- *
- *
- *
  * @param identities a map that associates atom signatures to their corresponding identity functions
  * @param orderedAtomSignatures the order of atom signatures according to the complete domain of groundings
  * @param orderedStartIDs the fist index for each atom in the complete domain of groundings
  * @param queryStartID the first index of ground query atom in the MRF
  * @param queryEndID the last index of ground query atom in the MRF
- *
- *
  */
 final class AtomIdentifier private(val identities: Map[AtomSignature, AtomIdentityFunction],
                                    val orderedAtomSignatures: Array[AtomSignature],

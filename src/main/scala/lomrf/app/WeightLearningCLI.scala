@@ -44,9 +44,6 @@ import lomrf.util.{Utilities, parseAtomSignature}
 
 /**
  * Command-line tool for weight learning
- *
- *
- *
  */
 object WeightLearningCLI extends OptionParser with Logging {
 
@@ -273,10 +270,10 @@ object WeightLearningCLI extends OptionParser with Logging {
 
       info("Markov Logic:"
         + "\n\tConstant domains   : " + mln.constants.size
-        + "\n\tSchema definitions : " + mln.predicateSchema.size
+        + "\n\tSchema definitions : " + mln.schema.predicateSchema.size
         + "\n\tFormulas           : " + mln.formulas.size
-        + "\n\tEvidence atoms     : " + mln.cwa.map(_.toString).reduceLeft((left, right) => left + "," + right)
-        + "\n\tNon-evidence atoms : " + mln.owa.map(_.toString).reduceLeft((left, right) => left + "," + right))
+        + "\n\tEvidence atoms     : " + mln.schema.cwa.mkString(",")
+        + "\n\tNon-evidence atoms : " + mln.schema.owa.mkString(","))
 
       info("AnnotationDB: "
         + "\n\tAtoms with annotations: " + annotationDB.keys.map(_.toString).reduceLeft((left, right) => left + "," + right)
@@ -303,19 +300,19 @@ object WeightLearningCLI extends OptionParser with Logging {
       var learner: OnlineLearner = null
       val start = System.currentTimeMillis()
 
-      for (step <- 0 until strTrainingFileNames.length) {
+      for (step <- strTrainingFileNames.indices) {
 
         val (mln, annotationDB) = MLN.learning(strMLNFileName, List(strTrainingFileNames(step)), _nonEvidenceAtoms, addUnitClauses = _addUnitClauses)
 
         info("Markov Logic:"
           + "\n\tConstant domains   : " + mln.constants.size
-          + "\n\tSchema definitions : " + mln.predicateSchema.size
+          + "\n\tSchema definitions : " + mln.schema.predicateSchema.size
           + "\n\tFormulas           : " + mln.formulas.size
-          + "\n\tEvidence atoms     : " + mln.cwa.map(_.toString).reduceLeft((left, right) => left + "," + right)
-          + "\n\tNon-evidence atoms : " + mln.owa.map(_.toString).reduceLeft((left, right) => left + "," + right))
+          + "\n\tEvidence atoms     : " + mln.schema.cwa.mkString(",")
+          + "\n\tNon-evidence atoms : " + mln.schema.owa.mkString(","))
 
         info("AnnotationDB: "
-          + "\n\tAtoms with annotations: " + annotationDB.keys.map(_.toString).reduceLeft((left, right) => left + "," + right)
+          + "\n\tAtoms with annotations: " + annotationDB.keys.mkString(",")
         )
 
         info("Number of CNF clauses = " + mln.clauses.size)

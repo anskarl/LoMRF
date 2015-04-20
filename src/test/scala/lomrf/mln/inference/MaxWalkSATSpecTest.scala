@@ -90,11 +90,11 @@ final class MaxWalkSATSpecTest extends FunSpec with Matchers {
     }
 
     it(s"should contain ${stats("mln.predicateSchema.size")} predicate schemas") {
-      mln.predicateSchema.size should be(stats("mln.predicateSchema.size").toInt)
+      mln.schema.predicateSchema.size should be(stats("mln.predicateSchema.size").toInt)
     }
 
     it(s"should contain ${stats("mln.functionSchema.size")} function schemas") {
-      mln.functionSchema.size should be(stats("mln.functionSchema.size").toInt)
+      mln.schema.functionSchema.size should be(stats("mln.functionSchema.size").toInt)
     }
 
     info("Creating MRF...")

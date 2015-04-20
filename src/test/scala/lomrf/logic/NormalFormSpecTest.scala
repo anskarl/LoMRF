@@ -271,8 +271,8 @@ final class NormalFormSpecTest extends FunSpec with Matchers{
 
     info("Found " + mln.formulas.size + " formulas")
     info("Found " + mln.constants.size + " constant types")
-    info("Found " + mln.predicateSchema.size + " predicate schemas")
-    info("Found " + mln.functionSchema.size + " function schemas")
+    info("Found " + mln.schema.predicateSchema.size + " predicate schemas")
+    info("Found " + mln.schema.functionSchema.size + " function schemas")
 
     it("should contain 14 formulas"){
       mln.formulas.size should be (14)
@@ -281,7 +281,7 @@ final class NormalFormSpecTest extends FunSpec with Matchers{
         f <- mln.formulas
         clauses = f.toCNF(constants)} {
         clInfo("Formula '" + f.toText + "'", clauses)
-        assert(clauses.size > 0)
+        assert(clauses.nonEmpty)
       }
     }
 
@@ -290,11 +290,11 @@ final class NormalFormSpecTest extends FunSpec with Matchers{
     }
 
     it("should contain 8 predicate schemas"){
-      mln.predicateSchema.size should be (8)
+      mln.schema.predicateSchema.size should be (8)
     }
 
     it("should contain 11 function schemas"){
-      mln.functionSchema.size should be (11)
+      mln.schema.functionSchema.size should be (11)
     }
   }
 

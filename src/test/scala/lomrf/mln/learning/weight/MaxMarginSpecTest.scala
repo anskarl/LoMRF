@@ -63,11 +63,11 @@ final class MaxMarginSpecTest extends FunSpec with Matchers with PrivateMethodTe
     }
 
     it("should contain 4 predicate schemas") {
-      mln.predicateSchema.size shouldBe 4
+      mln.schema.predicateSchema.size shouldBe 4
     }
 
     it("should not contain any function schemas") {
-      mln.functionSchema.size shouldBe 0
+      mln.schema.functionSchema.size shouldBe 0
     }
   }
 
@@ -116,7 +116,7 @@ final class MaxMarginSpecTest extends FunSpec with Matchers with PrivateMethodTe
     val dependencyMap = mrf.dependencyMap.getOrElse(sys.error("Dependency map does not exist!"))
 
     // Set manually dummy weights to the learner
-    for (i <- 0 until learner.weights.size) learner.weights(i) = (i + 1) * 2
+    for (i <- learner.weights.indices) learner.weights(i) = (i + 1) * 2
     info("Weights: [" + learner.weights.deep.mkString(", ") + "]")
 
     // Update ground constraints using the weights

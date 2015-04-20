@@ -45,8 +45,6 @@ import lomrf.util.ImplFinder
 /**
  * Command-line tool for knowledge compilation. In particular with this tool we can perform
  * predicate completion, CNF transformation, FOL function transformation, as well as weights elimination.
- *
- *
  */
 object KBCompilerCLI extends Logging {
 
@@ -117,8 +115,8 @@ object KBCompilerCLI extends Logging {
     info(
       "\nSource MLN: " + source + "\n" +
         "\tFound " + mln.formulas.size + " formulas.\n" +
-        "\tFound " + mln.predicateSchema.size + " predicates.\n" +
-        "\tFound " + mln.functionSchema.size + " functions.")
+        "\tFound " + mln.schema.predicateSchema.size + " predicates.\n" +
+        "\tFound " + mln.schema.functionSchema.size + " functions.")
 
 
     val fileWriter = new FileWriter(target)
@@ -128,19 +126,17 @@ object KBCompilerCLI extends Logging {
     // write domain data
     if (includeDomain && mln.constants.nonEmpty) {
       write("// Domain\n")
-      for ((name, constants) <- mln.constants; if !constants.isEmpty) {
-        write(name + "={" + constants.map(_.toString).reduceLeft((left, right) => left + "," + right) + "}\n")
-      }
+      for ((name, constants) <- mln.constants; if constants.nonEmpty) write(name + "={" + constants.mkString(",") + "}\n")
       write("\n")
     }
 
     // write predicate definitions. In case we introduce functions do not write function predicates (beginning with function prefix)
-    if (includePredicateDefinitions && mln.predicateSchema.nonEmpty) {
+    if (includePredicateDefinitions && mln.schema.predicateSchema.nonEmpty) {
       write("// Predicate definitions\n")
-      for ((signature, args) <- mln.predicateSchema ; if !introduceFunctions || !signature.symbol.contains(profile.functionPrefix)) {
+      for ((signature, args) <- mln.schema.predicateSchema ; if !introduceFunctions || !signature.symbol.contains(profile.functionPrefix)) {
         val line = signature.symbol + (
           if (args.isEmpty) "\n"
-          else "(" + args.map(_.toString).reduceLeft((left, right) => left + "," + right) + ")\n")
+          else "(" + args.mkString(",") + ")\n")
         write(line)
       }
       write("\n")
@@ -148,27 +144,27 @@ object KBCompilerCLI extends Logging {
 
     // write function definitions or functions as predicates
     if (includeFunctionDefinitions) {
-      if (eliminateFunctions && mln.functionSchema.nonEmpty) { // in order to eliminate functions, functions must exist
+      if (eliminateFunctions && mln.schema.functionSchema.nonEmpty) { // in order to eliminate functions, functions must exist
         write("// Function definitions as predicates\n")
-        for ((signature, (retType, args)) <- mln.functionSchema) {
-          val predicate = profile.functionPrefix + signature.symbol + "(" + retType + "," + args.map(_.toString).reduceLeft((left, right) => left + "," + right) + ")\n"
+        for ((signature, (retType, args)) <- mln.schema.functionSchema) {
+          val predicate = profile.functionPrefix + signature.symbol + "(" + retType + "," + args.mkString(",") + ")\n"
           write(predicate)
         }
       }
       else if(introduceFunctions) {
         write("// Function definitions\n")
-        for ((signature, args) <- mln.predicateSchema) {
+        for ((signature, args) <- mln.schema.predicateSchema) {
           if(signature.symbol.contains(profile.functionPrefix)) {
-            val function = args(0) + " " + signature.symbol.replace(profile.functionPrefix, "") + "(" + args.drop(1).map(_.toString).reduceLeft((left, right) => left + "," + right) + ")\n"
+            val function = args(0) + " " + signature.symbol.replace(profile.functionPrefix, "") + "(" + args.drop(1).mkString(",") + ")\n"
             write(function)
           }
         }
         write("\n")
       }
-      else if(mln.functionSchema.nonEmpty) { // in order to write functions definitions, functions must exist
+      else if(mln.schema.functionSchema.nonEmpty) { // in order to write functions definitions, functions must exist
         write("// Function definitions\n")
-        for ((signature, (retType, args)) <- mln.functionSchema) {
-          val line = retType + " " + signature.symbol + "(" + args.map(_.toString).reduceLeft((left, right) => left + "," + right) + ")\n"
+        for ((signature, (retType, args)) <- mln.schema.functionSchema) {
+          val line = retType + " " + signature.symbol + "(" + args.mkString(",") + ")\n"
           write(line)
         }
       }
@@ -234,7 +230,7 @@ object KBCompilerCLI extends Logging {
           //
           // Just write the given clause as it is (no functions elimination or introduction)
           //
-          case NormalProfile if !(eliminateFunctions || introduceFunctions) => clause.literals.map(_.toText).reduceLeft(_ + " v " + _)
+          case NormalProfile if !(eliminateFunctions || introduceFunctions) => clause.literals.view.map(_.toText).mkString(" v ")
 
           //
           // Replace all functions in the given clause with utility predicates
@@ -282,22 +278,22 @@ object KBCompilerCLI extends Logging {
               literalsNoFunctions.foreach(literal => results2 = literal :: results2)
               replacedLiterals.foreach(literal => results2 = literal :: results2)
               fMap.values.foreach(entry => results2 = entry._2 :: results2)
-              results2.map(_.toText).reduceLeft(_ + " v " + _)*/
+              results2.map(_.toText).mkString(" v ")*/
 
               var results =
                 if (literalsNoFunctions.nonEmpty)
-                  List[String](literalsNoFunctions.map(_.toText).reduceLeft(_ + " v " + _))
+                  List[String](literalsNoFunctions.map(_.toText).mkString(" v "))
                 else List[String]()
 
               if (replacedLiterals.nonEmpty)
-                results = results ::: List[String](replacedLiterals.map(_.toText).reduceLeft(_ + " v " + _))
+                results = results ::: List[String](replacedLiterals.map(_.toText).mkString(" v "))
 
               if (fMap.nonEmpty)
-                results = results ::: List[String](fMap.values.map(_._2.toText).reduceLeft(_ + " v " + _))
+                results = results ::: List[String](fMap.values.map(_._2.toText).mkString(" v "))
 
-              results.reduceLeft(_ + " v " + _)
+              results.mkString(" v ")
             }
-            else literalsNoFunctions.map(_.toText).reduceLeft(_ + " v " + _)
+            else literalsNoFunctions.map(_.toText).mkString(" v ")
 
           //
           // Replace all function predicates in the given clause with actual functions
@@ -339,12 +335,12 @@ object KBCompilerCLI extends Logging {
 
               val results =
                 if(replacedLiterals.nonEmpty)
-                  List[String](replacedLiterals.map(_.toText).reduceLeft(_ + " v " + _))
+                  List[String](replacedLiterals.map(_.toText).mkString(" v "))
                 else List[String]()
 
-              results.reduceLeft(_ + " v " + _)
+              results.mkString(" v ")
             }
-            else literalsNoFunctions.map(_.toText).reduceLeft(_ + " v " + _)
+            else literalsNoFunctions.map(_.toText).mkString(" v ")
         }
 
       weightsMode match {

@@ -242,7 +242,7 @@ class GroundingSpecTest2 extends FunSpec with Matchers with Logging {
     val thetaDomains = new Array[String](clause.variables.size + clause.constants.size)
 
     val (flatTerms, domain2ConstantSets, functionSchema) =
-      mkFlatTermDomains(orderedLiterals, mln.predicateSchema, mln.functionSchema, mln.constants)
+      mkFlatTermDomains(orderedLiterals, mln.schema.predicateSchema, mln.schema.functionSchema, mln.constants)
     var term2Pos = Map[Term, Int]()
 
 
