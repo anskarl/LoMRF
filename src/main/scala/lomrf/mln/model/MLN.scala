@@ -35,7 +35,6 @@ package lomrf.mln.model
 import auxlib.log.Logging
 import lomrf.logic._
 import lomrf.util._
-import scala.collection
 import scala.collection.breakOut
 
 /**
@@ -61,17 +60,17 @@ import scala.collection.breakOut
  */
 final class MLN(
            val formulas: Set[Formula],
-           val predicateSchema: collection.Map[AtomSignature, collection.Seq[String]],
-           val functionSchema: collection.Map[AtomSignature, (String, Vector[String])],
+           val predicateSchema: Map[AtomSignature, Seq[String]],
+           val functionSchema: Map[AtomSignature, (String, Vector[String])],
            val dynamicPredicates: Map[AtomSignature, Vector[String] => Boolean],
            val dynamicFunctions: Map[AtomSignature, Vector[String] => String],
            val constants: Map[String, ConstantsSet],
            val functionMappers: Map[AtomSignature, FunctionMapper],
-           val queryAtoms: collection.Set[AtomSignature],
-           val cwa: collection.Set[AtomSignature],
-           val owa: collection.Set[AtomSignature],
-           val probabilisticAtoms: collection.Set[AtomSignature],
-           val tristateAtoms: collection.Set[AtomSignature],
+           val queryAtoms: Set[AtomSignature],
+           val cwa: Set[AtomSignature],
+           val owa: Set[AtomSignature],
+           val probabilisticAtoms: Set[AtomSignature],
+           val tristateAtoms: Set[AtomSignature],
            val identityFunctions: Map[AtomSignature, AtomIdentityFunction],
            val atomStateDB: Map[AtomSignature, AtomEvidenceDB],
            val orderedStartIDs: Array[Int],
@@ -80,19 +79,20 @@ final class MLN(
            val queryEndID: Int) {
 
   def this(formulas: Set[Formula],
-           predicateSchema: collection.Map[AtomSignature, collection.Seq[String]],
-           functionSchema: collection.Map[AtomSignature, (String, Vector[String])],
+           predicateSchema: Map[AtomSignature, Seq[String]],
+           functionSchema: Map[AtomSignature, (String, Vector[String])],
            dynamicPredicates: Map[AtomSignature, Vector[String] => Boolean],
            dynamicFunctions: Map[AtomSignature, Vector[String] => String],
            constants: Map[String, ConstantsSet],
            functionMappers: Map[AtomSignature, FunctionMapper],
-           queryAtoms: collection.Set[AtomSignature],
-           cwa: collection.Set[AtomSignature],
-           owa: collection.Set[AtomSignature],
-           probabilisticAtoms: collection.Set[AtomSignature],
-           tristateAtoms: collection.Set[AtomSignature],
+           queryAtoms: Set[AtomSignature],
+           cwa: Set[AtomSignature],
+           owa: Set[AtomSignature],
+           probabilisticAtoms: Set[AtomSignature],
+           tristateAtoms: Set[AtomSignature],
            atomStateDB: Map[AtomSignature, AtomEvidenceDB],
            atomIdentifier: AtomIdentifier) = {
+
     this(formulas, predicateSchema, functionSchema, dynamicPredicates, dynamicFunctions,
       constants, functionMappers, queryAtoms, cwa, owa, probabilisticAtoms, tristateAtoms,
       atomIdentifier.identities, atomStateDB, atomIdentifier.orderedStartIDs, atomIdentifier.orderedAtomSignatures,
@@ -248,8 +248,8 @@ object MLN extends Logging {
   def apply(mlnFileName: String,
             evidenceFileName: String,
             queryAtoms: Set[AtomSignature],
-            cwa: collection.Set[AtomSignature] = Set(),
-            owa: collection.Set[AtomSignature] = Set(),
+            cwa: Set[AtomSignature] = Set(),
+            owa: Set[AtomSignature] = Set(),
             pcm: PredicateCompletionMode = Simplification,
             dynamicDefinitions: Option[ImplFinder.ImplementationsMap] = None,
             domainPart:Boolean = false): MLN = {
@@ -260,8 +260,8 @@ object MLN extends Logging {
   def apply(mlnFileName: String,
             evidenceFileNames: List[String],
             queryAtoms: Set[AtomSignature],
-            cwa: collection.Set[AtomSignature],
-            owa: collection.Set[AtomSignature],
+            cwa: Set[AtomSignature],
+            owa: Set[AtomSignature],
             pcm: PredicateCompletionMode,
             dynamicDefinitions: Option[ImplFinder.ImplementationsMap],
             domainPart: Boolean): MLN = {
@@ -275,7 +275,7 @@ object MLN extends Logging {
     //parse knowledge base (.mln)
     val kb = KB(mlnFileName, pcm, dynamicDefinitions)
 
-    val atomSignatures: collection.Set[AtomSignature] = kb.predicateSchema.keySet
+    val atomSignatures: Set[AtomSignature] = kb.predicateSchema.keySet
 
     /**
      * Check if the schema of all Query and OWA atoms is defined in the MLN file
@@ -354,7 +354,7 @@ object MLN extends Logging {
 
   def learning(mlnFileName: String,
             trainingFileNames: List[String],
-            nonEvidenceAtoms: collection.Set[AtomSignature],
+            nonEvidenceAtoms: Set[AtomSignature],
             pcm: PredicateCompletionMode = Decomposed,
             dynamicDefinitions: Option[ImplFinder.ImplementationsMap] = None,
             addUnitClauses: Boolean = false): (MLN, Map[AtomSignature, AtomEvidenceDB]) = {
@@ -367,7 +367,7 @@ object MLN extends Logging {
     //parse knowledge base (.mln)
     val kb = KB(mlnFileName, pcm, dynamicDefinitions)
 
-    val atomSignatures: collection.Set[AtomSignature] = kb.predicateSchema.keySet
+    val atomSignatures: Set[AtomSignature] = kb.predicateSchema.keySet
 
     /**
      * Check if the schema of all Non-Evidence atoms is defined in the MLN file
