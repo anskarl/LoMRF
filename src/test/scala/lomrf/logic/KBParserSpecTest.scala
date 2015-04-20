@@ -37,7 +37,7 @@ import lomrf.util.ConstantsSet
 import org.scalatest.{Matchers, FunSpec}
 
 /**
- *
+ * A series of spec tests for knowledge base parsing, e.g., predicates, formulas, weighted formulas, etc.
  */
 final class KBParserSpecTest extends FunSpec with Matchers {
 

@@ -42,9 +42,6 @@ import scala.io.Source
 
 /**
  * Specification test for MaxWalkSAT algorithm used for MAP inference.
- *
- *
- *
  */
 final class MaxWalkSATSpecTest extends FunSpec with Matchers {
 

@@ -56,7 +56,7 @@ import lomrf.util.{ ImplFinder, ConstantsSetBuilder}
 private[model] class KB(val constants: mutable.HashMap[String, ConstantsSetBuilder],
                         val predicateSchema: Map[AtomSignature, Seq[String]],
                         val functionSchema: Map[AtomSignature, (String, Vector[String])],
-                        val formulas: collection.Set[Formula],
+                        val formulas: Set[Formula],
                         val dynamicPredicates: Map[AtomSignature, Vector[String] => Boolean],
                         val dynamicFunctions: Map[AtomSignature, Vector[String] => String]) {
 
@@ -207,12 +207,12 @@ private[model] object KB extends Logging {
     fileReader.reset()
     val kbParser = new KBParser(predicateSchema, functionSchema, dynamicAtomBuilders, dynamicFunctionBuilders)
 
-    val formulas = new mutable.LinkedHashSet[Formula]()
-    var definiteClauses = new mutable.LinkedHashSet[WeightedDefiniteClause]()
+    var formulas = Set[Formula]()
+    var definiteClauses = Set[WeightedDefiniteClause]()
     val queue = mutable.Queue[IncludeFile]()
 
     val kbExpressions: Iterable[MLNExpression] = kbParser.parseAll(kbParser.mln, fileReader) match {
-      case kbParser.Success(exprs, _) => exprs
+      case kbParser.Success(exprs, _) => exprs.asInstanceOf[Iterable[MLNExpression]]
       case x => fatal("Can't parse the following expression: " + x + " in file: " + kbFile)
     }
 
@@ -251,7 +251,7 @@ private[model] object KB extends Logging {
       }
 
       val curr_expressions: Iterable[MLNExpression] = kbParser.parseAll(kbParser.mln, new FileReader(incFile)) match {
-        case kbParser.Success(exprs, _) => exprs
+        case kbParser.Success(exprs, _) => exprs.asInstanceOf[Iterable[MLNExpression]]
         case x => fatal("Can't parse the following expression: " + x + " in file: " + incFile)
       }
 

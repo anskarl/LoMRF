@@ -35,7 +35,7 @@ package lomrf.logic
 import org.scalatest.{Matchers, FunSpec}
 
 /**
- *
+ * A series of spec tests for FOL terms.
  */
 final class TermSpecTest extends FunSpec with Matchers {
 

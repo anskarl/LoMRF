@@ -38,8 +38,6 @@ import lomrf.util.{FunctionMapper, ConstantsSet}
 
 /**
  * Simple function-free EC domain for testing
- *
- *
  */
 object ECExampleDomain1 {
 
@@ -78,7 +76,5 @@ object ECExampleDomain1 {
   lazy val probabilisticAtoms = Set.empty[AtomSignature]
 
   lazy val tristateAtoms = Set.empty[AtomSignature]
-
-
 
 }

@@ -34,7 +34,7 @@ package lomrf.logic
 import org.scalatest.{Matchers, FunSpec}
 
 /**
- *
+ * A series of spec tests regarding the computation of the unification between a pair of atomic formulas.
  */
 final class UnificationSpecTest extends FunSpec with Matchers {
 

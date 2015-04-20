@@ -60,7 +60,7 @@ import scala.collection.breakOut
  *
  */
 final class MLN(
-           val formulas: collection.Set[Formula],
+           val formulas: Set[Formula],
            val predicateSchema: collection.Map[AtomSignature, collection.Seq[String]],
            val functionSchema: collection.Map[AtomSignature, (String, Vector[String])],
            val dynamicPredicates: Map[AtomSignature, Vector[String] => Boolean],
@@ -79,7 +79,7 @@ final class MLN(
            val queryStartID: Int,
            val queryEndID: Int) {
 
-  def this(formulas: collection.Set[Formula],
+  def this(formulas: Set[Formula],
            predicateSchema: collection.Map[AtomSignature, collection.Seq[String]],
            functionSchema: collection.Map[AtomSignature, (String, Vector[String])],
            dynamicPredicates: Map[AtomSignature, Vector[String] => Boolean],

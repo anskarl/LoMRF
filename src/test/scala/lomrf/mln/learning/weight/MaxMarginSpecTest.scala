@@ -1,3 +1,35 @@
+/*
+ * o                        o     o   o         o
+ * |             o          |     |\ /|         | /
+ * |    o-o o--o    o-o  oo |     | O |  oo o-o OO   o-o o   o
+ * |    | | |  | | |    | | |     |   | | | |   | \  | |  \ /
+ * O---oo-o o--O |  o-o o-o-o     o   o o-o-o   o  o o-o   o
+ *             |
+ *          o--o
+ * o--o              o               o--o       o    o
+ * |   |             |               |    o     |    |
+ * O-Oo   oo o-o   o-O o-o o-O-o     O-o    o-o |  o-O o-o
+ * |  \  | | |  | |  | | | | | |     |    | |-' | |  |  \
+ * o   o o-o-o  o  o-o o-o o o o     o    | o-o o  o-o o-o
+ *
+ * Logical Markov Random Fields.
+ *
+ * Copyright (C) 2012  Anastasios Skarlatidis.
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
 package lomrf.mln.learning.weight
 
 import org.scalatest.{PrivateMethodTester, Matchers, FunSpec}
@@ -8,9 +40,6 @@ import lomrf.util._
 
 /**
  * Specification test for Max-Margin learner
- *
- *
- *
  */
 final class MaxMarginSpecTest extends FunSpec with Matchers with PrivateMethodTester {
 
@@ -56,7 +85,7 @@ final class MaxMarginSpecTest extends FunSpec with Matchers with PrivateMethodTe
 
   val countGroundings = PrivateMethod('countGroundings)
   val updateConstraintWeights = PrivateMethod('updateConstraintWeights)
-  val calculateLoss = PrivateMethod('calculateLoss)
+  val calculateError = PrivateMethod('calculateError)
 
   describe("Checking count true groundings functionality") {
     val trueCounts:Array[Int] = learner invokePrivate countGroundings()
@@ -123,7 +152,7 @@ final class MaxMarginSpecTest extends FunSpec with Matchers with PrivateMethodTe
 
   // Because initial we have an annotated state loss should be zero
   it("Calculated loss should be zero") {
-    val loss: Double = learner invokePrivate calculateLoss()
+    val loss: Double = learner invokePrivate calculateError()
     loss shouldBe 0.0
   }
 }

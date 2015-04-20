@@ -43,8 +43,7 @@ import org.scalatest.{FunSpec, Matchers}
 import scala.io.Source
 
 /**
- * Specification test for grounding
- *
+ * Specification test regarding the grounding process (i.e., the creation of MRF from an MLN)
  */
 final class GroundingSpecTest extends FunSpec with Matchers {
 
@@ -137,7 +136,7 @@ final class GroundingSpecTest extends FunSpec with Matchers {
         }
       }
 
-      fail should be(false)
+      fail shouldEqual false
     }
 
   }

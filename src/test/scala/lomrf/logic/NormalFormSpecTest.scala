@@ -37,9 +37,8 @@ import lomrf.mln.model.MLN
 import lomrf.util.ConstantsSet
 
 /**
- *
+ * A series of spec test for the computation of normal forms (e.g., CNF, NNF, etc).
  */
-
 final class NormalFormSpecTest extends FunSpec with Matchers{
 
   private val sep = System.getProperty("file.separator")

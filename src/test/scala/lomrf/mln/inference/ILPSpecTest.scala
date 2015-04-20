@@ -42,9 +42,6 @@ import scala.io.Source
 
 /**
  * Specification test for ILP algorithm used for MAP inference.
- *
- *
- *
  */
 final class ILPSpecTest extends FunSpec with Matchers {
 

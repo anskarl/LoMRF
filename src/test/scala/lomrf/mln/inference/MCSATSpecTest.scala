@@ -44,9 +44,6 @@ import scala.io.Source
 
 /**
  * Specification test for MCSAT algorithm used for marginal inference.
- *
- *
- *
  */
 final class MCSATSpecTest extends FunSpec with Matchers {
 
