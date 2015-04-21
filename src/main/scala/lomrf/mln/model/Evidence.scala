@@ -75,14 +75,14 @@ private[model] object Evidence extends Logging {
 
   def load(schema: Map[AtomSignature, Seq[String]],
            functionSchema: Map[AtomSignature, (String, Seq[String])],
-           kb_constants: mutable.HashMap[String, ConstantsSetBuilder],
+           kb_constants: Map[String, ConstantsSetBuilder],
            queryPredicates: Set[AtomSignature],
            hiddenPredicates: Set[AtomSignature],
            files: Iterable[File]): Evidence = {
 
     def isOWA(signature: AtomSignature) = queryPredicates.contains(signature) || hiddenPredicates.contains(signature)
 
-    val constantMap = kb_constants
+    var constantsMap = kb_constants
 
     val evidenceParser = new EvidenceParser
     val evidenceExpressionsDB =
@@ -100,12 +100,12 @@ private[model] object Evidence extends Logging {
         functionSchema.get(f.signature) match {
           case Some(fSchema) =>
             val (returnType, argTypes) = fSchema
-            constantMap.get(returnType) match {
+            constantsMap.get(returnType) match {
               case Some(builder) => builder += f.retValue
               case None => error(s"Type '$returnType' in function '${f.signature}' is not defined.")
             }
             for ((argType, argValue) <- argTypes.zip(f.values)) {
-              constantMap.get(argType) match {
+              constantsMap.get(argType) match {
                 case Some(builder) => builder += argValue
                 case None => error(s"Type '$returnType' in function '${f.signature}' is not defined.")
               }
@@ -115,15 +115,16 @@ private[model] object Evidence extends Logging {
       case atom: EvidenceAtom =>
         schema.get(atom.signature) match {
           case Some(argTypes) =>
-            //append its constants into constantMap
+            //append its constants into constantsMap
             for ((value, index) <- atom.constants.view.zipWithIndex) {
               val constantType = argTypes(index)
-              constantMap.get(constantType) match {
+              constantsMap.get(constantType) match {
                 case Some(x) => x += value.symbol
                 case None =>
                   val currMap = new ConstantsSetBuilder()
                   currMap += value.symbol
-                  constantMap(constantType) = currMap
+                  //constantsMap(constantType) = currMap
+                  constantsMap += (constantType -> currMap)
               }
             }
           case _ => fatal(s"The type of '$atom' is not defined.")
@@ -131,7 +132,7 @@ private[model] object Evidence extends Logging {
       case _ => //ignore
     }
 
-    val constants: Map[String, ConstantsSet] = (for ((symbol, builder) <- constantMap) yield symbol -> builder.result)(breakOut)
+    val constants: Map[String, ConstantsSet] = (for ((symbol, builder) <- constantsMap) yield symbol -> builder.result)(breakOut)
 
     val functionMapperBuilders = mutable.HashMap[AtomSignature, FunctionMapperBuilder]()
     val atomsEvDBBuilders = mutable.HashMap[AtomSignature, AtomEvidenceDBBuilder]()

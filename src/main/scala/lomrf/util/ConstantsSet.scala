@@ -37,6 +37,7 @@ import gnu.trove.map.hash.TObjectIntHashMap
 import gnu.trove.TCollections
 import scala.collection.mutable
 import gnu.trove.map.TObjectIntMap
+import gnu.trove.impl.{Constants => TC}
 
 /**
  * A ConstantsSet is an immutable collection of unique and indexed constant symbols. The symbols are represented by
@@ -132,8 +133,8 @@ sealed trait ConstantsSet extends Iterable[String] {
  * @see ConstantsSetBuilder
  * @see ConstantsSet
  */
-final class ConstantsSetImpl private[util](constants2Id: TObjectIntMap[String],
-                                           id2Constants: mutable.ArrayBuffer[String]) extends ConstantsSet {
+final class ConstantsSetImpl private[util]( private[util] val constants2Id: TObjectIntMap[String],
+                                            private[util] val id2Constants: mutable.ArrayBuffer[String]) extends ConstantsSet {
 
   import ConstantsSet.NO_ENTRY
 
@@ -297,19 +298,27 @@ object ConstantsSet {
 /**
  * A builder with which we can incrementally create a ConstantSet.
  */
-final class ConstantsSetBuilder extends scala.collection.mutable.Builder[String, ConstantsSet]{
+final class ConstantsSetBuilder(private var constants2Id: TObjectIntHashMap[String],
+                                private var id2Constants: mutable.ArrayBuffer[String]) extends mutable.Builder[String, ConstantsSet] with Iterable[String]{
 
   import ConstantsSet.NO_ENTRY
+
   import gnu.trove.impl.{Constants => TC}
 
+
+  def this() =
+    this(new TObjectIntHashMap[String](TC.DEFAULT_CAPACITY, TC.DEFAULT_LOAD_FACTOR, ConstantsSet.NO_ENTRY), new mutable.ArrayBuffer[String]())
+
   /**
-   *
+   * flag to mark if [[result()]] function is being called
    */
   private var dirty = false
 
-  private var constants2Id = new TObjectIntHashMap[String](TC.DEFAULT_CAPACITY, TC.DEFAULT_LOAD_FACTOR, NO_ENTRY)
-  private var id2Constants = new mutable.ArrayBuffer[String]()
-  private var _size = 0
+  //private var constants2Id = new TObjectIntHashMap[String](TC.DEFAULT_CAPACITY, TC.DEFAULT_LOAD_FACTOR, NO_ENTRY)
+  //private var id2Constants = new mutable.ArrayBuffer[String]()
+  private var _size = id2Constants.size
+
+  override def iterator: Iterator[String] = id2Constants.iterator
 
   /**
    * Adds a constant symbol, if it has been never included.
@@ -365,14 +374,16 @@ final class ConstantsSetBuilder extends scala.collection.mutable.Builder[String,
     dirty = false
   }
 
-  override def toString: String =
+  override def toString(): String =
     s"ConstantsSetBuilder(constants2Id->{${constants2Id.size()} elements}, id2Constants->{${id2Constants.size} elements})"
 
 
   /**
    * @return the number of the unique collected constant symbols
    */
-  def size = _size
+  override def size = _size
+
+  override def clone() = ConstantsSetBuilder(this)
 
 }
 
@@ -383,5 +394,19 @@ object ConstantsSetBuilder {
   def apply(symbols: Iterable[String]): ConstantsSetBuilder = this.apply ++= symbols
 
   def apply(symbols: String*): ConstantsSetBuilder = this.apply ++= symbols
+
+  def apply(constantsSet: ConstantsSet) = constantsSet match {
+    case c: ConstantsSetImpl =>
+      val _id2Constants = new mutable.ArrayBuffer[String](c.size)
+      new ConstantsSetBuilder(new TObjectIntHashMap[String](c.constants2Id), _id2Constants ++= c.id2Constants)
+
+    case c: ConstantsSetUnaryImpl =>
+      new ConstantsSetBuilder += c.head
+  }
+
+  def apply(builder: ConstantsSetBuilder): ConstantsSetBuilder ={
+    val _id2Constants = new mutable.ArrayBuffer[String](builder.size)
+    new ConstantsSetBuilder(new TObjectIntHashMap[String](builder.constants2Id), _id2Constants ++= builder.id2Constants)
+  }
 
 }

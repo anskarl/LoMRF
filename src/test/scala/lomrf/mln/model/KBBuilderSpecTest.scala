@@ -29,32 +29,43 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
+package lomrf.mln.model
 
-package lomrf.mln.grounding
+import org.scalatest.{Matchers, FunSpec}
 
-import auxlib.log.Logging
-import lomrf.logic._
-import lomrf.mln.model.MLN
+class KBBuilderSpecTest extends FunSpec with Matchers {
 
-/**
- *
- */
-object GroundingMLNExp extends App with Logging {
+  describe("The KB from an empty KBBuilder"){
+    val builder = new KBBuilder
 
-  val s = System.getProperty("file.separator")
-  val prefix = System.getProperty("user.dir") +"/Examples/data/caviar/video25_complete/".replace("/", s)
+    val kb = builder.result()
 
-  val mlnFileName = prefix + "dec7a_plus.mln"
-  val evidenceFileName = prefix + "fra1gt_evidence_succ.db"
-  val queryAtoms = Set(AtomSignature("HoldsAt", 2))
-  val owa = Set(AtomSignature("InitiatedAt",2), AtomSignature("TerminatedAt", 2))
-  val cwa = Set(
-    AtomSignature("HappensAt", 2),
-    AtomSignature("StartTime", 1),
-    AtomSignature("Close", 4),
-    AtomSignature("OrientationMove", 3))
+    it("should be composed of an empty Map of constant builders"){
+      assert(kb.constants.isEmpty)
+    }
 
-  val mln = MLN(mlnFileName, queryAtoms, evidenceFileName, owa, cwa)
+    it("should be composed of an empty Set of formulas"){
+      assert(kb.formulas.isEmpty)
+    }
 
-  println(mln.toString)
+    it("should be composed of an empty Map of predicate schema"){
+      assert(kb.predicateSchema.isEmpty)
+    }
+
+    it("should be composed of an empty Map of function schema"){
+      assert(kb.functionSchema.isEmpty)
+    }
+
+    it("should be composed of an empty Map of dynamic predicates"){
+      assert(kb.dynamicPredicates.isEmpty)
+    }
+
+    it("should be composed of an empty Map of dynamic functions"){
+      assert(kb.dynamicFunctions.isEmpty)
+    }
+  }
+
+
+  //builder.withConstantBuilders(ECExampleDomain1.constants.mapValues(ConstantsSetBuilder(_)))
+
 }

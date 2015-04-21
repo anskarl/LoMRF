@@ -192,7 +192,7 @@ object MLN extends Logging {
    * Constructs a MLN instance from the specified knowledge base and evidence files.
    *
    * @param mlnFileName the path to the MLN file (.mln)
-   * @param evidenceFileNameOpt the path to the evidence file (.db)
+   * @param evidenceFileName the path to the evidence file (.db)
    * @param queryAtoms the set of query atoms
    * @param cwa the set of closed world assumption atoms
    * @param owa the set of open world assumption atoms
@@ -202,15 +202,16 @@ object MLN extends Logging {
    */
   def apply(mlnFileName: String,
             queryAtoms: Set[AtomSignature],
-            evidenceFileNameOpt: Option[String] = None,
+            evidenceFileName: String,
             cwa: Set[AtomSignature] = Set(),
             owa: Set[AtomSignature] = Set(),
             pcm: PredicateCompletionMode = Simplification,
             dynamicDefinitions: Option[ImplFinder.ImplementationsMap] = None,
             domainPart: Boolean = false): MLN = {
 
-    apply(mlnFileName, evidenceFileNameOpt.toList, queryAtoms, cwa, owa, pcm, dynamicDefinitions, domainPart)
+    apply(mlnFileName, List(evidenceFileName), queryAtoms, cwa, owa, pcm, dynamicDefinitions, domainPart)
   }
+
 
 
   def apply(mlnFileName: String,

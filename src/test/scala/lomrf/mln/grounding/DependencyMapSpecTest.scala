@@ -56,7 +56,7 @@ class DependencyMapSpecTest extends FunSpec with Matchers {
   private val evidenceFile = prefix + "Empty.db"
 
 
-  implicit val mln = MLN(mlnFile, evidenceFile, queryAtoms = Set("S/1", "C/1", "K/1", "M/1", "F/2"))
+  implicit val mln = MLN(mlnFile, queryAtoms = Set("S/1", "C/1", "K/1", "M/1", "F/2"), evidenceFile)
 
   describe(s"The MLN theory in '$mlnFile'"){
 

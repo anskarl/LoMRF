@@ -35,13 +35,13 @@ package lomrf.mln.model
 import auxlib.log.Logging
 
 import collection.immutable.HashMap
-import collection.mutable
+import scala.collection.mutable
 import java.io.{BufferedReader, File, FileReader}
 import java.util.regex.Pattern
 import lomrf.logic.PredicateCompletionMode._
 import lomrf.logic._
 import lomrf.logic.dynamic.{DynamicAtomBuilder, DynamicFunctionBuilder}
-import lomrf.util.{ ImplFinder, ConstantsSetBuilder}
+import lomrf.util.{ConstantsSetBuilder, ImplFinder}
 
 /**
  * This class contains the parsed components of an MLN theory.
@@ -53,7 +53,7 @@ import lomrf.util.{ ImplFinder, ConstantsSetBuilder}
  * @param dynamicPredicates contains definitions of dynamic predicates
  * @param dynamicFunctions contains definitions of dynamic functions
  */
-private[model] class KB(val constants: mutable.HashMap[String, ConstantsSetBuilder],
+private[model] class KB(val constants: Map[String, ConstantsSetBuilder],
                         val predicateSchema: Map[AtomSignature, Seq[String]],
                         val functionSchema: Map[AtomSignature, (String, Vector[String])],
                         val formulas: Set[Formula],
@@ -68,6 +68,182 @@ private[model] class KB(val constants: mutable.HashMap[String, ConstantsSetBuild
       "\n\t# Function schemas  : " + functionSchema.size +
       "\n\t# Formulas          : " + formulas.size +
       "}"
+  }
+}
+
+/**
+ * Knowledge base builder with fluent interface pattern
+ */
+private[model] class KBBuilder { self =>
+
+  private var dirty = false
+
+  private var _constantBuilders = Map.empty[String, ConstantsSetBuilder]
+
+  private var _predicateSchema = Map.empty[AtomSignature, Seq[String]]
+
+  private var _functionSchema = Map.empty[AtomSignature, (String, Vector[String])]
+
+  private var _formulas = Set.empty[Formula]
+
+  private var _dynamicPredicates = Map.empty[AtomSignature, Vector[String] => Boolean]
+
+  private var _dynamicFunctions = Map.empty[AtomSignature, Vector[String] => String]
+
+  def withConstantBuilders(input: Map[String, ConstantsSetBuilder]): self.type ={
+    _constantBuilders = input
+    self
+  }
+
+  def withPredicateSchema(input: Map[AtomSignature, Seq[String]]): self.type ={
+    _predicateSchema = input
+    self
+  }
+
+  def withFunctionSchema(input: Map[AtomSignature, (String, Vector[String])]): self.type ={
+    _functionSchema = input
+    self
+  }
+
+  def withFormulas(input: Set[Formula]): self.type ={
+    _formulas = input
+    self
+  }
+
+  def withDynamicPredicates(input: Map[AtomSignature, Vector[String] => Boolean]): self.type ={
+    _dynamicPredicates = input
+    self
+  }
+
+  def withDynamicFunctions(input: Map[AtomSignature, Vector[String] => String]): self.type ={
+    _dynamicFunctions = input
+    self
+  }
+
+  def result(): KB = {
+    dirty = true
+    new KB(if(dirty) _constantBuilders.mapValues(_.clone()) else _constantBuilders, _predicateSchema, _functionSchema, _formulas, _dynamicPredicates, _dynamicFunctions)
+  }
+
+
+
+  object constants {
+
+    private def checkDirty(): Unit ={
+      if(dirty) {
+        _constantBuilders = _constantBuilders.mapValues(_.clone())
+        dirty = false
+      }
+    }
+
+    def += (key: String, value: String): self.type ={
+      checkDirty()
+
+      _constantBuilders.get(value) match {
+        case Some(builder) => builder += value
+        case _ => _constantBuilders += (key -> ConstantsSetBuilder(value))
+      }
+
+      self
+    }
+
+    def += (entry: (String, String)): self.type = constants += (entry._1, entry._2)
+
+    def ++= (entry: (String, Iterable[String])): self.type ={
+      checkDirty()
+
+      val (key, values) = entry
+
+      _constantBuilders.get(key) match {
+        case Some(builder) => builder ++= values
+        case _ => _constantBuilders += (key -> ConstantsSetBuilder(values))
+      }
+
+      self
+    }
+  }
+
+  object predicateSchema {
+
+    def += (key: AtomSignature, value: Seq[String]): self.type ={
+      _predicateSchema += (key -> value)
+      self
+    }
+
+    def += (entry: (AtomSignature, Seq[String])): self.type = {
+      _predicateSchema += entry
+      self
+    }
+
+    def ++= (entries: Iterable[(AtomSignature,Seq[String])]): self.type ={
+      entries.foreach(predicateSchema += _)
+      self
+    }
+  }
+
+  object functionSchema {
+
+    def += (key: AtomSignature, value: (String, Vector[String])): self.type ={
+      _functionSchema += (key -> value)
+      self
+    }
+
+    def += (entry: (AtomSignature, (String, Vector[String]))): self.type = {
+      _functionSchema += entry
+      self
+    }
+
+    def ++= (entries: Iterable[(AtomSignature,(String, Vector[String]))]): self.type ={
+      entries.foreach(functionSchema += _)
+      self
+    }
+  }
+
+  object formulas {
+
+   def += ( value: Formula): self.type ={
+     _formulas += value
+      self
+    }
+
+    def ++= (values: Iterable[Formula]): self.type ={
+      _formulas ++= values
+      self
+    }
+  }
+
+  object dynamicPredicates {
+    def += (key: AtomSignature, value: Vector[String] => Boolean): self.type ={
+      _dynamicPredicates += (key -> value)
+      self
+    }
+
+    def += (entry: (AtomSignature, Vector[String] => Boolean)): self.type ={
+      _dynamicPredicates += entry
+      self
+    }
+
+    def ++= (entries: Iterable[(AtomSignature, Vector[String] => Boolean)]): self.type ={
+      _dynamicPredicates ++= entries
+      self
+    }
+  }
+
+  object dynamicFunctions {
+    def += (key: AtomSignature, value:  Vector[String] => String): self.type ={
+      _dynamicFunctions += (key -> value)
+      self
+    }
+
+    def += (entry: (AtomSignature,  Vector[String] => String)): self.type ={
+      _dynamicFunctions += entry
+      self
+    }
+
+    def ++= (entries: Iterable[(AtomSignature,  Vector[String] => String)]): self.type ={
+      _dynamicFunctions ++= entries
+      self
+    }
   }
 }
 
@@ -87,7 +263,7 @@ private[model] object KB extends Logging {
     val commentMatcher = ignoreRegex.matcher("")
 
     val domainParser = new DomainParser()
-    val constants = new mutable.HashMap[String, ConstantsSetBuilder]()
+    var constants =  Map[String, ConstantsSetBuilder]()
     var predicateSchema = new HashMap[AtomSignature, Vector[String]]()
     var functionSchema = new HashMap[AtomSignature, (String, Vector[String])]()
 

@@ -61,7 +61,7 @@ final class AtomIdentityFunctionSpecTest extends FunSpec with Matchers {
   // Beta(fluent,time)
   // Alpha(e,f,t) => Beta(f,t).
   info("Constructing MLN from '" + naiveMLN + "' with evidence '" + emptyEvidence + "'")
-  val mln = MLN(naiveMLN, emptyEvidence, queryAtoms, cwa)
+  val mln = MLN(naiveMLN, queryAtoms, emptyEvidence, cwa)
 
 
   // --------------------------------------------
@@ -310,8 +310,8 @@ final class AtomIdentityFunctionSpecTest extends FunSpec with Matchers {
     val owa = Set[AtomSignature](AtomSignature("InitiatedAt", 2), AtomSignature("TerminatedAt", 2))
     val mln = MLN(
       testFilesPath + "DEC_TEST.mln",
-      testFilesPath + "Empty.db",
       queryAtoms,
+      testFilesPath + "Empty.db",
       cwa, owa)
 
     val signature = AtomSignature("Next", 2)
@@ -363,8 +363,8 @@ final class AtomIdentityFunctionSpecTest extends FunSpec with Matchers {
     val owa = Set[AtomSignature]()
     val mln = MLN(
       testFilesPath + "TestUniversityBIG.mln",
-      testFilesPath + "Empty.db",
       queryAtoms,
+      testFilesPath + "Empty.db",
       cwa, owa)
 
     val signature = AtomSignature("AdvisedBy", 2)

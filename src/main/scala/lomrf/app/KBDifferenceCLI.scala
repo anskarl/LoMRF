@@ -61,8 +61,8 @@ object KBDifferenceCLI extends CLIApp {
       (combination, index) <- combinations
       (sourceAlpha, evidenceAlpha) = combination.head
       (sourceBeta, evidenceBeta) = combination.last
-      mlnAlpha = MLN(sourceAlpha, queryAtoms, Some(evidenceAlpha))
-      mlnBeta = MLN(sourceBeta, queryAtoms, Some(evidenceBeta))} {
+      mlnAlpha = MLN(sourceAlpha, queryAtoms, evidenceAlpha)
+      mlnBeta = MLN(sourceBeta, queryAtoms, evidenceBeta)} {
 
       info(
         "\nSource KB 1: " + sourceAlpha + "\n" +

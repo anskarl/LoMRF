@@ -78,7 +78,7 @@ final class GroundingSpecTest extends FunSpec with Matchers {
     dbFile <- findFiles(currentPath, _.getName.endsWith(".db"))
   } describe("Loading MLN theory from file '" + mlnFile + "', with evidence from file '" + dbFile) {
 
-    val mln = MLN(mlnFile.getAbsolutePath, dbFile.getAbsolutePath, queryAtoms, cwa)
+    val mln = MLN(mlnFile.getAbsolutePath, queryAtoms, dbFile.getAbsolutePath, cwa)
 
     val stats = Source
       .fromFile(dbFile.getAbsolutePath.replace(".db", ".statistics"))
