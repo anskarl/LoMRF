@@ -36,7 +36,7 @@ import org.scalatest.{Matchers, FunSpec}
 class KBBuilderSpecTest extends FunSpec with Matchers {
 
   describe("The KB from an empty KBBuilder"){
-    val builder = new KBBuilder
+    val builder = KBBuilder()
 
     val kb = builder.result()
 
@@ -63,9 +63,93 @@ class KBBuilderSpecTest extends FunSpec with Matchers {
     it("should be composed of an empty Map of dynamic functions"){
       assert(kb.dynamicFunctions.isEmpty)
     }
+
   }
 
+  describe("KBBuilder constant insertions"){
 
-  //builder.withConstantBuilders(ECExampleDomain1.constants.mapValues(ConstantsSetBuilder(_)))
+    describe("Incremental addition of domain 'time' with constants from 1 to 10") {
+      val builder = KBBuilder()
+
+      for (timePoint <- 1 to 10)
+        builder.constants += ("time", timePoint.toString)
+
+
+      it("contain 10 constant symbols for domain 'time'"){
+        builder.constants("time").size shouldEqual 10
+      }
+
+      it("contain 10 constant symbols for domain 'time', after re-adding the same constant symbols"){
+        for (timePoint <- 1 to 10)
+          builder.constants += ("time", timePoint.toString)
+      }
+
+      it("contains all the incrementally inserted constants [1, 10]") {
+        val kb = builder.result()
+
+        val constants = kb.constants.mapValues(_.result())
+
+        assert((1 to 10).forall(t => constants("time").contains(t.toString)))
+      }
+    }
+
+    describe("Batch addition of domain 'time' with constants from 1 to 10") {
+      val builder = KBBuilder()
+
+      builder.constants ++= ("time", (1 to 10).map(_.toString))
+
+      it("contains 10 constant symbols for domain 'time'"){
+        builder.constants("time").size shouldEqual 10
+      }
+
+      it("contain 10 constant symbols for domain 'time', after re-adding the same constant symbols"){
+        builder.constants ++= ("time", (1 to 10).map(_.toString))
+      }
+
+      it("contains all the batched inserted constants [1, 10]"){
+
+        val kb = builder.result()
+
+        val constants = kb.constants.mapValues(_.result())
+
+        assert((1 to 10).forall(t => constants("time").contains(t.toString)))
+      }
+    }
+
+    describe("Addition of domain 'time', creation of KB1 and re-addition of new constant symbols, creation of KB2."){
+      val builder = KBBuilder()
+
+      builder.constants ++= ("time", (1 to 10).map(_.toString))
+      val kb1 = builder.result()
+      val kb1TimeSize = kb1.constants("time").size
+      val kb1ConstantsSet = kb1.constants.map{case (k,v) => k -> v.result()}
+
+      builder.constants ++= ("time", (100 to 1000).map(_.toString))
+      val kb2 = builder.result()
+      val kb2TimeSize = kb2.constants("time").size
+      val kb2ConstantsSet = kb2.constants.map{case (k,v) => k -> v.result()}
+
+      val kb1TimeTotal = 10
+      val kb2TimeTotal = 911
+
+      it(s"KB1 contains $kb1TimeTotal symbols in domain 'time'"){
+        kb1TimeSize shouldEqual kb1TimeTotal
+        kb1TimeSize shouldEqual kb1ConstantsSet("time").size
+      }
+
+      it(s"KB2 contains $kb2TimeTotal symbols in domain 'time'"){
+        kb2TimeSize shouldEqual kb2TimeTotal
+        kb2TimeSize shouldEqual kb2ConstantsSet("time").size
+      }
+
+      it(s"KB2 contains all KB1 symbols in domain 'time'"){
+        assert(kb1ConstantsSet("time").forall(kb2ConstantsSet("time").contains))
+      }
+      it(s"KB1 does not contain all KB2 symbols in domain 'time'"){
+        assert(!kb2ConstantsSet("time").forall(kb1ConstantsSet("time").contains))
+      }
+    }
+
+  }
 
 }

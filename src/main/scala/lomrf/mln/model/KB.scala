@@ -53,7 +53,7 @@ import lomrf.util.{ConstantsSetBuilder, ImplFinder}
  * @param dynamicPredicates contains definitions of dynamic predicates
  * @param dynamicFunctions contains definitions of dynamic functions
  */
-private[model] class KB(val constants: Map[String, ConstantsSetBuilder],
+class KB(val constants: Map[String, ConstantsSetBuilder],
                         val predicateSchema: Map[AtomSignature, Seq[String]],
                         val functionSchema: Map[AtomSignature, (String, Vector[String])],
                         val formulas: Set[Formula],
@@ -74,7 +74,7 @@ private[model] class KB(val constants: Map[String, ConstantsSetBuilder],
 /**
  * Knowledge base builder with fluent interface pattern
  */
-private[model] class KBBuilder { self =>
+class KBBuilder { self =>
 
   private var dirty = false
 
@@ -122,24 +122,34 @@ private[model] class KBBuilder { self =>
 
   def result(): KB = {
     dirty = true
-    new KB(if(dirty) _constantBuilders.mapValues(_.clone()) else _constantBuilders, _predicateSchema, _functionSchema, _formulas, _dynamicPredicates, _dynamicFunctions)
+    new KB(_constantBuilders, _predicateSchema, _functionSchema, _formulas, _dynamicPredicates, _dynamicFunctions)
   }
 
 
 
   object constants {
 
-    private def checkDirty(): Unit ={
-      if(dirty) {
-        _constantBuilders = _constantBuilders.mapValues(_.clone())
+    private def copyIfDirty(): Unit ={
+      if(self.dirty) {
+        _constantBuilders = _constantBuilders.map{case (k, v) => k -> v.copy()}
         dirty = false
       }
     }
 
-    def += (key: String, value: String): self.type ={
-      checkDirty()
+    def apply(key: String) = _constantBuilders(key)
 
-      _constantBuilders.get(value) match {
+    def apply(): Map[String, ConstantsSetBuilder] = _constantBuilders
+
+    def update(input: Map[String, ConstantsSetBuilder]): self.type ={
+      _constantBuilders = input
+      dirty = false
+      self
+    }
+
+    def += (key: String, value: String): self.type ={
+      copyIfDirty()
+
+      _constantBuilders.get(key) match {
         case Some(builder) => builder += value
         case _ => _constantBuilders += (key -> ConstantsSetBuilder(value))
       }
@@ -150,7 +160,7 @@ private[model] class KBBuilder { self =>
     def += (entry: (String, String)): self.type = constants += (entry._1, entry._2)
 
     def ++= (entry: (String, Iterable[String])): self.type ={
-      checkDirty()
+      copyIfDirty()
 
       val (key, values) = entry
 
@@ -164,6 +174,11 @@ private[model] class KBBuilder { self =>
   }
 
   object predicateSchema {
+
+    def apply(key: AtomSignature) = _predicateSchema(key)
+
+    def apply() = _predicateSchema
+
 
     def += (key: AtomSignature, value: Seq[String]): self.type ={
       _predicateSchema += (key -> value)
@@ -245,6 +260,13 @@ private[model] class KBBuilder { self =>
       self
     }
   }
+}
+
+object KBBuilder{
+
+  def apply(): KBBuilder = new KBBuilder
+
+
 }
 
 private[model] object KB extends Logging {
@@ -452,6 +474,8 @@ private[model] object KB extends Logging {
 
     if(resultingFormulas.isEmpty)
       warn("The given theory is empty (i.e., contains empty set of non-zeroed formulas).")
+
+
 
     new KB(constants, resultingPredicateSchema, functionSchema, resultingFormulas, kbParser.getDynamicPredicates, kbParser.getDynamicFunctions)
   }

@@ -326,24 +326,25 @@ final class ConstantsSetBuilder(private var constants2Id: TObjectIntHashMap[Stri
    * @param constant the specified constant symbol
    */
   override def +=(constant: String) = {
-    // When a ConstantSet has been created from this ConstantsSetBuilder by a previous call of the this.result function,
-    // then before adding the specified symbol, we copy all constant symbols.
-    // The reason behind that copy, is that the resulting ConstantsSets must behave like immutable collections.
-    if (dirty) {
-      val cp_constants2Id = new TObjectIntHashMap[String](_size + 23, TC.DEFAULT_LOAD_FACTOR, NO_ENTRY)
-      cp_constants2Id.putAll(constants2Id)
-      val cp_id2Constants = new mutable.ArrayBuffer[String]()
-      id2Constants.foreach(cp_id2Constants += _)
-      constants2Id = cp_constants2Id
-      id2Constants = cp_id2Constants
-      dirty = false
-    }
+
+    copyIfDirty()
 
     if (constants2Id.putIfAbsent(constant, _size) == NO_ENTRY) {
       id2Constants += constant
       _size += 1
     }
 
+    this
+  }
+
+  def ++=(constants: Iterable[String]) ={
+    copyIfDirty()
+    for(constant <- constants){
+      if (constants2Id.putIfAbsent(constant, _size) == NO_ENTRY) {
+        id2Constants += constant
+        _size += 1
+      }
+    }
     this
   }
 
@@ -383,7 +384,32 @@ final class ConstantsSetBuilder(private var constants2Id: TObjectIntHashMap[Stri
    */
   override def size = _size
 
-  override def clone() = ConstantsSetBuilder(this)
+  def copy() = {
+    val cp_constants2Id = new TObjectIntHashMap[String](_size + 23, TC.DEFAULT_LOAD_FACTOR, NO_ENTRY)
+    cp_constants2Id.putAll(constants2Id)
+
+    val cp_id2Constants = new mutable.ArrayBuffer[String]()
+    id2Constants.foreach(cp_id2Constants += _)
+
+    new ConstantsSetBuilder(cp_constants2Id, cp_id2Constants)
+  }
+
+  /**
+   * When a ConstantSet has been created from this ConstantsSetBuilder by a previous call of the this.result function,
+   * then before adding the specified symbol, we copy all constant symbols.
+   * The reason behind that copy, is that the resulting ConstantsSets must behave like immutable collections.
+   */
+  private def copyIfDirty(): Unit ={
+    if (dirty) {
+      val cp_constants2Id = new TObjectIntHashMap[String](_size + 23, TC.DEFAULT_LOAD_FACTOR, NO_ENTRY)
+      cp_constants2Id.putAll(constants2Id)
+      val cp_id2Constants = new mutable.ArrayBuffer[String]()
+      id2Constants.foreach(cp_id2Constants += _)
+      constants2Id = cp_constants2Id
+      id2Constants = cp_id2Constants
+      dirty = false
+    }
+  }
 
 }
 
@@ -402,11 +428,6 @@ object ConstantsSetBuilder {
 
     case c: ConstantsSetUnaryImpl =>
       new ConstantsSetBuilder += c.head
-  }
-
-  def apply(builder: ConstantsSetBuilder): ConstantsSetBuilder ={
-    val _id2Constants = new mutable.ArrayBuffer[String](builder.size)
-    new ConstantsSetBuilder(new TObjectIntHashMap[String](builder.constants2Id), _id2Constants ++= builder.id2Constants)
   }
 
 }
