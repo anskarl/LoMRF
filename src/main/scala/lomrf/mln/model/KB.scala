@@ -16,24 +16,23 @@
  *
  * Copyright (C) 2012  Anastasios Skarlatidis.
  *
- * This program is free software: you can redistribute it and/or modify
+ * self program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
  *
- * This program is distributed in the hope that it will be useful,
+ * self program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ * along with self program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
 package lomrf.mln.model
 
 import auxlib.log.Logging
-
 import collection.immutable.HashMap
 import scala.collection.mutable
 import java.io.{BufferedReader, File, FileReader}
@@ -44,7 +43,7 @@ import lomrf.logic.dynamic.{DynamicAtomBuilder, DynamicFunctionBuilder}
 import lomrf.util.{ConstantsSetBuilder, ImplFinder}
 
 /**
- * This class contains the parsed components of an MLN theory.
+ * self class contains the parsed components of an MLN theory.
  *
  * @param constants holds a mapping of 'domain name' to its 'constants set builder'.
  * @param predicateSchema  holds a mapping of 'atom signature' to a sequence of the domain names of its terms.
@@ -173,12 +172,12 @@ class KBBuilder { self =>
     }
   }
 
+
   object predicateSchema {
 
     def apply(key: AtomSignature) = _predicateSchema(key)
 
     def apply() = _predicateSchema
-
 
     def += (key: AtomSignature, value: Seq[String]): self.type ={
       _predicateSchema += (key -> value)
@@ -194,14 +193,15 @@ class KBBuilder { self =>
       entries.foreach(predicateSchema += _)
       self
     }
+
+    def clear(): Unit = _predicateSchema = Map.empty[AtomSignature, Seq[String]]
   }
 
   object functionSchema {
 
-    def += (key: AtomSignature, value: (String, Vector[String])): self.type ={
-      _functionSchema += (key -> value)
-      self
-    }
+    def apply(key: AtomSignature) = _functionSchema(key)
+
+    def apply() = _functionSchema
 
     def += (entry: (AtomSignature, (String, Vector[String]))): self.type = {
       _functionSchema += entry
@@ -218,7 +218,7 @@ class KBBuilder { self =>
 
    def += ( value: Formula): self.type ={
      _formulas += value
-      self
+     self
     }
 
     def ++= (values: Iterable[Formula]): self.type ={
@@ -323,7 +323,7 @@ private[model] object KB extends Logging {
 
     // The following utility function searches for constant values
     // that appear only in the formulas and not in the evidence.
-    // Important note: this procedure is not applied to dynamic functions/predicates
+    // Important note: self procedure is not applied to dynamic functions/predicates
     def _findUndefinedConstants(formula: Formula) {
       debug("Looking for constants in:  " + formula.toText)
 
