@@ -34,9 +34,6 @@ package lomrf.logic.dynamic
 
 import lomrf.logic._
 
-/**
- *
- */
 
 trait DynamicAtomBuilder {
 

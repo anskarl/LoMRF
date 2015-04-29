@@ -73,13 +73,13 @@ class KB(val constants: Map[String, ConstantsSetBuilder],
 /**
  * Knowledge base builder with fluent interface pattern
  */
-class KBBuilder { self =>
+final class KBBuilder { self =>
 
   private var dirty = false
 
   private var _constantBuilders = Map.empty[String, ConstantsSetBuilder]
 
-  private var _predicateSchema = Map.empty[AtomSignature, Seq[String]]
+  private var _predicateSchema = Map.empty[AtomSignature, Vector[String]]
 
   private var _functionSchema = Map.empty[AtomSignature, (String, Vector[String])]
 
@@ -94,7 +94,7 @@ class KBBuilder { self =>
     self
   }
 
-  def withPredicateSchema(input: Map[AtomSignature, Seq[String]]): self.type ={
+  def withPredicateSchema(input: Map[AtomSignature, Vector[String]]): self.type ={
     _predicateSchema = input
     self
   }
@@ -123,8 +123,6 @@ class KBBuilder { self =>
     dirty = true
     new KB(_constantBuilders, _predicateSchema, _functionSchema, _formulas, _dynamicPredicates, _dynamicFunctions)
   }
-
-
 
   object constants {
 
@@ -170,6 +168,8 @@ class KBBuilder { self =>
 
       self
     }
+
+    def clear(): Unit = _constantBuilders = Map.empty
   }
 
 
@@ -179,22 +179,22 @@ class KBBuilder { self =>
 
     def apply() = _predicateSchema
 
-    def += (key: AtomSignature, value: Seq[String]): self.type ={
+    def += (key: AtomSignature, value: Vector[String]): self.type ={
       _predicateSchema += (key -> value)
       self
     }
 
-    def += (entry: (AtomSignature, Seq[String])): self.type = {
+    def += (entry: (AtomSignature, Vector[String])): self.type = {
       _predicateSchema += entry
       self
     }
 
-    def ++= (entries: Iterable[(AtomSignature,Seq[String])]): self.type ={
+    def ++= (entries: Iterable[(AtomSignature, Vector[String])]): self.type ={
       entries.foreach(predicateSchema += _)
       self
     }
 
-    def clear(): Unit = _predicateSchema = Map.empty[AtomSignature, Seq[String]]
+    def clear(): Unit = _predicateSchema = Map.empty
   }
 
   object functionSchema {
@@ -202,6 +202,11 @@ class KBBuilder { self =>
     def apply(key: AtomSignature) = _functionSchema(key)
 
     def apply() = _functionSchema
+
+    def += (key: AtomSignature, value: (String, Vector[String])): self.type = {
+      _functionSchema += (key -> value)
+      self
+    }
 
     def += (entry: (AtomSignature, (String, Vector[String]))): self.type = {
       _functionSchema += entry
@@ -212,11 +217,15 @@ class KBBuilder { self =>
       entries.foreach(functionSchema += _)
       self
     }
+
+    def clear(): Unit = _functionSchema = Map.empty
   }
 
   object formulas {
 
-   def += ( value: Formula): self.type ={
+    def apply() = _formulas
+
+    def += ( value: Formula): self.type ={
      _formulas += value
      self
     }
@@ -225,9 +234,16 @@ class KBBuilder { self =>
       _formulas ++= values
       self
     }
+
+    def clear(): Unit = _formulas = Set.empty
   }
 
   object dynamicPredicates {
+
+    def apply(key: AtomSignature) = _dynamicPredicates(key)
+
+    def apply() = _dynamicPredicates
+
     def += (key: AtomSignature, value: Vector[String] => Boolean): self.type ={
       _dynamicPredicates += (key -> value)
       self
@@ -242,9 +258,16 @@ class KBBuilder { self =>
       _dynamicPredicates ++= entries
       self
     }
+
+    def clear(): Unit = _dynamicPredicates = Map.empty
   }
 
   object dynamicFunctions {
+
+    def apply(key: AtomSignature) = _dynamicFunctions(key)
+
+    def apply() = _dynamicFunctions
+
     def += (key: AtomSignature, value:  Vector[String] => String): self.type ={
       _dynamicFunctions += (key -> value)
       self
@@ -259,13 +282,14 @@ class KBBuilder { self =>
       _dynamicFunctions ++= entries
       self
     }
+
+    def clear(): Unit = _dynamicFunctions = Map.empty
   }
 }
 
-object KBBuilder{
+object KBBuilder {
 
   def apply(): KBBuilder = new KBBuilder
-
 
 }
 
