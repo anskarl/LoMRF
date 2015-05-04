@@ -358,11 +358,14 @@ object InferenceCLI extends OptionParser with Logging {
     info("Markov Logic:"
       + "\n\tConstant domains   : " + mln.constants.size
       + "\n\tSchema definitions : " + mln.schema.predicateSchema.size
-      + "\n\tFormulas           : " + mln.formulas.size)
+      + "\n\tClauses            : " + mln.clauses.size)
 
-    info("Number of CNF clauses = " + mln.clauses.size)
-    debug("List of CNF clauses: ")
-    if(isDebugEnabled) mln.clauses.zipWithIndex.foreach{case (c, idx) => debug(idx+": "+c)}
+    //info("Number of CNF clauses = " + mln.clauses.size)
+    whenDebug{
+      debug("List of CNF clauses: ")
+      mln.clauses.zipWithIndex.foreach{case (c, idx) => debug(idx+": "+c)}
+    }
+
 
     info("Creating MRF...")
     val mrfBuilder = new MRFBuilder(mln, noNegWeights = _noNeg, eliminateNegatedUnit = _eliminateNegatedUnit)

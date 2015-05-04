@@ -40,18 +40,18 @@ import scala.collection.breakOut
 /**
  * A Markov Logic Networks knowledge base and evidence data.
  *
- * @param schema
- * @param formulas the collection of (possibly weighted) formulas in First-order Logic (see [[lomrf.logic.Formula]])
+ * @param schema the domain schema
+ * @param clauses collection of CNF clauses
  * @param dynamicPredicates a map that associates signatures of dynamic atoms with a scala function that determines the truth state: (atoms ground arguments) => Boolean
  * @param dynamicFunctions a map that associates the identities of dynamic functions with a scala function that determines the function's result: (ground arguments) => Boolean
  * @param constants the collection of constant types associated with their domain (e.g. the domain time = {1,...100} has ''time'' as type and the set [1,100] as domain)
  * @param functionMappers associates identities to function mappers [[lomrf.util.FunctionMapper]]
- * @param probabilisticAtoms
- * @param tristateAtoms
+ * @param probabilisticAtoms collection of probabilistic atoms
+ * @param tristateAtoms collection of atoms with tri-state, i.e., open-world assumption (unknown state) with some evidence (true/false state)
  * @param atomStateDB a map tha associates atom signatures with evidence databases
  */
 final class MLN(val schema: DomainSchema,
-                val formulas: Set[Formula],
+                val clauses: Vector[Clause],
                 val dynamicPredicates: Map[AtomSignature, Vector[String] => Boolean],
                 val dynamicFunctions: Map[AtomSignature, Vector[String] => String],
                 val constants: Map[String, ConstantsSet],
@@ -61,13 +61,13 @@ final class MLN(val schema: DomainSchema,
                 val atomStateDB: Map[AtomSignature, AtomEvidenceDB]) {
 
 
-  val space = DomainSpace(schema, constants)
+  lazy val space = DomainSpace(schema, constants)
 
 
   /**
    * The set of ground clauses
    */
-  lazy val clauses = formulas.par.foldRight(Set[Clause]())((a, b) => a.toCNF(constants) ++ b).toVector
+  //lazy val clauses = Vector[Clause]() //formulas.par.foldRight(Set[Clause]())((a, b) => a.toCNF(constants) ++ b).toVector
 
   /**
    * Determine if the given atom signature corresponds to an atom with closed-world assumption.
@@ -161,25 +161,29 @@ final class MLN(val schema: DomainSchema,
       "\tNumber of dynamic predicates...........: " + dynamicPredicates.size + "\n" +
       "\tNumber of dynamic functions............: " + dynamicFunctions.size + "\n" +
       "\tNumber of constant types...............: " + constants.size + "\n" +
-      "\tNumber of formulas.....................: " + formulas.size + "\n" +
+      "\tNumber of clauses......................: " + clauses.size
+  }
+
+  def dumpContents: String ={
+    this.toString + "\n" +
       "\tPredicate schema definitions...........: {\n\t\t" +
       schema.predicateSchema
-            .map{case (signature, terms) => signature+" -> ("+terms.mkString(", ")+")"}
-            .mkString("\n\t\t")+"\n\t}\n"+
+        .map{case (signature, terms) => signature+" -> ("+terms.mkString(", ")+")"}
+        .mkString("\n\t\t")+"\n\t}\n"+
       "\tFunction schema definitions............: {\n\t\t"+
       schema.functionSchema
-            .map{case (signature, (returnType, terms)) => signature+" -> "+returnType+" = ("+terms.mkString(", ")+")"}
-            .mkString("\n\t\t")+"\n\t}\n"+
+        .map{case (signature, (returnType, terms)) => signature+" -> "+returnType+" = ("+terms.mkString(", ")+")"}
+        .mkString("\n\t\t")+"\n\t}\n"+
       "\tDynamic predicates.....................: {\n\t\t"+
-            dynamicPredicates.keys //display only the signature
-              .mkString("\n\t\t")+"\n\t}\n"+
+      dynamicPredicates.keys //display only the signature
+        .mkString("\n\t\t")+"\n\t}\n"+
       "\tDynamic functions......................: {\n\t\t"+
-            dynamicFunctions.keys //display only the signature
-              .mkString("\n\t\t")+"\n\t}\n"+
+      dynamicFunctions.keys //display only the signature
+        .mkString("\n\t\t")+"\n\t}\n"+
       "\tConstant types.........................: {\n\t\t"+
-          constants
-            .map{ case (name, constantSet) => name +" -> maps to ["+constantSet.idsRange.head+","+constantSet.idsRange.last+"]."}
-            .mkString("\n\t\t")+"\n\t}\n"+""
+      constants
+        .map{ case (name, constantSet) => name +" -> maps to ["+constantSet.idsRange.head+","+constantSet.idsRange.last+"]."}
+        .mkString("\n\t\t")+"\n\t}\n"+""
   }
 
 }
@@ -305,7 +309,9 @@ object MLN extends Logging {
 
 
     // Give the resulting MLN
-    new MLN(schema, kb.formulas, kb.dynamicPredicates, kb.dynamicFunctions, evidence.constants, functionMapperz, probabilisticAtoms, triStateAtoms, atomStateDB)
+    //new MLN(schema, kb.formulas, kb.dynamicPredicates, kb.dynamicFunctions, evidence.constants, functionMapperz, probabilisticAtoms, triStateAtoms, atomStateDB)
+    val clauses = kb.formulas.par.foldRight(Set[Clause]())((a, b) => a.toCNF(evidence.constants) ++ b).toVector
+    new MLN(schema, clauses, kb.dynamicPredicates, kb.dynamicFunctions, evidence.constants, functionMapperz, probabilisticAtoms, triStateAtoms, atomStateDB)
   }
 
 
@@ -382,7 +388,9 @@ object MLN extends Logging {
       else kb.formulas
 
     val schema = DomainSchema(kb.predicateSchema, kb.functionSchema, queryAtoms, finalCWA, finalOWA)
-    (new MLN(schema, kb.formulas, kb.dynamicPredicates, kb.dynamicFunctions, evidence.constants, finalFunctionMappers, probabilisticAtoms, triStateAtoms, atomStateDB), annotationDB)
+    //(new MLN(schema, kb.formulas, kb.dynamicPredicates, kb.dynamicFunctions, evidence.constants, finalFunctionMappers, probabilisticAtoms, triStateAtoms, atomStateDB), annotationDB)
+    val clauses = kb.formulas.par.foldRight(Set[Clause]())((a, b) => a.toCNF(evidence.constants) ++ b).toVector
+    (new MLN(schema, clauses, kb.dynamicPredicates, kb.dynamicFunctions, evidence.constants, finalFunctionMappers, probabilisticAtoms, triStateAtoms, atomStateDB), annotationDB)
   }
 
 
@@ -403,7 +411,9 @@ object MLN extends Logging {
             atomStateDB: Map[AtomSignature, AtomEvidenceDB]): MLN ={
 
     val schema = DomainSchema(predicateSchema, functionSchema, queryAtoms, cwa, owa)
-    new MLN(schema, formulas, dynamicPredicates, dynamicFunctions, constants, functionMappers, probabilisticAtoms, tristateAtoms, atomStateDB)
+    //new MLN(schema, formulas, dynamicPredicates, dynamicFunctions, constants, functionMappers, probabilisticAtoms, tristateAtoms, atomStateDB)
+    val clauses = formulas.par.foldRight(Set[Clause]())((a, b) => a.toCNF(constants) ++ b).toVector
+    new MLN(schema, clauses, dynamicPredicates, dynamicFunctions, constants, functionMappers, probabilisticAtoms, tristateAtoms, atomStateDB)
 
   }
 

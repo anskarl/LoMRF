@@ -60,9 +60,9 @@ class DependencyMapSpecTest extends FunSpec with Matchers {
 
   describe(s"The MLN theory in '$mlnFile'"){
 
-    it("should contain 7 formulas") {
+    /*it("should contain 7 formulas") {
       mln.formulas.size shouldBe 7
-    }
+    }*/
 
     it("should contain 1 constant set (domain)") {
       mln.constants.size shouldBe 1

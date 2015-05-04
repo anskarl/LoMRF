@@ -114,7 +114,7 @@ object KBCompilerCLI extends Logging {
 
     info(
       "\nSource MLN: " + source + "\n" +
-        "\tFound " + mln.formulas.size + " formulas.\n" +
+        "\tFound " + mln.clauses.size + " clauses.\n" +
         "\tFound " + mln.schema.predicateSchema.size + " predicates.\n" +
         "\tFound " + mln.schema.functionSchema.size + " functions.")
 
@@ -170,7 +170,8 @@ object KBCompilerCLI extends Logging {
       }
     }
 
-    if (cnf) {
+    // TODO:
+    /*if (cnf) {
       var clauseCounter = 0
       write("\n\n// Clauses\n")
       for (formula <- mln.formulas) {
@@ -189,7 +190,7 @@ object KBCompilerCLI extends Logging {
       mln.formulas.foreach(f => {
         write(formulaFormatter(f, weightsMode)); write("\n\n")
       })
-    }
+    }*/
 
     fileWriter.flush()
     fileWriter.close()

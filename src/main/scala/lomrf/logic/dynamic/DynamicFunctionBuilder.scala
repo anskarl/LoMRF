@@ -34,10 +34,6 @@ package lomrf.logic.dynamic
 
 import lomrf.logic.{Term, AtomSignature, TermFunction}
 
-/**
- *
- */
-
 trait DynamicFunctionBuilder {
   def signature: AtomSignature
   def resultFunction: (Vector[String] => String)

@@ -268,12 +268,7 @@ object WeightLearningCLI extends OptionParser with Logging {
 
       val (mln, annotationDB) = MLN.learning(strMLNFileName, strTrainingFileNames, _nonEvidenceAtoms, addUnitClauses = _addUnitClauses)
 
-      info("Markov Logic:"
-        + "\n\tConstant domains   : " + mln.constants.size
-        + "\n\tSchema definitions : " + mln.schema.predicateSchema.size
-        + "\n\tFormulas           : " + mln.formulas.size
-        + "\n\tEvidence atoms     : " + mln.schema.cwa.mkString(",")
-        + "\n\tNon-evidence atoms : " + mln.schema.owa.mkString(","))
+      mlnInfo(mln)
 
       info("AnnotationDB: "
         + "\n\tAtoms with annotations: " + annotationDB.keys.map(_.toString).reduceLeft((left, right) => left + "," + right)
@@ -304,12 +299,7 @@ object WeightLearningCLI extends OptionParser with Logging {
 
         val (mln, annotationDB) = MLN.learning(strMLNFileName, List(strTrainingFileNames(step)), _nonEvidenceAtoms, addUnitClauses = _addUnitClauses)
 
-        info("Markov Logic:"
-          + "\n\tConstant domains   : " + mln.constants.size
-          + "\n\tSchema definitions : " + mln.schema.predicateSchema.size
-          + "\n\tFormulas           : " + mln.formulas.size
-          + "\n\tEvidence atoms     : " + mln.schema.cwa.mkString(",")
-          + "\n\tNon-evidence atoms : " + mln.schema.owa.mkString(","))
+        mlnInfo(mln)
 
         info("AnnotationDB: "
           + "\n\tAtoms with annotations: " + annotationDB.keys.mkString(",")
@@ -335,6 +325,15 @@ object WeightLearningCLI extends OptionParser with Logging {
       learner.writeResults(outputWriter)
     }
 
+  }
+
+  private def mlnInfo(mln: MLN): Unit ={
+    info("Markov Logic:"
+      + "\n\tConstant domains   : " + mln.constants.size
+      + "\n\tSchema definitions : " + mln.schema.predicateSchema.size
+      + "\n\tClauses            : " + mln.clauses.size
+      + "\n\tEvidence atoms     : " + mln.schema.cwa.mkString(",")
+      + "\n\tNon-evidence atoms : " + mln.schema.owa.mkString(","))
   }
 }
 

@@ -54,9 +54,9 @@ final class MaxMarginSpecTest extends FunSpec with Matchers with PrivateMethodTe
 
   describe(s"The MLN theory in '$mlnFile'"){
 
-    it("should contain 3 formulas") {
+    /*it("should contain 3 formulas") {
       mln.formulas.size shouldBe 3
-    }
+    }*/
 
     it("should contain 1 constant set (domain)") {
       mln.constants.size shouldBe 1

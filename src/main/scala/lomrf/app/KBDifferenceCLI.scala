@@ -66,11 +66,11 @@ object KBDifferenceCLI extends CLIApp {
 
       info(
         "\nSource KB 1: " + sourceAlpha + "\n" +
-          "\tFound " + mlnAlpha.formulas.size + " formulas.\n" +
+          "\tFound " + mlnAlpha.clauses.size + " clauses.\n" +
           "\tFound " + mlnAlpha.schema.predicateSchema.size + " predicates.\n" +
           "\tFound " + mlnAlpha.schema.functionSchema.size + " functions.\n" +
           "\nSource KB 2: " + sourceBeta + "\n" +
-          "\tFound " + mlnBeta.formulas.size + " formulas.\n" +
+          "\tFound " + mlnBeta.clauses.size + " clauses.\n" +
           "\tFound " + mlnBeta.schema.predicateSchema.size + " predicates.\n" +
           "\tFound " + mlnBeta.schema.functionSchema.size + " functions.")
 

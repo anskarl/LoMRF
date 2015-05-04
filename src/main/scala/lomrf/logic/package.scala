@@ -444,22 +444,21 @@ package object logic extends Logging {
 
   object predef {
 
-    val dynAtomBuilders: Map[AtomSignature, DynamicAtomBuilder] =
-      List(
-        DynEqualsBuilder(), DynLessThanBuilder(), DynLessThanEqBuilder(),
-        DynGreaterThanBuilder(), DynGreaterThanEqBuilder(), DynSubstringBuilder()
-      ).map(builder => builder.signature -> builder).toMap
+    val dynAtomBuilders: Map[AtomSignature, DynamicAtomBuilder] = List(
+      DynEqualsBuilder(), DynLessThanBuilder(), DynLessThanEqBuilder(),
+      DynGreaterThanBuilder(), DynGreaterThanEqBuilder(), DynSubstringBuilder()
+    ).map(builder => builder.signature -> builder).toMap
 
 
     val dynAtoms: Map[AtomSignature, Vector[String] => Boolean] =
       dynAtomBuilders.map { case (signature, builder) => signature -> builder.stateFunction}
 
 
-    val dynFunctionBuilders: Map[AtomSignature, DynamicFunctionBuilder] =
-      List(
-        DynSuccFunctionBuilder(), DynPrecFunctionBuilder(), DynPlusFunctionBuilder(), DynMinusFunctionBuilder(),
-        DynTimesFunctionBuilder(), DynDividedByFunctionBuilder(), DynModFunctionBuilder(), DynConcatFunctionBuilder()
-      ).map(builder => builder.signature -> builder).toMap
+    val dynFunctionBuilders: Map[AtomSignature, DynamicFunctionBuilder] = List(
+      DynSuccFunctionBuilder(), DynPrecFunctionBuilder(), DynPlusFunctionBuilder(),
+      DynMinusFunctionBuilder(), DynTimesFunctionBuilder(), DynDividedByFunctionBuilder(),
+      DynModFunctionBuilder(), DynConcatFunctionBuilder()
+    ).map(builder => builder.signature -> builder).toMap
 
     val dynFunctions: Map[AtomSignature, Vector[String] => String] =
       dynFunctionBuilders.map { case (signature, builder) => signature -> builder.resultFunction}

@@ -36,13 +36,10 @@ import auxlib.log.Logging
 import lomrf.logic.dynamic.{DynamicFunctionBuilder, DynamicAtomBuilder}
 import scala.collection.breakOut
 
-/**
- *
- */
 final class KBParser(predicateSchema: Map[AtomSignature, Vector[String]],
-                             functionSchema: Map[AtomSignature, (String, Vector[String])],
-                             dynamicAtomBuilders: Map[AtomSignature, DynamicAtomBuilder] = predef.dynAtomBuilders,
-                             dynamicFunctionBuilders: Map[AtomSignature, DynamicFunctionBuilder] = predef.dynFunctionBuilders) extends CommonsMLNParser with Logging {
+                     functionSchema: Map[AtomSignature, (String, Vector[String])],
+                     dynamicAtomBuilders: Map[AtomSignature, DynamicAtomBuilder] = predef.dynAtomBuilders,
+                     dynamicFunctionBuilders: Map[AtomSignature, DynamicFunctionBuilder] = predef.dynFunctionBuilders) extends CommonsMLNParser with Logging {
 
 
   private val minPrecedenceLevel = 1
@@ -60,6 +57,12 @@ final class KBParser(predicateSchema: Map[AtomSignature, Vector[String]],
   def getDynamicFunctions = dynamicFunctions
 
   def getDynamicFunctionsInstances = dynamicFunctionsInstances
+
+
+  // ---------------------------------------------------
+  // Parser functions:
+  // ---------------------------------------------------
+
 
   def mln: Parser[List[MLNExpression]] = rep(sentence)
 

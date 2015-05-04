@@ -269,12 +269,9 @@ final class NormalFormSpecTest extends FunSpec with Matchers{
       cwa = Set(AtomSignature("Happens", 2), AtomSignature("Close", 4), AtomSignature("Next", 2)),
       owa = Set(AtomSignature("Initiates", 3), AtomSignature("Terminates", 3), AtomSignature("StartsAt", 3), AtomSignature("StopsAt", 3)))
 
-    info("Found " + mln.formulas.size + " formulas")
-    info("Found " + mln.constants.size + " constant types")
-    info("Found " + mln.schema.predicateSchema.size + " predicate schemas")
-    info("Found " + mln.schema.functionSchema.size + " function schemas")
+    info(mln.toString)
 
-    it("should contain 14 formulas"){
+    /*it("should contain 14 formulas"){
       mln.formulas.size should be (14)
 
       for {
@@ -283,7 +280,7 @@ final class NormalFormSpecTest extends FunSpec with Matchers{
         clInfo("Formula '" + f.toText + "'", clauses)
         assert(clauses.nonEmpty)
       }
-    }
+    }*/
 
     it("should constants 5 constants sets (domains)"){
       mln.constants.size should be (5)
