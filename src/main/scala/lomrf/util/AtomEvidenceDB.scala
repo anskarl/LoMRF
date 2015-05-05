@@ -703,7 +703,7 @@ final class AtomEvidenceDBBuilder private(val signature: AtomSignature, schema: 
   }
 
 
-  def toAtomEvidenceDB: AtomEvidenceDB = {
+  def result(): AtomEvidenceDB = {
     dirty = true
     //val mapping: Map[String, Int] = (for ((key, position) <- schema.zipWithIndex) yield key -> position)(breakOut)
 

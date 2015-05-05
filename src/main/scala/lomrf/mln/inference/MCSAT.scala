@@ -303,7 +303,7 @@ final case class MCSAT(mrf: MRF, pBest: Double = 0.5, pSA: Double = 0.1, maxFlip
     while (iterator.hasNext) {
       iterator.advance()
       val atomID = iterator.key()
-      if (atomID >= mln.space.queryStartID && atomID <= mln.space.queryEndID) {
+      if (atomID >= mln.domainSpace.queryStartID && atomID <= mln.domainSpace.queryEndID) {
         val groundAtom = iterator.value()
         val probability = (groundAtom.getTruesCount * 1.0) / samples
         // Add Gaussian noise for P=0.0 and P=1.0. Also reformat the displayed probability result in order to have at maximum 7 floating point decimals

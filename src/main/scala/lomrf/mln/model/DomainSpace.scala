@@ -43,11 +43,11 @@ import lomrf.util.{AtomIdentityFunction, ConstantsSet}
  * @param queryStartID the first index of ground query atom in the MRF
  * @param queryEndID the last index of ground query atom in the MRF
  */
-final class DomainSpace private(val identities: Map[AtomSignature, AtomIdentityFunction],
+final class DomainSpace private(val identities: Identities,
                                 val orderedAtomSignatures: Array[AtomSignature],
                                 val orderedStartIDs: Array[Int],
                                 val queryStartID: Int,
-                                val queryEndID: Int){
+                                val queryEndID: Int) {
 
   /**
    * Total number of ground query atoms
@@ -59,8 +59,16 @@ object DomainSpace {
 
   private val logger = Logger(this.getClass)
 
-  def apply(domain: DomainSchema, constants: Map[String, ConstantsSet]): DomainSpace =
-    apply(domain.predicateSchema, domain.queryAtoms, domain.hiddenAtoms, constants)
+  /**
+   *
+   * @param mlnSchema
+   * @param constants
+   *
+   * @return a new instance of DomainSpace
+   */
+  def apply(mlnSchema: MLNSchema, constants: ConstantsDomain): DomainSpace = {
+    apply(mlnSchema.predicateSchema, mlnSchema.queryAtoms, mlnSchema.hiddenAtoms, constants)
+  }
 
   /**
    *
@@ -71,10 +79,10 @@ object DomainSpace {
    *
    * @return a new instance of DomainSpace
    */
-  def apply(predicateSchema: Map[AtomSignature, Seq[String]],
+  def apply(predicateSchema: PredicateSchema,
             queryPredicates: Set[AtomSignature],
             hiddenPredicates: Set[AtomSignature],
-            constants: Map[String, ConstantsSet]): DomainSpace = {
+            constants: ConstantsDomain): DomainSpace = {
 
     def isOWA(signature: AtomSignature) = queryPredicates.contains(signature) || hiddenPredicates.contains(signature)
 
@@ -94,7 +102,7 @@ object DomainSpace {
       val idFunction = AtomIdentityFunction(signature, atomSchema, constants, currentID)
       currentID += idFunction.length + 1
       identities += (signature -> idFunction)
-      logger.debug(signature + " {[" + idFunction.startID + "," + (idFunction.length + idFunction.startID) + "], length:" + idFunction.length + "}")
+      logger.debug(s"$signature {[${idFunction.startID}, ${idFunction.length + idFunction.startID}], length: ${idFunction.length}}")
     }
 
     val queryStartID = 1
@@ -109,7 +117,7 @@ object DomainSpace {
       val idFunction = AtomIdentityFunction(signature, atomSchema, constants, currentID)
       currentID += idFunction.length + 1
       identities += (signature -> idFunction)
-      logger.debug(signature + " {[" + idFunction.startID + "," + (idFunction.length + idFunction.startID) + "], length:" + idFunction.length + "}")
+      logger.debug(s"$signature {[${idFunction.startID}, ${idFunction.length + idFunction.startID}], length: ${idFunction.length}}")
     }
 
     // CWA predicates (Evidence predicates)
@@ -120,11 +128,11 @@ object DomainSpace {
       val idFunction = AtomIdentityFunction(signature, atomSchema, constants, currentID)
       currentID += idFunction.length + 1
       identities += (signature -> idFunction)
-      logger.debug(signature + " {[" + idFunction.startID + "," + (idFunction.length + idFunction.startID) + "], length:" + idFunction.length + "}")
+      logger.debug(s"$signature {[${idFunction.startID}, ${idFunction.length + idFunction.startID}], length: ${idFunction.length}}")
     }
 
     logger.whenDebug {
-      orderedAtomSignatures.zip(orderedStartIDs).foreach{case (sig, startid) => logger.debug(sig + " -> " + startid) }
+      orderedAtomSignatures.zip(orderedStartIDs).foreach{case (sig, startid) => logger.debug(s"$sig -> $startid") }
     }
 
 

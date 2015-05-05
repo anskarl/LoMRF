@@ -43,7 +43,7 @@ final class KBBuilder { self =>
 
   private var dirty = false
 
-  private var _constantBuilders = Map.empty[String, ConstantsSetBuilder]
+  //private var _constantBuilders = Map.empty[String, ConstantsSetBuilder]
 
   private var _predicateSchema = Map.empty[AtomSignature, Vector[String]]
 
@@ -55,10 +55,10 @@ final class KBBuilder { self =>
 
   private var _dynamicFunctions = Map.empty[AtomSignature, Vector[String] => String]
 
-  def withConstantBuilders(input: Map[String, ConstantsSetBuilder]): self.type ={
+  /*def withConstantBuilders(input: Map[String, ConstantsSetBuilder]): self.type ={
     _constantBuilders = input
     self
-  }
+  }*/
 
   def withPredicateSchema(input: Map[AtomSignature, Vector[String]]): self.type ={
     _predicateSchema = input
@@ -87,10 +87,11 @@ final class KBBuilder { self =>
 
   def result(): KB = {
     dirty = true
-    new KB(_constantBuilders, _predicateSchema, _functionSchema, _formulas, _dynamicPredicates, _dynamicFunctions)
+    //new KB(_constantBuilders, _predicateSchema, _functionSchema, _formulas, _dynamicPredicates, _dynamicFunctions)
+    new KB(_predicateSchema, _functionSchema, _formulas, _dynamicPredicates, _dynamicFunctions)
   }
 
-  object constants {
+  /*object constants {
 
     private def copyIfDirty(): Unit ={
       if(self.dirty) {
@@ -159,7 +160,7 @@ final class KBBuilder { self =>
     }
 
     def clear(): Unit = _constantBuilders = Map.empty
-  }
+  }*/
 
 
   object predicateSchema {

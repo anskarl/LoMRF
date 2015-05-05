@@ -79,7 +79,7 @@ class ClauseGrounderImpl(
 
   private val identities: Map[AtomSignature, AtomIdentityFunction] =
     (for (literal <- clause.literals if !mln.isDynamicAtom(literal.sentence.signature))
-    yield literal.sentence.signature -> mln.space.identities(literal.sentence.signature))(breakOut)
+    yield literal.sentence.signature -> mln.domainSpace.identities(literal.sentence.signature))(breakOut)
 
 
 
@@ -140,7 +140,7 @@ class ClauseGrounderImpl(
             // Otherwise, the atomID has a valid id number and the following pattern matching procedure
             // investigates whether the current literal satisfies the ground clause. If it does, the clause
             // is omitted from the MRF, since it is always satisfied from that literal.
-            val state = mln.atomStateDB(literal.sentence.signature).get(atomID).value
+            val state = mln.evidenceDB(literal.sentence.signature).get(atomID).value
             if ((literal.isNegative && (state == FALSE.value)) || (literal.isPositive && (state == TRUE.value))) {
               // the clause is always satisfied from that literal
               sat += 1

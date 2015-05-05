@@ -89,7 +89,7 @@ final class FunctionMapperBuilder(identityFunction: AtomIdentityFunction) {
     args2Value.putIfAbsent(id, value)
   }
 
-  def result: FunctionMapperDefaultImpl = {
+  def result(): FunctionMapperDefaultImpl = {
     dirty = true
     new FunctionMapperDefaultImpl(identityFunction, TCollections.unmodifiableMap(args2Value))
   }

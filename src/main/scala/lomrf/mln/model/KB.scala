@@ -32,40 +32,38 @@
 
 package lomrf.mln.model
 
-import auxlib.log.Logging
+import auxlib.log.Logger
 import scala.collection.mutable
 import java.io.{BufferedReader, File, FileReader}
 import java.util.regex.Pattern
 import lomrf.logic.PredicateCompletionMode._
 import lomrf.logic._
 import lomrf.logic.dynamic.{DynamicAtomBuilder, DynamicFunctionBuilder}
-import lomrf.util.{ConstantsSetBuilder, ImplFinder}
+import lomrf.util.ImplFinder
 
 import scala.concurrent.duration.Duration
 import scala.concurrent._
 import ExecutionContext.Implicits.global
 
 /**
- * self class contains the parsed components of an MLN theory.
+ * KB class contains the parsed components of an MLN theory.
  *
- * @param constants holds a mapping of 'domain name' to its 'constants set builder'.
  * @param predicateSchema  holds a mapping of 'atom signature' to a sequence of the domain names of its terms.
  * @param functionSchema  holds a mapping of 'function signature' to its return domain name, as well as a sequence of the domain names of its terms.
  * @param formulas contains a collection of (weighted) formulas in first-order logic form.
  * @param dynamicPredicates contains definitions of dynamic predicates
  * @param dynamicFunctions contains definitions of dynamic functions
  */
-class KB(val constants: Map[String, ConstantsSetBuilder],
-                        val predicateSchema: Map[AtomSignature, Seq[String]],
-                        val functionSchema: Map[AtomSignature, (String, Vector[String])],
-                        val formulas: Set[Formula],
-                        val dynamicPredicates: Map[AtomSignature, Vector[String] => Boolean],
-                        val dynamicFunctions: Map[AtomSignature, Vector[String] => String]) {
+class KB(val predicateSchema: PredicateSchema,
+         val functionSchema: FunctionSchema,
+         val formulas: Set[Formula],
+         val dynamicPredicates: DynamicPredicates,
+         val dynamicFunctions: DynamicFunctions) {
 
 
   override def toString: String = {
     "KB = {" +
-      "\n\t# Constant domains  : " + constants.size +
+      //"\n\t# Constant domains  : " + constants.size +
       "\n\t# Predicate schemas : " + predicateSchema.size +
       "\n\t# Function schemas  : " + functionSchema.size +
       "\n\t# Formulas          : " + formulas.size +
@@ -74,22 +72,25 @@ class KB(val constants: Map[String, ConstantsSetBuilder],
 }
 
 
-object KB extends Logging {
+object KB {
 
-  private val formulaRegex = Pattern.compile(".*\\s=>\\s.*|.*\\s<=>\\s.*|.*\\s:-\\s.*|.*\\s^\\s.*|.*\\sv\\s.*|.*\\s!\\s.*|\\d.*|.*\\.")
-  private val ignoreRegex = Pattern.compile("\\s*\\*.*|/\\*.*|//.*|\\s+")
+  private lazy val formulaRegex = Pattern.compile(".*\\s=>\\s.*|.*\\s<=>\\s.*|.*\\s:-\\s.*|.*\\s^\\s.*|.*\\sv\\s.*|.*\\s!\\s.*|\\d.*|.*\\.")
+  private lazy val ignoreRegex = Pattern.compile("\\s*\\*.*|/\\*.*|//.*|\\s+")
 
-  private val sep = System.getProperty("file.separator")
+  def apply(predicateSchema: PredicateSchema,
+            functionSchema: FunctionSchema,
+            formulas: Set[Formula],
+            dynamicPredicates: DynamicPredicates,
+            dynamicFunctions: DynamicFunctions) = {
 
-  @deprecated
-  def apply(filename: String,
-            pcMode: PredicateCompletionMode = Simplification,
-            dynamicDefinitions: Option[ImplFinder.ImplementationsMap] = None): KB = fromFile(filename, pcMode, dynamicDefinitions)
-
+    new KB(predicateSchema, functionSchema, formulas, dynamicPredicates, dynamicFunctions)
+  }
 
   def fromFile(filename: String,
-              pcMode: PredicateCompletionMode = Simplification,
-              dynamicDefinitions: Option[ImplFinder.ImplementationsMap] = None): KB = {
+               pcMode: PredicateCompletionMode = Simplification,
+               dynamicDefinitions: Option[ImplFinder.ImplementationsMap] = None): (KB, ConstantsDomainBuilder) = {
+
+    val log = Logger(this.getClass)
 
     val kbFile = new File(filename)
     val fileReader = new BufferedReader(new FileReader(kbFile))
@@ -98,7 +99,8 @@ object KB extends Logging {
 
     val domainParser = new DomainParser()
 
-    val builder = KBBuilder()
+    val constantsBuilder = new ConstantsDomainBuilder()
+    val kbBuilder = KBBuilder()
 
     // -------------------------------------------------------
     // Load dynamic predicates (predefined and user-defined)
@@ -132,13 +134,13 @@ object KB extends Logging {
      * @param formula source formula
      */
     def storeUndefinedConstants(formula: Formula): Unit= {
-      debug(s"Looking for constants in formula: '${formula.toText}'")
+      log.debug(s"Looking for constants in formula: '${formula.toText}'")
 
       def parseTerm(term: Term, key: String): Unit = term match {
-        case Constant(symbol) => builder.constants(key) += symbol
+        case Constant(symbol) => constantsBuilder(key) += symbol
         case f: TermFunction if !dynamicFunctionBuilders.contains(f.signature) =>
           // (String, Vector[String])
-          val functionArgsSchema = builder.functionSchema(f.signature)._2
+          val functionArgsSchema = kbBuilder.functionSchema(f.signature)._2
 
           for ((term, idx) <- f.terms.zipWithIndex) parseTerm(term, functionArgsSchema(idx))
 
@@ -149,7 +151,7 @@ object KB extends Logging {
       formula match {
         case atom: AtomicFormula =>
           if (!dynamicAtomBuilders.contains(atom.signature)) {
-            val predicateArgsSchema = builder.predicateSchema(atom.signature)
+            val predicateArgsSchema = kbBuilder.predicateSchema(atom.signature)
 
             for ((term, idx) <- atom.terms.zipWithIndex) parseTerm(term, predicateArgsSchema(idx))
           }
@@ -173,22 +175,22 @@ object KB extends Logging {
           fileReader.mark(0)
           domainParser.parse(domainParser.definition, line) match {
             case domainParser.Success(expr, _) => expr match {
-              case ConstantTypeDefinition(symbol, cons) => builder.constants ++= (symbol, cons)
+              case ConstantTypeDefinition(symbol, cons) => constantsBuilder ++= (symbol, cons)
 
-              case IntegerTypeDefinition(symbol, start, end) => builder.constants ++= (symbol, (start to end).map(_.toString))
+              case IntegerTypeDefinition(symbol, start, end) => constantsBuilder ++= (symbol, (start to end).map(_.toString))
 
               case FunctionType(retType, functionName, args) =>
-                builder.functionSchema += (AtomSignature(functionName, args.size) -> (retType, args))
-                builder.constants += retType
-                builder.constants ++= args
+                kbBuilder.functionSchema += (AtomSignature(functionName, args.size) -> (retType, args))
+                constantsBuilder += retType
+                constantsBuilder ++= args
 
               case AtomicType(predicateName, args) =>
                 val atomSignature = AtomSignature(predicateName, args.size)
 
-                builder.predicateSchema().get(atomSignature) match {
+                kbBuilder.predicateSchema().get(atomSignature) match {
                   case None =>
-                    builder.predicateSchema += (atomSignature -> (for (element <- args) yield element))
-                    builder.constants ++= args
+                    kbBuilder.predicateSchema += (atomSignature -> (for (element <- args) yield element))
+                    constantsBuilder ++= args
 
                   case _ => stop = true
                 }
@@ -207,7 +209,7 @@ object KB extends Logging {
     // ---------------------------------------------------
 
     fileReader.reset()
-    val kbParser = new KBParser(builder.predicateSchema(), builder.functionSchema(), dynamicAtomBuilders, dynamicFunctionBuilders)
+    val kbParser = new KBParser(kbBuilder.predicateSchema(), kbBuilder.functionSchema(), dynamicAtomBuilders, dynamicFunctionBuilders)
 
     var formulas = Set[Formula]()
     var definiteClauses = Set[WeightedDefiniteClause]()
@@ -215,30 +217,32 @@ object KB extends Logging {
 
     val kbExpressions: Iterable[MLNExpression] = kbParser.parseAll(kbParser.mln, fileReader) match {
       case kbParser.Success(exprs, _) => exprs.asInstanceOf[Iterable[MLNExpression]]
-      case x => fatal(s"Can't parse the following expression: '$x' in file: '$kbFile'")
+      case x => log.fatal(s"Can't parse the following expression: '$x' in file: '$kbFile'")
     }
 
     def processMLNExpression(expr: MLNExpression): Unit = expr match {
       case f: WeightedFormula =>
         if(f.weight == 0.0)
-          warn(s"Ignoring zero weighted formula '${f.toText}'")
+          log.warn(s"Ignoring zero weighted formula '${f.toText}'")
         else {
           formulas += f
           storeUndefinedConstants(f)
         }
       case c: WeightedDefiniteClause =>
         if (c.weight == 0.0)
-          warn(s"Ignoring zero weighted definite clause '${c.toText}'")
+          log.warn(s"Ignoring zero weighted definite clause '${c.toText}'")
         else {
           definiteClauses += c
           storeUndefinedConstants(c.clause.body)
           storeUndefinedConstants(c.clause.head)
         }
       case inc: IncludeFile => queue += inc
-      case _ => warn(s"Ignoring expression: '$expr'")
+      case _ => log.warn(s"Ignoring expression: '$expr'")
     }
 
     kbExpressions.foreach(processMLNExpression)
+
+    val sep = System.getProperty("file.separator")
 
     while (queue.nonEmpty) {
       val inc = queue.dequeue()
@@ -248,13 +252,13 @@ object KB extends Logging {
         else {
           tmp = new File(kbFile.getParent + sep + inc.filename)
           if (tmp.exists) tmp
-          else fatal(s"Cannot find file '${inc.filename}'")
+          else log.fatal(s"Cannot find file '${inc.filename}'")
         }
       }
 
       val curr_expressions: Iterable[MLNExpression] = kbParser.parseAll(kbParser.mln, new FileReader(incFile)) match {
         case kbParser.Success(exprs, _) => exprs.asInstanceOf[Iterable[MLNExpression]]
-        case x => fatal(s"Can't parse the following expression: '$x' in file: '$incFile'")
+        case x => log.fatal(s"Can't parse the following expression: '$x' in file: '$incFile'")
       }
 
       curr_expressions.foreach(processMLNExpression)
@@ -262,7 +266,7 @@ object KB extends Logging {
     }
 
     val resultingFormulas = Future{
-      PredicateCompletion(formulas, definiteClauses, pcMode)(builder.predicateSchema(), builder.functionSchema())
+      PredicateCompletion(formulas, definiteClauses, pcMode)(kbBuilder.predicateSchema(), kbBuilder.functionSchema())
     }
 
     // In case that some predicates are eliminated by the predicate completion,
@@ -270,26 +274,26 @@ object KB extends Logging {
     val resultingPredicateSchema = Future {
         pcMode match {
         case Simplification =>
-          val resultingFormulas = builder.predicateSchema() -- definiteClauses.map(_.clause.head.signature)
+          val resultingFormulas = kbBuilder.predicateSchema() -- definiteClauses.map(_.clause.head.signature)
           if(resultingFormulas.isEmpty)
-            warn("The given theory is empty (i.e., contains empty set of non-zeroed formulas).")
+            log.warn("The given theory is empty (i.e., contains empty set of non-zeroed formulas).")
 
           resultingFormulas
-        case _ => builder.predicateSchema()
+        case _ => kbBuilder.predicateSchema()
       }
     }
 
-    whenDebug {
-      builder.constants().foreach(entry => debug(s"|${entry._1}|=${entry._2.size}"))
+    log.whenDebug {
+      constantsBuilder().foreach(entry => log.debug(s"|${entry._1}|=${entry._2.size}"))
     }
 
-
-    builder
-      .withFormulas(Await.result(resultingFormulas, Duration.Inf))
+    val kb = kbBuilder.withFormulas(Await.result(resultingFormulas, Duration.Inf))
       .withPredicateSchema(Await.result(resultingPredicateSchema, Duration.Inf))
       .withDynamicPredicates(kbParser.getDynamicPredicates)
       .withDynamicFunctions(kbParser.getDynamicFunctions)
       .result()
+
+    (kb, constantsBuilder)
   }
 
 
