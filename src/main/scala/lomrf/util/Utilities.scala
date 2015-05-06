@@ -132,7 +132,7 @@ object Utilities {
    * @tparam T the type of the result when executing
    * @return a tuple: (total execution time, result)
    */
-  def measureTime[T](body: => T, granularity: TimeGranularity = TimeGranularity.Millisecond) = granularity match {
+  def measureTime[T](body: => T)(implicit granularity: TimeGranularity = TimeGranularity.Millisecond) = granularity match {
     case TimeGranularity.Millisecond =>
       val begin = System.currentTimeMillis
       val result = body

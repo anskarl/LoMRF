@@ -54,7 +54,7 @@ object GroundingMLNExp extends App with Logging {
     AtomSignature("Close", 4),
     AtomSignature("OrientationMove", 3))
 
-  val mln = MLN(mlnFileName, queryAtoms, evidenceFileName, owa, cwa)
+  val mln = MLN.fromFile(mlnFileName, queryAtoms, evidenceFileName, owa, cwa)
 
   println(mln.toString)
 }

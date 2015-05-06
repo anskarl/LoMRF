@@ -266,7 +266,7 @@ object WeightLearningCLI extends OptionParser with Logging {
 
     if(_algorithm == Algorithm.MAX_MARGIN) {
 
-      val (mln, annotationDB) = MLN.learning(strMLNFileName, strTrainingFileNames, _nonEvidenceAtoms, addUnitClauses = _addUnitClauses)
+      val (mln, annotationDB) = MLN.forLearning(strMLNFileName, strTrainingFileNames, _nonEvidenceAtoms, addUnitClauses = _addUnitClauses)
 
       mlnInfo(mln)
 
@@ -297,7 +297,7 @@ object WeightLearningCLI extends OptionParser with Logging {
 
       for (step <- strTrainingFileNames.indices) {
 
-        val (mln, annotationDB) = MLN.learning(strMLNFileName, List(strTrainingFileNames(step)), _nonEvidenceAtoms, addUnitClauses = _addUnitClauses)
+        val (mln, annotationDB) = MLN.forLearning(strMLNFileName, List(strTrainingFileNames(step)), _nonEvidenceAtoms, addUnitClauses = _addUnitClauses)
 
         mlnInfo(mln)
 

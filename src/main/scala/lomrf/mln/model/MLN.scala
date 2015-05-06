@@ -34,6 +34,7 @@ package lomrf.mln.model
 
 import auxlib.log.Logging
 import lomrf.logic._
+import lomrf.util.Utilities.TimeGranularity
 import lomrf.util._
 import scala.collection.breakOut
 
@@ -60,7 +61,6 @@ final class MLN(val schema: MLNSchema,
                 val tristateAtoms: Set[AtomSignature],
                 val evidenceDB: EvidenceDB,
                 val domainSpace: DomainSpace) {
-
 
 
   /**
@@ -149,14 +149,14 @@ final class MLN(val schema: MLNSchema,
 
   override def toString: String = {
     s"""
-      |Markov Logic :
-      |  Number of constant domains.............: ${constants.size}
-      |  Number of predicate schema definitions.: ${schema.predicateSchema.size}
-      |  Number of function schema definitions..: ${schema.functionSchema.size}
-      |  Number of dynamic predicates...........: ${dynamicPredicates.size}
-      |  Number of dynamic functions............: ${dynamicFunctions.size}
-      |  Number of constant types...............: ${constants.size}
-      |  Number of clauses......................: ${clauses.size}
+        |Markov Logic :
+        |\tNumber of constant domains.............: ${constants.size}
+        |\tNumber of predicate schema definitions.: ${schema.predicateSchema.size}
+        |\tNumber of function schema definitions..: ${schema.functionSchema.size}
+        |\tNumber of dynamic predicates...........: ${dynamicPredicates.size}
+        |\tNumber of dynamic functions............: ${dynamicFunctions.size}
+        |\tNumber of constant types...............: ${constants.size}
+        |\tNumber of clauses......................: ${clauses.size}
     """.stripMargin
   }
 
@@ -188,6 +188,64 @@ object MLN extends Logging {
 
   import PredicateCompletionMode._
 
+  def apply(formulas: Set[Formula],
+            predicateSchema: PredicateSchema,
+            functionSchema: FunctionSchema,
+            dynamicPredicates: DynamicPredicates,
+            dynamicFunctions: DynamicFunctions,
+            constants: ConstantsDomain,
+            functionMappers: FunctionMappers,
+            queryAtoms: Set[AtomSignature],
+            cwa: Set[AtomSignature],
+            owa: Set[AtomSignature],
+            probabilisticAtoms: Set[AtomSignature],
+            tristateAtoms: Set[AtomSignature],
+            identityFunctions: Identities,
+            evidenceDB: EvidenceDB): MLN = {
+
+
+    val schema = MLNSchema(predicateSchema, functionSchema, queryAtoms, cwa, owa)
+    val clauses =  NormalForm.compileCNF(formulas)(constants).toVector
+
+
+    val domainSpace = DomainSpace(schema, constants)
+
+    new MLN(schema, clauses, dynamicPredicates, dynamicFunctions, constants, functionMappers, probabilisticAtoms, tristateAtoms, evidenceDB, domainSpace)
+  }
+
+
+  def apply(schema: MLNSchema,
+            clauses: Vector[Clause],
+            dynamicPredicates: DynamicPredicates,
+            dynamicFunctions: DynamicFunctions,
+            constants: ConstantsDomain,
+            functionMappers: FunctionMappers,
+            probabilisticAtoms: Set[AtomSignature],
+            tristateAtoms: Set[AtomSignature],
+            evidenceDB: EvidenceDB,
+            domainSpace: DomainSpace): MLN = {
+
+    new MLN(schema, clauses, dynamicPredicates, dynamicFunctions, constants, functionMappers, probabilisticAtoms, tristateAtoms, evidenceDB, domainSpace)
+  }
+
+  def apply(schema: MLNSchema,
+            formulas: Set[Formula],
+            dynamicPredicates: DynamicPredicates,
+            dynamicFunctions: DynamicFunctions,
+            constants: ConstantsDomain,
+            functionMappers: FunctionMappers,
+            probabilisticAtoms: Set[AtomSignature],
+            tristateAtoms: Set[AtomSignature],
+            evidenceDB: EvidenceDB,
+            domainSpace: DomainSpace): MLN = {
+
+
+    val clauses = NormalForm.compileCNF(formulas)(constants).toVector
+
+    new MLN(schema, clauses, dynamicPredicates, dynamicFunctions, constants, functionMappers, probabilisticAtoms, tristateAtoms, evidenceDB, domainSpace)
+  }
+
+
   /**
    * Constructs a MLN instance from the specified knowledge base and evidence files.
    *
@@ -200,7 +258,7 @@ object MLN extends Logging {
    *
    * @return an MLN instance
    */
-  def apply(mlnFileName: String,
+  def fromFile(mlnFileName: String,
             queryAtoms: Set[AtomSignature],
             evidenceFileName: String,
             cwa: Set[AtomSignature] = Set(),
@@ -209,10 +267,10 @@ object MLN extends Logging {
             dynamicDefinitions: Option[ImplFinder.ImplementationsMap] = None,
             domainPart: Boolean = false): MLN = {
 
-    apply(mlnFileName, List(evidenceFileName), queryAtoms, cwa, owa, pcm, dynamicDefinitions, domainPart)
+    fromFile(mlnFileName, List(evidenceFileName), queryAtoms, cwa, owa, pcm, dynamicDefinitions, domainPart)
   }
 
-  def apply(mlnFileName: String,
+  def fromFile(mlnFileName: String,
             evidenceFileNames: List[String],
             queryAtoms: Set[AtomSignature],
             cwa: Set[AtomSignature],
@@ -222,9 +280,9 @@ object MLN extends Logging {
             domainPart: Boolean): MLN = {
 
     info(
-      "Stage 0: Loading an MLN instance from data..." +
-      "\n\tInput MLN file: " + mlnFileName +
-      "\n\tInput evidence file(s): " + (if (evidenceFileNames.nonEmpty) evidenceFileNames.mkString(", ") else ""))
+      s"""--- Stage 0: Loading an MLN instance from data...
+        |\tInput MLN file: $mlnFileName
+        |\tInput evidence file(s): ${evidenceFileNames.mkString(", ")}""".stripMargin)
 
 
     //parse knowledge base (.mln)
@@ -235,28 +293,28 @@ object MLN extends Logging {
     /**
      * Check if the schema of all Query and OWA atoms is defined in the MLN file
      */
-    queryAtoms.find(s => !atomSignatures.contains(s)) match {
-      case Some(x) => fatal(s"The predicate '$x' that appears in the query, is not defined in the mln file.")
-      case None => // do nothing
-    }
+    val missingQuerySignatures = queryAtoms.diff(atomSignatures)
+    if(missingQuerySignatures.nonEmpty)
+      fatal(s"Missing definitions for the following query predicate(s): ${missingQuerySignatures.mkString(", ")}")
+
 
     // OWA predicates
     val predicatesOWA = pcm match {
       case Simplification => queryAtoms ++ owa.intersect(atomSignatures)
       case _ =>
-        owa.find(s => !atomSignatures.contains(s)) match {
-          case Some(x) => fatal(s"The predicate '$x' that appears in OWA, is not defined in the mln file.")
-          case None => // do nothing
-        }
+        val missingOWASignatures = owa.diff(atomSignatures)
+
+        if(missingOWASignatures.nonEmpty)
+          fatal(s"Missing definitions for the following OWA predicate(s): ${missingOWASignatures.mkString(", ")}")
+
         queryAtoms ++ owa
     }
 
 
-    //check for predicates that are mistakenly defined as open and closed
-    cwa.find(s => predicatesOWA.contains(s)) match {
-      case Some(x) => fatal(s"The predicate '$x' is defined both as closed and open.")
-      case None => //do nothing
-    }
+    //Check for predicates that are mistakenly defined as open and closed
+    val openClosedSignatures = cwa.intersect(predicatesOWA)
+    if(openClosedSignatures.nonEmpty)
+      fatal(s"Predicate(s): ${openClosedSignatures.mkString(", ")} defined both as closed and open.")
 
     //parse the evidence database (.db)
     val evidence: Evidence = Evidence(kb, constantsDomainBuilders, queryAtoms, owa, evidenceFileNames)
@@ -288,35 +346,33 @@ object MLN extends Logging {
 
 
     var atomStateDB = evidence.db
-    for (signature <- kb.predicateSchema.keysIterator; if !evidence.db.contains(signature)) {
-      val db = if (finalCWA.contains(signature))
-        AtomEvidenceDB(domainSpace.identities(signature),FALSE)
-      else
-        AtomEvidenceDB(domainSpace.identities(signature),UNKNOWN)
+    for {
+      signature <- kb.predicateSchema.keys
+      if !evidence.db.contains(signature)
+      idf = domainSpace.identities(signature)
+      state = if (finalCWA.contains(signature)) FALSE else UNKNOWN
+    } atomStateDB += (signature -> AtomEvidenceDB(idf, state))
 
-      atomStateDB += (signature -> db)
-    }
 
-    val probabilisticAtoms: Set[AtomSignature] = (for((signature, stateDB) <- atomStateDB if stateDB.isProbabilistic) yield signature)(breakOut)
-    val triStateAtoms: Set[AtomSignature] = (for( (signature, stateDB) <- atomStateDB if stateDB.isTriStateDB ) yield signature)(breakOut)
+    val probabilisticAtoms: Set[AtomSignature] = (for ((signature, stateDB) <- atomStateDB if stateDB.isProbabilistic) yield signature)(breakOut)
+    val triStateAtoms: Set[AtomSignature] = (for ((signature, stateDB) <- atomStateDB if stateDB.isTriStateDB) yield signature)(breakOut)
 
     val schema = MLNSchema(kb.predicateSchema, kb.functionSchema, queryAtoms, finalCWA, finalOWA)
 
 
-    // Give the resulting MLN
-    //new MLN(schema, kb.formulas, kb.dynamicPredicates, kb.dynamicFunctions, evidence.constants, functionMapperz, probabilisticAtoms, triStateAtoms, atomStateDB)
-    val clauses = kb.formulas.par.foldRight(Set[Clause]())((a, b) => a.toCNF(evidence.constants) ++ b).toVector
+    val clauses =  NormalForm.compileCNF(kb.formulas)(evidence.constants).toVector
 
+    // Give the resulting MLN
     new MLN(schema, clauses, kb.dynamicPredicates, kb.dynamicFunctions, evidence.constants, functionMapperz, probabilisticAtoms, triStateAtoms, atomStateDB, domainSpace)
   }
 
 
-  def learning(mlnFileName: String,
-            trainingFileNames: List[String],
-            nonEvidenceAtoms: Set[AtomSignature],
-            pcm: PredicateCompletionMode = Decomposed,
-            dynamicDefinitions: Option[ImplFinder.ImplementationsMap] = None,
-            addUnitClauses: Boolean = false): (MLN, Map[AtomSignature, AtomEvidenceDB]) = {
+  def forLearning(mlnFileName: String,
+                  trainingFileNames: List[String],
+                  nonEvidenceAtoms: Set[AtomSignature],
+                  pcm: PredicateCompletionMode = Decomposed,
+                  dynamicDefinitions: Option[ImplFinder.ImplementationsMap] = None,
+                  addUnitClauses: Boolean = false): (MLN, EvidenceDB) = {
 
     info(
       "--- Stage 0: Loading an MLN instance from data..." +
@@ -339,10 +395,10 @@ object MLN extends Logging {
     val evidenceAtoms = atomSignatures -- nonEvidenceAtoms
 
     //parse the evidence database (.db)
-    val evidence: Evidence = Evidence(kb, constantsDomainBuilder, Set.empty[AtomSignature], Set.empty[AtomSignature], trainingFileNames)
+    val evidence: Evidence = Evidence.fromFiles(kb, constantsDomainBuilder, Set.empty[AtomSignature], Set.empty[AtomSignature], trainingFileNames)
     val domainSpace = evidence.domainSpace
 
-    val finalFunctionMappers = evidence.functionMappers ++ kb.dynamicFunctions.map{
+    val finalFunctionMappers = evidence.functionMappers ++ kb.dynamicFunctions.map {
       case (signature, func) => signature -> FunctionMapper(func)
     }
 
@@ -351,7 +407,7 @@ object MLN extends Logging {
     for (signature <- annotationDB.keysIterator)
       atomStateDB += (signature -> AtomEvidenceDB(domainSpace.identities(signature), UNKNOWN))
 
-    for (signature <- nonEvidenceAtoms; if !annotationDB.contains(signature)){
+    for (signature <- nonEvidenceAtoms; if !annotationDB.contains(signature)) {
       warn(s"Annotation was not given in the training file(s) for predicate '$signature', assuming FALSE state for all its groundings.")
       annotationDB += (signature -> AtomEvidenceDB(domainSpace.identities(signature), FALSE))
     }
@@ -368,14 +424,14 @@ object MLN extends Logging {
     }
 
     // In case we want to learn weights for unit clauses
-    val formulas = if(addUnitClauses){
+    val formulas = if (addUnitClauses) {
       val unitClauses = kb.predicateSchema.map {
         case (signature, termTypes) =>
-        // Find variables for the current predicate
-        val variables: Vector[Variable] = {
-          (for((termType, idx) <- termTypes.zipWithIndex) yield Variable("v" + idx, termType))(breakOut)
-        }
-        WeightedFormula(1.0, AtomicFormula(signature.symbol, variables))
+          // Find variables for the current predicate
+          val variables: Vector[Variable] = {
+            (for ((termType, idx) <- termTypes.zipWithIndex) yield Variable("v" + idx, termType))(breakOut)
+          }
+          WeightedFormula.asUnit(AtomicFormula(signature.symbol, variables))
       }
       kb.formulas ++ unitClauses
     } else {
@@ -383,36 +439,14 @@ object MLN extends Logging {
     }
 
     val schema = MLNSchema(kb.predicateSchema, kb.functionSchema, queryAtoms, finalCWA, finalOWA)
-
-    val clauses = formulas.par.foldRight(Set[Clause]())((a, b) => a.toCNF(evidence.constants) ++ b).toVector
+    
+    val clauses = NormalForm.compileCNF(kb.formulas)(evidence.constants).toVector
 
     (new MLN(schema, clauses, kb.dynamicPredicates, kb.dynamicFunctions, evidence.constants, finalFunctionMappers, probabilisticAtoms, triStateAtoms, atomStateDB, domainSpace), annotationDB)
   }
 
 
 
-  def apply(formulas: Set[Formula],
-            predicateSchema: PredicateSchema,
-            functionSchema: FunctionSchema,
-            dynamicPredicates: DynamicPredicates,
-            dynamicFunctions: DynamicFunctions,
-            constants: ConstantsDomain,
-            functionMappers: FunctionMappers,
-            queryAtoms: Set[AtomSignature],
-            cwa: Set[AtomSignature],
-            owa: Set[AtomSignature],
-            probabilisticAtoms: Set[AtomSignature],
-            tristateAtoms: Set[AtomSignature],
-            identityFunctions: Identities,
-            evidenceDB: EvidenceDB): MLN ={
-
-    val schema = MLNSchema(predicateSchema, functionSchema, queryAtoms, cwa, owa)
-    val clauses = formulas.par.foldRight(Set[Clause]())((a, b) => a.toCNF(constants) ++ b).toVector
-    val domainSpace = DomainSpace(schema,constants)
-
-    new MLN(schema, clauses, dynamicPredicates, dynamicFunctions, constants, functionMappers, probabilisticAtoms, tristateAtoms, evidenceDB, domainSpace)
-
-  }
 
 
 }

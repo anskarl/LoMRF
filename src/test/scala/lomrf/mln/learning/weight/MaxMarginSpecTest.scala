@@ -50,7 +50,7 @@ final class MaxMarginSpecTest extends FunSpec with Matchers with PrivateMethodTe
 
   private val nonEvidenceAtoms = Set(AtomSignature("Smokes", 1), AtomSignature("Cancer", 1), AtomSignature("TransmitCancer", 2))
 
-  val (mln, annotationDB) = MLN.learning(mlnFile, List(trainFile), nonEvidenceAtoms)
+  val (mln, annotationDB) = MLN.forLearning(mlnFile, List(trainFile), nonEvidenceAtoms)
 
   describe(s"The MLN theory in '$mlnFile'"){
 

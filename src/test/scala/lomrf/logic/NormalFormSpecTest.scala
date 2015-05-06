@@ -44,7 +44,7 @@ final class NormalFormSpecTest extends FunSpec with Matchers{
   private val sep = System.getProperty("file.separator")
   private val testFilesPath = System.getProperty("user.dir") + sep + "Examples" + sep + "data" + sep + "tests" + sep
 
-  private val constants = Map[String, ConstantsSet](
+  private implicit val constants = Map[String, ConstantsSet](
     "time" -> ConstantsSet("1", "2", "3", "4"),
     "event" -> ConstantsSet("Abrupt", "Walking", "Running", "Active", "Inactive", "Exit"),
     "fluent" -> ConstantsSet("Fight", "Move", "Meet", "Leaving_object"),
@@ -93,7 +93,7 @@ final class NormalFormSpecTest extends FunSpec with Matchers{
 
   describe("Formula 'InitiatedAt(Fight,t) => Happens(Abrupt, t).'"){
     val formula = kbParser.parseFormula("InitiatedAt(Fight,t) => Happens(Abrupt, t).")
-    val clauses = NormalForm.toCNF(constants, formula)
+    val clauses = NormalForm.toCNF(formula)
 
     it("results to a single valid clause"){
       clauses.size shouldEqual 1
@@ -109,7 +109,7 @@ final class NormalFormSpecTest extends FunSpec with Matchers{
 
   describe("Formula 'InitiatedAt(Fight,t) <=> Happens(Abrupt, t).'"){
     val formula = kbParser.parseFormula("InitiatedAt(Fight,t) <=> Happens(Abrupt, t).")
-    val clauses = NormalForm.toCNF(constants, formula)
+    val clauses = NormalForm.toCNF(formula)
 
     it("produces two valid clauses"){
       clauses.size shouldEqual 2
@@ -262,7 +262,7 @@ final class NormalFormSpecTest extends FunSpec with Matchers{
 
   describe("The MLN from file '"+testFilesPath + "DEC.mln' with evidence from file '"+testFilesPath + "DEC.db'"){
 
-    val mln = MLN(
+    val mln = MLN.fromFile(
       mlnFileName = testFilesPath + "DEC.mln",
       evidenceFileName = testFilesPath + "DEC.db",
       queryAtoms = Set(AtomSignature("HoldsAt", 2)),

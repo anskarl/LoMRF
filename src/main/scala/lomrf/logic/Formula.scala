@@ -34,9 +34,7 @@ package lomrf.logic
 
 import lomrf.util.ConstantsSet
 
-/**
- *
- */
+
 sealed trait Formula extends MLNExpression {
 
   // The collection of variables that appear inside this formula
@@ -95,7 +93,7 @@ sealed trait Formula extends MLNExpression {
    * @param constants the domain of constants, required for existentially quantified variables
    * @return a set of clauses
    */
-  def toCNF(constants: Map[String, ConstantsSet]): Set[Clause] = NormalForm.toCNF(constants, this)
+  def toCNF(implicit constants: Map[String, ConstantsSet]): Set[Clause] = NormalForm.toCNF(this)(constants)
 
   /**
    * The textual representation of this formula
@@ -126,7 +124,7 @@ case class DefiniteClause(head: AtomicFormula, body: DefiniteClauseConstruct) ex
 
   override def getExistentialQuantifiers = List[ExistentialQuantifier]()
 
-  override def toCNF(constants: Map[String, ConstantsSet]): Set[Clause] = NormalForm.toCNF(constants, Or(head, Not(body)))
+  override def toCNF(implicit constants: Map[String, ConstantsSet]): Set[Clause] = NormalForm.toCNF(Or(head, Not(body)))(constants)
 
   def toText = head.toText + " :- " + body.toText
 }
@@ -159,6 +157,11 @@ final class WeightedFormula private(val weight: Double, val formula: Formula) ex
 }
 
 object WeightedFormula {
+
+  def asUnit(formula: Formula) = {
+    new WeightedFormula(1.0, formula)
+  }
+
   def apply(weight: Double, formula: Formula): WeightedFormula = {
     //normaliseVariableDomains(formula)
 

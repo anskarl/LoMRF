@@ -68,6 +68,12 @@ private[model] object Evidence extends Logging {
     fromFiles(kb, constantsDomainBuilders, queryPredicates, hiddenPredicates, List(evidenceFile))
   }
 
+  def fromFiles(kb: KB, constantsDomainBuilders: ConstantsDomainBuilder, queryPredicates: Set[AtomSignature], hiddenPredicates: Set[AtomSignature], filenames: List[String]): Evidence ={
+    val fileList = if (filenames.isEmpty) List(createTempEmptyDBFile) else filenames.map(filename => new File(filename))
+
+    fromFiles(kb, constantsDomainBuilders, queryPredicates, hiddenPredicates, fileList)
+  }
+
 
   def fromFiles(kb: KB, constantsDomainBuilders: ConstantsDomainBuilder, queryPredicates: Set[AtomSignature], hiddenPredicates: Set[AtomSignature], files: Iterable[File]): Evidence = {
     fromFiles(kb.predicateSchema, kb.functionSchema, constantsDomainBuilders, queryPredicates, hiddenPredicates, files)

@@ -108,8 +108,8 @@ object KBCompilerCLI extends Logging {
       case Some(paths) =>
         val implFinder = ImplFinder(classOf[DynamicAtomBuilder], classOf[DynamicFunctionBuilder])
         implFinder.searchPaths(paths)
-        MLN(source, Set[AtomSignature](), evidenceOpt.getOrElse(""), Set[AtomSignature](), Set[AtomSignature](), pcm, dynamicDefinitions = Some(implFinder.result))
-      case None => MLN(source, Set[AtomSignature](), evidenceOpt.getOrElse(""), Set[AtomSignature](), Set[AtomSignature](), pcm)
+        MLN.fromFile(source, Set[AtomSignature](), evidenceOpt.getOrElse(""), Set[AtomSignature](), Set[AtomSignature](), pcm, dynamicDefinitions = Some(implFinder.result))
+      case None => MLN.fromFile(source, Set[AtomSignature](), evidenceOpt.getOrElse(""), Set[AtomSignature](), Set[AtomSignature](), pcm)
     }
 
     info(

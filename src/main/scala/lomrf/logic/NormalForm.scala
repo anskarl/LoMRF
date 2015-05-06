@@ -72,7 +72,7 @@ object NormalForm {
    * @see Standford course CS157: Computational Logic, topic: Resolution Preliminaries  (lecture 9) [[http://logic.stanford.edu/classes/cs157/2008/lectures/lecture09.pdf]]
    * @see Russell, S.J. and Norvig, P. and Canny, J.F. and Malik, J. and Edwards, D.D. Artificial Intelligence: A Modern Approach, chapter 9.5.1 Conjunctive normal form for first-order logic [[http://aima.cs.berkeley.edu/]]
    */
-  def toCNF(constants: Map[String, ConstantsSet], source: Formula): Set[Clause] = extractClauses(
+  def toCNF(source: Formula)(implicit constants: Map[String, ConstantsSet] = Map.empty): Set[Clause] = extractClauses(
     distribute(
       removeUniversalQuantifiers(
         removeExistentialQuantifiers(constants,
@@ -83,6 +83,10 @@ object NormalForm {
       )
     )
   )
+
+  def compileCNF(formulas: Iterable[Formula])(implicit constants: Map[String, ConstantsSet] = Map.empty): Set[Clause] ={
+    formulas.par.foldLeft(Set[Clause]())((clauses, formula) => clauses ++ toCNF(formula))
+  }
 
   /**
    * Converts the given formula into Negation Normal Form (NNF). A logical formula is in NNF if negation
@@ -250,7 +254,7 @@ object NormalForm {
    * @return the equivalent formula in which all existential quantifiers are eliminated.
    */
   def removeExistentialQuantifiers(constants: Map[String, ConstantsSet], source: Formula): Formula = {
-    //TODO: re-implement this function into a non-recursive version, in order to avoid "out of memory" errors in cases in large domains
+    //TODO: re-implement this function into a non-recursive version, in order to avoid "out of memory" errors in large domains
 
     source match {
       case x: AtomicFormula => x
@@ -433,7 +437,7 @@ object NormalForm {
 
         val clauseWeight =
           if (weight == Double.PositiveInfinity) weight
-          else if (unit.size > 0) weight / (nonUnit.size + 1)
+          else if (unit.nonEmpty) weight / (nonUnit.size + 1)
           else weight / nonUnit.size
 
         // Return the extracted clauses:
