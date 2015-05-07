@@ -65,15 +65,15 @@ class DependencyMapSpecTest extends FunSpec with Matchers {
     }*/
 
     it("should contain 1 constant set (domain)") {
-      mln.constants.size shouldBe 1
+      mln.evidence.constants.size shouldBe 1
     }
 
     it("should contain 5 predicate schemas") {
-      mln.schema.predicateSchema.size shouldBe 5
+      mln.schema.predicates.size shouldBe 5
     }
 
     it("should not contain any function schemas") {
-      mln.schema.functionSchema.size shouldBe 0
+      mln.schema.functions.size shouldBe 0
     }
   }
 

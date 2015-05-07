@@ -37,6 +37,7 @@ import lomrf.logic._
 import gnu.trove.set.hash.TIntHashSet
 import gnu.trove.set.TIntSet
 import gnu.trove.TCollections
+import lomrf.mln.model.DomainSpace
 import scala.collection.breakOut
 import gnu.trove.map.hash.TIntDoubleHashMap
 import gnu.trove.map.TIntDoubleMap
@@ -51,7 +52,7 @@ import gnu.trove.map.TIntDoubleMap
  *
  *
  */
-abstract class AtomEvidenceDB(val identity: AtomIdentityFunction) extends Logging {
+abstract class AtomEvidenceDB(val identity: AtomIdentityFunction) {
 
   // The atom's first id in the space of ground atom ids
   protected val bottomBound = identity.startID

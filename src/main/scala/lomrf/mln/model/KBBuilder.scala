@@ -16,34 +16,28 @@
  *
  * Copyright (C) 2012  Anastasios Skarlatidis.
  *
- * self program is free software: you can redistribute it and/or modify
+ * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
  *
- * self program is distributed in the hope that it will be useful,
+ * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with self program.  If not, see <http://www.gnu.org/licenses/>.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
 package lomrf.mln.model
 
 import lomrf.logic.{Formula, AtomSignature}
-import lomrf.util.ConstantsSetBuilder
-
 
 /**
  * Knowledge base builder with fluent interface pattern
  */
 final class KBBuilder { self =>
-
-  private var dirty = false
-
-  //private var _constantBuilders = Map.empty[String, ConstantsSetBuilder]
 
   private var _predicateSchema = Map.empty[AtomSignature, Vector[String]]
 
@@ -55,10 +49,6 @@ final class KBBuilder { self =>
 
   private var _dynamicFunctions = Map.empty[AtomSignature, Vector[String] => String]
 
-  /*def withConstantBuilders(input: Map[String, ConstantsSetBuilder]): self.type ={
-    _constantBuilders = input
-    self
-  }*/
 
   def withPredicateSchema(input: Map[AtomSignature, Vector[String]]): self.type ={
     _predicateSchema = input
@@ -86,82 +76,8 @@ final class KBBuilder { self =>
   }
 
   def result(): KB = {
-    dirty = true
-    //new KB(_constantBuilders, _predicateSchema, _functionSchema, _formulas, _dynamicPredicates, _dynamicFunctions)
     new KB(_predicateSchema, _functionSchema, _formulas, _dynamicPredicates, _dynamicFunctions)
   }
-
-  /*object constants {
-
-    private def copyIfDirty(): Unit ={
-      if(self.dirty) {
-        _constantBuilders = _constantBuilders.map{case (k, v) => k -> v.copy()}
-        dirty = false
-      }
-    }
-
-    def apply(key: String) = _constantBuilders(key)
-
-    def apply(): Map[String, ConstantsSetBuilder] = _constantBuilders
-
-    def update(input: Map[String, ConstantsSetBuilder]): self.type ={
-      _constantBuilders = input
-      dirty = false
-      self
-    }
-
-    def += (key: String, value: String): self.type ={
-      copyIfDirty()
-
-      _constantBuilders.get(key) match {
-        case Some(builder) => builder += value
-        case _ => _constantBuilders += (key -> ConstantsSetBuilder(value))
-      }
-
-      self
-    }
-
-    def += (entry: (String, String)): self.type = constants += (entry._1, entry._2)
-
-    def ++= (entry: (String, Iterable[String])): self.type ={
-      copyIfDirty()
-
-      val (key, values) = entry
-
-      _constantBuilders.get(key) match {
-        case Some(builder) => builder ++= values
-        case _ => _constantBuilders += (key -> ConstantsSetBuilder(values))
-      }
-
-      self
-    }
-
-    def += (key: String): self.type ={
-      copyIfDirty()
-
-      _constantBuilders.get(key) match {
-        case None => _constantBuilders += (key -> ConstantsSetBuilder())
-        case _ => // do nothing
-      }
-      self
-    }
-
-    def ++= (keys: Iterable[String]): self.type ={
-      copyIfDirty()
-
-      for(key <- keys) {
-        _constantBuilders.get(key) match {
-          case None => _constantBuilders += (key -> ConstantsSetBuilder())
-          case _ => // do nothing
-        }
-      }
-
-      self
-    }
-
-    def clear(): Unit = _constantBuilders = Map.empty
-  }*/
-
 
   object predicateSchema {
 

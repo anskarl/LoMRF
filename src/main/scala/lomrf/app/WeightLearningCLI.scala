@@ -329,11 +329,11 @@ object WeightLearningCLI extends OptionParser with Logging {
 
   private def mlnInfo(mln: MLN): Unit ={
     info("Markov Logic:"
-      + "\n\tConstant domains   : " + mln.constants.size
-      + "\n\tSchema definitions : " + mln.schema.predicateSchema.size
+      + "\n\tConstant domains   : " + mln.evidence.constants.size
+      + "\n\tSchema definitions : " + mln.schema.predicates.size
       + "\n\tClauses            : " + mln.clauses.size
-      + "\n\tEvidence atoms     : " + mln.schema.cwa.mkString(",")
-      + "\n\tNon-evidence atoms : " + mln.schema.owa.mkString(","))
+      + "\n\tEvidence atoms     : " + mln.cwa.mkString(",")
+      + "\n\tNon-evidence atoms : " + mln.owa.mkString(","))
   }
 }
 

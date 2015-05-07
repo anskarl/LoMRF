@@ -47,27 +47,42 @@ final class DomainSpace private(val identities: Identities,
                                 val orderedAtomSignatures: Array[AtomSignature],
                                 val orderedStartIDs: Array[Int],
                                 val queryStartID: Int,
-                                val queryEndID: Int) {
+                                val queryEndID: Int,
+                                val queryAtoms: Set[AtomSignature],
+                                val cwa: Set[AtomSignature],
+                                val owa: Set[AtomSignature],
+                                val hiddenAtoms: Set[AtomSignature]) {
+
+  /**
+   * The set of hidden atoms, those that are not query and not evidence.
+   */
+  //val hiddenAtoms = owa -- queryAtoms
 
   /**
    * Total number of ground query atoms
    */
   val numberOfQueryIDs = queryStartID - queryEndID
+
+  def isOWA(signature: AtomSignature): Boolean = owa.contains(signature)
+
+  def isCWA(signature: AtomSignature): Boolean = cwa.contains(signature)
+
+  def isHidden(signature: AtomSignature): Boolean = hiddenAtoms.contains(signature)
+
+  def isQuery(signature: AtomSignature): Boolean = queryAtoms.contains(signature)
+
 }
 
 object DomainSpace {
 
   private val logger = Logger(this.getClass)
 
-  /**
-   *
-   * @param mlnSchema
-   * @param constants
-   *
-   * @return a new instance of DomainSpace
-   */
-  def apply(mlnSchema: MLNSchema, constants: ConstantsDomain): DomainSpace = {
-    apply(mlnSchema.predicateSchema, mlnSchema.queryAtoms, mlnSchema.hiddenAtoms, constants)
+
+  def apply(schema: MLNSchema,
+            queryPredicates: Set[AtomSignature],
+            hiddenPredicates: Set[AtomSignature],
+            constants: ConstantsDomain): DomainSpace = {
+    DomainSpace(schema.predicates, queryPredicates, hiddenPredicates, constants)
   }
 
   /**
@@ -84,7 +99,8 @@ object DomainSpace {
             hiddenPredicates: Set[AtomSignature],
             constants: ConstantsDomain): DomainSpace = {
 
-    def isOWA(signature: AtomSignature) = queryPredicates.contains(signature) || hiddenPredicates.contains(signature)
+    val owa = queryPredicates ++ hiddenPredicates
+    val cwa = predicateSchema.keySet -- owa
 
     var identities: Map[AtomSignature, AtomIdentityFunction] = Map[AtomSignature, AtomIdentityFunction]()
 
@@ -108,7 +124,6 @@ object DomainSpace {
     val queryStartID = 1
     val queryEndID = currentID - 1
 
-
     // Other OWA predicates
     for ((signature, atomSchema) <- predicateSchema; if hiddenPredicates.contains(signature)) {
       orderedStartIDs(index) = currentID
@@ -121,7 +136,7 @@ object DomainSpace {
     }
 
     // CWA predicates (Evidence predicates)
-    for ((signature, atomSchema) <- predicateSchema; if !isOWA(signature)) {
+    for ((signature, atomSchema) <- predicateSchema; if cwa.contains(signature)) {
       orderedStartIDs(index) = currentID
       orderedAtomSignatures(index) = signature
       index += 1
@@ -136,6 +151,6 @@ object DomainSpace {
     }
 
 
-    new DomainSpace(identities, orderedAtomSignatures, orderedStartIDs, queryStartID, queryEndID)
+    new DomainSpace(identities, orderedAtomSignatures, orderedStartIDs, queryStartID, queryEndID, queryPredicates, cwa, owa, hiddenPredicates)
   }
 }

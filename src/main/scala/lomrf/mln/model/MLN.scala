@@ -34,6 +34,7 @@ package lomrf.mln.model
 
 import auxlib.log.Logging
 import lomrf.logic._
+import lomrf.mln.model.DomainSpace
 import lomrf.util.Utilities.TimeGranularity
 import lomrf.util._
 import scala.collection.breakOut
@@ -41,26 +42,13 @@ import scala.collection.breakOut
 /**
  * A Markov Logic Networks knowledge base and evidence data.
  *
- * @param schema the domain schema
+ * @param schema the domain schema (i.e., definitions of  (dynamic) predicates and (dynamic) functions)
+ * @param evidence the specified evidence (i.e., constants, the state of atoms, function mappings and the domain space)
  * @param clauses collection of CNF clauses
- * @param dynamicPredicates a map that associates signatures of dynamic atoms with a scala function that determines the truth state: (atoms ground arguments) => Boolean
- * @param dynamicFunctions a map that associates the identities of dynamic functions with a scala function that determines the function's result: (ground arguments) => Boolean
- * @param constants the collection of constant types associated with their domain (e.g. the domain time = {1,...100} has ''time'' as type and the set [1,100] as domain)
- * @param functionMappers associates identities to function mappers [[lomrf.util.FunctionMapper]]
- * @param probabilisticAtoms collection of probabilistic atoms
- * @param tristateAtoms collection of atoms with tri-state, i.e., open-world assumption (unknown state) with some evidence (true/false state)
- * @param evidenceDB a map tha associates atom signatures with evidence databases
  */
 final class MLN(val schema: MLNSchema,
-                val clauses: Vector[Clause],
-                val dynamicPredicates: DynamicPredicates,
-                val dynamicFunctions: DynamicFunctions,
-                val constants: ConstantsDomain,
-                val functionMappers: FunctionMappers,
-                val probabilisticAtoms: Set[AtomSignature],
-                val tristateAtoms: Set[AtomSignature],
-                val evidenceDB: EvidenceDB,
-                val domainSpace: DomainSpace) {
+                val evidence: Evidence,
+                val clauses: Vector[Clause]) {
 
 
   /**
@@ -69,7 +57,7 @@ final class MLN(val schema: MLNSchema,
    * @param signature the atom's signature
    * @return true if the given atom signature corresponds to an atom with closed-world assumption, otherwise false.
    */
-  def isCWA(signature: AtomSignature): Boolean = schema.cwa.contains(signature)
+  def isCWA(signature: AtomSignature): Boolean = evidence.domainSpace.cwa.contains(signature)
 
   /**
    * Determine if the given atom signature corresponds to an atom with open-world assumption.
@@ -77,7 +65,7 @@ final class MLN(val schema: MLNSchema,
    * @param signature the atom's signature
    * @return true if the given atom signature corresponds to an atom with open-world assumption, otherwise false.
    */
-  def isOWA(signature: AtomSignature): Boolean = schema.owa.contains(signature)
+  def isOWA(signature: AtomSignature): Boolean = evidence.domainSpace.owa.contains(signature)
 
   /**
    * Determine whether the given atom signature corresponds to an atom which may have three states according to
@@ -90,7 +78,7 @@ final class MLN(val schema: MLNSchema,
    *
    * @return true is the given atom signature corresponds to an atom that its groundings may have three states.
    */
-  def isTriState(signature: AtomSignature): Boolean = tristateAtoms.contains(signature)
+  def isTriState(signature: AtomSignature): Boolean = evidence.tristateAtoms.contains(signature)
 
   /**
    * Determine if the given atom signature corresponds to a query atom
@@ -98,7 +86,7 @@ final class MLN(val schema: MLNSchema,
    * @param signature the atom's signature
    * @return true if the given atom signature corresponds to a query atom, otherwise false.
    */
-  def isQueryAtom(signature: AtomSignature): Boolean = schema.queryAtoms.contains(signature)
+  def isQueryAtom(signature: AtomSignature): Boolean = evidence.domainSpace.queryAtoms.contains(signature)
 
   /**
    * Determine if the given atom signature corresponds to a dynamic atom.
@@ -106,7 +94,7 @@ final class MLN(val schema: MLNSchema,
    * @param signature the atom's signature
    * @return true if the given atom signature corresponds to a dynamic atom, otherwise false.
    */
-  def isDynamicAtom(signature: AtomSignature): Boolean = dynamicPredicates.contains(signature)
+  def isDynamicAtom(signature: AtomSignature): Boolean = schema.dynamicPredicates.contains(signature)
 
   /**
    * Determine if the given atom signature corresponds to an evidence atom.
@@ -114,7 +102,7 @@ final class MLN(val schema: MLNSchema,
    * @param signature the atom's signature
    * @return true if the given atom signature corresponds to an evidence atom, otherwise false.
    */
-  def isEvidenceAtom(signature: AtomSignature): Boolean = schema.cwa.contains(signature)
+  def isEvidenceAtom(signature: AtomSignature): Boolean = evidence.domainSpace.cwa.contains(signature)
 
   /**
    * Determine if the given atom signature corresponds to a hidden atom (i.e. is not evidence and not query)
@@ -122,13 +110,13 @@ final class MLN(val schema: MLNSchema,
    * @param signature the atom's signature
    * @return true if the given atom signature corresponds to a hidden atom, otherwise false.
    */
-  def isHiddenAtom(signature: AtomSignature): Boolean = schema.hiddenAtoms.contains(signature)
+  def isHiddenAtom(signature: AtomSignature): Boolean = evidence.domainSpace.hiddenAtoms.contains(signature)
 
   /**
    * @param signature the atom's signature
    * @return the schema of this atom
    */
-  def getSchemaOf(signature: AtomSignature) = schema.predicateSchema.get(signature)
+  def getSchemaOf(signature: AtomSignature) = schema.predicates.get(signature)
 
   /**
    * Gives the domain of the given type
@@ -136,7 +124,7 @@ final class MLN(val schema: MLNSchema,
    * @param t the type name
    * @return a constantSet (if any).
    */
-  def getConstantValuesOf(t: String) = constants.get(t)
+  def getConstantValuesOf(t: String): Option[ConstantsSet] = evidence.constants.get(t)
 
   /**
    * Gives the state of the specified ground atom.
@@ -145,42 +133,31 @@ final class MLN(val schema: MLNSchema,
    * @param atomId integer indicating a specific grounding of the given atom signature [[lomrf.util.AtomIdentityFunction]]
    * @return TRUE, FALSE or UNKNOWN [[lomrf.logic.TriState]]
    */
-  def getStateOf(signature: AtomSignature, atomId: Int) = evidenceDB(signature).get(atomId)
+  def getStateOf(signature: AtomSignature, atomId: Int) = evidence.db(signature).get(atomId)
+
+  def queryAtoms: Set[AtomSignature] = evidence.domainSpace.queryAtoms
+
+  def cwa: Set[AtomSignature] = evidence.domainSpace.cwa
+
+  def owa: Set[AtomSignature] = evidence.domainSpace.owa
+
+  def hiddenAtoms: Set[AtomSignature] = evidence.domainSpace.hiddenAtoms
+
+  def probabilisticAtoms: Set[AtomSignature] = evidence.probabilisticAtoms
+
+  def tristateAtoms: Set[AtomSignature] = evidence.tristateAtoms
 
   override def toString: String = {
     s"""
         |Markov Logic :
-        |\tNumber of constant domains.............: ${constants.size}
-        |\tNumber of predicate schema definitions.: ${schema.predicateSchema.size}
-        |\tNumber of function schema definitions..: ${schema.functionSchema.size}
-        |\tNumber of dynamic predicates...........: ${dynamicPredicates.size}
-        |\tNumber of dynamic functions............: ${dynamicFunctions.size}
-        |\tNumber of constant types...............: ${constants.size}
+        |\tNumber of constant domains.............: ${evidence.constants.size}
+        |\tNumber of predicate schema definitions.: ${schema.predicates.size}
+        |\tNumber of function schema definitions..: ${schema.functions.size}
+        |\tNumber of dynamic predicates...........: ${schema.dynamicPredicates.size}
+        |\tNumber of dynamic functions............: ${schema.dynamicFunctions.size}
         |\tNumber of clauses......................: ${clauses.size}
     """.stripMargin
   }
-
-  /*def dumpContents: String ={
-    this.toString + "\n" +
-      "\tPredicate schema definitions...........: {\n\t\t" +
-      schema.predicateSchema
-        .map{case (signature, terms) => signature+" -> ("+terms.mkString(", ")+")"}
-        .mkString("\n\t\t")+"\n\t}\n"+
-      "\tFunction schema definitions............: {\n\t\t"+
-      schema.functionSchema
-        .map{case (signature, (returnType, terms)) => signature+" -> "+returnType+" = ("+terms.mkString(", ")+")"}
-        .mkString("\n\t\t")+"\n\t}\n"+
-      "\tDynamic predicates.....................: {\n\t\t"+
-      dynamicPredicates.keys //display only the signature
-        .mkString("\n\t\t")+"\n\t}\n"+
-      "\tDynamic functions......................: {\n\t\t"+
-      dynamicFunctions.keys //display only the signature
-        .mkString("\n\t\t")+"\n\t}\n"+
-      "\tConstant types.........................: {\n\t\t"+
-      constants
-        .map{ case (name, constantSet) => name +" -> maps to ["+constantSet.idsRange.head+","+constantSet.idsRange.last+"]."}
-        .mkString("\n\t\t")+"\n\t}\n"+""
-  }*/
 
 }
 
@@ -188,61 +165,44 @@ object MLN extends Logging {
 
   import PredicateCompletionMode._
 
-  def apply(formulas: Set[Formula],
-            predicateSchema: PredicateSchema,
+  def apply(schema: MLNSchema, evidence: Evidence, clauses: Vector[Clause]): MLN = new MLN(schema, evidence, clauses)
+
+  def apply(predicateSchema: PredicateSchema,
             functionSchema: FunctionSchema,
             dynamicPredicates: DynamicPredicates,
             dynamicFunctions: DynamicFunctions,
+            formulas: Set[Formula],
             constants: ConstantsDomain,
+            evidenceDB: EvidenceDB,
             functionMappers: FunctionMappers,
             queryAtoms: Set[AtomSignature],
-            cwa: Set[AtomSignature],
-            owa: Set[AtomSignature],
-            probabilisticAtoms: Set[AtomSignature],
-            tristateAtoms: Set[AtomSignature],
-            identityFunctions: Identities,
-            evidenceDB: EvidenceDB): MLN = {
+            owa: Set[AtomSignature]): MLN = {
 
 
-    val schema = MLNSchema(predicateSchema, functionSchema, queryAtoms, cwa, owa)
+    val hiddenPredicates = owa -- queryAtoms
+
+    val schema = MLNSchema(predicateSchema, functionSchema, dynamicPredicates, dynamicFunctions)
+
+    val space = DomainSpace(predicateSchema, queryAtoms, hiddenPredicates, constants)
+
+    val evidence = Evidence(constants, evidenceDB, functionMappers, space)
+
     val clauses =  NormalForm.compileCNF(formulas)(constants).toVector
 
-
-    val domainSpace = DomainSpace(schema, constants)
-
-    new MLN(schema, clauses, dynamicPredicates, dynamicFunctions, constants, functionMappers, probabilisticAtoms, tristateAtoms, evidenceDB, domainSpace)
+    MLN(schema, evidence, clauses)
   }
 
 
   def apply(schema: MLNSchema,
             clauses: Vector[Clause],
-            dynamicPredicates: DynamicPredicates,
-            dynamicFunctions: DynamicFunctions,
             constants: ConstantsDomain,
             functionMappers: FunctionMappers,
-            probabilisticAtoms: Set[AtomSignature],
-            tristateAtoms: Set[AtomSignature],
             evidenceDB: EvidenceDB,
-            domainSpace: DomainSpace): MLN = {
+            space: DomainSpace): MLN = {
 
-    new MLN(schema, clauses, dynamicPredicates, dynamicFunctions, constants, functionMappers, probabilisticAtoms, tristateAtoms, evidenceDB, domainSpace)
-  }
+    val evidence = Evidence(constants,evidenceDB,functionMappers,space)
 
-  def apply(schema: MLNSchema,
-            formulas: Set[Formula],
-            dynamicPredicates: DynamicPredicates,
-            dynamicFunctions: DynamicFunctions,
-            constants: ConstantsDomain,
-            functionMappers: FunctionMappers,
-            probabilisticAtoms: Set[AtomSignature],
-            tristateAtoms: Set[AtomSignature],
-            evidenceDB: EvidenceDB,
-            domainSpace: DomainSpace): MLN = {
-
-
-    val clauses = NormalForm.compileCNF(formulas)(constants).toVector
-
-    new MLN(schema, clauses, dynamicPredicates, dynamicFunctions, constants, functionMappers, probabilisticAtoms, tristateAtoms, evidenceDB, domainSpace)
+    MLN(schema, evidence, clauses)
   }
 
 
@@ -317,8 +277,9 @@ object MLN extends Logging {
       fatal(s"Predicate(s): ${openClosedSignatures.mkString(", ")} defined both as closed and open.")
 
     //parse the evidence database (.db)
-    val evidence: Evidence = Evidence(kb, constantsDomainBuilders, queryAtoms, owa, evidenceFileNames)
-    val domainSpace = evidence.domainSpace
+    val evidence: Evidence = Evidence.fromFiles(kb, constantsDomainBuilders, queryAtoms, owa, evidenceFileNames)
+    //val identities = evidence.domainSpace.identities
+
 
     /**
      * Compute the final form of CWA/OWA and Query atoms
@@ -329,7 +290,7 @@ object MLN extends Logging {
      * query atoms set. Consequently, open world assumption is
      * assumed for the rest atoms.
      */
-    var finalCWA = cwa.toSet
+    /*var finalCWA = cwa.toSet
 
     for (signature <- evidence.db.keysIterator) {
       if (!atomSignatures(signature)) // Check if this signature is defined in the mln file
@@ -338,32 +299,22 @@ object MLN extends Logging {
         finalCWA += signature
     }
 
-    val finalOWA = atomSignatures -- finalCWA
-
-    var functionMapperz = evidence.functionMappers
-    for ((signature, func) <- kb.dynamicFunctions)
-      functionMapperz += (signature -> FunctionMapper(func))
-
 
     var atomStateDB = evidence.db
     for {
       signature <- kb.predicateSchema.keys
       if !evidence.db.contains(signature)
-      idf = domainSpace.identities(signature)
+      idf = identities(signature)
       state = if (finalCWA.contains(signature)) FALSE else UNKNOWN
-    } atomStateDB += (signature -> AtomEvidenceDB(idf, state))
-
-
-    val probabilisticAtoms: Set[AtomSignature] = (for ((signature, stateDB) <- atomStateDB if stateDB.isProbabilistic) yield signature)(breakOut)
-    val triStateAtoms: Set[AtomSignature] = (for ((signature, stateDB) <- atomStateDB if stateDB.isTriStateDB) yield signature)(breakOut)
-
-    val schema = MLNSchema(kb.predicateSchema, kb.functionSchema, queryAtoms, finalCWA, finalOWA)
+    } atomStateDB += (signature -> AtomEvidenceDB(idf, state))*/
 
 
     val clauses =  NormalForm.compileCNF(kb.formulas)(evidence.constants).toVector
 
+    //val ev = Evidence(evidence.constants, atomStateDB, evidence.functionMappers, evidence.domainSpace)
+
     // Give the resulting MLN
-    new MLN(schema, clauses, kb.dynamicPredicates, kb.dynamicFunctions, evidence.constants, functionMapperz, probabilisticAtoms, triStateAtoms, atomStateDB, domainSpace)
+    new MLN(kb.schema, evidence, clauses)
   }
 
 
@@ -395,14 +346,14 @@ object MLN extends Logging {
     val evidenceAtoms = atomSignatures -- nonEvidenceAtoms
 
     //parse the evidence database (.db)
-    val evidence: Evidence = Evidence.fromFiles(kb, constantsDomainBuilder, Set.empty[AtomSignature], Set.empty[AtomSignature], trainingFileNames)
-    val domainSpace = evidence.domainSpace
+    val training = Evidence.fromFiles(kb, constantsDomainBuilder, Set.empty[AtomSignature], Set.empty[AtomSignature], trainingFileNames)
+    val domainSpace = training.domainSpace
 
-    val finalFunctionMappers = evidence.functionMappers ++ kb.dynamicFunctions.map {
+    val finalFunctionMappers = training.functionMappers ++ kb.dynamicFunctions.map {
       case (signature, func) => signature -> FunctionMapper(func)
     }
 
-    var (annotationDB, atomStateDB) = evidence.db.partition(e => nonEvidenceAtoms.contains(e._1))
+    var (annotationDB, atomStateDB) = training.db.partition(e => nonEvidenceAtoms.contains(e._1))
 
     for (signature <- annotationDB.keysIterator)
       atomStateDB += (signature -> AtomEvidenceDB(domainSpace.identities(signature), UNKNOWN))
@@ -412,11 +363,7 @@ object MLN extends Logging {
       annotationDB += (signature -> AtomEvidenceDB(domainSpace.identities(signature), FALSE))
     }
 
-    val probabilisticAtoms = Set.empty[AtomSignature]
-    val queryAtoms = nonEvidenceAtoms
     val finalCWA = evidenceAtoms
-    val finalOWA = nonEvidenceAtoms
-    val triStateAtoms = atomStateDB.filter(db => db._2.isTriStateDB).keySet // is required for grounding
 
     for (signature <- kb.predicateSchema.keysIterator; if !atomStateDB.contains(signature)) {
       if (finalCWA.contains(signature))
@@ -438,11 +385,11 @@ object MLN extends Logging {
       kb.formulas
     }
 
-    val schema = MLNSchema(kb.predicateSchema, kb.functionSchema, queryAtoms, finalCWA, finalOWA)
-    
-    val clauses = NormalForm.compileCNF(kb.formulas)(evidence.constants).toVector
+    val clauses = NormalForm.compileCNF(formulas)(training.constants).toVector
 
-    (new MLN(schema, clauses, kb.dynamicPredicates, kb.dynamicFunctions, evidence.constants, finalFunctionMappers, probabilisticAtoms, triStateAtoms, atomStateDB, domainSpace), annotationDB)
+    val evidence = new Evidence(training.constants, atomStateDB, training.functionMappers, training.domainSpace)
+
+    (new MLN(kb.schema, evidence, clauses), annotationDB)
   }
 
 

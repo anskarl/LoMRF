@@ -115,25 +115,26 @@ object KBCompilerCLI extends Logging {
     info(
       "\nSource MLN: " + source + "\n" +
         "\tFound " + mln.clauses.size + " clauses.\n" +
-        "\tFound " + mln.schema.predicateSchema.size + " predicates.\n" +
-        "\tFound " + mln.schema.functionSchema.size + " functions.")
+        "\tFound " + mln.schema.predicates.size + " predicates.\n" +
+        "\tFound " + mln.schema.functions.size + " functions.")
 
 
     val fileWriter = new FileWriter(target)
     import fileWriter.write
 
+    val constants = mln.evidence.constants
 
     // write domain data
-    if (includeDomain && mln.constants.nonEmpty) {
+    if (includeDomain && constants.nonEmpty) {
       write("// Domain\n")
-      for ((name, constants) <- mln.constants; if constants.nonEmpty) write(name + "={" + constants.mkString(",") + "}\n")
+      for ((name, constants) <- constants; if constants.nonEmpty) write(name + "={" + constants.mkString(",") + "}\n")
       write("\n")
     }
 
     // write predicate definitions. In case we introduce functions do not write function predicates (beginning with function prefix)
-    if (includePredicateDefinitions && mln.schema.predicateSchema.nonEmpty) {
+    if (includePredicateDefinitions && mln.schema.predicates.nonEmpty) {
       write("// Predicate definitions\n")
-      for ((signature, args) <- mln.schema.predicateSchema ; if !introduceFunctions || !signature.symbol.contains(profile.functionPrefix)) {
+      for ((signature, args) <- mln.schema.predicates ; if !introduceFunctions || !signature.symbol.contains(profile.functionPrefix)) {
         val line = signature.symbol + (
           if (args.isEmpty) "\n"
           else "(" + args.mkString(",") + ")\n")
@@ -144,16 +145,16 @@ object KBCompilerCLI extends Logging {
 
     // write function definitions or functions as predicates
     if (includeFunctionDefinitions) {
-      if (eliminateFunctions && mln.schema.functionSchema.nonEmpty) { // in order to eliminate functions, functions must exist
+      if (eliminateFunctions && mln.schema.functions.nonEmpty) { // in order to eliminate functions, functions must exist
         write("// Function definitions as predicates\n")
-        for ((signature, (retType, args)) <- mln.schema.functionSchema) {
+        for ((signature, (retType, args)) <- mln.schema.functions) {
           val predicate = profile.functionPrefix + signature.symbol + "(" + retType + "," + args.mkString(",") + ")\n"
           write(predicate)
         }
       }
       else if(introduceFunctions) {
         write("// Function definitions\n")
-        for ((signature, args) <- mln.schema.predicateSchema) {
+        for ((signature, args) <- mln.schema.predicates) {
           if(signature.symbol.contains(profile.functionPrefix)) {
             val function = args(0) + " " + signature.symbol.replace(profile.functionPrefix, "") + "(" + args.drop(1).mkString(",") + ")\n"
             write(function)
@@ -161,9 +162,9 @@ object KBCompilerCLI extends Logging {
         }
         write("\n")
       }
-      else if(mln.schema.functionSchema.nonEmpty) { // in order to write functions definitions, functions must exist
+      else if(mln.schema.functions.nonEmpty) { // in order to write functions definitions, functions must exist
         write("// Function definitions\n")
-        for ((signature, (retType, args)) <- mln.schema.functionSchema) {
+        for ((signature, (retType, args)) <- mln.schema.functions) {
           val line = retType + " " + signature.symbol + "(" + args.mkString(",") + ")\n"
           write(line)
         }

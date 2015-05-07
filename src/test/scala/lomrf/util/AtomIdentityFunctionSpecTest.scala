@@ -71,7 +71,7 @@ final class AtomIdentityFunctionSpecTest extends FunSpec with Matchers {
 
   private def mkAtomIdentityFunction(signature: AtomSignature, mln: MLN, startID: Int): AtomIdentityFunction = {
     val schema = mln.getSchemaOf(signature).getOrElse(sys.error("Cannot find the schema of predicate: " + signature))
-    AtomIdentityFunction(signature, schema, mln.constants, startID)
+    AtomIdentityFunction(signature, schema, mln.evidence.constants, startID)
   }
 
 
@@ -98,7 +98,7 @@ final class AtomIdentityFunctionSpecTest extends FunSpec with Matchers {
 
     val schema = mln.getSchemaOf(signature).getOrElse(sys.error("Cannot find signature: " + signature + " in the produced MLN."))
 
-    val domain = for (s <- schema) yield mln.constants(s)
+    val domain = for (s <- schema) yield mln.evidence.constants(s)
     val expectedNumOfGroundings = domain.map(_.size).product
 
     info("Initialising Cartesian iterator")
@@ -318,7 +318,7 @@ final class AtomIdentityFunctionSpecTest extends FunSpec with Matchers {
 
     val schema = mln.getSchemaOf(signature).getOrElse(sys.error("Cannot find " + signature))
 
-    val domain = for (s <- schema) yield mln.constants(s)
+    val domain = for (s <- schema) yield mln.evidence.constants(s)
     val expectedNumOfGroundings = domain.map(_.size).product
 
     val cartesianIterator = Cartesian.CartesianIterator(domain)
@@ -367,7 +367,7 @@ final class AtomIdentityFunctionSpecTest extends FunSpec with Matchers {
 
     val schema = mln.getSchemaOf(signature).getOrElse(sys.error("Cannot find " + signature))
 
-    val domain = for (s <- schema) yield mln.constants(s)
+    val domain = for (s <- schema) yield mln.evidence.constants(s)
     val expectedNumOfGroundings = domain.map(_.size).product
 
     val cartesianIterator = Cartesian.CartesianIterator(domain)

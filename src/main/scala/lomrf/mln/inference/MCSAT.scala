@@ -75,6 +75,7 @@ final case class MCSAT(mrf: MRF, pBest: Double = 0.5, pSA: Double = 0.1, maxFlip
                       unitPropagation: Boolean = true, satHardPriority: Boolean = false, tabuLength: Int = 10) extends Logging {
 
   private val TARGET_COST = new LongDouble(targetCost + 0.0001)
+  implicit val mln = mrf.mln
 
   /**
    * Fetch atom given its literal code.
@@ -297,17 +298,16 @@ final case class MCSAT(mrf: MRF, pBest: Double = 0.5, pSA: Double = 0.1, maxFlip
     import lomrf.util.decodeAtom
     val numFormat = new DecimalFormat("0.0######")
 
-    implicit val mln = mrf.mln
+    val queryStartID = mln.evidence.domainSpace.queryStartID
+    val queryEndID = mln.evidence.domainSpace.queryEndID
 
     val iterator = mrf.atoms.iterator()
     while (iterator.hasNext) {
       iterator.advance()
       val atomID = iterator.key()
-      if (atomID >= mln.domainSpace.queryStartID && atomID <= mln.domainSpace.queryEndID) {
+      if (atomID >= queryStartID && atomID <= queryEndID) {
         val groundAtom = iterator.value()
         val probability = (groundAtom.getTruesCount * 1.0) / samples
-        // Add Gaussian noise for P=0.0 and P=1.0. Also reformat the displayed probability result in order to have at maximum 7 floating point decimals
-        //val txtProbability = if (probability == 0.0) "4.9995e-05" else if(probability == 1.0) "0.99995" else numFormat.format(probability)
         decodeAtom(iterator.key()) match {
           case Some(txtAtom) =>
             result.println(txtAtom + " " + numFormat.format(probability))

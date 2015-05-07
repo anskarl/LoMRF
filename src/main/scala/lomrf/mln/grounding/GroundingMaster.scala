@@ -107,7 +107,7 @@ final class GroundingMaster(mln: MLN,
    * Utility counter variable to keep track the number of clauses to ground in the current grounding step.
    * @see [[GroundingMaster#performGrounding]]
    */
-  private var clauseCounter = -mln.schema.queryAtoms.size
+  private var clauseCounter = -mln.queryAtoms.size
 
   /**
    * Utility counter variable to keep track the number of colleted clique batches
@@ -160,7 +160,7 @@ final class GroundingMaster(mln: MLN,
    * In the end of the grounding process, this set should contain the signatures of FOL atoms that have
    * at least one grounding in the ground Network.
    */
-  private var atomSignatures: Set[AtomSignature] = mln.schema.queryAtoms
+  private var atomSignatures: Set[AtomSignature] = mln.queryAtoms
 
   // implicit definition master actor reference, it is required for some functions below.
   private implicit val master = this.self
@@ -220,9 +220,9 @@ final class GroundingMaster(mln: MLN,
 
     // To make sure that all ground query predicates will be stored in the network,
     // insert all ground query predicates as zero weighted unit clauses
-    for ((signature, qidx) <- mln.schema.queryAtoms.zipWithIndex) {
+    for ((signature, qidx) <- mln.queryAtoms.zipWithIndex) {
       val terms = mln.schema
-          .predicateSchema(signature)
+          .predicates(signature)
           .view
           .zipWithIndex
           .map {

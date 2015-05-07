@@ -88,15 +88,15 @@ final class GroundingSpecTest extends FunSpec with Matchers {
       .toMap
 
     it(s"should constants ${stats("mln.constants.size")} constants sets (domains)") {
-      mln.constants.size should be(stats("mln.constants.size").toInt)
+      mln.evidence.constants.size should be(stats("mln.constants.size").toInt)
     }
 
     it(s"should contain ${stats("mln.predicateSchema.size")} predicate schemas") {
-      mln.schema.predicateSchema.size should be(stats("mln.predicateSchema.size").toInt)
+      mln.schema.predicates.size should be(stats("mln.predicateSchema.size").toInt)
     }
 
     it(s"should contain ${stats("mln.functionSchema.size")} function schemas") {
-      mln.schema.functionSchema.size should be(stats("mln.functionSchema.size").toInt)
+      mln.schema.functions.size should be(stats("mln.functionSchema.size").toInt)
     }
 
     info("Creating MRF...")

@@ -30,27 +30,51 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package lomrf.mln
+package lomrf.mln.model
 
-import lomrf.logic.AtomSignature
-import lomrf.util.{AtomIdentityFunction, FunctionMapper, AtomEvidenceDB, ConstantsSet}
+import lomrf.logic.{EvidenceAtom, AtomSignature}
+import lomrf.util.AtomEvidenceDBBuilder
 
-package object model {
+/**
+ * Evidence builder with fluent pattern
+ */
+class EvidenceBuilder(val domainSpace: DomainSpace,
+                      val constants: ConstantsDomain) { self =>
 
-  type ConstantsDomain = Map[String, ConstantsSet]
 
-  type PredicateSchema = Map[AtomSignature, Seq[String]]
+  private var _evidenceDB = Map[AtomSignature, AtomEvidenceDBBuilder]()
 
-  type FunctionSchema = Map[AtomSignature, (String, Vector[String])]
+  private var _functionMappers: FunctionMappers = _
 
-  type DynamicPredicates = Map[AtomSignature, Vector[String] => Boolean]
+  def withEvidenceDB(evidenceDB: EvidenceDB): self.type = ???
 
-  type DynamicFunctions = Map[AtomSignature, Vector[String] => String]
+  def withFunctionMappers(fm: FunctionMappers): self.type = ???
 
-  type EvidenceDB = Map[AtomSignature, AtomEvidenceDB]
+  def result(): Evidence = ???
 
-  type FunctionMappers = Map[AtomSignature, FunctionMapper]
+  object evidence {
 
-  type Identities = Map[AtomSignature, AtomIdentityFunction]
+    def += (atom: EvidenceAtom): self.type = {
+
+      _evidenceDB.get(atom.signature) match {
+        case Some(builder) => builder += atom
+        case None =>
+          val idf = domainSpace.identities(atom.signature)
+          val isCWA = domainSpace.isCWA(atom.signature)
+          val builder = AtomEvidenceDBBuilder(idf, isCWA)
+          builder += atom
+          _evidenceDB += (atom.signature -> builder)
+      }
+
+      self
+    }
+
+  }
+
+
+  object functionMappers{
+
+  }
+
 
 }

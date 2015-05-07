@@ -356,8 +356,8 @@ object InferenceCLI extends OptionParser with Logging {
 
 
     info("Markov Logic:"
-      + "\n\tConstant domains   : " + mln.constants.size
-      + "\n\tSchema definitions : " + mln.schema.predicateSchema.size
+      + "\n\tConstant domains   : " + mln.evidence.constants.size
+      + "\n\tSchema definitions : " + mln.schema.predicates.size
       + "\n\tClauses            : " + mln.clauses.size)
 
     //info("Number of CNF clauses = " + mln.clauses.size)

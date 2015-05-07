@@ -48,22 +48,25 @@ import scala.language.postfixOps
 import scalaxy.streams.optimize
 
 
-class ClauseGrounderImpl(
-                          val clause: Clause,
-                          clauseIndex: Int,
-                          mln: MLN,
-                          cliqueRegisters: IndexPartitioned[ActorRef],
-                          atomSignatures: Set[AtomSignature],
-                          atomsDB: IndexPartitioned[TIntSet],
-                          noNegWeights: Boolean = false,
-                          eliminateNegatedUnit: Boolean = false) extends ClauseGrounder with Logging{
+class ClauseGrounderImpl(val clause: Clause,
+                         clauseIndex: Int,
+                         mln: MLN,
+                         cliqueRegisters: IndexPartitioned[ActorRef],
+                         atomSignatures: Set[AtomSignature],
+                         atomsDB: IndexPartitioned[TIntSet],
+                         noNegWeights: Boolean = false,
+                         eliminateNegatedUnit: Boolean = false) extends ClauseGrounder with Logging{
 
   require(!clause.weight.isNaN, "Found a clause with not a valid weight value (NaN).")
+
+  private val evidence = mln.evidence
+  private val constants = evidence.constants
+  private val domainSpace = evidence.domainSpace
 
 
   private val variableDomains: Map[Variable, Iterable[String]] = {
     if (clause.isGround) Map.empty[Variable, Iterable[String]]
-    else (for (v <- clause.variables) yield v -> mln.constants(v.domain))(breakOut)
+    else (for (v <- clause.variables) yield v -> constants(v.domain))(breakOut)
   }
 
   private val groundIterator =
@@ -79,7 +82,7 @@ class ClauseGrounderImpl(
 
   private val identities: Map[AtomSignature, AtomIdentityFunction] =
     (for (literal <- clause.literals if !mln.isDynamicAtom(literal.sentence.signature))
-    yield literal.sentence.signature -> mln.domainSpace.identities(literal.sentence.signature))(breakOut)
+    yield literal.sentence.signature -> domainSpace.identities(literal.sentence.signature))(breakOut)
 
 
 
@@ -92,7 +95,7 @@ class ClauseGrounderImpl(
   // Collect dynamic atoms
   private val dynamicAtoms: Map[Int, (Vector[String] => Boolean)] =
     (for (i <- orderedLiterals.indices; sentence = orderedLiterals(i)._1.sentence; if sentence.isDynamic)
-    yield i -> mln.dynamicPredicates(sentence.signature))(breakOut)
+    yield i -> mln.schema.dynamicPredicates(sentence.signature))(breakOut)
 
 
   private val length = clause.literals.count(l => mln.isTriState(l.sentence.signature))
@@ -140,7 +143,7 @@ class ClauseGrounderImpl(
             // Otherwise, the atomID has a valid id number and the following pattern matching procedure
             // investigates whether the current literal satisfies the ground clause. If it does, the clause
             // is omitted from the MRF, since it is always satisfied from that literal.
-            val state = mln.evidenceDB(literal.sentence.signature).get(atomID).value
+            val state = evidence.db(literal.sentence.signature).get(atomID).value
             if ((literal.isNegative && (state == FALSE.value)) || (literal.isPositive && (state == TRUE.value))) {
               // the clause is always satisfied from that literal
               sat += 1
@@ -243,7 +246,7 @@ class ClauseGrounderImpl(
     case c: Constant => c.symbol
     case v: Variable => theta(v)
     case f: TermFunction =>
-      mln.functionMappers.get(f.signature) match {
+      evidence.functionMappers.get(f.signature) match {
         case Some(m) => m(f.terms.map(a => substituteTerm(theta)(a)))
         case None => fatal("Cannot apply substitution using theta: " + theta + " in function " + f.signature)
       }

@@ -33,7 +33,7 @@
 package lomrf.mln.model
 
 import java.io.{File, BufferedReader, FileReader}
-import auxlib.log.Logging
+import auxlib.log.Logger
 import lomrf.logic._
 import lomrf.util._
 import scala.util.{Failure, Try, Success}
@@ -42,19 +42,37 @@ import scala.util.{Failure, Try, Success}
 class Evidence(val constants: ConstantsDomain,
                val db: EvidenceDB,
                val functionMappers: FunctionMappers,
-               val domainSpace: DomainSpace)
+               val domainSpace: DomainSpace){
+
+  /**
+   * collection of atoms with tri-state, i.e., open-world assumption (unknown state) with some evidence (true/false state)
+   */
+  lazy val tristateAtoms: Set[AtomSignature] = db.filter(x => x._2.isTriStateDB).keySet
+
+  /**
+   * probabilisticAtoms collection of probabilistic atoms
+   */
+  lazy val probabilisticAtoms: Set[AtomSignature] = db.filter(x => x._2.isProbabilistic).keySet
+
+}
 
 
-private[model] object Evidence extends Logging {
+object Evidence {
 
-  @deprecated
-  def apply(kb: KB, constantsDomainBuilders: ConstantsDomainBuilder, queryPredicates: Set[AtomSignature], hiddenPredicates: Set[AtomSignature], filenames: List[String]): Evidence = {
+  private lazy val log = Logger(this.getClass)
+
+  def apply(constants: ConstantsDomain, db: EvidenceDB, fm: FunctionMappers, space: DomainSpace): Evidence = {
+    new Evidence(constants, db, fm, space)
+  }
+
+  //@deprecated
+  /*def apply(kb: KB, constantsDomainBuilders: ConstantsDomainBuilder, queryPredicates: Set[AtomSignature], hiddenPredicates: Set[AtomSignature], filenames: List[String]): Evidence = {
     val fileList = if (filenames.isEmpty) List(createTempEmptyDBFile) else filenames.map(filename => new File(filename))
 
     fromFiles(kb, constantsDomainBuilders, queryPredicates, hiddenPredicates, fileList)
-  }
+  }*/
 
-  @deprecated
+  /*@deprecated
   def apply(kb: KB, constantsDomainBuilders: ConstantsDomainBuilder, queryPredicates: Set[AtomSignature], hiddenPredicates: Set[AtomSignature], filenameOpt: Option[String] = None): Evidence = {
 
     val evidenceFile = filenameOpt match {
@@ -63,10 +81,10 @@ private[model] object Evidence extends Logging {
     }
 
     if(!evidenceFile.exists())
-      fatal(s"Evidence file '${evidenceFile.getPath}' does not exists.")
+      log.fatal(s"Evidence file '${evidenceFile.getPath}' does not exists.")
 
     fromFiles(kb, constantsDomainBuilders, queryPredicates, hiddenPredicates, List(evidenceFile))
-  }
+  }*/
 
   def fromFiles(kb: KB, constantsDomainBuilders: ConstantsDomainBuilder, queryPredicates: Set[AtomSignature], hiddenPredicates: Set[AtomSignature], filenames: List[String]): Evidence ={
     val fileList = if (filenames.isEmpty) List(createTempEmptyDBFile) else filenames.map(filename => new File(filename))
@@ -76,19 +94,22 @@ private[model] object Evidence extends Logging {
 
 
   def fromFiles(kb: KB, constantsDomainBuilders: ConstantsDomainBuilder, queryPredicates: Set[AtomSignature], hiddenPredicates: Set[AtomSignature], files: Iterable[File]): Evidence = {
-    fromFiles(kb.predicateSchema, kb.functionSchema, constantsDomainBuilders, queryPredicates, hiddenPredicates, files)
+    fromFiles(kb.predicateSchema, kb.functionSchema, constantsDomainBuilders, kb.dynamicFunctions, queryPredicates, hiddenPredicates, files)
   }
 
-  def fromFiles(schema: Map[AtomSignature, Seq[String]],
-                functionSchema: Map[AtomSignature, (String, Seq[String])],
+  def fromFiles(predicateSchema: PredicateSchema,
+                functionSchema: FunctionSchema,
                 constantsDomainBuilder: ConstantsDomainBuilder,
+                dynamicFunctions: DynamicFunctions,
                 queryPredicates: Set[AtomSignature],
                 hiddenPredicates: Set[AtomSignature],
                 files: Iterable[File]): Evidence = {
 
-    def isOWA(signature: AtomSignature) = queryPredicates.contains(signature) || hiddenPredicates.contains(signature)
 
-    //var constantsMap = constantsDB
+    import log._
+
+
+    def isOWA(signature: AtomSignature) = queryPredicates.contains(signature) || hiddenPredicates.contains(signature)
 
     val evidenceParser = new EvidenceParser
     val evidenceExpressionsDB =
@@ -119,7 +140,7 @@ private[model] object Evidence extends Logging {
           case None => fatal(s"The function definition of '${f.signature}' does not appear in the knowledge base.")
         }
       case atom: EvidenceAtom =>
-        schema.get(atom.signature) match {
+        predicateSchema.get(atom.signature) match {
           case Some(argTypes) =>
             //append its constants into constantsMap
             for ((value, index) <- atom.constants.view.zipWithIndex) {
@@ -137,17 +158,17 @@ private[model] object Evidence extends Logging {
       case _ => //ignore
     }
 
-    val constants: Map[String, ConstantsSet] = constantsDomainBuilder.result() //(for ((symbol, builder) <- constantsMap) yield symbol -> builder.result)(breakOut)
-
-    var functionMapperBuilders = Map[AtomSignature, FunctionMapperBuilder]()
-
-    var atomsEvDBBuilders = Map[AtomSignature, AtomEvidenceDBBuilder]()
+    val constants: Map[String, ConstantsSet] = constantsDomainBuilder.result()
 
     info("--- Stage 2: Computing domain space.")
 
-    val domainSpace = DomainSpace(schema, queryPredicates, hiddenPredicates, constants)
+    val domainSpace = DomainSpace(predicateSchema, queryPredicates, hiddenPredicates, constants)
+
 
     info("--- Stage 3: Creating function mappings, and evidence database.")
+    var functionMapperBuilders = Map[AtomSignature, FunctionMapperBuilder]()
+
+    var atomsEvDBBuilders = Map[AtomSignature, AtomEvidenceDBBuilder]()
 
 
     //var currentAtomStartID = 1
@@ -166,7 +187,7 @@ private[model] object Evidence extends Logging {
           case Some(builder) => builder += atom
           case None =>
             val signature = atom.signature
-            val atomSchema = schema(signature)
+            val atomSchema = predicateSchema(signature)
             val db = AtomEvidenceDBBuilder(signature, atomSchema, domainSpace.identities(signature), !isOWA(signature))
             db += atom
             atomsEvDBBuilders += (signature -> db)
@@ -174,22 +195,58 @@ private[model] object Evidence extends Logging {
       case _ => //ignore
     }
 
-    val atomsEvDB = atomsEvDBBuilders.mapValues(_.result())
-      //(for ((signature, builder) <- atomsEvDBBuilders) yield signature -> builder.result)(breakOut)
+    //val atomsEvDB = atomsEvDBBuilders.mapValues(_.result())
 
-    val functionMappers = functionMapperBuilders.mapValues(_.result())
-      //(for ((signature, builder) <- functionMapperBuilders) yield signature -> builder.result)(breakOut)
+    var functionMappers = functionMapperBuilders.mapValues(_.result())
+    for ((signature, func) <- dynamicFunctions)
+      functionMappers += (signature -> FunctionMapper(func))
 
-    new Evidence(constants, atomsEvDB, functionMappers, domainSpace)
+
+    val atomSignatures = predicateSchema.keySet
+
+
+    var atomStateDB = atomsEvDBBuilders.mapValues(_.result())
+
+    val owa = queryPredicates ++ hiddenPredicates
+    val cwa = atomSignatures -- owa
+
+    /**
+     * Compute the final form of CWA/OWA and Query atoms
+     *
+     * By default, closed world assumption is assumed for
+     * all atoms that appear in the evidence database (.db),
+     * unless their signature appears in the OWA set or in the
+     * query atoms set. Consequently, open world assumption is
+     * assumed for the rest atoms.
+     */
+    var finalCWA = cwa.toSet
+
+    for (signature <- atomStateDB.keysIterator) {
+      if (!atomSignatures(signature)) // Check if this signature is defined in the mln file
+        fatal(s"The predicate '$signature' that appears in the evidence file, is not defined in the mln file.")
+      else if (!owa.contains(signature) && !queryPredicates.contains(signature))
+        finalCWA += signature
+    }
+
+    for {
+      signature <- atomSignatures
+      if !atomStateDB.contains(signature)
+      idf = domainSpace.identities(signature)
+      state = if (finalCWA.contains(signature)) FALSE else UNKNOWN
+    } atomStateDB += (signature -> AtomEvidenceDB(idf, state))
+
+
+    new Evidence(constants, atomStateDB, functionMappers, domainSpace)
   }
 
-  def apply(constants: Map[String, ConstantsSet], atomsEvDB: Map[AtomSignature, AtomEvidenceDB],
+  /*def apply(constants: Map[String, ConstantsSet], atomsEvDB: Map[AtomSignature, AtomEvidenceDB],
             functionMappers: Map[AtomSignature, FunctionMapper], domainSpace: DomainSpace): Evidence ={
 
     new Evidence(constants, atomsEvDB, functionMappers, domainSpace)
-  }
+  }*/
 
   private def createTempEmptyDBFile: File = {
+    import log._
     val filePrefix = s".mlnc_empty_${System.currentTimeMillis()}"
 
     Try[File](File.createTempFile(filePrefix, ".db")) match{

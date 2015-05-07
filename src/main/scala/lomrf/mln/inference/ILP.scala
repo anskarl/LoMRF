@@ -69,11 +69,7 @@ final class ILP(mrf: MRF, annotationDB: Map[AtomSignature, AtomEvidenceDB] = Map
                 lossAugmented: Boolean = false) extends Logging {
 
   // Select the appropriate mathematical programming solver
-  implicit val problem =
-  if(ilpSolver == Solver.GUROBI)
-    LQProblem(SolverLib.gurobi)
-  else
-    LQProblem(SolverLib.lp_solve)
+  implicit val problem = if(ilpSolver == Solver.GUROBI) LQProblem(SolverLib.gurobi) else LQProblem(SolverLib.lp_solve)
 
   implicit val mln = mrf.mln
 
@@ -342,13 +338,14 @@ final class ILP(mrf: MRF, annotationDB: Map[AtomSignature, AtomEvidenceDB] = Map
   def writeResults(out: PrintStream = System.out) {
     import lomrf.util.decodeAtom
 
-    implicit val mln = mrf.mln
+    val queryStartID = mln.evidence.domainSpace.queryStartID
+    val queryEndID = mln.evidence.domainSpace.queryEndID
 
     val iterator = mrf.atoms.iterator()
     while (iterator.hasNext) {
       iterator.advance()
       val atomID = iterator.key()
-      if (atomID >= mln.domainSpace.queryStartID && atomID <= mln.domainSpace.queryEndID) {
+      if (atomID >= queryStartID && atomID <= queryEndID) {
         val groundAtom = iterator.value()
         val state = if(groundAtom.getState) 1 else 0
         if(outputAll) decodeAtom(iterator.key()) match {

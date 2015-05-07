@@ -127,8 +127,8 @@ final class MRFBuilder(val mln: MLN,
 
     var weightHard = 10.0
     for (clause <- mln.clauses; if !clause.isHard && clause.variables.nonEmpty) {
-      val productOfVarDomains = clause.variables.iterator.map(v => mln.constants(v.domain).size).reduceLeftOption(_ * _)
-      val productOfFuncDomains = clause.functions.iterator.map(f => mln.constants(f.domain).size).reduceLeftOption(_ * _)
+      val productOfVarDomains = clause.variables.iterator.map(v => mln.evidence.constants(v.domain).size).reduceLeftOption(_ * _)
+      val productOfFuncDomains = clause.functions.iterator.map(f => mln.evidence.constants(f.domain).size).reduceLeftOption(_ * _)
 
       weightHard += (math.abs(clause.weight) * productOfVarDomains.getOrElse(0) * productOfFuncDomains.getOrElse(1))
     }
@@ -224,7 +224,7 @@ final class MRFBuilder(val mln: MLN,
       + "\n\tTotal ground clauses: " + constraints.size()
       + "\n\tTotal ground atoms: " + atoms.size())
 
-    MRF(mln, constraints, atoms, weightHard, mln.domainSpace.queryStartID, mln.domainSpace.queryEndID, mergedDependencyMapOpt)
+    MRF(mln, constraints, atoms, weightHard, mergedDependencyMapOpt)
   }
 }
 

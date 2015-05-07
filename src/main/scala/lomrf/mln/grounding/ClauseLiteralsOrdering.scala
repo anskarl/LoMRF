@@ -126,5 +126,5 @@ object ClauseLiteralsOrdering {
 
   def apply(atomStateDB: Map[AtomSignature, AtomEvidenceDB]) = new ClauseLiteralsOrdering(atomStateDB)
 
-  def apply(mln: MLN) = new ClauseLiteralsOrdering(mln.evidenceDB)
+  def apply(mln: MLN) = new ClauseLiteralsOrdering(mln.evidence.db)
 }

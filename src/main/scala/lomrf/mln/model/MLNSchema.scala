@@ -31,27 +31,14 @@
  */
 package lomrf.mln.model
 
-import lomrf.logic.AtomSignature
-
 /**
  *
- * @param predicateSchema a map that associates atom signatures with a sequence of argument types
- * @param functionSchema a map that associates function signatures with a tuple of returning type and sequence of argument types
- * @param queryAtoms the set of query atom signatures
- * @param cwa the set of closed-world assumption atom signatures
- * @param owa the set of open-world assumption atom signatures (includes query atom signatures)
+ * @param predicates a map that associates atom signatures with a sequence of argument types
+ * @param functions a map that associates function signatures with a tuple of returning type and sequence of argument types
+ * @param dynamicPredicates a map that associates signatures of dynamic atoms with a scala function that determines the truth state: (atoms ground arguments) => Boolean
+ * @param dynamicFunctions a map that associates the identities of dynamic functions with a scala function that determines the function's result: (ground arguments) => Boolean
  */
-case class MLNSchema(predicateSchema: Map[AtomSignature, Seq[String]],
-                        functionSchema: Map[AtomSignature, (String, Vector[String])],
-                        queryAtoms: Set[AtomSignature],
-                        cwa: Set[AtomSignature],
-                        owa: Set[AtomSignature]) {
-
-  /**
-   * The set of hidden atoms, those that are not query and not evidence.
-   */
-  val hiddenAtoms = owa -- queryAtoms
-
-
-
-}
+case class MLNSchema(predicates: PredicateSchema,
+                     functions: FunctionSchema,
+                     dynamicPredicates: DynamicPredicates,
+                     dynamicFunctions: DynamicFunctions)

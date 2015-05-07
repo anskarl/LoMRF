@@ -365,16 +365,16 @@ final class OnlineLearner(mln: MLN, algorithm: Algorithm, lossAugmented: Boolean
     val numFormat = new DecimalFormat("0.############")
 
     out.println("// Predicate definitions")
-    for ((signature, args) <- mln.schema.predicateSchema) {
+    for ((signature, args) <- mln.schema.predicates) {
       val line = signature.symbol + (
         if (args.isEmpty) "\n"
         else "(" + args.mkString(",") + ")\n")
       out.print(line)
     }
 
-    if(mln.schema.functionSchema.nonEmpty) {
+    if(mln.schema.functions.nonEmpty) {
       out.println("\n// Functions definitions")
-      for ((signature, (retType, args)) <- mln.schema.functionSchema) {
+      for ((signature, (retType, args)) <- mln.schema.functions) {
         val line = retType + " " + signature.symbol + "(" + args.mkString(",") + ")\n"
         out.print(line)
       }

@@ -60,10 +60,11 @@ class KB(val predicateSchema: PredicateSchema,
          val dynamicPredicates: DynamicPredicates,
          val dynamicFunctions: DynamicFunctions) {
 
+  lazy val schema = MLNSchema(predicateSchema, functionSchema, dynamicPredicates, dynamicFunctions)
+
 
   override def toString: String = {
     "KB = {" +
-      //"\n\t# Constant domains  : " + constants.size +
       "\n\t# Predicate schemas : " + predicateSchema.size +
       "\n\t# Function schemas  : " + functionSchema.size +
       "\n\t# Formulas          : " + formulas.size +
@@ -76,6 +77,7 @@ object KB {
 
   private lazy val formulaRegex = Pattern.compile(".*\\s=>\\s.*|.*\\s<=>\\s.*|.*\\s:-\\s.*|.*\\s^\\s.*|.*\\sv\\s.*|.*\\s!\\s.*|\\d.*|.*\\.")
   private lazy val ignoreRegex = Pattern.compile("\\s*\\*.*|/\\*.*|//.*|\\s+")
+  private lazy val  log = Logger(this.getClass)
 
   def apply(predicateSchema: PredicateSchema,
             functionSchema: FunctionSchema,
@@ -89,8 +91,8 @@ object KB {
   def fromFile(filename: String,
                pcMode: PredicateCompletionMode = Simplification,
                dynamicDefinitions: Option[ImplFinder.ImplementationsMap] = None): (KB, ConstantsDomainBuilder) = {
+    import log._
 
-    val log = Logger(this.getClass)
 
     val kbFile = new File(filename)
     val fileReader = new BufferedReader(new FileReader(kbFile))
@@ -134,7 +136,7 @@ object KB {
      * @param formula source formula
      */
     def storeUndefinedConstants(formula: Formula): Unit= {
-      log.debug(s"Looking for constants in formula: '${formula.toText}'")
+      debug(s"Looking for constants in formula: '${formula.toText}'")
 
       def parseTerm(term: Term, key: String): Unit = term match {
         case Constant(symbol) => constantsBuilder(key) += symbol
@@ -217,27 +219,27 @@ object KB {
 
     val kbExpressions: Iterable[MLNExpression] = kbParser.parseAll(kbParser.mln, fileReader) match {
       case kbParser.Success(exprs, _) => exprs.asInstanceOf[Iterable[MLNExpression]]
-      case x => log.fatal(s"Can't parse the following expression: '$x' in file: '$kbFile'")
+      case x => fatal(s"Can't parse the following expression: '$x' in file: '$kbFile'")
     }
 
     def processMLNExpression(expr: MLNExpression): Unit = expr match {
       case f: WeightedFormula =>
         if(f.weight == 0.0)
-          log.warn(s"Ignoring zero weighted formula '${f.toText}'")
+          warn(s"Ignoring zero weighted formula '${f.toText}'")
         else {
           formulas += f
           storeUndefinedConstants(f)
         }
       case c: WeightedDefiniteClause =>
         if (c.weight == 0.0)
-          log.warn(s"Ignoring zero weighted definite clause '${c.toText}'")
+          warn(s"Ignoring zero weighted definite clause '${c.toText}'")
         else {
           definiteClauses += c
           storeUndefinedConstants(c.clause.body)
           storeUndefinedConstants(c.clause.head)
         }
       case inc: IncludeFile => queue += inc
-      case _ => log.warn(s"Ignoring expression: '$expr'")
+      case _ => warn(s"Ignoring expression: '$expr'")
     }
 
     kbExpressions.foreach(processMLNExpression)
@@ -252,13 +254,13 @@ object KB {
         else {
           tmp = new File(kbFile.getParent + sep + inc.filename)
           if (tmp.exists) tmp
-          else log.fatal(s"Cannot find file '${inc.filename}'")
+          else fatal(s"Cannot find file '${inc.filename}'")
         }
       }
 
       val curr_expressions: Iterable[MLNExpression] = kbParser.parseAll(kbParser.mln, new FileReader(incFile)) match {
         case kbParser.Success(exprs, _) => exprs.asInstanceOf[Iterable[MLNExpression]]
-        case x => log.fatal(s"Can't parse the following expression: '$x' in file: '$incFile'")
+        case x => fatal(s"Can't parse the following expression: '$x' in file: '$incFile'")
       }
 
       curr_expressions.foreach(processMLNExpression)
@@ -276,15 +278,15 @@ object KB {
         case Simplification =>
           val resultingFormulas = kbBuilder.predicateSchema() -- definiteClauses.map(_.clause.head.signature)
           if(resultingFormulas.isEmpty)
-            log.warn("The given theory is empty (i.e., contains empty set of non-zeroed formulas).")
+            warn("The given theory is empty (i.e., contains empty set of non-zeroed formulas).")
 
           resultingFormulas
         case _ => kbBuilder.predicateSchema()
       }
     }
 
-    log.whenDebug {
-      constantsBuilder().foreach(entry => log.debug(s"|${entry._1}|=${entry._2.size}"))
+    whenDebug {
+      constantsBuilder().foreach(entry => debug(s"|${entry._1}|=${entry._2.size}"))
     }
 
     val kb = kbBuilder.withFormulas(Await.result(resultingFormulas, Duration.Inf))

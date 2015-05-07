@@ -283,15 +283,15 @@ final class NormalFormSpecTest extends FunSpec with Matchers{
     }*/
 
     it("should constants 5 constants sets (domains)"){
-      mln.constants.size should be (5)
+      mln.evidence.constants.size should be (5)
     }
 
     it("should contain 8 predicate schemas"){
-      mln.schema.predicateSchema.size should be (8)
+      mln.schema.predicates.size should be (8)
     }
 
     it("should contain 11 function schemas"){
-      mln.schema.functionSchema.size should be (11)
+      mln.schema.functions.size should be (11)
     }
   }
 

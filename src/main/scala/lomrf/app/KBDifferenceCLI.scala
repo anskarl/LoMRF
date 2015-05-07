@@ -67,12 +67,12 @@ object KBDifferenceCLI extends CLIApp {
       info(
         "\nSource KB 1: " + sourceAlpha + "\n" +
           "\tFound " + mlnAlpha.clauses.size + " clauses.\n" +
-          "\tFound " + mlnAlpha.schema.predicateSchema.size + " predicates.\n" +
-          "\tFound " + mlnAlpha.schema.functionSchema.size + " functions.\n" +
+          "\tFound " + mlnAlpha.schema.predicates.size + " predicates.\n" +
+          "\tFound " + mlnAlpha.schema.functions.size + " functions.\n" +
           "\nSource KB 2: " + sourceBeta + "\n" +
           "\tFound " + mlnBeta.clauses.size + " clauses.\n" +
-          "\tFound " + mlnBeta.schema.predicateSchema.size + " predicates.\n" +
-          "\tFound " + mlnBeta.schema.functionSchema.size + " functions.")
+          "\tFound " + mlnBeta.schema.predicates.size + " predicates.\n" +
+          "\tFound " + mlnBeta.schema.functions.size + " functions.")
 
       val targetFileName = prefix +
         sourceAlpha.substring(0, sourceAlpha.lastIndexOf('.')) + "-" +

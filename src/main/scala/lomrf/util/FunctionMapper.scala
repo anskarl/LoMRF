@@ -36,10 +36,6 @@ import gnu.trove.map.TIntObjectMap
 import gnu.trove.map.hash.TIntObjectHashMap
 import gnu.trove.TCollections
 
-/**
- *
- */
-
 trait FunctionMapper {
 
   def apply(args: Vector[String]): String
@@ -89,7 +85,7 @@ final class FunctionMapperBuilder(identityFunction: AtomIdentityFunction) {
     args2Value.putIfAbsent(id, value)
   }
 
-  def result(): FunctionMapperDefaultImpl = {
+  def result(): FunctionMapper = {
     dirty = true
     new FunctionMapperDefaultImpl(identityFunction, TCollections.unmodifiableMap(args2Value))
   }
