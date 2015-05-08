@@ -218,6 +218,7 @@ object WeightedDefiniteClause {
 case class AtomicFormula(symbol: String, terms: Vector[Term]) extends DefiniteClauseConstruct {
 
   val isDynamic = false
+
   val arity = terms.size
 
   lazy val signature = AtomSignature(symbol, terms.size)
@@ -241,9 +242,9 @@ case class AtomicFormula(symbol: String, terms: Vector[Term]) extends DefiniteCl
 
   def isGround = variables.isEmpty
 
-  override def toText: String = symbol + "(" + terms.map(_.toText).reduceLeft((left, right) => left + "," + right) + ")"
+  override def toText: String = s"$symbol(${terms.map(_.toText).mkString(",")})"
 
-  override def toString: String = symbol + "(" + terms.map(_.toString).reduceLeft((left, right) => left + "," + right) + ")"
+  override def toString: String = s"$symbol(${terms.map(_.toString).mkString(",")})"
 
   /**
    * Two atoms are similar, when:
@@ -297,10 +298,14 @@ class EvidenceAtom(override val symbol: String, override val terms: Vector[Const
   override def isGround = true
 
 
-  override def toText: String = state match {
-    case TRUE => symbol + "(" + constants.map(_.toText).reduceLeft((left, right) => left + "," + right) + ")"
-    case FALSE => "!" + symbol + "(" + constants.map(_.toText).reduceLeft((left, right) => left + "," + right) + ")"
-    case UNKNOWN => symbol + "(" + constants.map(_.toText).reduceLeft((left, right) => left + "," + right) + ") " + probability
+  override def toText: String = {
+    lazy val sentence = s"$symbol(${terms.map(_.toText).mkString(",")})"
+
+    state match {
+      case TRUE => sentence
+      case FALSE => s"!$sentence"
+      case UNKNOWN => s"$sentence $probability"
+    }
   }
 
 }
@@ -325,9 +330,11 @@ object EvidenceAtom {
 }
 
 class FunctionMapping(val retValue: String, val functionSymbol: String, val values: Vector[String]) extends EvidenceExpression {
+
   lazy val signature = AtomSignature(functionSymbol, values.size)
 
-  override def toString = retValue + " = " + functionSymbol + "(" + values.map(_.toString).reduceLeft((left, right) => left + "," + right) + ")"
+  override def toString = s"$retValue = $functionSymbol(${values.mkString(",")})"
+
 }
 
 trait LogicalConnective extends Formula {
@@ -339,19 +346,12 @@ trait LogicalConnective extends Formula {
  * Negation of a formula (! { Formula } )
  */
 case class Not(arg: Formula) extends LogicalConnective with DefiniteClauseConstruct {
-  //extends Formula{
 
   private lazy val _isUnit: Boolean = arg.isInstanceOf[AtomicFormula]
 
   override def subFormulas: Seq[Formula] = Seq(arg)
 
-  /*override def toText = arg match{
-    case atom: AtomicFormula => "!"+atom.toText
-    case _ => "!("+arg.toText+")"
-  }
-  */
-
-  override def toText = if (_isUnit) "!" + arg.toText else "!(" + arg.toText + ")"
+  override def toText = if (_isUnit) s"!${arg.toText}" else s"!(${arg.toText})"
 
   def isUnit: Boolean = _isUnit
 }
@@ -360,7 +360,7 @@ case class Not(arg: Formula) extends LogicalConnective with DefiniteClauseConstr
  * Logical AND of two formulas ( { Formula1 } &#094; { Formula2 } ).
  */
 case class And(left: Formula, right: Formula) extends LogicalConnective with DefiniteClauseConstruct {
-  //extends Formula{
+
   override def subFormulas: Seq[Formula] = Seq(left, right)
 
   override def toText: String = {
@@ -385,7 +385,6 @@ case class And(left: Formula, right: Formula) extends LogicalConnective with Def
  * Logical OR of two formulas ( { Formula1 } v { Formula2 } ).
  */
 case class Or(left: Formula, right: Formula) extends LogicalConnective {
-  //extends Formula{
 
   override def subFormulas: Seq[Formula] = Seq(left, right)
 

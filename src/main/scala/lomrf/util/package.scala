@@ -32,16 +32,10 @@
 
 package lomrf
 
-import logic.AtomSignature
-import lomrf.mln.model.mrf.Constraint
-import mln.model.MLN
 import gnu.trove.map.TIntObjectMap
 import gnu.trove.set.TIntSet
 import scalaxy.streams.optimize
 
-/**
- *
- */
 package object util {
 
   object seg {
@@ -131,25 +125,14 @@ package object util {
 
   }
 
-  def parseAtomSignature(s: String): Option[AtomSignature] = {
-    s.indexOf('/') match {
-      case pos: Int if pos > -1 || pos < s.length => try {
-        Some(AtomSignature(s.slice(0, pos), s.slice(pos + 1, s.length).toInt))
-      } catch {
-        case ex: NumberFormatException => None // error("Cannot parse the arity of "+s)
-      }
-      case _ => None //error("The arity of query atom "+ s +" is not defined.")
-    }
 
-  }
-
-  def decodeLiteral(literal: Int)(implicit mln: MLN): Option[String] = {
+  /*def decodeLiteral(literal: Int)(implicit mln: MLN): Option[String] = {
     val atomID = math.abs(literal)
     val signature = signatureOf(atomID)
     val idf = mln.evidence.domainSpace.identities(signature)
 
     idf.decode(atomID) match{
-      case Some(x) => Some((if(literal < 0)"!" else "") + signature.symbol+"("+x.map((t: String) => t).reduceLeft( _ + "," + _ )+")")
+      case Some(x) => Some((if(literal < 0)"!" else "") + signature.symbol+"("+x.map((t: String) => t).mkString(",")+")")
       case _ => None
     }
   }
@@ -159,7 +142,7 @@ package object util {
     val signature = signatureOf(atomID)
     val idf = mln.evidence.domainSpace.identities(signature)
     idf.decode(atomID) match{
-      case Some(x) => Some( signature.symbol+"("+x.map((t: String) => t).reduceLeft( _ + "," + _ )+")")
+      case Some(x) => Some( signature.symbol+"("+x.map((t: String) => t).mkString(",")+")")
       case _ => None
     }
   }
@@ -193,16 +176,16 @@ package object util {
 
 
     Some(buffer.result())
-  }
+  }*/
 
-  def signatureOf(literal: Int)(implicit mln: MLN): AtomSignature = {
+  /*def signatureOf(literal: Int)(implicit mln: MLN): AtomSignature = {
 
     val atomID = math.abs(literal)
     val result = java.util.Arrays.binarySearch(mln.evidence.domainSpace.orderedStartIDs, atomID)
     val position = if(result < 0) (-result) - 2 else result
 
     mln.evidence.domainSpace.orderedAtomSignatures(position)
-  }
+  }*/
 
 
 }

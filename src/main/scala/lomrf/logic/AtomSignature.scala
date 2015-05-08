@@ -32,6 +32,10 @@
 
 package lomrf.logic
 
+import lomrf.mln.model.MLN
+
+import scala.util.{Failure, Try}
+
 /**
  * Atom signature defines uniquely an atom. A signature is composed of the atom's name and atom's arity (i.e. the number of its arguments).
  *
@@ -89,7 +93,7 @@ object AtomSignature {
    *
    * @return the resulting signature
    */
-  def apply(atom: AtomicFormula): AtomSignature = new AtomSignature(atom.symbol, atom.arity)
+  def apply(atom: AtomicFormula): AtomSignature = AtomSignature(atom.symbol, atom.arity)
 
   /**
    * Constructs the signature of an FOL formula.
@@ -97,6 +101,36 @@ object AtomSignature {
    * @param fun the FOL function
    * @return the resulting signature
    */
-  def apply(fun: lomrf.logic.TermFunction): AtomSignature = new AtomSignature(fun.symbol, fun.arity)
+  def apply(fun: TermFunction): AtomSignature = AtomSignature(fun.symbol, fun.arity)
+
+
+  def parseString(sentence: String): Try[AtomSignature] = {
+      val pos = sentence.indexOf('/')
+
+      if(pos < 0) Failure(new NoSuchElementException(s"Cannot find the character '/' in the specified sentence ($sentence)"))
+      else Try(AtomSignature(sentence.slice(0, pos), sentence.slice(pos + 1, sentence.length).toInt))
+  }
+
+  def signatureOf(literal: Int)(implicit mln: MLN): AtomSignature = {
+
+    val atomID = math.abs(literal)
+    val result = java.util.Arrays.binarySearch(mln.evidence.domainSpace.orderedStartIDs, atomID)
+    val position = if(result < 0) (-result) - 2 else result
+
+    mln.evidence.domainSpace.orderedAtomSignatures(position)
+  }
+
 }
 
+object AtomSignatureOps {
+
+  implicit class AtomSignatureString(val sentence: String) extends AnyVal{
+    def signature: Try[AtomSignature] = AtomSignature.parseString(sentence)
+  }
+
+  implicit class AtomSignatureInt(val literal: Int) extends AnyVal{
+    def signature(implicit mln: MLN): AtomSignature = AtomSignature.signatureOf(literal)
+  }
+
+
+}

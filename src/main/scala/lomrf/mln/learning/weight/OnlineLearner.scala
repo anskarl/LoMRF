@@ -38,6 +38,7 @@ import auxlib.log.Logging
 import lomrf.app.Algorithm
 import lomrf.app.Algorithm.Algorithm
 import lomrf.logic.{TriState, FALSE, TRUE, AtomSignature}
+import lomrf.logic.AtomSignatureOps._
 import lomrf.mln.inference.{Solver, ILP}
 import lomrf.mln.inference.Solver._
 import lomrf.mln.model.MLN
@@ -97,8 +98,8 @@ final class OnlineLearner(mln: MLN, algorithm: Algorithm, lossAugmented: Boolean
    * @param atomID id of the atom
    * @return annotation TriState value (TRUE, FALSE or UNKNOWN)
    */
-  @inline private def getAnnotation(atomID: Int, mrf:MRF, annotationDB: Map[AtomSignature, AtomEvidenceDB]): TriState = {
-    val annotation = annotationDB(signatureOf(atomID)(mrf.mln))
+  @inline private def getAnnotation(atomID: Int, mrf: MRF, annotationDB: Map[AtomSignature, AtomEvidenceDB]): TriState = {
+    val annotation = annotationDB(atomID.signature(mrf.mln))
     annotation(atomID)
   }
 

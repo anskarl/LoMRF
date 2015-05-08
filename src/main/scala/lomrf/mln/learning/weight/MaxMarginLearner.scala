@@ -123,7 +123,7 @@ final class MaxMarginLearner(mrf: MRF, annotationDB: Map[AtomSignature, AtomEvid
    * @return annotation TriState value (TRUE, FALSE or UNKNOWN)
    */
   @inline private def getAnnotation(atomID: Int): TriState = {
-    val annotation = annotationDB(signatureOf(atomID)(mrf.mln))
+    val annotation = annotationDB(AtomSignature.signatureOf(atomID)(mrf.mln))
     annotation(atomID)
   }
 

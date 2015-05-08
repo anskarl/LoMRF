@@ -35,7 +35,7 @@ package lomrf.mln.grounding
 import lomrf.logic._
 import lomrf.mln.model.MLN
 import lomrf.mln.model.mrf.MRF
-import lomrf.util.decodeFeature
+import lomrf.util.AtomIdentityFunctionOps._
 import org.scalatest.{Matchers, FunSpec}
 
 /**
@@ -121,7 +121,8 @@ class DependencyMapSpecTest extends FunSpec with Matchers {
           total += clauseWeight * freq
         }
 
-        it(s"has the constraint $constraintID -> ${decodeFeature(mrf.constraints.get(constraintID)).getOrElse("Failed to decode constraint")}, which can be reconstructed") {
+        val constraint = mrf.constraints.get(constraintID)
+        it(s"has the constraint $constraintID -> ${constraint.decodeFeature()(mln).getOrElse("Failed to decode constraint")}, which can be reconstructed") {
           constraintWeight shouldBe total
         }
       }

@@ -36,11 +36,12 @@ import java.io.{FileOutputStream, PrintStream}
 import auxlib.log.Logging
 import auxlib.opt.OptionParser
 import lomrf.logic.AtomSignature
+import lomrf.logic.AtomSignatureOps._
 import lomrf.mln.grounding.MRFBuilder
 import lomrf.mln.inference.Solver
 import lomrf.mln.learning.weight.{OnlineLearner, LossFunction, MaxMarginLearner}
 import lomrf.mln.model.MLN
-import lomrf.util.{Utilities, parseAtomSignature}
+import lomrf.util.Utilities
 
 /**
  * Command-line tool for weight learning
@@ -122,12 +123,12 @@ object WeightLearningCLI extends OptionParser with Logging {
   private var _implPaths: Option[Array[String]] = None
 
 
-  private def addNonEvidenceAtom(atom: String) {
+  /*private def addNonEvidenceAtom(atom: String) {
     parseAtomSignature(atom) match {
       case Some(s) => _nonEvidenceAtoms += s
       case None => fatal("Cannot parse the arity of query atom: " + atom)
     }
-  }
+  }*/
 
   opt("i", "input", "<kb file>", "Markov Logic file", {
     v: String => _mlnFileName = Some(v)
@@ -146,7 +147,9 @@ object WeightLearningCLI extends OptionParser with Logging {
 
   opt("ne", "non-evidence atoms", "<string>", "Comma separated non-evidence atoms. "
     + "Each atom must be defined using its identity (i.e. Name/arity). "
-    + "For example the identity of NonEvidenceAtom(arg1,arg2) is NonEvidenceAtom/2", _.split(',').foreach(v => addNonEvidenceAtom(v)))
+    + "For example the identity of NonEvidenceAtom(arg1,arg2) is NonEvidenceAtom/2", {
+      _nonEvidenceAtoms ++= _.split(',').map(s => s.signature.getOrElse(fatal(s"Cannot parse the arity of atom signature: $s")))
+  })
 
   opt("alg", "algorithm", "<MAXMARGIN | CDA | ADAGRAD>", "Algorithm used to perform learning (default is Max-Margin).", {
     v: String => v.trim.toLowerCase match {

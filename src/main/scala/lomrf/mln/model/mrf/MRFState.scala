@@ -42,6 +42,7 @@ import lomrf.util._
 import scala.collection.mutable.ArrayBuffer
 import scala.collection.mutable
 import scala.collection.parallel.mutable.ParArray
+import scala.util.{Failure, Success}
 import scalaxy.streams.optimize
 
 /**
@@ -589,9 +590,9 @@ final class MRFState private(val mrf: MRF,
     val pickedID = atom.id
 
     whenDebug {
-      decodeAtom(pickedID)(mrf.mln) match{
-        case Some(atomStr) => debug("Flipping atom: '"+atomStr+"'")
-        case None => error("Cannot decode atom with atomID = '"+pickedID+"'")
+      AtomIdentityFunction.decodeAtom(pickedID)(mrf.mln) match{
+        case Success(atomStr) => debug(s"Flipping atom: '$atomStr'")
+        case Failure(t) => error(s"Cannot decode atom with atomID = '$pickedID'", t)
       }
     }
 

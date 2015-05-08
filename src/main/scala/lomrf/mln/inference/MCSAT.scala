@@ -40,6 +40,8 @@ import lomrf.mln.model.mrf.{GroundAtom, MRFState, MRF}
 import lomrf.util.Utilities
 import lomrf.util.LongDoubleConversions._
 
+import scala.util.Success
+
 /**
  * This is an implementation of the MC-SAT sampling algorithm for marginal inference in the presence
  * of (near) deterministic dependencies. The algorithm is presented in the following paper:
@@ -295,7 +297,8 @@ final case class MCSAT(mrf: MRF, pBest: Double = 0.5, pSA: Double = 0.1, maxFlip
    * @param result Selected output stream for results (default is console)
    */
   def writeResults(result: PrintStream = System.out) {
-    import lomrf.util.decodeAtom
+    import lomrf.util.AtomIdentityFunctionOps._
+
     val numFormat = new DecimalFormat("0.0######")
 
     val queryStartID = mln.evidence.domainSpace.queryStartID
@@ -305,13 +308,14 @@ final case class MCSAT(mrf: MRF, pBest: Double = 0.5, pSA: Double = 0.1, maxFlip
     while (iterator.hasNext) {
       iterator.advance()
       val atomID = iterator.key()
+
       if (atomID >= queryStartID && atomID <= queryEndID) {
         val groundAtom = iterator.value()
         val probability = (groundAtom.getTruesCount * 1.0) / samples
-        decodeAtom(iterator.key()) match {
-          case Some(txtAtom) =>
-            result.println(txtAtom + " " + numFormat.format(probability))
-          case _ => error("failed to decode id:" + atomID)
+
+        atomID.decodeAtom match {
+          case Success(txtAtom) => result.println(txtAtom + " " + numFormat.format(probability))
+          case _ => error(s"failed to decode id: $atomID")
         }
       }
     }

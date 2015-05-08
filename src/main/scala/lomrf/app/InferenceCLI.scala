@@ -33,15 +33,18 @@
 package lomrf.app
 
 import java.io.{FileOutputStream, PrintStream}
-import lomrf.logic.AtomSignature
+import lomrf.logic._
+import lomrf.logic.AtomSignatureOps._
 import lomrf.logic.PredicateCompletionMode._
 import lomrf.logic.dynamic.{DynamicFunctionBuilder, DynamicAtomBuilder}
 import lomrf.mln.grounding.MRFBuilder
 import lomrf.mln.inference._
 import lomrf.mln.model.MLN
-import lomrf.util.{ImplFinder, parseAtomSignature}
+import lomrf.util.ImplFinder
 import auxlib.opt.OptionParser
 import auxlib.log.Logging
+
+import scala.util.{Failure, Success}
 
 /**
  * Command-line tool for inference.
@@ -140,33 +143,20 @@ object InferenceCLI extends OptionParser with Logging {
 
 
   private def addQueryAtom(atom: String) {
-    parseAtomSignature(atom) match {
-      case Some(s) => _queryAtoms += s
-      case None => fatal("Cannot parse the arity of query atom: " + atom)
-    }
+    _queryAtoms += atom.signature.getOrElse(fatal(s"Cannot parse the arity of query atom: $atom"))
   }
 
   private def addCWA(atom: String) {
-    parseAtomSignature(atom) match {
-      case Some(s) => _cwa += s
-      case None => fatal("Cannot parse the arity of CWA atom: " + atom)
-    }
+    _cwa += atom.signature.getOrElse(fatal(s"Cannot parse the arity of CWA atom: $atom"))
   }
 
   private def addOWA(atom: String) {
-    parseAtomSignature(atom) match {
-      case Some(s) => _owa += s
-      case None => fatal("Cannot parse the arity of OWA atom: " + atom)
-    }
+    _owa += atom.signature.getOrElse(fatal(s"Cannot parse the arity of OWA atom: $atom"))
   }
 
-  opt("i", "input", "<kb file>", "Markov Logic file", {
-    v: String => _mlnFileName = Some(v)
-  })
+  opt("i", "input", "<kb file>", "Markov Logic file", { v: String => _mlnFileName = Some(v)})
 
-  opt("e", "evidence", "<db file(s)>", "Comma separated evidence database files.", {
-    v: String => _evidenceFileNames = v.split(',').toList
-  })
+  opt("e", "evidence", "<db file(s)>", "Comma separated evidence database files.", { v: String => _evidenceFileNames = v.split(',').toList})
 
   opt("r", "result", "<result file>", "Results file", {
     v: String => _resultsFileName = Some(v)

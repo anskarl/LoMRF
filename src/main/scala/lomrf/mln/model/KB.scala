@@ -183,8 +183,8 @@ object KB {
 
               case FunctionType(retType, functionName, args) =>
                 kbBuilder.functionSchema += (AtomSignature(functionName, args.size) -> (retType, args))
-                constantsBuilder += retType
-                constantsBuilder ++= args
+                constantsBuilder addKey retType
+                constantsBuilder addKeys args
 
               case AtomicType(predicateName, args) =>
                 val atomSignature = AtomSignature(predicateName, args.size)
@@ -192,7 +192,7 @@ object KB {
                 kbBuilder.predicateSchema().get(atomSignature) match {
                   case None =>
                     kbBuilder.predicateSchema += (atomSignature -> (for (element <- args) yield element))
-                    constantsBuilder ++= args
+                    constantsBuilder addKeys args
 
                   case _ => stop = true
                 }

@@ -36,7 +36,7 @@ import org.scalatest.{PrivateMethodTester, Matchers, FunSpec}
 import lomrf.logic.AtomSignature
 import lomrf.mln.model.MLN
 import lomrf.mln.model.mrf.MRF
-import lomrf.util._
+import lomrf.util.AtomIdentityFunctionOps._
 
 /**
  * Specification test for Max-Margin learner
@@ -128,8 +128,8 @@ final class MaxMarginSpecTest extends FunSpec with Matchers with PrivateMethodTe
       val constraint = constraintsIterator.value()
 
       val string = constraint.literals.map {
-        l => decodeLiteral(l)(mrf.mln).getOrElse(sys.error("Cannot decode literal: " + l))
-      }.reduceLeft(_ + " v " + _)
+        l => l.decodeLiteral(mrf.mln).getOrElse(sys.error("Cannot decode literal: " + l))
+      }.mkString(" v ")
 
       if (constraint.isHardConstraint) {
         it(s"constraint { $string } should be having a hard weight") {

@@ -32,18 +32,17 @@
 
 package lomrf
 
+
 import scala.collection.mutable
 import lomrf.logic.dynamic._
-import auxlib.log.Logging
 import scala.annotation.tailrec
 import scala.collection.breakOut
+import scala.util.{Failure, Try}
 
-/**
- *
- */
-package object logic extends Logging {
+package object logic  {
 
   type Theta = Map[Term, Term]
+
 
 
   def containsSignature(signature: AtomSignature, formula: Formula): Boolean = formula match {
@@ -67,7 +66,7 @@ package object logic extends Logging {
     case _ =>
       val queue = mutable.Queue[Formula]()
       formula.subFormulas.foreach(queue.enqueue(_))
-      while (queue.size != 0) {
+      while (queue.nonEmpty) {
         val currentFormula = queue.dequeue()
         currentFormula match {
           case atom: AtomicFormula => if (atom.signature == signature) {
@@ -102,9 +101,9 @@ package object logic extends Logging {
       case Some(theta) if theta.nonEmpty =>
         val replacementPrime = Substitute(theta, replacement)
         val targetPrime = Substitute(theta, inFormula)
-        debug("Substituted formula: " + targetPrime.toText)
+        //debug("Substituted formula: " + targetPrime.toText)
         val result = _replaceAtom(targetAtom, targetPrime, replacementPrime)
-        debug("Replaced formula: " + result.toText)
+        //debug("Replaced formula: " + result.toText)
         Some(result)
       case _ => None // nothing to unify
     }

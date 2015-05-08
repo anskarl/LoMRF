@@ -65,27 +65,6 @@ object Evidence {
     new Evidence(constants, db, fm, space)
   }
 
-  //@deprecated
-  /*def apply(kb: KB, constantsDomainBuilders: ConstantsDomainBuilder, queryPredicates: Set[AtomSignature], hiddenPredicates: Set[AtomSignature], filenames: List[String]): Evidence = {
-    val fileList = if (filenames.isEmpty) List(createTempEmptyDBFile) else filenames.map(filename => new File(filename))
-
-    fromFiles(kb, constantsDomainBuilders, queryPredicates, hiddenPredicates, fileList)
-  }*/
-
-  /*@deprecated
-  def apply(kb: KB, constantsDomainBuilders: ConstantsDomainBuilder, queryPredicates: Set[AtomSignature], hiddenPredicates: Set[AtomSignature], filenameOpt: Option[String] = None): Evidence = {
-
-    val evidenceFile = filenameOpt match {
-      case Some(filename) if filename.trim != "" => new File(filename)
-      case _ => createTempEmptyDBFile
-    }
-
-    if(!evidenceFile.exists())
-      log.fatal(s"Evidence file '${evidenceFile.getPath}' does not exists.")
-
-    fromFiles(kb, constantsDomainBuilders, queryPredicates, hiddenPredicates, List(evidenceFile))
-  }*/
-
   def fromFiles(kb: KB, constantsDomainBuilders: ConstantsDomainBuilder, queryPredicates: Set[AtomSignature], hiddenPredicates: Set[AtomSignature], filenames: List[String]): Evidence ={
     val fileList = if (filenames.isEmpty) List(createTempEmptyDBFile) else filenames.map(filename => new File(filename))
 
@@ -124,32 +103,35 @@ object Evidence {
     for (evidenceExpressions <- evidenceExpressionsDB; expr <- evidenceExpressions) expr match {
       case f: FunctionMapping =>
         //Collect information for functionMappings
-        functionSchema.get(f.signature) match {
-          case Some(fSchema) =>
-            val (returnType, argTypes) = fSchema
-            constantsDomainBuilder.get(returnType) match {
-              case Some(builder) => builder += f.retValue
-              case None => error(s"Type '$returnType' in function '${f.signature}' is not defined.")
-            }
-            for ((argType, argValue) <- argTypes.zip(f.values)) {
-              constantsDomainBuilder.get(argType) match {
-                case Some(builder) => builder += argValue
-                case None => error(s"Type '$returnType' in function '${f.signature}' is not defined.")
-              }
-            }
-          case None => fatal(s"The function definition of '${f.signature}' does not appear in the knowledge base.")
+
+        val (returnType, argTypes) = functionSchema.getOrElse(
+          f.signature,
+          fatal(s"The function definition of '${f.signature}' does not appear in the knowledge base."))
+
+        val builder = constantsDomainBuilder.getOrElse(
+          returnType,
+          fatal(s"Type '$returnType' in function '${f.signature}' is not defined."))
+
+        builder += f.retValue
+
+        for ((argType, argValue) <- argTypes.zip(f.values)){
+          val currBuilder = constantsDomainBuilder.getOrElse(
+            argType,
+            fatal(s"Type '$argType' in function '${f.signature}' is not defined."))
+
+          currBuilder += argValue
         }
+
       case atom: EvidenceAtom =>
         predicateSchema.get(atom.signature) match {
           case Some(argTypes) =>
             //append its constants into constantsMap
             for ((value, index) <- atom.constants.view.zipWithIndex) {
               val constantType = argTypes(index)
+
               constantsDomainBuilder.get(constantType) match {
                 case Some(x) => x += value.symbol
                 case None =>
-                  /*val currMap = new ConstantsSetBuilder()
-                  currMap += value.symbol*/
                   constantsDomainBuilder += (constantType -> value.symbol)
               }
             }
@@ -195,8 +177,6 @@ object Evidence {
       case _ => //ignore
     }
 
-    //val atomsEvDB = atomsEvDBBuilders.mapValues(_.result())
-
     var functionMappers = functionMapperBuilders.mapValues(_.result())
     for ((signature, func) <- dynamicFunctions)
       functionMappers += (signature -> FunctionMapper(func))
@@ -239,17 +219,11 @@ object Evidence {
     new Evidence(constants, atomStateDB, functionMappers, domainSpace)
   }
 
-  /*def apply(constants: Map[String, ConstantsSet], atomsEvDB: Map[AtomSignature, AtomEvidenceDB],
-            functionMappers: Map[AtomSignature, FunctionMapper], domainSpace: DomainSpace): Evidence ={
-
-    new Evidence(constants, atomsEvDB, functionMappers, domainSpace)
-  }*/
-
   private def createTempEmptyDBFile: File = {
     import log._
     val filePrefix = s".mlnc_empty_${System.currentTimeMillis()}"
 
-    Try[File](File.createTempFile(filePrefix, ".db")) match{
+    Try[File](File.createTempFile(filePrefix, ".db")) match {
       case Success(tmpFile) =>
         tmpFile.deleteOnExit()
         tmpFile

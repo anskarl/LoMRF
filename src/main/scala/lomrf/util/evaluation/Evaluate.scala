@@ -54,7 +54,7 @@ object Evaluate {
     atoms
       .map{ groundAtom =>
         val inferredState = groundAtom.getState
-        val annotationState = annotationDB(signatureOf(groundAtom.id))(groundAtom.id)
+        val annotationState = annotationDB(AtomSignature.signatureOf(groundAtom.id))(groundAtom.id)
         evaluateSingle(inferredState, annotationState)
       }
       .reduce(combine)
@@ -80,7 +80,7 @@ object Evaluate {
       .map{ groundAtom =>
         val inferredProbability = groundAtom.getTruesCount * 1.0 / samples
         val state = inferredProbability >= threshold
-        val annotationState = annotationDB(signatureOf(groundAtom.id))(groundAtom.id)
+        val annotationState = annotationDB(AtomSignature.signatureOf(groundAtom.id))(groundAtom.id)
         evaluateSingle(state, annotationState)
       }
       .reduce(combine)

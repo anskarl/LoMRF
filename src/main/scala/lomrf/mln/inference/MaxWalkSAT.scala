@@ -40,6 +40,8 @@ import java.util.concurrent.ThreadLocalRandom
 import lomrf.util.Utilities
 import lomrf.util.LongDoubleConversions._
 
+import scala.util.{Failure, Success}
+
 /**
  * This is an implementation of the MaxWalkSAT local-search algorithm with tabu search for weighed satisfiability solving.
  * The original implementation of the algorithm can be found in: [[http://www.cs.rochester.edu/u/kautz/walksat]].
@@ -251,7 +253,7 @@ final case class MaxWalkSAT(mrf: MRF, pBest: Double = 0.5, maxFlips: Int = 10000
    * @param out Selected output stream (default is console)
    */
   def writeResults(out: PrintStream = System.out) {
-    import lomrf.util.decodeAtom
+    import lomrf.util.AtomIdentityFunctionOps._
 
     implicit val mln = mrf.mln
 
@@ -259,24 +261,20 @@ final case class MaxWalkSAT(mrf: MRF, pBest: Double = 0.5, maxFlips: Int = 10000
     val queryEndID = mln.evidence.domainSpace.queryEndID
 
     val iterator = mrf.atoms.iterator()
+
     while (iterator.hasNext) {
       iterator.advance()
       val atomID = iterator.key()
+
       if (atomID >= queryStartID && atomID <= queryEndID) {
         val groundAtom = iterator.value()
         val state = if(groundAtom.getState) 1 else 0
-        if(outputAll) {
-          decodeAtom(iterator.key()) match {
-            case Some(txtAtom) => out.println(txtAtom + " " + state)
-            case _ => error("failed to decode id:" + atomID)
-          }
+
+        atomID.decodeAtom match {
+          case Success(txtAtom) if outputAll || state == 1 => out.println(txtAtom + " " + state)
+          case Failure(f) => error(s"failed to decode id: $atomID", f)
         }
-        else {
-          if(state == 1) decodeAtom(iterator.key()) match {
-            case Some(txtAtom) => out.println(txtAtom + " " + state)
-            case _ => error("failed to decode id:" + atomID)
-          }
-        }
+
       }
     }
   }

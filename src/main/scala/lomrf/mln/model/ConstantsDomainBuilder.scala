@@ -52,18 +52,24 @@ class ConstantsDomainBuilder extends mutable.Builder[(String, String), Constants
     self
   }
 
-  def get(key: String) = constantBuilders.get(key)
+  def get(key: String): Option[ConstantsSetBuilder] = constantBuilders.get(key)
+
+  def getOrElse(key: String, default: => ConstantsSetBuilder): ConstantsSetBuilder = constantBuilders.getOrElse(key, default)
 
   def += (key: String, value: String): self.type ={
     copyIfDirty()
 
-    constantBuilders.get(key) match {
-      case Some(builder) => builder += value
-      case _ => constantBuilders += (key -> ConstantsSetBuilder(value))
-    }
+    addUnchecked(key, value)
 
     self
   }
+
+
+  private def addUnchecked (key: String, value: String): Unit = constantBuilders.get(key) match {
+    case Some(builder) => builder += value
+    case _ => constantBuilders += (key -> ConstantsSetBuilder(value))
+  }
+
 
   override def += (entry: (String, String)): self.type = self += (entry._1, entry._2)
 
@@ -80,7 +86,7 @@ class ConstantsDomainBuilder extends mutable.Builder[(String, String), Constants
     self
   }
 
-  def += (key: String): self.type ={
+  def addKey (key: String): self.type ={
     copyIfDirty()
 
     constantBuilders.get(key) match {
@@ -90,7 +96,7 @@ class ConstantsDomainBuilder extends mutable.Builder[(String, String), Constants
     self
   }
 
-  def ++= (keys: Iterable[String]): self.type ={
+  def addKeys(keys: Iterable[String]): self.type ={
     copyIfDirty()
 
     for(key <- keys) {
@@ -99,6 +105,14 @@ class ConstantsDomainBuilder extends mutable.Builder[(String, String), Constants
         case _ => // do nothing
       }
     }
+
+    self
+  }
+
+  def ++= (entries: Iterable[(String, String)]): self.type ={
+    copyIfDirty()
+
+    entries.foreach(entry => addUnchecked(entry._1, entry._2))
 
     self
   }

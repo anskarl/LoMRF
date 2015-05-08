@@ -39,9 +39,12 @@ import lomrf.mln.inference.RoundingScheme.RoundingScheme
 import lomrf.mln.inference.Solver.Solver
 import lomrf.mln.model.mrf._
 import lomrf.util._
+import lomrf.util.AtomIdentityFunctionOps._
+import lomrf.logic.AtomSignatureOps._
 import gnu.trove.map.hash.TIntObjectHashMap
 import optimus.algebra._
 import optimus.optimization._
+import scala.util.{Failure, Success}
 import scalaxy.streams.optimize
 import scala.language.postfixOps
 import auxlib.trove.TroveConversions._
@@ -89,7 +92,7 @@ final class ILP(mrf: MRF, annotationDB: Map[AtomSignature, AtomEvidenceDB] = Map
    * @return annotation TriState value (TRUE, FALSE or UNKNOWN)
    */
   @inline private def getAnnotation(atomID: Int): TriState = {
-    val annotation = annotationDB(signatureOf(atomID)(mrf.mln))
+    val annotation = annotationDB(atomID.signature(mrf.mln))
     annotation(atomID)
   }
 
@@ -146,12 +149,10 @@ final class ILP(mrf: MRF, annotationDB: Map[AtomSignature, AtomEvidenceDB] = Map
       // fetch the current constraint, i.e., current weighted ground clause or clique
       val constraint = constraintsIterator.value()
 
-      debug(
-        "Ground Clause: " + constraint.getWeight + " " +
-          constraint
-            .literals
-            .map(l => decodeLiteral(l).getOrElse(sys.error("Cannot decode literal: " + l)))
-            .reduceLeft(_ + " v " + _))
+      whenDebug{
+        val decodedConstraint = constraint.decodeFeature(mrf.weightHard).getOrElse(fatal(s"Cannot decode constraint $constraint"))
+        debug(s"Ground Clause: ${constraint.getWeight} $decodedConstraint")
+      }
 
       // Step 1: Introduce variables for each ground atom and create possible constraints
       for (literal <- constraint.literals) {
@@ -336,26 +337,26 @@ final class ILP(mrf: MRF, annotationDB: Map[AtomSignature, AtomEvidenceDB] = Map
    * @param out Selected output stream (default is console)
    */
   def writeResults(out: PrintStream = System.out) {
-    import lomrf.util.decodeAtom
+
 
     val queryStartID = mln.evidence.domainSpace.queryStartID
     val queryEndID = mln.evidence.domainSpace.queryEndID
 
     val iterator = mrf.atoms.iterator()
+
     while (iterator.hasNext) {
       iterator.advance()
       val atomID = iterator.key()
+
       if (atomID >= queryStartID && atomID <= queryEndID) {
         val groundAtom = iterator.value()
         val state = if(groundAtom.getState) 1 else 0
-        if(outputAll) decodeAtom(iterator.key()) match {
-          case Some(txtAtom) => out.println(txtAtom + " " + state)
-          case _ => error("failed to decode id:" + atomID)
+
+        atomID.decodeAtom match {
+          case Success(txtAtom) if outputAll || state == 1 => out.println(txtAtom + " " + state)
+          case Failure(f) => error(s"failed to decode id: $atomID", f)
         }
-        else if(state == 1) decodeAtom(iterator.key()) match {
-          case Some(txtAtom) => out.println(txtAtom + " " + state)
-          case _ => error("failed to decode id:" + atomID)
-        }
+
       }
     }
   }

@@ -32,8 +32,12 @@
 
 package lomrf.util
 
+import lomrf.mln.model.MLN
+import lomrf.mln.model.mrf.Constraint
+
 import scala.collection.mutable
 import lomrf.logic._
+import scala.util.{Success, Failure, Try}
 import scalaxy.streams.optimize
 
 /**
@@ -208,35 +212,35 @@ final class AtomIdentityFunction private(
     sum
   }
 
-  def decode(id: Int): Option[Seq[String]] = {
-    if (id >= startID && id <= endID) {
-      val baseID = id - startID
+  def decode(id: Int): Try[IndexedSeq[String]] = {
+    // check bounds
+    if (id < startID || id > endID)
+      return Failure(new IndexOutOfBoundsException(""))
 
-      //Find all id literals
-      var currentID = baseID
-      val resultIDs = new Array[Int](constantsAndStep.length)
-      //val lastIdx = resultIDs.length - 1
-      var idx = resultIDs.length - 1
+    val baseID = id - startID
 
-      while (idx > 0) {
-        val sigma = constantsAndStep(idx)._3
-        if (sigma <= currentID) {
-          val modulo = currentID % sigma
-          resultIDs(idx) = (currentID - modulo) / sigma
-          currentID -= (resultIDs(idx) * sigma)
-        }
-        else {
-          resultIDs(idx) = 0
-        }
-        idx -= 1
+    //Find all id literals
+    var currentID = baseID
+    val result = new Array[String](constantsAndStep.length)
+    var idx = result.length - 1
+
+    while (idx > 0) {
+      val sigma = constantsAndStep(idx)._3
+      val constatsSet = constantsAndStep(idx)._1
+
+      if (sigma <= currentID) {
+        val tmpID = (currentID - (currentID % sigma)) / sigma
+        result(idx) = constatsSet(tmpID)
+        currentID -= (tmpID * sigma)
       }
-      resultIDs(0) = currentID
+      else result(idx) = constatsSet(0)
 
-      val result = for (i <- 0 until resultIDs.length) yield constantsAndStep(i)._1.apply(resultIDs(i))
-
-      return Some(result)
+      idx -= 1
     }
-    None
+    val constatsSet = constantsAndStep(idx)._1
+    result(idx) = constatsSet(currentID)
+
+    Success(result)
   }
 
   def idsIterator: Iterator[Int] = idsRange.iterator
@@ -354,4 +358,76 @@ object AtomIdentityFunction {
 
     new AtomIdentityFunction(signature, startID, constantsAndStep, length, schema)
   }
+
+  def decodeLiteral(literal: Int)(implicit mln: MLN): Try[String] = {
+
+    val atomID = math.abs(literal)
+    val signature = AtomSignature.signatureOf(atomID)
+    val idf = mln.evidence.domainSpace.identities(signature)
+
+    val negation = if (literal < 0) "!" else ""
+
+    idf.decode(atomID).map(x => s"$negation${signature.symbol}(${x.mkString(",")})")
+  }
+
+  def decodeAtom(literal: Int)(implicit mln: MLN): Try[String] = {
+
+    val atomID = math.abs(literal)
+    val signature = AtomSignature.signatureOf(atomID)
+    val idf = mln.evidence.domainSpace.identities(signature)
+
+    idf.decode(atomID).map(x => s"${signature.symbol}(${x.mkString(",")})")
+  }
+
+  def decodeFeature(feature: Constraint, hardWeight: Double = 0)(implicit mln: MLN): Try[String] ={
+
+    val buffer = new StringBuilder()
+
+    val weight = feature.getWeight
+
+    if(weight.isPosInfinity){
+      if(hardWeight != 0) buffer.append(hardWeight.toString)
+      buffer.append(' ')
+    }
+    else if(!weight.isNaN){
+      buffer.append(feature.getWeight.toString)
+      buffer.append(' ')
+    }
+
+    optimize {
+      for(i <- 0 until feature.literals.length; tryLiteral = decodeLiteral(feature.literals(i))) tryLiteral match{
+        case Success(litTXT) =>
+          buffer.append(litTXT)
+          if(i != feature.literals.length - 1) buffer.append(" v ")
+
+        case f: Failure[String] => return f
+      }
+    }
+
+
+    if(feature.getWeight.isInfinite && hardWeight != 0) buffer.append('.')
+
+
+    Success(buffer.result())
+  }
+}
+
+object AtomIdentityFunctionOps {
+
+  implicit class WrappedGroundLiteral(val literal: Int) extends AnyVal {
+
+    def decodeLiteral(implicit mln: MLN) = AtomIdentityFunction.decodeLiteral(literal)
+
+    def decodeAtom(implicit mln: MLN) = AtomIdentityFunction.decodeAtom(literal)
+
+  }
+
+  implicit class WrappedConstraint(val feature: Constraint) extends AnyVal {
+
+    def decodeFeature(hardWeight: Double = 0)(implicit mln: MLN): Try[String] = {
+      AtomIdentityFunction.decodeFeature(feature,hardWeight)
+    }
+
+  }
+
 }

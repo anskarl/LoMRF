@@ -32,6 +32,8 @@
 
 package lomrf.logic
 
+import auxlib.log.Logger
+
 import annotation.tailrec
 import collection.mutable
 import lomrf.util.ConstantsSet
@@ -39,10 +41,11 @@ import lomrf.util.ConstantsSet
 /**
  * Contains functions that convert a First Order Logic (FOL) formula into a normal form,
  * such as Negation Normal Form (NNF), Prenex Normal Form (PNF) and Clausal Normal Form (CNF).
- *
- *
  */
 object NormalForm {
+
+  val log = Logger(this.getClass)
+
   /**
    * <p>
    * Clausal or Conjunctive Normal Form (CNF) is a conjunction of clauses,
@@ -136,7 +139,7 @@ object NormalForm {
     }
 
     val inside = collect(source)
-    //return
+
     construct(inside)
   }
 
@@ -212,7 +215,7 @@ object NormalForm {
       }
 
       vars(x) = newVar
-      //return
+
       newVar
     }
 
@@ -342,7 +345,7 @@ object NormalForm {
       isDone = true
       result = dist(result)
     }
-    //return
+
     result
   }
 
@@ -412,9 +415,8 @@ object NormalForm {
             if (literals.size == 1) {
               units += literals.head
             } else if (literals.size > 1) {
-              if (!isTautology)
-                nonUnits += literals
-              else println("WARNING: tautology clause is produced")
+              if (!isTautology) nonUnits += literals
+              else log.warn("tautology clause is produced")
             } // end of "Or"
           case _ => throw new IllegalStateException("Failed to collect literals, illegal formula: " + source.toText)
         }
@@ -422,7 +424,6 @@ object NormalForm {
 
       collectLiterals(formula)
 
-      //return
       (units, nonUnits)
     }
 
@@ -442,10 +443,10 @@ object NormalForm {
 
         // Return the extracted clauses:
         // * one unit clause and possibly some other non-unit clauses
-        if (unit.size == 1) createWeightedClauses(clauseWeight, nonUnit) + new Clause(clauseWeight, unit)
+        if (unit.size == 1) createWeightedClauses(clauseWeight, nonUnit) + Clause(clauseWeight, unit)
         else if (unit.size > 1) {
           // * when more than one unit clauses are produced merge them into a single clause.
-          val mergedUnitsClauses = new Clause(-clauseWeight, unit.map(_.negate))
+          val mergedUnitsClauses = Clause(-clauseWeight, unit.map(_.negate))
           Set(mergedUnitsClauses) ++ createWeightedClauses(clauseWeight, nonUnit)
         }
         else createWeightedClauses(clauseWeight, nonUnit) //no unit clauses.
