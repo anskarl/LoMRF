@@ -58,16 +58,31 @@ class KB(val predicateSchema: PredicateSchema,
          val functionSchema: FunctionSchema,
          val formulas: Set[Formula],
          val dynamicPredicates: DynamicPredicates,
-         val dynamicFunctions: DynamicFunctions) {
+         val dynamicFunctions: DynamicFunctions) { self =>
 
   lazy val schema = MLNSchema(predicateSchema, functionSchema, dynamicPredicates, dynamicFunctions)
 
 
+  object signatures {
+
+    lazy val predicates = predicateSchema.keySet
+
+    lazy val function = functionSchema.keySet
+
+    lazy val dynamicPredicates = self.dynamicPredicates.keySet
+
+    lazy val dynamicFunction = self.dynamicFunctions.keySet
+  }
+
+
+
   override def toString: String = {
     "KB = {" +
-      "\n\t# Predicate schemas : " + predicateSchema.size +
-      "\n\t# Function schemas  : " + functionSchema.size +
-      "\n\t# Formulas          : " + formulas.size +
+      "\n\t# Predicate schemas         : " + predicateSchema.size +
+      "\n\t# Dynamic predicate schemas : " + dynamicPredicates.size +
+      "\n\t# Function schemas          : " + functionSchema.size +
+      "\n\t# Dynamic function schemas  : " + dynamicFunctions.size +
+      "\n\t# Formulas                  : " + formulas.size +
       "}"
   }
 }
@@ -77,7 +92,7 @@ object KB {
 
   private lazy val formulaRegex = Pattern.compile(".*\\s=>\\s.*|.*\\s<=>\\s.*|.*\\s:-\\s.*|.*\\s^\\s.*|.*\\sv\\s.*|.*\\s!\\s.*|\\d.*|.*\\.")
   private lazy val ignoreRegex = Pattern.compile("\\s*\\*.*|/\\*.*|//.*|\\s+")
-  private lazy val  log = Logger(this.getClass)
+  private lazy val log = Logger(this.getClass)
 
   def apply(predicateSchema: PredicateSchema,
             functionSchema: FunctionSchema,

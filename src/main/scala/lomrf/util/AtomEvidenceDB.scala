@@ -32,13 +32,13 @@
 
 package lomrf.util
 
+import java.io.PrintStream
+
 import auxlib.log.Logging
 import lomrf.logic._
 import gnu.trove.set.hash.TIntHashSet
 import gnu.trove.set.TIntSet
 import gnu.trove.TCollections
-import lomrf.mln.model.DomainSpace
-import scala.collection.breakOut
 import gnu.trove.map.hash.TIntDoubleHashMap
 import gnu.trove.map.TIntDoubleMap
 
@@ -89,7 +89,7 @@ abstract class AtomEvidenceDB(val identity: AtomIdentityFunction) {
   def probability(id: Int): Double = Double.NaN
 
   /**
-   * * The probability of the given atom being true
+   * The probability of the given atom being true
    *
    * @param args the atom's constants
    *
@@ -188,7 +188,7 @@ abstract class AtomEvidenceDB(val identity: AtomIdentityFunction) {
    */
   def get(query: Map[String, String]): Option[Iterator[(Int, TriState)]] = {
     val iter = identity.matchesIterator(query)
-    if (iter.length == 0) None
+    if (iter.isEmpty) None
     else Some(iter.collect {
       case id: Int => (id, fetch(id))
     })
@@ -233,12 +233,11 @@ abstract class AtomEvidenceDB(val identity: AtomIdentityFunction) {
   protected def fetch(id: Int): TriState
 
   protected final def checkBounds(id: Int) {
-    if (!isBetweenBounds(id)) error("Out of bounds!")
+    require(isBetweenBounds(id), s"The value of the specified id ($id) is out of bounds!")
   }
 
   protected final def checkLength(args: Seq[String]) {
-    if (args.length != arity)
-      error("The length of the arguments is not the same with the predicate arity of this database (" + args.size + " != " + arity + ").")
+    require(args.length == arity, s"The length of the arguments is not the same with the predicate arity of this database (${args.size} != $arity).")
   }
 
   private final def isBetweenBounds(id: Int): Boolean = id <= upperBound && id >= bottomBound
@@ -257,7 +256,9 @@ abstract class AtomEvidenceDB(val identity: AtomIdentityFunction) {
 
   }
 
-  def dumpContents()
+  def dumpContents(implicit out: PrintStream = System.out)
+
+
 }
 
 object AtomEvidenceDB {
@@ -370,13 +371,13 @@ private class DBCWA(positives: TIntSet, override val identity: AtomIdentityFunct
 
   def numberOfProbabilistic = 0
 
-  def dumpContents() {
-    println("Positives:")
+  def dumpContents(implicit out: PrintStream = System.out) {
+    out.println("Positives:")
     val iterator = positives.iterator()
     while (iterator.hasNext) {
       val atomID = iterator.next()
       val constants = identity.decode(atomID).get
-      println(identity.signature.symbol + "(" + constants.map(_.toString).reduceLeft(_ + "," + _) + ")")
+      out.println(identity.signature.symbol + "(" + constants.mkString(",") + ")")
     }
   }
 }
@@ -400,21 +401,21 @@ private class DBCWA_UNK(positives: TIntSet, unknown: TIntSet,
 
   def getBuilder = AtomEvidenceDBBuilder(identity, isCWA = true, positivesOpt = Some(positives), unknownOpt = Some(unknown))
 
-  def dumpContents() {
-    println("Positives:")
+  def dumpContents(implicit out: PrintStream = System.out) {
+    out.println("Positives:")
     val iterator = positives.iterator()
     while (iterator.hasNext) {
       val atomID = iterator.next()
       val constants = identity.decode(atomID).get
-      println(identity.signature.symbol + "(" + constants.map(_.toString).reduceLeft(_ + "," + _) + ")")
+      out.println(identity.signature.symbol + "(" + constants.mkString(",") + ")")
     }
 
-    println("Unknown:")
+    out.println("Unknown:")
     val iteratorUnk = positives.iterator()
     while (iteratorUnk.hasNext) {
       val atomID = iteratorUnk.next()
       val constants = identity.decode(atomID).get
-      println(identity.signature.symbol + "(" + constants.map(_.toString).reduceLeft(_ + "," + _) + ")")
+      out.println(identity.signature.symbol + "(" + constants.mkString(",") + ")")
     }
   }
 }
@@ -440,21 +441,21 @@ private class DBOWA(positives: TIntSet, negatives: TIntSet, override val identit
 
   def getBuilder = AtomEvidenceDBBuilder(identity, isCWA = false, positivesOpt = Some(positives), negativesOpt = Some(negatives))
 
-  def dumpContents() {
-    println("Positives:")
+  def dumpContents(implicit out: PrintStream = System.out) {
+    out.println("Positives:")
     val iteratorPos = positives.iterator()
     while (iteratorPos.hasNext) {
       val atomID = iteratorPos.next()
       val constants = identity.decode(atomID).get
-      println(identity.signature.symbol + "(" + constants.map(_.toString).reduceLeft(_ + "," + _) + ")")
+      println(identity.signature.symbol + "(" + constants.mkString(",") + ")")
     }
 
-    println("\nNegatives:")
+    out.println("\nNegatives:")
     val iteratorNeg = positives.iterator()
     while (iteratorNeg.hasNext) {
       val atomID = iteratorNeg.next()
       val constants = identity.decode(atomID).get
-      println(identity.signature.symbol + "(" + constants.map(_.toString).reduceLeft(_ + "," + _) + ")")
+      out.println(identity.signature.symbol + "(" + constants.map(_.toString).reduceLeft(_ + "," + _) + ")")
     }
 
   }
@@ -475,8 +476,8 @@ private class DummyDBUnknown(override val identity: AtomIdentityFunction) extend
 
   def getBuilder = AtomEvidenceDBBuilder(identity, isCWA = false)
 
-  def dumpContents() {
-    println("Everything is unknown.")
+  def dumpContents(implicit out: PrintStream = System.out) {
+    out.println("Everything is unknown.")
   }
 }
 
@@ -494,8 +495,8 @@ private class DummyDBFalse(override val identity: AtomIdentityFunction) extends 
 
   def getBuilder = AtomEvidenceDBBuilder(identity, isCWA = true)
 
-  def dumpContents() {
-    println("Everything is false.")
+  def dumpContents(implicit out: PrintStream = System.out) {
+    out.println("Everything is false.")
   }
 
 
@@ -516,8 +517,8 @@ private class DummyDBTrue(override val identity: AtomIdentityFunction) extends A
   def getBuilder = AtomEvidenceDBBuilder(identity, isCWA = true)
 
 
-  def dumpContents() {
-    println("Everything is true.")
+  def dumpContents(implicit out: PrintStream = System.out) {
+    out.println("Everything is true.")
   }
 }
 
@@ -550,31 +551,31 @@ private class DBProbOWA(positives: TIntSet, negatives: TIntSet, val probabilisti
 
   def getBuilder = AtomEvidenceDBBuilder(identity, isCWA = false, positivesOpt = Some(positives), negativesOpt = Some(negatives), probabilisticOpt = Some(probabilistic))
 
-  def dumpContents() {
-    println("Positives:")
+  def dumpContents(implicit out: PrintStream = System.out) {
+    out.println("Positives:")
     val iteratorPos = positives.iterator()
     while (iteratorPos.hasNext) {
       val atomID = iteratorPos.next()
       val constants = identity.decode(atomID).get
-      println(identity.signature.symbol + "(" + constants.map(_.toString).reduceLeft(_ + "," + _) + ")")
+      out.println(identity.signature.symbol + "(" + constants.map(_.toString).reduceLeft(_ + "," + _) + ")")
     }
 
-    println("\nNegatives:")
+    out.println("\nNegatives:")
     val iteratorNeg = positives.iterator()
     while (iteratorNeg.hasNext) {
       val atomID = iteratorNeg.next()
       val constants = identity.decode(atomID).get
-      println(identity.signature.symbol + "(" + constants.map(_.toString).reduceLeft(_ + "," + _) + ")")
+      out.println(identity.signature.symbol + "(" + constants.map(_.toString).reduceLeft(_ + "," + _) + ")")
     }
 
-    println("\nProbabilistic:")
+    out.println("\nProbabilistic:")
     val iteratorProb = probabilistic.iterator()
     while (iteratorProb.hasNext) {
       iteratorProb.advance()
       val atomID = iteratorProb.key()
       val probability = iteratorProb.value()
       val constants = identity.decode(atomID).get
-      println(identity.signature.symbol + "(" + constants.map(_.toString).reduceLeft(_ + "," + _) + ")\t" + probability)
+      out.println(identity.signature.symbol + "(" + constants.map(_.toString).reduceLeft(_ + "," + _) + ")\t" + probability)
     }
   }
 
@@ -607,23 +608,23 @@ private class DBProbCWA(positives: TIntSet, val probabilistic: TIntDoubleMap, ov
 
   def getBuilder = AtomEvidenceDBBuilder(identity, isCWA = true, positivesOpt = Some(positives), probabilisticOpt = Some(probabilistic))
 
-  def dumpContents() {
-    println("Positives:")
+  def dumpContents(implicit out: PrintStream = System.out) {
+    out.println("Positives:")
     val iteratorPos = positives.iterator()
     while (iteratorPos.hasNext) {
       val atomID = iteratorPos.next()
       val constants = identity.decode(atomID).get
-      println(identity.signature.symbol + "(" + constants.map(_.toString).reduceLeft(_ + "," + _) + ")")
+      out.println(identity.signature.symbol + "(" + constants.map(_.toString).reduceLeft(_ + "," + _) + ")")
     }
 
-    println("\nProbabilistic:")
+    out.println("\nProbabilistic:")
     val iteratorProb = probabilistic.iterator()
     while (iteratorProb.hasNext) {
       iteratorProb.advance()
       val atomID = iteratorProb.key()
       val probability = iteratorProb.value()
       val constants = identity.decode(atomID).get
-      println(identity.signature.symbol + "(" + constants.map(_.toString).reduceLeft(_ + "," + _) + ")\t" + probability)
+      out.println(identity.signature.symbol + "(" + constants.map(_.toString).reduceLeft(_ + "," + _) + ")\t" + probability)
     }
   }
 }

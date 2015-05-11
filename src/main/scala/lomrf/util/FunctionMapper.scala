@@ -44,7 +44,7 @@ trait FunctionMapper {
 }
 
 object FunctionMapper {
-  def apply(fb: FunctionMapperBuilder): FunctionMapper = fb.result
+  def apply(fb: FunctionMapperBuilder): FunctionMapper = fb.result()
 
   def apply(idf: AtomIdentityFunction, args2Value: TIntObjectMap[String]): FunctionMapper = new FunctionMapperDefaultImpl(idf, args2Value)
 

@@ -94,7 +94,12 @@ class EvidenceParser extends CommonsMLNParser {
     case "?" ~ predName  => EvidenceAtom(predName, Vector.empty[Constant], UNKNOWN)
   }
 
-  def functionMapping: Parser[FunctionMapping] = upperCaseID ~ "=" ~ lowerCaseID ~ "(" ~ repsep(upperCaseID, ",") ~ ")" ^^ {
+  /*def functionMapping: Parser[FunctionMapping] = upperCaseID ~ "=" ~ lowerCaseID ~ "(" ~ repsep(upperCaseID, ",") ~ ")" ^^ {
+    case retValue ~ "=" ~ functionSymbol ~ "(" ~ values ~ ")" => new FunctionMapping(retValue, functionSymbol, values)
+  }*/
+
+
+  def functionMapping: Parser[FunctionMapping] = upperCaseID ~ "=" ~ lowerCaseID ~ "(" ~ constantArguments ~ ")" ^^ {
     case retValue ~ "=" ~ functionSymbol ~ "(" ~ values ~ ")" => new FunctionMapping(retValue, functionSymbol, values)
   }
 

@@ -43,21 +43,16 @@ import lomrf.util.{AtomIdentityFunction, ConstantsSet}
  * @param queryStartID the first index of ground query atom in the MRF
  * @param queryEndID the last index of ground query atom in the MRF
  */
-final class DomainSpace private(val identities: Identities,
-                                val orderedAtomSignatures: Array[AtomSignature],
-                                val orderedStartIDs: Array[Int],
-                                val queryStartID: Int,
-                                val queryEndID: Int,
-                                val queryAtoms: Set[AtomSignature],
-                                val cwa: Set[AtomSignature],
-                                val owa: Set[AtomSignature],
-                                val hiddenAtoms: Set[AtomSignature]) {
-
-  /**
-   * The set of hidden atoms, those that are not query and not evidence.
-   */
-  //val hiddenAtoms = owa -- queryAtoms
-
+final class MLNSpace private(val identities: Identities,
+                             val orderedAtomSignatures: Array[AtomSignature],
+                             val orderedStartIDs: Array[Int],
+                             val queryStartID: Int,
+                             val queryEndID: Int,
+                             val queryAtoms: Set[AtomSignature],
+                             val cwa: Set[AtomSignature],
+                             val owa: Set[AtomSignature],
+                             val hiddenAtoms: Set[AtomSignature]) {
+  
   /**
    * Total number of ground query atoms
    */
@@ -73,7 +68,7 @@ final class DomainSpace private(val identities: Identities,
 
 }
 
-object DomainSpace {
+object MLNSpace {
 
   private val logger = Logger(this.getClass)
 
@@ -81,8 +76,8 @@ object DomainSpace {
   def apply(schema: MLNSchema,
             queryPredicates: Set[AtomSignature],
             hiddenPredicates: Set[AtomSignature],
-            constants: ConstantsDomain): DomainSpace = {
-    DomainSpace(schema.predicates, queryPredicates, hiddenPredicates, constants)
+            constants: ConstantsDomain): MLNSpace = {
+    MLNSpace(schema.predicates, queryPredicates, hiddenPredicates, constants)
   }
 
   /**
@@ -97,7 +92,7 @@ object DomainSpace {
   def apply(predicateSchema: PredicateSchema,
             queryPredicates: Set[AtomSignature],
             hiddenPredicates: Set[AtomSignature],
-            constants: ConstantsDomain): DomainSpace = {
+            constants: ConstantsDomain): MLNSpace = {
 
     val owa = queryPredicates ++ hiddenPredicates
     val cwa = predicateSchema.keySet -- owa
@@ -151,6 +146,6 @@ object DomainSpace {
     }
 
 
-    new DomainSpace(identities, orderedAtomSignatures, orderedStartIDs, queryStartID, queryEndID, queryPredicates, cwa, owa, hiddenPredicates)
+    new MLNSpace(identities, orderedAtomSignatures, orderedStartIDs, queryStartID, queryEndID, queryPredicates, cwa, owa, hiddenPredicates)
   }
 }

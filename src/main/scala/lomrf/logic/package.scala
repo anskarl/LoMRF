@@ -37,14 +37,14 @@ import scala.collection.mutable
 import lomrf.logic.dynamic._
 import scala.annotation.tailrec
 import scala.collection.breakOut
-import scala.util.{Failure, Try}
 
-package object logic  {
+
+package object logic {
 
   type Theta = Map[Term, Term]
 
 
-
+  @deprecated(message = "Use import LogicOps._")
   def containsSignature(signature: AtomSignature, formula: Formula): Boolean = formula match {
     case atom: AtomicFormula => atom.signature == signature
     case _ =>
@@ -60,7 +60,7 @@ package object logic  {
       false
   }
 
-
+  @deprecated(message = "Use import LogicOps._")
   def fetchAtom(signature: AtomSignature, formula: Formula): Option[AtomicFormula] = formula match {
     case atom: AtomicFormula => if (atom.signature == signature) Some(atom) else None
     case _ =>
@@ -78,6 +78,7 @@ package object logic  {
       None
   }
 
+  @deprecated(message = "Use import LogicOps._")
   def extractSignatures(formula: Formula): Set[AtomSignature] = formula match {
     case atom: AtomicFormula => Set(atom.signature)
     case _ =>
@@ -96,6 +97,7 @@ package object logic  {
       result
   }
 
+  @deprecated(message = "Use import LogicOps._")
   def replaceAtom(targetAtom: AtomicFormula, inFormula: Formula, replacement: Formula): Option[Formula] = {
     Unify(targetAtom, inFormula) match {
       case Some(theta) if theta.nonEmpty =>

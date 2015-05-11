@@ -42,7 +42,7 @@ import scala.util.{Failure, Try, Success}
 class Evidence(val constants: ConstantsDomain,
                val db: EvidenceDB,
                val functionMappers: FunctionMappers,
-               val domainSpace: DomainSpace){
+               val domainSpace: MLNSpace){
 
   /**
    * collection of atoms with tri-state, i.e., open-world assumption (unknown state) with some evidence (true/false state)
@@ -61,7 +61,7 @@ object Evidence {
 
   private lazy val log = Logger(this.getClass)
 
-  def apply(constants: ConstantsDomain, db: EvidenceDB, fm: FunctionMappers, space: DomainSpace): Evidence = {
+  def apply(constants: ConstantsDomain, db: EvidenceDB, fm: FunctionMappers, space: MLNSpace): Evidence = {
     new Evidence(constants, db, fm, space)
   }
 
@@ -119,7 +119,7 @@ object Evidence {
             argType,
             fatal(s"Type '$argType' in function '${f.signature}' is not defined."))
 
-          currBuilder += argValue
+          currBuilder += argValue.symbol
         }
 
       case atom: EvidenceAtom =>
@@ -144,7 +144,7 @@ object Evidence {
 
     info("--- Stage 2: Computing domain space.")
 
-    val domainSpace = DomainSpace(predicateSchema, queryPredicates, hiddenPredicates, constants)
+    val domainSpace = MLNSpace(predicateSchema, queryPredicates, hiddenPredicates, constants)
 
 
     info("--- Stage 3: Creating function mappings, and evidence database.")
@@ -153,15 +153,15 @@ object Evidence {
     var atomsEvDBBuilders = Map[AtomSignature, AtomEvidenceDBBuilder]()
 
 
-    //var currentAtomStartID = 1
     for (evidenceExpressions <- evidenceExpressionsDB; expr <- evidenceExpressions) expr match {
       case fm: FunctionMapping =>
+        val fmValuesStr = fm.values.map(_.symbol)
         functionMapperBuilders.get(fm.signature) match {
-          case Some(fMappingBuilder) => fMappingBuilder +=(fm.values, fm.retValue)
+          case Some(fMappingBuilder) => fMappingBuilder +=(fmValuesStr, fm.retValue)
           case None =>
             val idFunction = AtomIdentityFunction(fm.signature, functionSchema(fm.signature)._2, constants, 1)
             val builder = new FunctionMapperBuilder(idFunction)
-            builder +=(fm.values, fm.retValue)
+            builder +=(fmValuesStr, fm.retValue)
             functionMapperBuilders += (fm.signature -> builder)
         }
       case atom: EvidenceAtom =>
@@ -183,7 +183,6 @@ object Evidence {
 
 
     val atomSignatures = predicateSchema.keySet
-
 
     var atomStateDB = atomsEvDBBuilders.mapValues(_.result())
 
@@ -216,7 +215,7 @@ object Evidence {
     } atomStateDB += (signature -> AtomEvidenceDB(idf, state))
 
 
-    new Evidence(constants, atomStateDB, functionMappers, domainSpace)
+    Evidence(constants, atomStateDB, functionMappers, domainSpace)
   }
 
   private def createTempEmptyDBFile: File = {

@@ -312,7 +312,7 @@ object PredicateCompletion extends Logging {
                         val thetaStored = Unify(storedHead, generalisedHead).getOrElse(fatal("Cannot unify " + generalisedHead.toText + " with " + storedHead.toText + " (possible bug?)"))
 
                         // Although storedHead != generalisedHead, they may be similar but with different variable names.
-                        val areSimilarPredicates = storedHead.isSimilarTo(generalisedHead)
+                        val areSimilarPredicates = storedHead =~= generalisedHead
                         if (!areSimilarPredicates) canBeDecomposed = false
 
                         // Rename variables (from all bodies):

@@ -34,7 +34,7 @@ package lomrf.mln.model
 
 import auxlib.log.Logging
 import lomrf.logic._
-import lomrf.mln.model.DomainSpace
+import lomrf.mln.model.MLNSpace$
 import lomrf.util.Utilities.TimeGranularity
 import lomrf.util._
 import scala.collection.breakOut
@@ -165,7 +165,7 @@ object MLN extends Logging {
 
   import PredicateCompletionMode._
 
-  def apply(schema: MLNSchema, evidence: Evidence, clauses: Vector[Clause]): MLN = new MLN(schema, evidence, clauses)
+  def apply(schema: MLNSchema, evidence: Evidence, clauses: Vector[Clause]): MLN = MLN(schema, evidence, clauses)
 
   def apply(predicateSchema: PredicateSchema,
             functionSchema: FunctionSchema,
@@ -183,7 +183,7 @@ object MLN extends Logging {
 
     val schema = MLNSchema(predicateSchema, functionSchema, dynamicPredicates, dynamicFunctions)
 
-    val space = DomainSpace(predicateSchema, queryAtoms, hiddenPredicates, constants)
+    val space = MLNSpace(predicateSchema, queryAtoms, hiddenPredicates, constants)
 
     val evidence = Evidence(constants, evidenceDB, functionMappers, space)
 
@@ -198,7 +198,7 @@ object MLN extends Logging {
             constants: ConstantsDomain,
             functionMappers: FunctionMappers,
             evidenceDB: EvidenceDB,
-            space: DomainSpace): MLN = {
+            space: MLNSpace): MLN = {
 
     val evidence = Evidence(constants,evidenceDB,functionMappers,space)
 
@@ -278,43 +278,11 @@ object MLN extends Logging {
 
     //parse the evidence database (.db)
     val evidence: Evidence = Evidence.fromFiles(kb, constantsDomainBuilders, queryAtoms, owa, evidenceFileNames)
-    //val identities = evidence.domainSpace.identities
-
-
-    /**
-     * Compute the final form of CWA/OWA and Query atoms
-     *
-     * By default, closed world assumption is assumed for
-     * all atoms that appear in the evidence database (.db),
-     * unless their signature appears in the OWA set or in the
-     * query atoms set. Consequently, open world assumption is
-     * assumed for the rest atoms.
-     */
-    /*var finalCWA = cwa.toSet
-
-    for (signature <- evidence.db.keysIterator) {
-      if (!atomSignatures(signature)) // Check if this signature is defined in the mln file
-        fatal(s"The predicate '$signature' that appears in the evidence file, is not defined in the mln file.")
-      else if (!owa.contains(signature) && !queryAtoms.contains(signature))
-        finalCWA += signature
-    }
-
-
-    var atomStateDB = evidence.db
-    for {
-      signature <- kb.predicateSchema.keys
-      if !evidence.db.contains(signature)
-      idf = identities(signature)
-      state = if (finalCWA.contains(signature)) FALSE else UNKNOWN
-    } atomStateDB += (signature -> AtomEvidenceDB(idf, state))*/
-
 
     val clauses =  NormalForm.compileCNF(kb.formulas)(evidence.constants).toVector
 
-    //val ev = Evidence(evidence.constants, atomStateDB, evidence.functionMappers, evidence.domainSpace)
-
     // Give the resulting MLN
-    new MLN(kb.schema, evidence, clauses)
+    MLN(kb.schema, evidence, clauses)
   }
 
 
@@ -345,15 +313,11 @@ object MLN extends Logging {
 
     val evidenceAtoms = atomSignatures -- nonEvidenceAtoms
 
-    //parse the evidence database (.db)
-    val training = Evidence.fromFiles(kb, constantsDomainBuilder, Set.empty[AtomSignature], Set.empty[AtomSignature], trainingFileNames)
-    val domainSpace = training.domainSpace
+    //parse the training evidence database (contains the annotation, i.e., the truth values of all query/hidden atoms)
+    val trainingEvidence = Evidence.fromFiles(kb, constantsDomainBuilder, Set.empty[AtomSignature], Set.empty[AtomSignature], trainingFileNames)
+    val domainSpace = trainingEvidence.domainSpace
 
-    val finalFunctionMappers = training.functionMappers ++ kb.dynamicFunctions.map {
-      case (signature, func) => signature -> FunctionMapper(func)
-    }
-
-    var (annotationDB, atomStateDB) = training.db.partition(e => nonEvidenceAtoms.contains(e._1))
+    var (annotationDB, atomStateDB) = trainingEvidence.db.partition(e => nonEvidenceAtoms.contains(e._1))
 
     for (signature <- annotationDB.keysIterator)
       atomStateDB += (signature -> AtomEvidenceDB(domainSpace.identities(signature), UNKNOWN))
@@ -371,25 +335,25 @@ object MLN extends Logging {
     }
 
     // In case we want to learn weights for unit clauses
-    val formulas = if (addUnitClauses) {
-      val unitClauses = kb.predicateSchema.map {
-        case (signature, termTypes) =>
-          // Find variables for the current predicate
-          val variables: Vector[Variable] = {
-            (for ((termType, idx) <- termTypes.zipWithIndex) yield Variable("v" + idx, termType))(breakOut)
-          }
-          WeightedFormula.asUnit(AtomicFormula(signature.symbol, variables))
-      }
-      kb.formulas ++ unitClauses
-    } else {
-      kb.formulas
-    }
+    val formulas =
+      if (addUnitClauses) {
+        kb.formulas ++ kb.predicateSchema.map {
+          case (signature, termTypes) =>
+            // Find variables for the current predicate
+            val variables: Vector[Variable] = termTypes.zipWithIndex.map{
+              case (termType, idx) => Variable("v" + idx, termType)
+            }(breakOut)
 
-    val clauses = NormalForm.compileCNF(formulas)(training.constants).toVector
+            WeightedFormula.asUnit(AtomicFormula(signature.symbol, variables))
+        }
+      } else kb.formulas
 
-    val evidence = new Evidence(training.constants, atomStateDB, training.functionMappers, training.domainSpace)
 
-    (new MLN(kb.schema, evidence, clauses), annotationDB)
+    val clauses = NormalForm.compileCNF(formulas)(trainingEvidence.constants).toVector
+
+    val evidence = new Evidence(trainingEvidence.constants, atomStateDB, trainingEvidence.functionMappers, trainingEvidence.domainSpace)
+
+    (MLN(kb.schema, evidence, clauses), annotationDB)
   }
 
 
