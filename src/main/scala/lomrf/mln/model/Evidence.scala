@@ -119,7 +119,7 @@ object Evidence {
             argType,
             fatal(s"Type '$argType' in function '${f.signature}' is not defined."))
 
-          currBuilder += argValue.symbol
+          currBuilder += argValue //.symbol
         }
 
       case atom: EvidenceAtom =>
@@ -155,13 +155,13 @@ object Evidence {
 
     for (evidenceExpressions <- evidenceExpressionsDB; expr <- evidenceExpressions) expr match {
       case fm: FunctionMapping =>
-        val fmValuesStr = fm.values.map(_.symbol)
+        //val fmValuesStr = fm.values.map(_.symbol)
         functionMapperBuilders.get(fm.signature) match {
-          case Some(fMappingBuilder) => fMappingBuilder +=(fmValuesStr, fm.retValue)
+          case Some(fMappingBuilder) => fMappingBuilder +=(fm.values, fm.retValue)
           case None =>
             val idFunction = AtomIdentityFunction(fm.signature, functionSchema(fm.signature)._2, constants, 1)
             val builder = new FunctionMapperBuilder(idFunction)
-            builder +=(fmValuesStr, fm.retValue)
+            builder +=(fm.values, fm.retValue)
             functionMapperBuilders += (fm.signature -> builder)
         }
       case atom: EvidenceAtom =>
@@ -180,7 +180,6 @@ object Evidence {
     var functionMappers = functionMapperBuilders.mapValues(_.result())
     for ((signature, func) <- dynamicFunctions)
       functionMappers += (signature -> FunctionMapper(func))
-
 
     val atomSignatures = predicateSchema.keySet
 
@@ -213,7 +212,6 @@ object Evidence {
       idf = domainSpace.identities(signature)
       state = if (finalCWA.contains(signature)) FALSE else UNKNOWN
     } atomStateDB += (signature -> AtomEvidenceDB(idf, state))
-
 
     Evidence(constants, atomStateDB, functionMappers, domainSpace)
   }

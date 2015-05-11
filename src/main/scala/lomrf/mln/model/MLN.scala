@@ -279,10 +279,10 @@ object MLN extends Logging {
     //parse the evidence database (.db)
     val evidence: Evidence = Evidence.fromFiles(kb, constantsDomainBuilders, queryAtoms, owa, evidenceFileNames)
 
-    val clauses =  NormalForm.compileCNF(kb.formulas)(evidence.constants).toVector
+    val clauses = NormalForm.compileCNF(kb.formulas)(evidence.constants).toVector
 
     // Give the resulting MLN
-    MLN(kb.schema, evidence, clauses)
+    new MLN(kb.schema, evidence, clauses)
   }
 
 
@@ -355,9 +355,5 @@ object MLN extends Logging {
 
     (MLN(kb.schema, evidence, clauses), annotationDB)
   }
-
-
-
-
 
 }

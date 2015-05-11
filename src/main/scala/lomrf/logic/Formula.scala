@@ -333,7 +333,7 @@ object EvidenceAtom {
   }
 }
 
-class FunctionMapping(val retValue: String, val functionSymbol: String, val values: Vector[Constant]) extends EvidenceExpression {
+class FunctionMapping(val retValue: String, val functionSymbol: String, val values: Vector[String]) extends EvidenceExpression {
 
   lazy val signature = AtomSignature(functionSymbol, values.size)
 
@@ -342,7 +342,7 @@ class FunctionMapping(val retValue: String, val functionSymbol: String, val valu
 }
 
 object FunctionMapping {
-  def apply(retValue: String, functionSymbol: String, values: Vector[String]) = new FunctionMapping(retValue, functionSymbol, values.map(Constant))
+  def apply(retValue: String, functionSymbol: String, values: Vector[Constant]) = new FunctionMapping(retValue, functionSymbol, values.map(_.toString))
 }
 
 trait LogicalConnective extends Formula {

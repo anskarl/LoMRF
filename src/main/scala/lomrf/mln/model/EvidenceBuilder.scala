@@ -109,15 +109,15 @@ class EvidenceBuilder(val domainSpace: MLNSpace,
     }
 
     private def insert(fm: FunctionMapping): Unit ={
-      val fmValuesStr = fm.values.map(_.symbol)
+      //val fmValuesStr = fm.values.map(_.symbol)
 
       functionMappers.get(fm.signature) match {
-        case Some(fMappingBuilder) => fMappingBuilder +=(fmValuesStr, fm.retValue)
+        case Some(fMappingBuilder) => fMappingBuilder +=( fm.values, fm.retValue)
 
         case None =>
           val idFunction = AtomIdentityFunction(fm.signature, functionSchema(fm.signature)._2, constants, 1)
           val builder = new FunctionMapperBuilder(idFunction)
-          builder += (fmValuesStr, fm.retValue)
+          builder += ( fm.values, fm.retValue)
           functionMappers += (fm.signature -> builder)
       }
     }
