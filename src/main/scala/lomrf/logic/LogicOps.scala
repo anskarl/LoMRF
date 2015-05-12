@@ -54,7 +54,7 @@ object LogicOps {
     }
 
 
-    def fetch(signature: AtomSignature): Option[AtomicFormula] = formula match {
+    def first(signature: AtomSignature): Option[AtomicFormula] = formula match {
       case atom: AtomicFormula => if (atom.signature == signature) Some(atom) else None
       case _ =>
         val queue = mutable.Queue[Formula]()
@@ -67,6 +67,25 @@ object LogicOps {
           }
         }
         None
+    }
+
+    def all(signature: AtomSignature): Seq[AtomicFormula] = formula match {
+      case atom: AtomicFormula => if (atom.signature == signature) Seq(atom) else Seq()
+      case _ =>
+        val queue = mutable.Queue[Formula]()
+        formula.subFormulas.foreach(queue.enqueue(_))
+        var result = Vector[AtomicFormula]()
+
+        while (queue.nonEmpty) {
+          val currentFormula = queue.dequeue()
+          currentFormula match {
+            case atom: AtomicFormula =>
+              if (atom.signature == signature) result :+= atom
+
+            case _ => currentFormula.subFormulas.foreach(f => queue.enqueue(f))
+          }
+        }
+        result
     }
 
     def signatures: Set[AtomSignature] = formula match {

@@ -126,7 +126,7 @@ object Evidence {
         predicateSchema.get(atom.signature) match {
           case Some(argTypes) =>
             //append its constants into constantsMap
-            for ((value, index) <- atom.constants.view.zipWithIndex) {
+            for ((value, index) <- atom.terms.view.zipWithIndex) {
               val constantType = argTypes(index)
 
               constantsDomainBuilder.get(constantType) match {
@@ -152,10 +152,9 @@ object Evidence {
 
     var atomsEvDBBuilders = Map[AtomSignature, AtomEvidenceDBBuilder]()
 
-
     for (evidenceExpressions <- evidenceExpressionsDB; expr <- evidenceExpressions) expr match {
       case fm: FunctionMapping =>
-        //val fmValuesStr = fm.values.map(_.symbol)
+
         functionMapperBuilders.get(fm.signature) match {
           case Some(fMappingBuilder) => fMappingBuilder +=(fm.values, fm.retValue)
           case None =>

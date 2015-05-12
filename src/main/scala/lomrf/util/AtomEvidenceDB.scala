@@ -665,7 +665,7 @@ final class AtomEvidenceDBBuilder private(val signature: AtomSignature, schema: 
                 // A. Interpret it as evidence atom with unknown values:
 
                 require(!probabilistic.containsKey(id),
-                  "Cannot reassing the probabilistic atom " + atom + " as non-probabilistic with unknown state.")
+                  "Cannot reassign the probabilistic atom " + atom + " as non-probabilistic with unknown state.")
                 unknown.add(id)
               }
               else {

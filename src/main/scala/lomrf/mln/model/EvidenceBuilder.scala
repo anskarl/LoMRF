@@ -33,7 +33,6 @@
 package lomrf.mln.model
 
 import lomrf.logic.{FunctionMapping, EvidenceAtom, AtomSignature}
-import lomrf.mln.model.MLNSpace
 import lomrf.util._
 
 /**
@@ -48,7 +47,11 @@ class EvidenceBuilder(val domainSpace: MLNSpace,
 
   private var functionMappers = Map[AtomSignature, FunctionMapperBuilder]()
 
-  def result(): Evidence = ???
+  def result(): Evidence = {
+
+    //val constants: Map[String, ConstantsSet] = constantsDomainBuilder.result()
+    ???
+  }
 
   object evidence {
 
@@ -89,7 +92,9 @@ class EvidenceBuilder(val domainSpace: MLNSpace,
 
 
     private def insert(atom: EvidenceAtom): Unit = evidenceDB.get(atom.signature) match {
-      case Some(builder) => builder += atom
+      case Some(builder) =>
+        builder += atom
+
       case None =>
         val idf = domainSpace.identities(atom.signature)
         val isCWA = domainSpace.isCWA(atom.signature)
@@ -109,10 +114,9 @@ class EvidenceBuilder(val domainSpace: MLNSpace,
     }
 
     private def insert(fm: FunctionMapping): Unit ={
-      //val fmValuesStr = fm.values.map(_.symbol)
-
       functionMappers.get(fm.signature) match {
-        case Some(fMappingBuilder) => fMappingBuilder +=( fm.values, fm.retValue)
+        case Some(fMappingBuilder) =>
+          fMappingBuilder +=( fm.values, fm.retValue)
 
         case None =>
           val idFunction = AtomIdentityFunction(fm.signature, functionSchema(fm.signature)._2, constants, 1)
