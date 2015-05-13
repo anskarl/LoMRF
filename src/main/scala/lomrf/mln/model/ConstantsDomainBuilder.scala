@@ -36,6 +36,9 @@ import lomrf.util.ConstantsSetBuilder
 import scala.collection.mutable
 
 
+/**
+ * Constants domain builder (fluent interface)
+ */
 class ConstantsDomainBuilder extends mutable.Builder[(String, String), ConstantsDomain]{ self =>
 
   private var constantBuilders = Map.empty[String, ConstantsSetBuilder]
@@ -121,7 +124,7 @@ class ConstantsDomainBuilder extends mutable.Builder[(String, String), Constants
 
   override def result(): ConstantsDomain = {
     dirty = true
-    constantBuilders.mapValues(_.result())
+    constantBuilders.map(e => e._1 -> e._2.result())
   }
 
 

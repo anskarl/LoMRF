@@ -36,29 +36,32 @@ import lomrf.logic.{FunctionMapping, EvidenceAtom, AtomSignature}
 import lomrf.util._
 
 /**
- * Evidence builder with fluent pattern
+ * Evidence builder (fluent interface)
  */
-class EvidenceBuilder(val domainSpace: MLNSpace,
-                      val constants: ConstantsDomain,
-                      val functionSchema: FunctionSchema = Map.empty) { self =>
+class EvidenceBuilder private(domainSpace: MLNSpace,
+                              constants: ConstantsDomain,
+                              predicateSchema: PredicateSchema,
+                              functionSchema: FunctionSchema = Map.empty) { self =>
 
 
-  private var evidenceDB = Map[AtomSignature, AtomEvidenceDBBuilder]()
+  private var edbBuilders = Map[AtomSignature, AtomEvidenceDBBuilder]()
 
-  private var functionMappers = Map[AtomSignature, FunctionMapperBuilder]()
+  private var fmBuilders = Map[AtomSignature, FunctionMapperBuilder]()
 
   def result(): Evidence = {
 
-    //val constants: Map[String, ConstantsSet] = constantsDomainBuilder.result()
-    ???
+    val db = edbBuilders.map(entries => entries._1 -> entries._2.result())
+    val fm = fmBuilders.map(entries => entries._1 -> entries._2.result())
+
+    Evidence(constants, db, fm, domainSpace)
   }
 
   object evidence {
 
     def update(evb: Map[AtomSignature, AtomEvidenceDB]): self.type = {
-      evidenceDB = evb.map {
+      edbBuilders = evb.map {
         case (signature, db) =>
-          val builder = AtomEvidenceDBBuilder(db.identity,db.numberOfUnknown > 0)
+          val builder = AtomEvidenceDBBuilder(db.identity, db.numberOfUnknown > 0)
 
           require(signature == db.identity.signature,
               s"Something is wrong for key signature ${AtomSignature.toString}. " +
@@ -71,7 +74,7 @@ class EvidenceBuilder(val domainSpace: MLNSpace,
 
 
     def update(evb: Iterable[AtomEvidenceDB]): self.type = {
-      evidenceDB = evb.map(db => db.identity.signature -> AtomEvidenceDBBuilder(db.identity, db.numberOfUnknown > 0)).toMap
+      edbBuilders = evb.map(db => db.identity.signature -> AtomEvidenceDBBuilder(db.identity, db.numberOfUnknown > 0)).toMap
       self
     }
 
@@ -91,7 +94,7 @@ class EvidenceBuilder(val domainSpace: MLNSpace,
     }
 
 
-    private def insert(atom: EvidenceAtom): Unit = evidenceDB.get(atom.signature) match {
+    private def insert(atom: EvidenceAtom): Unit = edbBuilders.get(atom.signature) match {
       case Some(builder) =>
         builder += atom
 
@@ -101,7 +104,7 @@ class EvidenceBuilder(val domainSpace: MLNSpace,
         val builder = AtomEvidenceDBBuilder(idf, isCWA)
         builder += atom
 
-        evidenceDB += (atom.signature -> builder)
+        edbBuilders += (atom.signature -> builder)
       }
   }
 
@@ -114,15 +117,15 @@ class EvidenceBuilder(val domainSpace: MLNSpace,
     }
 
     private def insert(fm: FunctionMapping): Unit ={
-      functionMappers.get(fm.signature) match {
+      fmBuilders.get(fm.signature) match {
         case Some(fMappingBuilder) =>
-          fMappingBuilder +=( fm.values, fm.retValue)
+          fMappingBuilder += ( fm.values, fm.retValue)
 
         case None =>
           val idFunction = AtomIdentityFunction(fm.signature, functionSchema(fm.signature)._2, constants, 1)
           val builder = new FunctionMapperBuilder(idFunction)
           builder += ( fm.values, fm.retValue)
-          functionMappers += (fm.signature -> builder)
+          fmBuilders += (fm.signature -> builder)
       }
     }
   }
@@ -139,7 +142,7 @@ object EvidenceBuilder {
 
     val domainSpace = MLNSpace(predicateSchema, queryPredicates, hiddenPredicates, constants)
 
-    new EvidenceBuilder(domainSpace, constants)
+    new EvidenceBuilder(domainSpace, constants, predicateSchema)
   }
 
   def apply(predicateSchema: PredicateSchema,
@@ -150,7 +153,7 @@ object EvidenceBuilder {
 
     val domainSpace = MLNSpace(predicateSchema, queryPredicates, hiddenPredicates, constants)
 
-    new EvidenceBuilder(domainSpace, constants, functionSchema)
+    new EvidenceBuilder(domainSpace, constants, predicateSchema, functionSchema)
   }
 
 

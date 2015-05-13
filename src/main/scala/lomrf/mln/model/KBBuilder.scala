@@ -35,7 +35,7 @@ package lomrf.mln.model
 import lomrf.logic.{Formula, AtomSignature}
 
 /**
- * Knowledge base builder with fluent interface pattern
+ * Knowledge base builder (fluent interface)
  */
 final class KBBuilder { self =>
 

@@ -124,6 +124,8 @@ object AtomSignature {
 
 object AtomSignatureOps {
 
+  implicit def tuple2Signature(tuple: (String, Int)): AtomSignature = AtomSignature(tuple._1, tuple._2)
+
   implicit class AtomSignatureString(val sentence: String) extends AnyVal{
     def signature: Try[AtomSignature] = AtomSignature.parseString(sentence)
   }

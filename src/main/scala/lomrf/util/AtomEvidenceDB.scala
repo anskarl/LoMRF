@@ -640,66 +640,72 @@ final class AtomEvidenceDBBuilder private(val signature: AtomSignature, schema: 
   private var dirty = false
 
   def +=(atom: EvidenceAtom) {
-    _check(atom)
+    require(atom.signature == signature, "You are trying to store atom: " + atom + " in a database for " + signature + " atoms.")
+    copyIfDirty()
 
     val id = identity.encode(atom)
 
     atom.state match {
       case TRUE =>
-        if (negatives.contains(id)) error("Atom " + atom + " is defined both as positive and negative in the given evidence db.")
-        else if (probabilistic.contains(id)) error("Atom " + atom + " is defined both as positive and probabilistic/unknown in the given evidence db.")
+        if (negatives.contains(id)) error(s"Atom '${atom.toText}' is defined both as positive and negative in the given evidence db. Will keep only the first definition, which is negative.")
+        else if (probabilistic.contains(id)) error(s"Atom '${atom.toText}' is defined both as positive and probabilistic/unknown in the given evidence db. Will keep only the first definition, which is probabilistic/unknown.")
         else positives.add(id)
+
       case FALSE =>
-        if (positives.contains(id)) error("Atom " + atom + " is defined both as positive and negative in the given evidence db.")
-        else if (probabilistic.contains(id)) error("Atom " + atom + " is defined both as negative and probabilistic/unknown in the given evidence db.")
+        if (positives.contains(id)) error(s"Atom '${atom.toText}' is defined both as positive and negative in the given evidence db. Will keep only the first definition, which is positive.")
+        else if (probabilistic.contains(id)) error(s"Atom '${atom.toText}' is defined both as negative and probabilistic/unknown in the given evidence db. Will keep only the first definition, which is probabilistic/unknown.")
         else negatives.add(id)
+
       case UNKNOWN =>
-        if (positives.contains(id)) error("Atom " + atom + " is defined both as positive and probabilistic/unknown in the given evidence db.")
-        else if (negatives.contains(id)) error("Atom " + atom + " is defined both as negative and probabilistic/unknown in the given evidence db.")
+        if (positives.contains(id)) error(s"Atom '${atom.toText}' is defined both as positive and probabilistic/unknown in the given evidence db. Will keep only the first definition, which is positive.")
+        else if (negatives.contains(id)) error(s"Atom '${atom.toText}' is defined both as negative and probabilistic/unknown in the given evidence db. Will keep only the first definition, which is negative.")
         else {
           atom.probability match {
             case 1.0 => putLiteral(id) // interpret as non-probabilistic evidence (state = TRUE)
             case 0.0 => putLiteral(-id) // interpret as non-probabilistic evidence (state = FALSE)
             case _ =>
               if (atom.probability == 0.5 || atom.probability.isNaN) {
-                // A. Interpret it as evidence atom with unknown values:
 
-                require(!probabilistic.containsKey(id),
-                  "Cannot reassign the probabilistic atom " + atom + " as non-probabilistic with unknown state.")
-                unknown.add(id)
+                // A. Interpret it as evidence atom with unknown values:
+                if(probabilistic.containsKey(id))
+                  error(s"Cannot reassign the probabilistic atom '${atom.toText}' as non-probabilistic with unknown state.")
+                else unknown.add(id)
               }
               else {
-                // B. Interpret it as probabilistic evidence atom:
 
+                // B. Interpret it as probabilistic evidence atom:
                 require(atom.probability <= 1.0 && atom.probability >= 0.0,
                   "The specified probability value (" + atom.probability + ") of atom " + atom + " is outside the range [0,1].")
 
                 val storedProb = probabilistic.putIfAbsent(id, atom.probability)
 
-                require((storedProb == probabilistic.getNoEntryValue) || (storedProb == atom.probability),
-                  "Cannot reassign a different probability (" + atom.probability + ") for atom " + atom + " (stored probability is " + storedProb + ").")
+                if(storedProb != probabilistic.getNoEntryValue)
+                  error(s"Cannot reassign a different probability (${atom.probability}) for atom '${atom.toText}' (stored probability is $storedProb).")
+
+                /*assert((storedProb == probabilistic.getNoEntryValue) || (storedProb == atom.probability),
+                  "Cannot reassign a different probability (" + atom.probability + ") for atom " + atom + " (stored probability is " + storedProb + ").")*/
               } // end case _
           } // end match atom.probability
         } // end else // end case UNKNOWN
     } //end match atom.state
-
   }
 
   def +=(literal: Int) {
     require(identity.idsRange.contains(math.abs(literal)), "The given literal has incompatible id.")
+    copyIfDirty()
     putLiteral(literal)
   }
 
   private def putLiteral(literal: Int) {
     if (literal > 0) {
       if (negatives.contains(literal)) error("Atom " + literal + " is defined both as positive and negative.")
-      else if (probabilistic.contains(literal)) error("Atom " + literal + " is defined both as positive and probabilistic/unkown.")
+      else if (probabilistic.contains(literal)) error("Atom " + literal + " is defined both as positive and probabilistic/unknown.")
       else positives.add(literal)
     }
     else {
       val id = -literal
       if (positives.contains(id)) error("Atom " + id + " is defined both as positive and negative.")
-      else if (probabilistic.contains(id)) error("Atom " + id + " is defined both as negative and probabilistic/unkown.")
+      else if (probabilistic.contains(id)) error("Atom " + id + " is defined both as negative and probabilistic/unknown.")
       else negatives.add(id)
     }
   }
@@ -707,7 +713,6 @@ final class AtomEvidenceDBBuilder private(val signature: AtomSignature, schema: 
 
   def result(): AtomEvidenceDB = {
     dirty = true
-    //val mapping: Map[String, Int] = (for ((key, position) <- schema.zipWithIndex) yield key -> position)(breakOut)
 
     if (isCWA) {
       (probabilistic.isEmpty, unknown.isEmpty) match {
@@ -733,10 +738,7 @@ final class AtomEvidenceDBBuilder private(val signature: AtomSignature, schema: 
     }
   }
 
-  @inline private def _check(atom: EvidenceAtom) {
-    if (atom.signature != signature)
-      error("You are trying to store atom: " + atom + " in a database for " + signature + " atoms.")
-
+  private def copyIfDirty(): Unit ={
     if (dirty) {
       val cp_positives = new TIntHashSet(positives)
       val cp_negatives = new TIntHashSet(negatives)

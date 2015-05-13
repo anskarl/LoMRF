@@ -117,6 +117,9 @@ sealed trait ConstantsSet extends Iterable[String] {
    */
   def idsRange: Range
 
+
+  def size: Int
+
 }
 
 /**
