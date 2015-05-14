@@ -355,6 +355,12 @@ object AtomEvidenceDB {
     }
   }
 
+  def allFalse(identity: AtomIdentityFunction): AtomEvidenceDB = new DummyDBFalse(identity)
+
+  def allTrue(identity: AtomIdentityFunction): AtomEvidenceDB = new DummyDBTrue(identity)
+
+  def allUnknown(identity: AtomIdentityFunction): AtomEvidenceDB = new DummyDBUnknown(identity)
+
 }
 
 private class DBCWA(positives: TIntSet, override val identity: AtomIdentityFunction) extends AtomEvidenceDB(identity) {

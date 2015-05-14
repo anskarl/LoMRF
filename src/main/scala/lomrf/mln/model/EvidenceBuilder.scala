@@ -33,6 +33,7 @@
 package lomrf.mln.model
 
 import lomrf.logic.{FunctionMapping, EvidenceAtom, AtomSignature}
+import scala.collection.breakOut
 import lomrf.util._
 
 /**
@@ -43,14 +44,65 @@ class EvidenceBuilder private(domainSpace: MLNSpace,
                               predicateSchema: PredicateSchema,
                               functionSchema: FunctionSchema = Map.empty) { self =>
 
-
   private var edbBuilders = Map[AtomSignature, AtomEvidenceDBBuilder]()
 
   private var fmBuilders = Map[AtomSignature, FunctionMapperBuilder]()
 
+
+  def withEvidenceBuilders(builders: Map[AtomSignature, AtomEvidenceDBBuilder]): EvidenceBuilder = {
+
+    val missingSignatures = builders.keys.filterNot(functionSchema.contains)
+
+    if(missingSignatures.nonEmpty)
+      throw new IllegalArgumentException(
+        "Cannot have atom evidence builders for predicates with unspecified schema. " +
+          s"The following atom signatures are missing from the predicate schema: '${missingSignatures.mkString(", ")}'")
+
+    val result = new EvidenceBuilder(domainSpace, constants, predicateSchema, functionSchema)
+    result.edbBuilders = builders
+    result
+  }
+
+  def withFunctionBuilders(builders: Map[AtomSignature, FunctionMapperBuilder]): EvidenceBuilder = {
+    if(functionSchema.isEmpty)
+      throw new IllegalArgumentException("Cannot have function mapping builders when function schema is missing.")
+
+    val missingSignatures = builders.keys.filterNot(functionSchema.contains)
+
+    if(missingSignatures.nonEmpty)
+      throw new IllegalArgumentException(
+        "Cannot have function mapping builders for functions with unspecified schema. " +
+        s"The following function signatures are missing from the function schema: '${missingSignatures.mkString(", ")}'")
+
+
+    val result = new EvidenceBuilder(domainSpace, constants, predicateSchema, functionSchema)
+    result.fmBuilders = builders
+    result
+  }
+
+
+  def clear(): Unit = {
+    edbBuilders =  Map[AtomSignature, AtomEvidenceDBBuilder]()
+    fmBuilders = Map[AtomSignature, FunctionMapperBuilder]()
+  }
+
   def result(): Evidence = {
 
-    val db = edbBuilders.map(entries => entries._1 -> entries._2.result())
+    def mkEvidenceDB(signature: AtomSignature): AtomEvidenceDB = {
+      edbBuilders.get(signature) match {
+        case Some(builder) => builder.result()
+        case None =>
+          val idf = domainSpace.identities(signature)
+          val isCWA = domainSpace.isCWA(signature)
+
+          if(isCWA) AtomEvidenceDB.allFalse(idf)
+          else AtomEvidenceDB.allUnknown(idf)
+      }
+    }
+
+
+    val db: EvidenceDB = (for(signature <- predicateSchema.keys) yield signature -> mkEvidenceDB(signature))(breakOut)
+
     val fm = fmBuilders.map(entries => entries._1 -> entries._2.result())
 
     Evidence(constants, db, fm, domainSpace)
@@ -93,6 +145,10 @@ class EvidenceBuilder private(domainSpace: MLNSpace,
       self
     }
 
+    def clear(): Unit = {
+      edbBuilders = Map[AtomSignature, AtomEvidenceDBBuilder]()
+    }
+
 
     private def insert(atom: EvidenceAtom): Unit = edbBuilders.get(atom.signature) match {
       case Some(builder) =>
@@ -114,6 +170,10 @@ class EvidenceBuilder private(domainSpace: MLNSpace,
     def += (fm: FunctionMapping): self.type = {
       insert(fm)
       self
+    }
+
+    def clear(): Unit = {
+      fmBuilders = Map[AtomSignature, FunctionMapperBuilder]()
     }
 
     private def insert(fm: FunctionMapping): Unit ={

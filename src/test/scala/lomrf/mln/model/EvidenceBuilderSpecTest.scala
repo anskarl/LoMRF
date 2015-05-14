@@ -47,12 +47,16 @@ class EvidenceBuilderSpecTest extends FunSpec with Matchers {
   private val samplePredicateSchemas = Seq(
     ("HoldsAt", Vector("fluent", "time")),
     ("HappensAt", Vector("event", "time")),
+    ("Next", Vector("time", "time")),
     ("InitiatedAt", Vector("fluent", "time")),
     ("TerminatedAt", Vector("fluent", "time"))
   ).map(schema => AtomSignature(schema._1, schema._2.size) -> schema._2).toMap
 
   private val queryPredicates = Set[AtomSignature](("HoldsAt", 2))
-  private val hiddenPredicates = Set[AtomSignature](("InitiatedAt", 2), ("TerminatedAt",2))
+  private val hiddenPredicates = Set[AtomSignature](("InitiatedAt", 2), ("TerminatedAt", 2))
+
+  // Predicates that we are not plan to give any evidence in our unit test scenarios
+  private val predicatesMissingEvidence = Set[AtomSignature](("InitiatedAt", 2), ("TerminatedAt", 2), ("Next", 2))
 
   private val constantsDomain = Map(
     "time" -> ConstantsSet((1 to TIME_DOMAIN_SIZE).map(_.toString)),
@@ -83,7 +87,6 @@ class EvidenceBuilderSpecTest extends FunSpec with Matchers {
   }
 
 
-
   // ------------------------------------------------------------------------------------------------------------------
   // --- TEST: Evidence Builder (empty)
   // ------------------------------------------------------------------------------------------------------------------
@@ -92,9 +95,9 @@ class EvidenceBuilderSpecTest extends FunSpec with Matchers {
 
     val result = builder.result()
 
-    it("should give correct number of known groundings for all predicates"){
-      assert{
-        result.db.forall{
+    it("should give correct number of known groundings for all predicates") {
+      assert {
+        result.db.forall {
           case (signature, atomDB) => atomDB.numberOfKnown == initialKnown(signature)
         }
       }
@@ -104,7 +107,7 @@ class EvidenceBuilderSpecTest extends FunSpec with Matchers {
   // ------------------------------------------------------------------------------------------------------------------
   // --- TEST: Evidence Builder (incremental and batch addition of evidence)
   // ------------------------------------------------------------------------------------------------------------------
-  describe("Evidence construction (groundings of a single predicate)"){
+  describe("Evidence construction (groundings of a single predicate)") {
 
     // ----- Data generation:
     val PRED_NAME = "HappensAt"
@@ -117,7 +120,7 @@ class EvidenceBuilderSpecTest extends FunSpec with Matchers {
     // (STEP 1) Insert the first half (incremental)
     var insertedFirstHalf = List.empty[EvidenceAtom]
 
-    for(timepoint <- 1 to 5) {
+    for (timepoint <- 1 to 5) {
       val atom = EvidenceAtom.asTrue(PRED_NAME, Vector[Constant](Constant("walking"), Constant(timepoint.toString)))
       insertedFirstHalf = atom :: insertedFirstHalf
       builder.evidence += atom
@@ -133,7 +136,7 @@ class EvidenceBuilderSpecTest extends FunSpec with Matchers {
 
     // (STEP 3) Insert the second half (incrementally)
     var insertedSecondHalf = List.empty[EvidenceAtom]
-    for(timepoint <- 6 to TIME_DOMAIN_SIZE) {
+    for (timepoint <- 6 to TIME_DOMAIN_SIZE) {
       val atom = EvidenceAtom.asTrue(PRED_NAME, Vector[Constant](Constant("walking"), Constant(timepoint.toString)))
       insertedSecondHalf = atom :: insertedSecondHalf
       builder.evidence += atom
@@ -155,23 +158,23 @@ class EvidenceBuilderSpecTest extends FunSpec with Matchers {
     // ----- Perform checks for DB1 (half incremental insertions):
 
     describe("DB1 (half incremental insertions)") {
-      it("should give correct number of known groundings for all predicates"){
-        assert{
-          resultIncrementalDB1.forall{
+      it("should give correct number of known groundings for all predicates") {
+        assert {
+          resultIncrementalDB1.forall {
             case (signature, atomDB) => atomDB.numberOfKnown == initialKnown(signature)
           }
         }
 
       }
 
-      it(s"should contain 5 evidence predicates of $PRED_NAME"){
+      it(s"should contain 5 evidence predicates of $PRED_NAME") {
         assert(resultIncrementalDB1(SIGNATURE).numberOfTrue == 5)
       }
 
-      it(s"should contain all the inserted evidence predicates with the correct truth state"){
+      it(s"should contain all the inserted evidence predicates with the correct truth state") {
 
-        assert{
-          insertedFirstHalf.forall{atom =>
+        assert {
+          insertedFirstHalf.forall { atom =>
             val args = atom.terms.map(_.symbol)
             resultIncrementalDB1(SIGNATURE).contains(args) && resultIncrementalDB1(SIGNATURE)(args) == TRUE
           }
@@ -182,23 +185,23 @@ class EvidenceBuilderSpecTest extends FunSpec with Matchers {
     // ----- Perform checks for DB1 (half batch insertions):
 
     describe("DB1 (half batch insertions)") {
-      it("should give correct number of known groundings for all predicates"){
-        assert{
-          resultBatchDB1.forall{
+      it("should give correct number of known groundings for all predicates") {
+        assert {
+          resultBatchDB1.forall {
             case (signature, atomDB) => atomDB.numberOfKnown == initialKnown(signature)
           }
         }
 
       }
 
-      it(s"should contain 5 evidence predicates of $PRED_NAME"){
+      it(s"should contain 5 evidence predicates of $PRED_NAME") {
         assert(resultBatchDB1(SIGNATURE).numberOfTrue == 5)
       }
 
-      it(s"should contain all the inserted evidence predicates with the correct truth state"){
+      it(s"should contain all the inserted evidence predicates with the correct truth state") {
 
-        assert{
-          insertedFirstHalf.forall{atom =>
+        assert {
+          insertedFirstHalf.forall { atom =>
             val args = atom.terms.map(_.symbol)
             resultBatchDB1(SIGNATURE).contains(args) && resultBatchDB1(SIGNATURE)(args) == TRUE
           }
@@ -209,22 +212,22 @@ class EvidenceBuilderSpecTest extends FunSpec with Matchers {
     // ----- Perform checks for DB2 (all incremental insertions):
 
     describe("DB2 (all incremental insertions)") {
-      it("should give correct number of known groundings for all predicates"){
-        assert{
-          resultIncrementalDB2.forall{
+      it("should give correct number of known groundings for all predicates") {
+        assert {
+          resultIncrementalDB2.forall {
             case (signature, atomDB) => atomDB.numberOfKnown == initialKnown(signature)
           }
         }
       }
 
-      it(s"should contain $TIME_DOMAIN_SIZE evidence predicates of $PRED_NAME"){
+      it(s"should contain $TIME_DOMAIN_SIZE evidence predicates of $PRED_NAME") {
         assert(resultIncrementalDB2(SIGNATURE).numberOfTrue == TIME_DOMAIN_SIZE)
       }
 
-      it(s"should contain all the inserted evidence predicates with the correct truth state"){
+      it(s"should contain all the inserted evidence predicates with the correct truth state") {
 
-        assert{
-          insertedAll.forall{atom =>
+        assert {
+          insertedAll.forall { atom =>
             val args = atom.terms.map(_.symbol)
             resultIncrementalDB2(SIGNATURE).contains(args) && resultIncrementalDB2(SIGNATURE)(args) == TRUE
           }
@@ -234,22 +237,22 @@ class EvidenceBuilderSpecTest extends FunSpec with Matchers {
 
     // ----- Perform checks for DB2 (all batch insertions):
     describe("DB2 (all batch insertions)") {
-      it("should give correct number of known groundings for all predicates"){
-        assert{
-          resultBatchDB2.forall{
+      it("should give correct number of known groundings for all predicates") {
+        assert {
+          resultBatchDB2.forall {
             case (signature, atomDB) => atomDB.numberOfKnown == initialKnown(signature)
           }
         }
       }
 
-      it(s"should contain $TIME_DOMAIN_SIZE evidence predicates of $PRED_NAME"){
+      it(s"should contain $TIME_DOMAIN_SIZE evidence predicates of $PRED_NAME") {
         assert(resultBatchDB2(SIGNATURE).numberOfTrue == TIME_DOMAIN_SIZE)
       }
 
-      it(s"should contain all the inserted evidence predicates with the correct truth state"){
+      it(s"should contain all the inserted evidence predicates with the correct truth state") {
 
-        assert{
-          insertedAll.forall{atom =>
+        assert {
+          insertedAll.forall { atom =>
             val args = atom.terms.map(_.symbol)
             resultBatchDB2(SIGNATURE).contains(args) && resultBatchDB2(SIGNATURE)(args) == TRUE
           }
@@ -259,7 +262,7 @@ class EvidenceBuilderSpecTest extends FunSpec with Matchers {
 
   }
 
-  describe("Evidence construction (groundings of a multiple predicates)"){
+  describe("Evidence construction (groundings of a multiple predicates)") {
 
     val builder = EvidenceBuilder(samplePredicateSchemas, queryPredicates, hiddenPredicates, constantsDomain)
 
@@ -270,7 +273,7 @@ class EvidenceBuilderSpecTest extends FunSpec with Matchers {
     var insertedOWAUnknown = List.empty[EvidenceAtom]
 
     // insert some evidence
-    for(timepoint <- 1 to TIME_DOMAIN_SIZE) {
+    for (timepoint <- 1 to TIME_DOMAIN_SIZE) {
 
       // closed-world assumption predicate (as TRUE)
       val atomCWATrue = EvidenceAtom.asTrue("HappensAt", Vector[Constant](Constant("walking"), Constant(timepoint.toString)))
@@ -298,40 +301,40 @@ class EvidenceBuilderSpecTest extends FunSpec with Matchers {
     // get result DB
     val resultDB = builder.result().db
 
-    describe("CWA predicates as evidence"){
+    describe("CWA predicates as evidence") {
       val signature = AtomSignature("HappensAt", 2)
       val atomDB = resultDB(signature)
 
       val negatives = initialKnown(signature) - insertedCWATrue.size
       val positives = insertedCWATrue.size
 
-      they(s"have ${initialKnown(signature)} known groundings"){
+      they(s"have ${initialKnown(signature)} known groundings") {
         assert(atomDB.numberOfKnown == initialKnown(signature))
       }
 
-      they("have 0 unknown groundings"){
+      they("have 0 unknown groundings") {
         assert(atomDB.numberOfUnknown == 0)
       }
 
-      they(s"have ${insertedCWATrue.size} true groundings"){
+      they(s"have ${insertedCWATrue.size} true groundings") {
         assert(atomDB.numberOfTrue == positives)
       }
 
-      they(s"have $negatives false groundings"){
+      they(s"have $negatives false groundings") {
         assert(atomDB.numberOfFalse == negatives)
       }
 
-      they(s"have the correct collection of true groundings"){
-        assert(insertedCWATrue.forall(a => atomDB(a.terms.map(_.toText)) == TRUE ))
+      they(s"have the correct collection of true groundings") {
+        assert(insertedCWATrue.forall(a => atomDB(a.terms.map(_.toText)) == TRUE))
       }
 
-      they(s"have the correct collection of false groundings"){
-        assert(insertedCWAFalse.forall(a => atomDB(a.terms.map(_.toText)) == FALSE ))
+      they(s"have the correct collection of false groundings") {
+        assert(insertedCWAFalse.forall(a => atomDB(a.terms.map(_.toText)) == FALSE))
       }
 
     }
 
-    describe("OWA predicates with evidence"){
+    describe("OWA predicates with evidence") {
       val signature = AtomSignature("HoldsAt", 2)
       val atomDB = resultDB(signature)
 
@@ -340,71 +343,105 @@ class EvidenceBuilderSpecTest extends FunSpec with Matchers {
       val known = positives + negatives
       val unknown = space(signature) - known
 
-      they(s"have $known known groundings"){
+      they(s"have $known known groundings") {
         assert(atomDB.numberOfKnown == known)
       }
 
-      they(s"have $unknown unknown groundings"){
+      they(s"have $unknown unknown groundings") {
         assert(atomDB.numberOfUnknown == unknown)
       }
 
-      they(s"have $positives true groundings"){
+      they(s"have $positives true groundings") {
         assert(atomDB.numberOfTrue == positives)
       }
 
-      they(s"have $negatives false groundings"){
+      they(s"have $negatives false groundings") {
         assert(atomDB.numberOfFalse == negatives)
       }
 
-      they(s"have the correct collection of unknown groundings"){
-        assert(insertedOWAUnknown.forall(a => atomDB(a.terms.map(_.toText)) == UNKNOWN ))
+      they(s"have the correct collection of unknown groundings") {
+        assert(insertedOWAUnknown.forall(a => atomDB(a.terms.map(_.toText)) == UNKNOWN))
       }
 
-      they(s"have the correct collection of false groundings"){
-        assert(insertedOWAFalse.forall(a => atomDB(a.terms.map(_.toText)) == FALSE ))
+      they(s"have the correct collection of false groundings") {
+        assert(insertedOWAFalse.forall(a => atomDB(a.terms.map(_.toText)) == FALSE))
       }
     }
 
-    describe("OWA predicates without evidence"){
+    describe("Predicates without evidence") {
 
-      for(signature <- hiddenPredicates){
+      val (missingOWA, missingCWA) = predicatesMissingEvidence.partition(owaPredicates.contains)
 
-        describe(s"OWA predicates of $signature"){
-          val atomDB = resultDB(signature)
-          val positives = 0
-          val negatives = 0
-          val known = positives + negatives
-          val unknown = space(signature) - known
+      they("should have state DB") {
+        assert(predicatesMissingEvidence.forall(resultDB.contains))
+      }
 
-          they(s"have $known known groundings"){
-            assert(atomDB.numberOfKnown == known)
-          }
+      for {
+        signature <- missingOWA
+        if resultDB.contains(signature) // execute the following tests only when 'they("should have state DB")' passes
+        atomDB = resultDB(signature)
 
-          they(s"have $unknown unknown groundings"){
-            assert(atomDB.numberOfUnknown == unknown)
-          }
+        positives = 0
+        negatives = 0
+        known = positives + negatives
+        unknown = space(signature) - known
 
-          they(s"have $positives true groundings"){
-            assert(atomDB.numberOfTrue == positives)
-          }
+      } describe(s"OWA groundings of $signature") {
 
-          they(s"have $negatives false groundings"){
-            assert(atomDB.numberOfFalse == negatives)
-          }
+        they(s"should have $known known groundings") {
+          assert(atomDB.numberOfKnown == known)
+        }
+
+        they(s"should have $unknown unknown groundings") {
+          assert(atomDB.numberOfUnknown == unknown)
+        }
+
+        they(s"should have $positives true groundings") {
+          assert(atomDB.numberOfTrue == positives)
+        }
+
+        they(s"should have $negatives false groundings") {
+          assert(atomDB.numberOfFalse == negatives)
         }
 
       }
 
+      for {
+        signature <- missingCWA
+        if resultDB.contains(signature) // execute the following tests only when 'they("should have state DB")' passes
+        atomDB = resultDB(signature)
+
+        positives = 0
+        negatives = space(signature)
+        known = positives + negatives
+        unknown = 0
+
+      } describe(s"CWA groundings of $signature") {
+
+        they(s"should have $known known groundings") {
+          assert(atomDB.numberOfKnown == known)
+        }
+
+        they(s"should have $unknown unknown groundings") {
+          assert(atomDB.numberOfUnknown == unknown)
+        }
+
+        they(s"should have $positives true groundings") {
+          assert(atomDB.numberOfTrue == positives)
+        }
+
+        they(s"should have $negatives false groundings") {
+          assert(atomDB.numberOfFalse == negatives)
+        }
+      }
     }
-
-
   }
 
 
   // ------------------------------------------------------------------------------------------------------------------
   // --- TEST: Evidence Builder (incremental addition of function mappings)
   // ------------------------------------------------------------------------------------------------------------------
-  describe("Incremental addition of function mappings using EvidenceBuilder"){
+  describe("Incremental addition of function mappings using EvidenceBuilder") {
 
   }
 }

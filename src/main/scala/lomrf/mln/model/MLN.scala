@@ -165,7 +165,7 @@ object MLN extends Logging {
 
   import PredicateCompletionMode._
 
-  def apply(schema: MLNSchema, evidence: Evidence, clauses: Vector[Clause]): MLN = MLN(schema, evidence, clauses)
+  def apply(schema: MLNSchema, evidence: Evidence, clauses: Vector[Clause]): MLN = new MLN(schema, evidence, clauses)
 
   def apply(predicateSchema: PredicateSchema,
             functionSchema: FunctionSchema,
@@ -189,7 +189,7 @@ object MLN extends Logging {
 
     val clauses =  NormalForm.compileCNF(formulas)(constants).toVector
 
-    MLN(schema, evidence, clauses)
+    new MLN(schema, evidence, clauses)
   }
 
 
@@ -202,7 +202,7 @@ object MLN extends Logging {
 
     val evidence = Evidence(constants,evidenceDB,functionMappers,space)
 
-    MLN(schema, evidence, clauses)
+    new MLN(schema, evidence, clauses)
   }
 
 
@@ -314,24 +314,22 @@ object MLN extends Logging {
     val evidenceAtoms = atomSignatures -- nonEvidenceAtoms
 
     //parse the training evidence database (contains the annotation, i.e., the truth values of all query/hidden atoms)
-    val trainingEvidence = Evidence.fromFiles(kb, constantsDomainBuilder, Set.empty[AtomSignature], Set.empty[AtomSignature], trainingFileNames)
+    val trainingEvidence = Evidence.fromFiles(kb, constantsDomainBuilder, nonEvidenceAtoms, trainingFileNames)
     val domainSpace = trainingEvidence.domainSpace
 
     var (annotationDB, atomStateDB) = trainingEvidence.db.partition(e => nonEvidenceAtoms.contains(e._1))
 
     for (signature <- annotationDB.keysIterator)
-      atomStateDB += (signature -> AtomEvidenceDB(domainSpace.identities(signature), UNKNOWN))
+      atomStateDB += (signature -> AtomEvidenceDB.allUnknown(domainSpace.identities(signature)))
 
     for (signature <- nonEvidenceAtoms; if !annotationDB.contains(signature)) {
       warn(s"Annotation was not given in the training file(s) for predicate '$signature', assuming FALSE state for all its groundings.")
-      annotationDB += (signature -> AtomEvidenceDB(domainSpace.identities(signature), FALSE))
+      annotationDB += (signature -> AtomEvidenceDB.allFalse(domainSpace.identities(signature)))
     }
 
-    val finalCWA = evidenceAtoms
-
     for (signature <- kb.predicateSchema.keysIterator; if !atomStateDB.contains(signature)) {
-      if (finalCWA.contains(signature))
-        atomStateDB += (signature -> AtomEvidenceDB(domainSpace.identities(signature), FALSE))
+      if (evidenceAtoms.contains(signature))
+        atomStateDB += (signature -> AtomEvidenceDB.allFalse(domainSpace.identities(signature)))
     }
 
     // In case we want to learn weights for unit clauses
@@ -353,7 +351,7 @@ object MLN extends Logging {
 
     val evidence = new Evidence(trainingEvidence.constants, atomStateDB, trainingEvidence.functionMappers, trainingEvidence.domainSpace)
 
-    (MLN(kb.schema, evidence, clauses), annotationDB)
+    (new MLN(kb.schema, evidence, clauses), annotationDB)
   }
 
 }
