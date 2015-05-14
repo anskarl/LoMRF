@@ -635,9 +635,14 @@ private class DBProbCWA(positives: TIntSet, val probabilistic: TIntDoubleMap, ov
   }
 }
 
-final class AtomEvidenceDBBuilder private(val signature: AtomSignature, schema: Seq[String], identity: AtomIdentityFunction, isCWA: Boolean,
-                                          private var positives: TIntHashSet, private var negatives: TIntHashSet,
-                                          private var unknown: TIntHashSet, private var probabilistic: TIntDoubleHashMap) extends Logging {
+final class AtomEvidenceDBBuilder private(val signature: AtomSignature,
+                                          schema: Seq[String],
+                                          identity: AtomIdentityFunction,
+                                          isCWA: Boolean,
+                                          private var positives: TIntHashSet,
+                                          private var negatives: TIntHashSet,
+                                          private var unknown: TIntHashSet,
+                                          private var probabilistic: TIntDoubleHashMap) extends Logging {
 
   def this(signature: AtomSignature, schema: Seq[String], identity: AtomIdentityFunction, isCWA: Boolean) =
     this(signature, schema, identity, isCWA, new TIntHashSet(), new TIntHashSet(), new TIntHashSet(), new TIntDoubleHashMap())
@@ -650,6 +655,9 @@ final class AtomEvidenceDBBuilder private(val signature: AtomSignature, schema: 
     copyIfDirty()
 
     val id = identity.encode(atom)
+
+    if(id == AtomIdentityFunction.IDENTITY_NOT_EXIST)
+      throw new NoSuchElementException(s"Failed to compute the unit identification number for atom: '${atom.toText}'")
 
     atom.state match {
       case TRUE =>
@@ -696,7 +704,7 @@ final class AtomEvidenceDBBuilder private(val signature: AtomSignature, schema: 
     } //end match atom.state
   }
 
-  def +=(literal: Int) {
+  def += (literal: Int) {
     require(identity.idsRange.contains(math.abs(literal)), "The given literal has incompatible id.")
     copyIfDirty()
     putLiteral(literal)
@@ -769,10 +777,12 @@ object AtomEvidenceDBBuilder {
       case Some(set) => new TIntHashSet(set)
       case None => new TIntHashSet()
     }
+
     val negatives = negativesOpt match {
       case Some(set) => new TIntHashSet(set)
       case None => new TIntHashSet()
     }
+
     val probabilistic = probabilisticOpt match {
       case Some(x) => new TIntDoubleHashMap(x)
       case None => new TIntDoubleHashMap()
@@ -808,6 +818,52 @@ object AtomEvidenceDBBuilder {
     require(signature.arity == schema.size, "The arity of the specified signature must be equal to the number of schema elements.")
 
     new AtomEvidenceDBBuilder(signature: AtomSignature, schema, AtomIdentityFunction(signature, schema, constants, startID), isCWA)
+  }
+
+  object CWA {
+
+    def apply(identity: AtomIdentityFunction): AtomEvidenceDBBuilder = new AtomEvidenceDBBuilder(identity.signature, identity.schema, identity, true)
+
+    def apply(schema: Seq[String],
+              identity: AtomIdentityFunction): AtomEvidenceDBBuilder = new AtomEvidenceDBBuilder(identity.signature, schema, identity, true)
+
+    def apply(signature: AtomSignature,
+              schema: Seq[String],
+              identity: AtomIdentityFunction): AtomEvidenceDBBuilder = new AtomEvidenceDBBuilder(signature, schema, identity, true)
+
+
+    def apply(signature: AtomSignature,
+              schema: Seq[String],
+              constants: Map[String, ConstantsSet],
+              startID: Int): AtomEvidenceDBBuilder = {
+
+      require(signature.arity == schema.size, "The arity of the specified signature must be equal to the number of schema elements.")
+
+      new AtomEvidenceDBBuilder(signature: AtomSignature, schema, AtomIdentityFunction(signature, schema, constants, startID), true)
+    }
+  }
+
+  object OWA {
+
+    def apply(identity: AtomIdentityFunction): AtomEvidenceDBBuilder = new AtomEvidenceDBBuilder(identity.signature, identity.schema, identity, false)
+
+    def apply(schema: Seq[String],
+              identity: AtomIdentityFunction): AtomEvidenceDBBuilder = new AtomEvidenceDBBuilder(identity.signature, schema, identity, false)
+
+    def apply(signature: AtomSignature,
+              schema: Seq[String],
+              identity: AtomIdentityFunction): AtomEvidenceDBBuilder = new AtomEvidenceDBBuilder(signature, schema, identity, false)
+
+
+    def apply(signature: AtomSignature,
+              schema: Seq[String],
+              constants: Map[String, ConstantsSet],
+              startID: Int): AtomEvidenceDBBuilder = {
+
+      require(signature.arity == schema.size, "The arity of the specified signature must be equal to the number of schema elements.")
+
+      new AtomEvidenceDBBuilder(signature: AtomSignature, schema, AtomIdentityFunction(signature, schema, constants, startID), false)
+    }
   }
 }
 

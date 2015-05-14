@@ -113,6 +113,9 @@ class EvidenceBuilder private(domainSpace: MLNSpace,
     def update(evb: Map[AtomSignature, AtomEvidenceDB]): self.type = {
       edbBuilders = evb.map {
         case (signature, db) =>
+          if(!predicateSchema.contains(signature))
+            throw new IllegalArgumentException(s"Unknown atom signature '$signature'")
+
           val builder = AtomEvidenceDBBuilder(db.identity, db.numberOfUnknown > 0)
 
           require(signature == db.identity.signature,
@@ -150,18 +153,23 @@ class EvidenceBuilder private(domainSpace: MLNSpace,
     }
 
 
-    private def insert(atom: EvidenceAtom): Unit = edbBuilders.get(atom.signature) match {
-      case Some(builder) =>
-        builder += atom
+    private def insert(atom: EvidenceAtom): Unit = {
+      edbBuilders.get(atom.signature) match {
+        case Some(builder) =>
+          builder += atom
 
-      case None =>
-        val idf = domainSpace.identities(atom.signature)
-        val isCWA = domainSpace.isCWA(atom.signature)
-        val builder = AtomEvidenceDBBuilder(idf, isCWA)
-        builder += atom
+        case None if predicateSchema.contains(atom.signature) =>
 
-        edbBuilders += (atom.signature -> builder)
+          val idf = domainSpace.identities(atom.signature)
+          val isCWA = domainSpace.isCWA(atom.signature)
+          val builder = AtomEvidenceDBBuilder(idf, isCWA)
+          builder += atom
+
+          edbBuilders += (atom.signature -> builder)
+        case _ =>
+          throw new IllegalArgumentException(s"Unknown atom signature for atom '${atom.toText}'")
       }
+    }
   }
 
 
@@ -181,11 +189,15 @@ class EvidenceBuilder private(domainSpace: MLNSpace,
         case Some(fMappingBuilder) =>
           fMappingBuilder += ( fm.values, fm.retValue)
 
-        case None =>
+        case None if functionSchema.contains(fm.signature) =>
+
           val idFunction = AtomIdentityFunction(fm.signature, functionSchema(fm.signature)._2, constants, 1)
           val builder = new FunctionMapperBuilder(idFunction)
           builder += ( fm.values, fm.retValue)
+
           fmBuilders += (fm.signature -> builder)
+        case _ =>
+          throw new IllegalArgumentException(s"Unknown function signature for function mapping '${fm.toString}'")
       }
     }
   }

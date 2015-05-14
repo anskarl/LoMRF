@@ -32,9 +32,10 @@
 
 package lomrf.mln.model
 
+
 import lomrf.logic._
 import lomrf.logic.AtomSignatureOps._
-import lomrf.util.ConstantsSet
+import lomrf.util.{AtomIdentityFunction, AtomEvidenceDBBuilder, ConstantsSet}
 import org.scalatest.{Matchers, FunSpec}
 
 class EvidenceBuilderSpecTest extends FunSpec with Matchers {
@@ -435,6 +436,54 @@ class EvidenceBuilderSpecTest extends FunSpec with Matchers {
         }
       }
     }
+  }
+
+  describe("Evidence construction (error handling)") {
+
+    val builder = EvidenceBuilder(samplePredicateSchemas, queryPredicates, hiddenPredicates, constantsDomain)
+
+    val dummySchema = Map(
+      AtomSignature("Foo", 1) -> Vector("bar"),
+      AtomSignature("Bar", 1) -> Vector("foo")
+    )
+
+    val dummyConstantsDomain = Map(
+      "foo" -> ConstantsSet((1 to 5).map(v=> "F"+v)),
+      "bar" -> ConstantsSet((1 to 5).map(v=> "B"+v)))
+
+    val dummyIDF = dummySchema.map{
+      case (signature, schema) => signature -> AtomIdentityFunction(signature, schema, dummyConstantsDomain, 1)
+    }
+
+    val dummyBuilders = dummySchema.map{
+      case (s, _) => s ->  AtomEvidenceDBBuilder.CWA(dummyIDF(s))
+    }
+
+    val dummyDB = dummyBuilders.map(e => e._1 -> e._2.result())
+
+    it("should throw IllegalArgumentException when inserting evidence atom with unknown signature"){
+      intercept[IllegalArgumentException] {
+        builder.evidence += EvidenceAtom.asTrue("Foo", Vector(Constant("bar")))
+      }
+    }
+
+    it("should throw IllegalArgumentException when setting builders that are related to unknown signatures (using 'builder.withEvidenceBuilders(dummyBuilders)')") {
+      intercept[IllegalArgumentException]( builder.withEvidenceBuilders(dummyBuilders))
+    }
+
+    it("should throw IllegalArgumentException when setting builders that are related to unknown signatures (using 'builder.evidence() = dummyDB')") {
+      intercept[IllegalArgumentException]{
+        builder.evidence() = dummyDB
+      }
+    }
+
+    it("should throw Exception when adding evidence with unknown constants"){
+      intercept[NoSuchElementException]{
+        builder.evidence += EvidenceAtom.asTrue("Next", Vector(Constant("100"), Constant("99")))
+      }
+
+    }
+
   }
 
 
