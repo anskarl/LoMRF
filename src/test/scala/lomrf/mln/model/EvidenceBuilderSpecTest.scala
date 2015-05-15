@@ -37,6 +37,7 @@ import lomrf.logic._
 import lomrf.logic.AtomSignatureOps._
 import lomrf.util.{AtomIdentityFunction, AtomEvidenceDBBuilder, ConstantsSet}
 import org.scalatest.{Matchers, FunSpec}
+import LogicImplicits._
 
 class EvidenceBuilderSpecTest extends FunSpec with Matchers {
 
@@ -53,6 +54,31 @@ class EvidenceBuilderSpecTest extends FunSpec with Matchers {
     ("TerminatedAt", Vector("fluent", "time"))
   ).map(schema => AtomSignature(schema._1, schema._2.size) -> schema._2).toMap
 
+  private val sampleFunctionSchema = Map(
+    AtomSignature("walking", 1) -> ("event", Vector("person")),
+    AtomSignature("running", 1) -> ("event", Vector("person"))
+  )
+
+  private val sampleFunctionMappings = Seq(
+    ("Walking_Kalypso", "walking", Vector("Kalypso")),
+    ("Walking_Phaidra", "walking", Vector("Phaidra")),
+    ("Walking_Ligeia", "walking", Vector("Ligeia")),
+    ("Walking_Ismene", "walking", Vector("Ismene")),
+    ("Walking_Irene", "walking", Vector("Irene")),
+    ("Running_Kalypso", "running", Vector("Kalypso")),
+    ("Running_Phaidra", "running", Vector("Phaidra")),
+    ("Running_Ligeia", "running", Vector("Ligeia")),
+    ("Running_Ismene", "running", Vector("Ismene")),
+    ("Running_Irene", "running", Vector("Irene")))
+
+  private val sampleFunctionMappers = sampleFunctionMappings map {
+    case (retValue, symbol, args) => new FunctionMapping(retValue, symbol, args)
+  }
+
+
+
+
+
   private val queryPredicates = Set[AtomSignature](("HoldsAt", 2))
   private val hiddenPredicates = Set[AtomSignature](("InitiatedAt", 2), ("TerminatedAt", 2))
 
@@ -62,7 +88,10 @@ class EvidenceBuilderSpecTest extends FunSpec with Matchers {
   private val constantsDomain = Map(
     "time" -> ConstantsSet((1 to TIME_DOMAIN_SIZE).map(_.toString)),
     "fluent" -> ConstantsSet("moving", "meeting", "leaving_object"),
-    "event" -> ConstantsSet("walking", "running", "active", "inactive", "enter", "exit")
+    "event" -> ConstantsSet(
+      "Walking_Kalypso", "Walking_Phaidra", "Walking_Ligeia", "Walking_Ismene", "Walking_Irene",
+      "Running_Kalypso", "Running_Phaidra", "Running_Ligeia", "Running_Ismene", "Running_Irene"),
+    "person" -> ConstantsSet("Kalypso", "Phaidra", "Ligeia", "Ismene", "Irene")
   )
 
   // ------------------------------------------------------------------------------------------------------------------
@@ -122,7 +151,7 @@ class EvidenceBuilderSpecTest extends FunSpec with Matchers {
     var insertedFirstHalf = List.empty[EvidenceAtom]
 
     for (timepoint <- 1 to 5) {
-      val atom = EvidenceAtom.asTrue(PRED_NAME, Vector[Constant](Constant("walking"), Constant(timepoint.toString)))
+      val atom = EvidenceAtom.asTrue(PRED_NAME, Vector[Constant](Constant("Walking_Kalypso"), Constant(timepoint.toString)))
       insertedFirstHalf = atom :: insertedFirstHalf
       builder.evidence += atom
     }
@@ -138,7 +167,7 @@ class EvidenceBuilderSpecTest extends FunSpec with Matchers {
     // (STEP 3) Insert the second half (incrementally)
     var insertedSecondHalf = List.empty[EvidenceAtom]
     for (timepoint <- 6 to TIME_DOMAIN_SIZE) {
-      val atom = EvidenceAtom.asTrue(PRED_NAME, Vector[Constant](Constant("walking"), Constant(timepoint.toString)))
+      val atom = EvidenceAtom.asTrue(PRED_NAME, Vector[Constant](Constant("Walking_Kalypso"), Constant(timepoint.toString)))
       insertedSecondHalf = atom :: insertedSecondHalf
       builder.evidence += atom
     }
@@ -277,12 +306,12 @@ class EvidenceBuilderSpecTest extends FunSpec with Matchers {
     for (timepoint <- 1 to TIME_DOMAIN_SIZE) {
 
       // closed-world assumption predicate (as TRUE)
-      val atomCWATrue = EvidenceAtom.asTrue("HappensAt", Vector[Constant](Constant("walking"), Constant(timepoint.toString)))
+      val atomCWATrue = EvidenceAtom.asTrue("HappensAt", Vector[Constant](Constant("Walking_Kalypso"), Constant(timepoint.toString)))
       builder.evidence += atomCWATrue
       insertedCWATrue = atomCWATrue :: insertedCWATrue
 
       // closed-world assumption predicate (as FALSE) -> thus no effect
-      val atomCWAFalse = EvidenceAtom.asFalse("HappensAt", Vector[Constant](Constant("running"), Constant(timepoint.toString)))
+      val atomCWAFalse = EvidenceAtom.asFalse("HappensAt", Vector[Constant](Constant("Running_Ismene"), Constant(timepoint.toString)))
       builder.evidence += atomCWAFalse
       insertedCWAFalse = atomCWAFalse :: insertedCWAFalse
 
@@ -438,6 +467,40 @@ class EvidenceBuilderSpecTest extends FunSpec with Matchers {
     }
   }
 
+  // ------------------------------------------------------------------------------------------------------------------
+  // --- TEST: Evidence Builder (incremental addition of function mappings)
+  // ------------------------------------------------------------------------------------------------------------------
+  describe("Incremental addition of function mappings using EvidenceBuilder") {
+    val builder = EvidenceBuilder(samplePredicateSchemas, sampleFunctionSchema, queryPredicates, hiddenPredicates, constantsDomain)
+
+    for((retValue, symbol, args) <- sampleFunctionMappings)
+      builder.functions += new FunctionMapping(retValue, symbol, args)
+
+    val resultFM = builder.result().functionMappers
+
+    it("should contain all inserted function mappings") {
+      assert {
+        sampleFunctionMappings.forall{
+          case (retValue, symbol, args) =>
+            val mappingOpt = resultFM(AtomSignature(symbol, args.size)).get(args)
+            if(mappingOpt.isEmpty) false
+            else mappingOpt.get == retValue
+        }
+      }
+    }
+
+    it("should not contain undefined function mappings") {
+      assert{
+        val mappingOpt = resultFM(AtomSignature("running", 1)).get(Vector("other"))
+        if(mappingOpt.isEmpty) true
+        else false
+      }
+    }
+  }
+
+  // ------------------------------------------------------------------------------------------------------------------
+  // --- TEST: Evidence Builder (error handling)
+  // ------------------------------------------------------------------------------------------------------------------
   describe("Evidence construction (error handling)") {
 
     val builder = EvidenceBuilder(samplePredicateSchemas, queryPredicates, hiddenPredicates, constantsDomain)
@@ -483,14 +546,6 @@ class EvidenceBuilderSpecTest extends FunSpec with Matchers {
       }
 
     }
-
-  }
-
-
-  // ------------------------------------------------------------------------------------------------------------------
-  // --- TEST: Evidence Builder (incremental addition of function mappings)
-  // ------------------------------------------------------------------------------------------------------------------
-  describe("Incremental addition of function mappings using EvidenceBuilder") {
 
   }
 }

@@ -166,6 +166,7 @@ class EvidenceBuilder private(domainSpace: MLNSpace,
           builder += atom
 
           edbBuilders += (atom.signature -> builder)
+
         case _ =>
           throw new IllegalArgumentException(s"Unknown atom signature for atom '${atom.toText}'")
       }
@@ -177,6 +178,16 @@ class EvidenceBuilder private(domainSpace: MLNSpace,
 
     def += (fm: FunctionMapping): self.type = {
       insert(fm)
+      self
+    }
+
+    def ++= (fms: Iterable[FunctionMapping]): self.type ={
+      fms.foreach(insert)
+      self
+    }
+
+    def ++= (fms: FunctionMapping*): self.type ={
+      fms.foreach(insert)
       self
     }
 
@@ -196,6 +207,7 @@ class EvidenceBuilder private(domainSpace: MLNSpace,
           builder += ( fm.values, fm.retValue)
 
           fmBuilders += (fm.signature -> builder)
+
         case _ =>
           throw new IllegalArgumentException(s"Unknown function signature for function mapping '${fm.toString}'")
       }

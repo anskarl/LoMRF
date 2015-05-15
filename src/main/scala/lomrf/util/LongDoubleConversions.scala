@@ -37,9 +37,6 @@ import com.vividsolutions.jts.math.DD
 /**
  * Conversions for DD numbers operation of the JTS library,
  * in order to be more Scala friendly.
- *
- *
- *
  */
 object LongDoubleConversions {
 
