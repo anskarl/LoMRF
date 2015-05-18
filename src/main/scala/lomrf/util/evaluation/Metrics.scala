@@ -156,18 +156,17 @@ object Metrics {
   def tpr(tp: Long, fp: Long, fn: Long): Double = recall(tp, fp, fn)
 
   /**
-   * Gives the false positive rate, with respect to the given true positives, false positives and false negatives.
+   * Gives the false positive rate, with respect to the given false positives and false negatives.
    *
-   * @param tp number of true positives
    * @param fp number of false positives
    * @param tn number of true negatives
    *
    * @return the calculated false positive rate
    */
-  def fpr(tp: Long, fp: Long, tn: Long): Double = {
+  def fpr(fp: Long, tn: Long): Double = {
     val denominator = fp + tn
     assert(denominator > 0, "FPR: the denominator (fp + tn) is not > 0.")
-    tp.toDouble / denominator
+    fp.toDouble / denominator
   }
 
   /**
