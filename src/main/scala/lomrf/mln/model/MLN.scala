@@ -32,7 +32,7 @@
 
 package lomrf.mln.model
 
-import auxlib.log.Logging
+import auxlib.log.{Logger, Logging}
 import lomrf.logic._
 import lomrf.mln.model.MLNSpace$
 import lomrf.util.Utilities.TimeGranularity
@@ -161,7 +161,7 @@ final class MLN(val schema: MLNSchema,
 
 }
 
-object MLN extends Logging {
+object MLN {
 
   import PredicateCompletionMode._
 
@@ -239,6 +239,9 @@ object MLN extends Logging {
             dynamicDefinitions: Option[ImplFinder.ImplementationsMap],
             domainPart: Boolean): MLN = {
 
+    val logger = Logger(getClass)
+    import logger._
+
     info(
       s"""--- Stage 0: Loading an MLN instance from data...
         |\tInput MLN file: $mlnFileName
@@ -292,6 +295,8 @@ object MLN extends Logging {
                   pcm: PredicateCompletionMode = Decomposed,
                   dynamicDefinitions: Option[ImplFinder.ImplementationsMap] = None,
                   addUnitClauses: Boolean = false): (MLN, EvidenceDB) = {
+    val logger = Logger(getClass)
+    import logger._
 
     info(
       "--- Stage 0: Loading an MLN instance from data..." +

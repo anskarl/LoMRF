@@ -56,7 +56,6 @@ class Evidence(val constants: ConstantsDomain,
 
 }
 
-
 object Evidence {
 
   private lazy val log = Logger(this.getClass)
@@ -108,7 +107,6 @@ object Evidence {
         }
 
     info("--- Stage 1: Parsing constants")
-
     for (evidenceExpressions <- evidenceExpressionsDB; expr <- evidenceExpressions) expr match {
       case f: FunctionMapping =>
         //Collect information for functionMappings
@@ -151,77 +149,16 @@ object Evidence {
 
     val constants: Map[String, ConstantsSet] = constantsDomainBuilder.result()
 
-    info("--- Stage 2: Computing domain space.")
+    info("--- Stage 2: Creating function mappings, and evidence database.")
 
-    val domainSpace = MLNSpace(predicateSchema, queryPredicates, hiddenPredicates, constants)
-
-
-    info("--- Stage 3: Creating function mappings, and evidence database.")
-    var functionMapperBuilders = Map[AtomSignature, FunctionMapperBuilder]()
-
-    var atomsEvDBBuilders = Map[AtomSignature, AtomEvidenceDBBuilder]()
+    val builder = EvidenceBuilder(predicateSchema, functionSchema, queryPredicates, hiddenPredicates, constants)
 
     for (evidenceExpressions <- evidenceExpressionsDB; expr <- evidenceExpressions) expr match {
-      case fm: FunctionMapping =>
-
-        functionMapperBuilders.get(fm.signature) match {
-          case Some(fMappingBuilder) => fMappingBuilder +=(fm.values, fm.retValue)
-          case None =>
-            val idFunction = AtomIdentityFunction(fm.signature, functionSchema(fm.signature)._2, constants, 1)
-            val builder = new FunctionMapperBuilder(idFunction)
-            builder +=(fm.values, fm.retValue)
-            functionMapperBuilders += (fm.signature -> builder)
-        }
-      case atom: EvidenceAtom =>
-        atomsEvDBBuilders.get(atom.signature) match {
-          case Some(builder) => builder += atom
-          case None =>
-            val signature = atom.signature
-            val atomSchema = predicateSchema(signature)
-            val db = AtomEvidenceDBBuilder(signature, atomSchema, domainSpace.identities(signature), !isOWA(signature))
-            db += atom
-            atomsEvDBBuilders += (signature -> db)
-        }
-      case _ => //ignore
+      case fm: FunctionMapping => builder.functions += fm
+      case atom: EvidenceAtom => builder.evidence += atom
     }
 
-    var functionMappers = functionMapperBuilders.mapValues(_.result())
-    for ((signature, func) <- dynamicFunctions)
-      functionMappers += (signature -> FunctionMapper(func))
-
-    val atomSignatures = predicateSchema.keySet
-
-    var atomStateDB = atomsEvDBBuilders.mapValues(_.result())
-
-    val owa = queryPredicates ++ hiddenPredicates
-    val cwa = atomSignatures -- owa
-
-    /**
-     * Compute the final form of CWA/OWA and Query atoms
-     *
-     * By default, closed world assumption is assumed for
-     * all atoms that appear in the evidence database (.db),
-     * unless their signature appears in the OWA set or in the
-     * query atoms set. Consequently, open world assumption is
-     * assumed for the rest atoms.
-     */
-    var finalCWA = cwa.toSet
-
-    for (signature <- atomStateDB.keysIterator) {
-      if (!atomSignatures(signature)) // Check if this signature is defined in the mln file
-        fatal(s"The predicate '$signature' that appears in the evidence file, is not defined in the mln file.")
-      else if (!owa.contains(signature) && !queryPredicates.contains(signature))
-        finalCWA += signature
-    }
-
-    for {
-      signature <- atomSignatures
-      if !atomStateDB.contains(signature)
-      idf = domainSpace.identities(signature)
-      state = if (finalCWA.contains(signature)) FALSE else UNKNOWN
-    } atomStateDB += (signature -> AtomEvidenceDB(idf, state))
-
-    Evidence(constants, atomStateDB, functionMappers, domainSpace)
+    builder.result()
   }
 
   private def createTempEmptyDBFile: File = {
