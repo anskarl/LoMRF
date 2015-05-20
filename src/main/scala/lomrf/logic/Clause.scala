@@ -37,8 +37,6 @@ package lomrf.logic
  *
  * @param weight the weight of this clause
  * @param literals a set of literals, representing a disjunction of atoms of their negations.
- *
- *
  */
 final class Clause(val weight: Double, val literals: Set[Literal]){
 
@@ -119,16 +117,21 @@ final class Clause(val weight: Double, val literals: Set[Literal]){
 }
 
 object Clause {
-  def apply(weight: Double, literals: Set[Literal]):Clause = new Clause(weight,literals)
-  def apply(weight: Double, atom: AtomicFormula, negated: Boolean = false) = new Clause(weight, if(negated) Set(NegativeLiteral(atom)) else Set(PositiveLiteral(atom)))
+
+  def apply(literals: Set[Literal], weight: Double = Double.PositiveInfinity): Clause = new Clause(weight, literals)
+
+  def from(atom: AtomicFormula, weight: Double = Double.PositiveInfinity, negated: Boolean = false): Clause = {
+    new Clause(weight, if(negated) Set(NegativeLiteral(atom)) else Set(PositiveLiteral(atom)))
+  }
+
+  def unit(literal: Literal, weight: Double = Double.PositiveInfinity): Clause = new Clause(weight, Set(literal))
+
 }
 
 
 //FOL Definite Clause
 trait FOLDefiniteClause
 
-//AtomicSentence is non-implication FOL Definite clause and here is the
-//implication one
 class ImplicationDefiniteClause(val premise: Set[AtomicFormula],
                                 val conclusion: AtomicFormula) extends FOLDefiniteClause {
   override def toString =
@@ -180,42 +183,72 @@ sealed abstract class Literal(val sentence: AtomicFormula) {
   def toText: String
 }
 
+object Literal {
+
+  def apply(a: AtomicFormula, negative: Boolean): Literal = {
+    if(negative) NegativeLiteral(a)
+    else PositiveLiteral(a)
+  }
+
+  def asNegative(a: AtomicFormula): Literal = NegativeLiteral(a)
+
+  def asPositive(a: AtomicFormula): Literal = PositiveLiteral(a)
+
+}
+
 /**
- * Represents a positive literal (i.e. not negated).
+ * Represents a positive literal (i.e., not negated).
  *
  * @param s atomic formula
  */
 case class PositiveLiteral(s: AtomicFormula) extends Literal(s){
-  def isPositive = true
 
+  def isPositive = true
 
   def toText = s.toText
 
   override def toString = s.toString
 
-
-
 }
 
 /**
- * Represents a negative literal (i.e. negated).
+ * Represents a negative literal (i.e., negated).
  *
  * @param s atomic formula
  */
-case class NegativeLiteral(s: AtomicFormula) extends Literal(s){
+case class NegativeLiteral(s: AtomicFormula) extends Literal(s) {
+
   def isPositive = false
 
-
-  def toText = "!"+s.toText
+  def toText = "!" + s.toText
 
   override def toString = "!" + s.toString
 }
 
 final class LiteralArityOrdering extends Ordering[Literal]{
+
   override def compare(lit0: Literal, lit1: Literal):Int = {
     if(lit0 == lit1) 0
     else if(lit0.arity <= lit1.arity) -1
     else 1
+  }
+
+}
+
+final class LiteralTextOrdering extends Ordering[Literal]{
+
+  override def compare(lit0: Literal, lit1: Literal): Int = {
+    val (txt0, txt1) = (lit0.toText, lit1.toText)
+    txt0.compare(txt1)
+  }
+
+}
+
+final class LiteralSentenceOrdering extends Ordering[Literal]{
+
+  override def compare(lit0: Literal, lit1: Literal): Int = {
+    val (txt0, txt1) = (lit0.sentence.toText, lit1.sentence.toText)
+    txt0.compare(txt1)
   }
 
 }

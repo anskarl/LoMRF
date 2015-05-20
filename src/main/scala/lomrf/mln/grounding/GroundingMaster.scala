@@ -230,7 +230,7 @@ final class GroundingMaster(mln: MLN,
           }
           .toVector
 
-      remainingClauses :+=(Clause(0, AtomicFormula(signature.symbol, terms)), numberOfClauses + qidx)
+      remainingClauses :+=(Clause.from(AtomicFormula(signature.symbol, terms), 0), numberOfClauses + qidx)
     }
 
     // enough with preparation stuff, lets start creating the MRF! :)

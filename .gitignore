@@ -77,3 +77,6 @@ project/target/
 
 # ignore locally managed libraries
 lib/
+
+# ignore scala worksheet files
+*.sc

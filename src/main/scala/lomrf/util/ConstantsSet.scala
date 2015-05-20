@@ -35,6 +35,7 @@ package lomrf.util
 import gnu.trove.iterator.TObjectIntIterator
 import gnu.trove.map.hash.TObjectIntHashMap
 import gnu.trove.TCollections
+import lomrf.logic.Constant
 import scala.collection.mutable
 import gnu.trove.map.TObjectIntMap
 import gnu.trove.impl.{Constants => TC}
@@ -302,10 +303,10 @@ object ConstantsSet {
  * A builder with which we can incrementally create a ConstantSet.
  */
 final class ConstantsSetBuilder(private var constants2Id: TObjectIntHashMap[String],
-                                private var id2Constants: mutable.ArrayBuffer[String]) extends mutable.Builder[String, ConstantsSet] with Iterable[String]{
+                                private var id2Constants: mutable.ArrayBuffer[String]) extends mutable.Builder[String, ConstantsSet] with Iterable[String]{ self =>
 
   import ConstantsSet.NO_ENTRY
-
+  import lomrf.util.ConstantsSetBuilder.ConstantSymbol
   import gnu.trove.impl.{Constants => TC}
 
 
@@ -328,29 +329,51 @@ final class ConstantsSetBuilder(private var constants2Id: TObjectIntHashMap[Stri
    *
    * @param constant the specified constant symbol
    */
-  override def +=(constant: String) = {
+  override def +=(constant: String): self.type = {
+    copyIfDirty()
+    put(constant)
+    this
+  }
 
+  def +=(constant: Number): self.type  = {
+    this += constant.toString
+  }
+
+  def ++=[T: ConstantSymbol](elements: Iterable[T]): self.type  ={
+    copyIfDirty()
+    for(element <- elements) element match {
+      case symbol: String => put(symbol)
+      case constant: Constant => put(constant.symbol)
+      case _ :Number => put(element.toString)
+    }
+    this
+  }
+
+
+  def ++=(e: Any, elements: Any*): self.type ={
     copyIfDirty()
 
+    putMatching(e)
+    for(element <- elements) putMatching(element)
+
+    this
+  }
+
+  private def putMatching(element: Any): Unit ={
+    element match {
+      case symbol: String => put(symbol)
+      case constant: Constant => put(constant.symbol)
+      case _ : Number  => put(element.toString)
+      case _ => throw new UnsupportedOperationException("")
+    }
+  }
+
+  private def put(constant: String): Unit ={
     if (constants2Id.putIfAbsent(constant, _size) == NO_ENTRY) {
       id2Constants += constant
       _size += 1
     }
-
-    this
   }
-
-  def ++=(constants: Iterable[String]) ={
-    copyIfDirty()
-    for(constant <- constants){
-      if (constants2Id.putIfAbsent(constant, _size) == NO_ENTRY) {
-        id2Constants += constant
-        _size += 1
-      }
-    }
-    this
-  }
-
 
   override def sizeHint(size: Int): Unit = {
     constants2Id.setUp(size)
@@ -417,6 +440,19 @@ final class ConstantsSetBuilder(private var constants2Id: TObjectIntHashMap[Stri
 }
 
 object ConstantsSetBuilder {
+
+  sealed class ConstantSymbol[T]
+
+  object ConstantSymbol {
+    implicit object ByteWitness extends ConstantSymbol[Byte]
+    implicit object ShortWitness extends ConstantSymbol[Short]
+    implicit object IntWitness extends ConstantSymbol[Int]
+    implicit object LongWitness extends ConstantSymbol[Long]
+    implicit object FloatWitness extends ConstantSymbol[Float]
+    implicit object DoubleWitness extends ConstantSymbol[Double]
+    implicit object StringWitness extends ConstantSymbol[String]
+    implicit object ConstantWitness extends ConstantSymbol[Constant]
+  }
 
   def apply: ConstantsSetBuilder = new ConstantsSetBuilder
 

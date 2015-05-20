@@ -45,9 +45,21 @@ class ConstantsDomainBuilder extends mutable.Builder[(String, String), Constants
 
   private var dirty = false
 
-  def apply(key: String) = constantBuilders(key)
+  def apply(key: String) = {
+    constantBuilders(key)
+  }
 
   def apply(): Map[String, ConstantsSetBuilder] = constantBuilders
+
+  def of(key: String) ={
+    constantBuilders.getOrElse(key, {
+      copyIfDirty()
+      val builder = ConstantsSetBuilder()
+      constantBuilders += (key -> builder)
+      builder
+    })
+  }
+
 
   def update(input: Map[String, ConstantsSetBuilder]): self.type ={
     constantBuilders = input
@@ -58,6 +70,15 @@ class ConstantsDomainBuilder extends mutable.Builder[(String, String), Constants
   def get(key: String): Option[ConstantsSetBuilder] = constantBuilders.get(key)
 
   def getOrElse(key: String, default: => ConstantsSetBuilder): ConstantsSetBuilder = constantBuilders.getOrElse(key, default)
+
+
+  def += (key: String, value: Number): self.type ={
+    copyIfDirty()
+
+    addUnchecked(key, value.toString)
+
+    self
+  }
 
   def += (key: String, value: String): self.type ={
     copyIfDirty()

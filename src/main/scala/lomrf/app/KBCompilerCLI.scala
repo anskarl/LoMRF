@@ -224,7 +224,7 @@ object KBCompilerCLI extends Logging {
       // Is a unit clause with negative weight,
       // thus negate it and convert its weight into a positive value
       // (e.g the '-w A(x)' will be converted into 'w !A(x)')
-      clauseFormatter(Clause(-clause.weight, Set(clause.literals.head.negate)), weightsMode, eliminateFunctions, introduceFunctions)
+      clauseFormatter(Clause(Set(clause.literals.head.negate), -clause.weight), weightsMode, eliminateFunctions, introduceFunctions)
     } else {
       val txtLiterals =
         profile match {

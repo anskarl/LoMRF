@@ -107,33 +107,44 @@ object LogicOps {
     }
 
 
-    def replaceAtomWith(targetAtom: AtomicFormula, replacement: Formula): Option[Formula] = {
+    def replace(targetAtom: AtomicFormula, replacement: Formula): Option[Formula] = {
+
+      def doReplace(inFormula: Formula, withFormula: Formula): Formula ={
+        inFormula match {
+          case f: AtomicFormula => if (f.signature == targetAtom.signature) withFormula else f
+
+          case f: WeightedFormula => WeightedFormula(f.weight, doReplace(f.formula, withFormula))
+
+          case f: Not => Not(doReplace(f.arg, withFormula))
+
+          case f: And => And(doReplace(f.left, withFormula), doReplace(f.right, withFormula))
+
+          case f: Or => Or(doReplace(f.left, withFormula), doReplace(f.right, withFormula))
+
+          case f: UniversalQuantifier => UniversalQuantifier(f.variable, doReplace(f.formula, withFormula))
+
+          case f: ExistentialQuantifier => ExistentialQuantifier(f.variable, doReplace(f.formula, withFormula))
+
+          case f: Equivalence => Equivalence(doReplace(f.left, withFormula), doReplace(f.right, withFormula))
+
+          case f: Implies => Implies(doReplace(f.left, withFormula), doReplace(f.right, withFormula))
+
+          case _ => throw new IllegalStateException("Illegal formula type.")
+        }
+      }
+
       Unify(targetAtom, formula) match {
         case Some(theta) if theta.nonEmpty =>
+
           val replacementPrime = Substitute(theta, replacement)
           val targetPrime = Substitute(theta, formula)
-          val result = _replaceAtom(targetAtom, targetPrime, replacementPrime)
+          val result = doReplace(targetPrime, replacementPrime)
 
           Some(result)
         case _ => None // nothing to unify
       }
     }
 
-    private def _replaceAtom(targetAtom: AtomicFormula, inFormula: Formula, withFormula: Formula): Formula = {
-      inFormula match {
-        case f: AtomicFormula =>
-          if (f.signature == targetAtom.signature) withFormula else f
-        case f: WeightedFormula => WeightedFormula(f.weight, _replaceAtom(targetAtom, f.formula, withFormula))
-        case f: Not => Not(_replaceAtom(targetAtom, f.arg, withFormula))
-        case f: And => And(_replaceAtom(targetAtom, f.left, withFormula), _replaceAtom(targetAtom, f.right, withFormula))
-        case f: Or => Or(_replaceAtom(targetAtom, f.left, withFormula), _replaceAtom(targetAtom, f.right, withFormula))
-        case f: UniversalQuantifier => UniversalQuantifier(f.variable, _replaceAtom(targetAtom, f.formula, withFormula))
-        case f: ExistentialQuantifier => ExistentialQuantifier(f.variable, _replaceAtom(targetAtom, f.formula, withFormula))
-        case f: Equivalence => Equivalence(_replaceAtom(targetAtom, f.left, withFormula), _replaceAtom(targetAtom, f.right, withFormula))
-        case f: Implies => Implies(_replaceAtom(targetAtom, f.left, withFormula), _replaceAtom(targetAtom, f.right, withFormula))
-        case _ => throw new IllegalStateException("Illegal formula type.")
-      }
-    }
 
   }
 

@@ -443,10 +443,10 @@ object NormalForm {
 
         // Return the extracted clauses:
         // * one unit clause and possibly some other non-unit clauses
-        if (unit.size == 1) createWeightedClauses(clauseWeight, nonUnit) + Clause(clauseWeight, unit)
+        if (unit.size == 1) createWeightedClauses(clauseWeight, nonUnit) + Clause(unit, clauseWeight)
         else if (unit.size > 1) {
           // * when more than one unit clauses are produced merge them into a single clause.
-          val mergedUnitsClauses = Clause(-clauseWeight, unit.map(_.negate))
+          val mergedUnitsClauses = Clause(unit.map(_.negate), -clauseWeight)
           Set(mergedUnitsClauses) ++ createWeightedClauses(clauseWeight, nonUnit)
         }
         else createWeightedClauses(clauseWeight, nonUnit) //no unit clauses.
