@@ -45,7 +45,7 @@ import gnu.trove.impl.{Constants => TC}
  * strings and their associated index numbers are represented by positive integers. The association between constant
  * symbols and their indexes (also referred as identities or IDs) is a bijection, that is, an one-to-one mapping.
  */
-sealed trait ConstantsSet extends Iterable[String] {
+sealed trait ConstantsSet extends Iterable[String] with IndexedSeq[String]{
 
   /**
    * Gives the constant symbol that is associated to the specified identity, if exists.
@@ -120,6 +120,8 @@ sealed trait ConstantsSet extends Iterable[String] {
 
 
   def size: Int
+
+  def length: Int = size
 
 }
 

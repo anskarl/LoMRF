@@ -32,7 +32,7 @@
 
 package lomrf.util
 
-import lomrf.mln.model.MLN
+import lomrf.mln.model.{ConstantsDomain, MLN}
 import lomrf.mln.model.mrf.Constraint
 
 import scala.collection.mutable
@@ -215,7 +215,7 @@ final class AtomIdentityFunction private(
   def decode(id: Int): Try[IndexedSeq[String]] = {
     // check bounds
     if (id < startID || id > endID)
-      return Failure(new IndexOutOfBoundsException(""))
+      return Failure(new IndexOutOfBoundsException(s"The given atom id '$id' is out of bounds, thus cannot be decoded."))
 
     val baseID = id - startID
 
@@ -242,6 +242,38 @@ final class AtomIdentityFunction private(
 
     Success(result)
   }
+
+  //todo
+  /*def extract(id: Int): Try[IndexedSeq[Int]] = {
+      // check bounds
+      if (id < startID || id > endID)
+        return Failure(new IndexOutOfBoundsException(s"The given atom id '$id' is out of bounds, thus cannot be decoded."))
+
+      val baseID = id - startID
+
+      //Find all id literals
+      var currentID = baseID
+      val result = new Array[Int](constantsAndStep.length)
+      var idx = result.length - 1
+
+      while (idx > 0) {
+        val sigma = constantsAndStep(idx)._3
+        val constatsSet = constantsAndStep(idx)._1
+
+        if (sigma <= currentID) {
+          val tmpID = (currentID - (currentID % sigma)) / sigma
+          result(idx) = constatsSet(tmpID)
+          currentID -= (tmpID * sigma)
+        }
+        else result(idx) = constatsSet(0)
+
+        idx -= 1
+      }
+      val constatsSet = constantsAndStep(idx)._1
+      result(idx) = constatsSet(currentID)
+
+      Success(result)
+    }*/
 
   def idsIterator: Iterator[Int] = idsRange.iterator
 
@@ -333,7 +365,7 @@ object AtomIdentityFunction {
 
   def apply(signature: AtomSignature,
             schema: Seq[String],
-            constants: Map[String, ConstantsSet],
+            constants: ConstantsDomain,
             startID: Int): AtomIdentityFunction = {
 
     assert(startID > 0, "Atom identity function requires startID to be greater than zero and you gave: " + startID)
@@ -341,7 +373,7 @@ object AtomIdentityFunction {
     val descriptor: Array[String] = schema.toArray
 
     var n = 0
-    val constantsAndStep = new Array[(ConstantsSet, Int, Int, String)](descriptor.size)
+    val constantsAndStep = new Array[(ConstantsSet, Int, Int, String)](descriptor.length)
 
     var length = 1
     val iterations = descriptor.length - 1

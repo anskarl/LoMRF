@@ -45,6 +45,8 @@ trait GlobalIndexPartitioned[C, @sp(Byte, Short, Int, Long, Float, Double, Boole
 
   def size: Int
 
+  def numberOfPartitions: Int
+
   def partitions: Iterable[C]
 
   def partition(partitionIndex: Int): C
@@ -62,6 +64,7 @@ private abstract class AbstractGlobalIndexPartitioned[C, @sp(Byte, Short, Int, L
 
   protected val cumulativeIndices: Array[Int] = partitionSizes.scanLeft(0)(_ + _)
   protected val partitioner: Partitioner[Int] = Partitioner.indexed(cumulativeIndices)
+  protected val numberOfElements = partitionSizes.sum
 
   override def apply(key: Int): V = {
     if(key < 0 || key >= cumulativeIndices.last)
@@ -84,7 +87,10 @@ private abstract class AbstractGlobalIndexPartitioned[C, @sp(Byte, Short, Int, L
     else Some(data(partitionIndex))
   }
 
-  override def size: Int = data.length
+
+  override def size: Int = numberOfElements
+
+  override def numberOfPartitions: Int = data.length
 
   override val firstKey: Int = cumulativeIndices.head
 

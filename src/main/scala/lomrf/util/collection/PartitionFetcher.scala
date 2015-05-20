@@ -41,3 +41,14 @@ trait PartitionFetcher[Key, Collection, Value] {
   def valuesIterator(key: Key, collection: Collection): Iterator[Value]
 
 }
+
+object PartitionFetcher {
+
+  def create[C <: IndexedSeq[V], V]: PartitionFetcher[Int, C, V] = new  PartitionFetcher[Int, C, V](){
+    override def apply(key: Int, collection: C): V = collection(key)
+
+    override def contains(key: Int, collection: C): Boolean = collection.contains(key)
+
+    override def valuesIterator(key: Int, collection: C): Iterator[V] = collection.iterator
+  }
+}
