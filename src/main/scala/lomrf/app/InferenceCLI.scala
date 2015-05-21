@@ -44,8 +44,6 @@ import lomrf.util.ImplFinder
 import auxlib.opt.OptionParser
 import auxlib.log.Logging
 
-import scala.util.{Failure, Success}
-
 /**
  * Command-line tool for inference.
  */

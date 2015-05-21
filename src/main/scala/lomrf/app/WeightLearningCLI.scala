@@ -123,13 +123,6 @@ object WeightLearningCLI extends OptionParser with Logging {
   private var _implPaths: Option[Array[String]] = None
 
 
-  /*private def addNonEvidenceAtom(atom: String) {
-    parseAtomSignature(atom) match {
-      case Some(s) => _nonEvidenceAtoms += s
-      case None => fatal("Cannot parse the arity of query atom: " + atom)
-    }
-  }*/
-
   opt("i", "input", "<kb file>", "Markov Logic file", {
     v: String => _mlnFileName = Some(v)
   })
