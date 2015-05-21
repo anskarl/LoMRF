@@ -23,7 +23,7 @@ This program comes with ABSOLUTELY NO WARRANTY. This is free software, and you a
 
 ## Instrunctions to build LoMRF from source
 
-In order to build LoMRF from source, you need to have Java SE Development Kit 8 (e.g., OpenJDK) and [sbt](http://www.scala-sbt.org/) (v0.13.x) installed in your system. Furthermore, LoMRF build depends on the [auxlib](https://github.com/anskarl/auxlib) (v0.1-SNAPSHOT), as well as to [Optimus](https://github.com/vagm/Optimus), [lp_solve](http://lpsolve.sourceforge.net), [Gurobi](http://www.gurobi.com/) and [oJalgo](http://www.ojalgo.org/).
+In order to build LoMRF from source, you need to have Java SE Development Kit 8 (e.g., OpenJDK) and [sbt](http://www.scala-sbt.org/) (v0.13.x) installed in your system. Furthermore, LoMRF build depends on the [auxlib](https://github.com/anskarl/auxlib) (v0.1-SNAPSHOT), as well as to [Optimus](https://github.com/vagm/Optimus) and [Gurobi](http://www.gurobi.com/).
 
 Step 1. To clone and publish locally the auxlib project, type the following commands:
 
@@ -35,17 +35,11 @@ $ sbt publishLocal
 
 Step 2. To clone and publish locally the Optimus project, follow the instructions [here](https://github.com/vagm/Optimus).
 
-Step 3. Include lp_solve, Gurobi and ojAlgo library dependencies to `./lib`, as it is illustrated in the tree below:
+Step 3. Include Gurobi library dependencies to `./lib`, as it is illustrated in the tree below:
 
 ```
-.
+lib/
 |-- gurobi.jar
-|-- lpsolve55j.jar
-|-- mosek.jar
-|-- ojalgo-37.1.jar
-|-- ojalgo-biz-37.1.jar
-|-- ojalgo-ext-37.1.jar
-
 ```
 
 Step 4. To start building the LoMRF distribution, type the following command:

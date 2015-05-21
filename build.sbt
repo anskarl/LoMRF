@@ -88,9 +88,7 @@ libraryDependencies += "net.sf.trove4j" % "trove4j" % "3.0.3"
 // Unit testing
 libraryDependencies += "org.scalatest" %% "scalatest" % "2.2.4" % "test"
 
-
 // Optimized Range foreach loops
-//libraryDependencies += "com.nativelibs4java" %% "scalaxy-loops" % "0.3.4" % "provided"
 libraryDependencies += "com.nativelibs4java" %% "scalaxy-streams" % "0.3.4" % "provided"
 
 // JTS Topology API for modelling and manipulating 2-dimensional linear geometry
@@ -104,12 +102,12 @@ libraryDependencies ++= Seq(
 )
 
 // Adding optimus library requires local publishing (for details see https://github.com/vagm/Optimus)
-libraryDependencies += "com.github.vagm" %% "optimus" % "1.2"
+libraryDependencies += "com.github.vagm" %% "optimus" % "1.2.1"
 
 // oJalgo library for optimization
 libraryDependencies += "org.ojalgo" % "ojalgo" % "38.0" from "https://repo1.maven.org/maven2/org/ojalgo/ojalgo/38.0/ojalgo-38.0.jar"
 
-//lp_solve
+// lpsolve library for optimization
 libraryDependencies += "com.datumbox" % "lpsolve" % "5.5.2.0"
 
 // Include utility bash scripts in the 'bin' directory
