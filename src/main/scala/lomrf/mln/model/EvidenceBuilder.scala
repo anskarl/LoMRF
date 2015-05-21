@@ -39,7 +39,7 @@ import lomrf.util._
 /**
  * Evidence builder (fluent interface)
  */
-class EvidenceBuilder private(domainSpace: MLNSpace,
+class EvidenceBuilder private(domainSpace: PredicateSpace,
                               constants: ConstantsDomain,
                               predicateSchema: PredicateSchema,
                               functionSchema: FunctionSchema = Map.empty) { self =>
@@ -224,7 +224,7 @@ object EvidenceBuilder {
             hiddenPredicates: Set[AtomSignature],
             constants: ConstantsDomain): EvidenceBuilder = {
 
-    val domainSpace = MLNSpace(predicateSchema, queryPredicates, hiddenPredicates, constants)
+    val domainSpace = PredicateSpace(predicateSchema, queryPredicates, hiddenPredicates, constants)
 
     new EvidenceBuilder(domainSpace, constants, predicateSchema)
   }
@@ -235,7 +235,7 @@ object EvidenceBuilder {
             hiddenPredicates: Set[AtomSignature],
             constants: ConstantsDomain): EvidenceBuilder = {
 
-    val domainSpace = MLNSpace(predicateSchema, queryPredicates, hiddenPredicates, constants)
+    val domainSpace = PredicateSpace(predicateSchema, queryPredicates, hiddenPredicates, constants)
 
     new EvidenceBuilder(domainSpace, constants, predicateSchema, functionSchema)
   }

@@ -59,7 +59,7 @@ trait GlobalIndexPartitioned[C, @sp(Byte, Short, Int, Long, Float, Double, Boole
 
 }
 
-private abstract class AbstractGlobalIndexPartitioned[C, @sp(Byte, Short, Int, Long, Float, Double, Boolean) V]
+abstract class AbstractGlobalIndexPartitioned[C, @sp(Byte, Short, Int, Long, Float, Double, Boolean) V]
 (data: Array[C], partitionSizes: Array[Int]) extends GlobalIndexPartitioned[C, V] {
 
   protected val cumulativeIndices: Array[Int] = partitionSizes.scanLeft(0)(_ + _)

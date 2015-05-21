@@ -61,7 +61,7 @@ class ClauseGrounderImpl(val clause: Clause,
 
   private val evidence = mln.evidence
   private val constants = evidence.constants
-  private val domainSpace = evidence.domainSpace
+  private val domainSpace = evidence.predicateSpace
 
 
   private val variableDomains: Map[Variable, Iterable[String]] = {

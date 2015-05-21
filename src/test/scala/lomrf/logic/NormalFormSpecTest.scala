@@ -33,8 +33,7 @@
 package lomrf.logic
 
 import org.scalatest.{FunSpec, Matchers}
-import lomrf.mln.model.MLN
-import lomrf.util.ConstantsSet
+import lomrf.mln.model.{ConstantsSet, MLN}
 
 /**
  * A series of spec test for the computation of normal forms (e.g., CNF, NNF, etc).

@@ -37,7 +37,7 @@ import java.text.DecimalFormat
 import java.util.concurrent.ThreadLocalRandom
 import auxlib.log.Logging
 import lomrf.mln.model.mrf.{GroundAtom, MRFState, MRF}
-import lomrf.util.Utilities
+import lomrf.util.time._
 import lomrf.util.LongDoubleConversions._
 
 import scala.util.Success
@@ -117,7 +117,7 @@ final case class MCSAT(mrf: MRF, pBest: Double = 0.5, pSA: Double = 0.1, maxFlip
         val mwsatStartTime = System.currentTimeMillis()
         sat.infer(state)
         mwsatTime = System.currentTimeMillis() - mwsatStartTime
-        info(Utilities.msecTimeToText("Total Max-WalkSAT time: ", mwsatTime))
+        info(msecTimeToText("Total Max-WalkSAT time: ", mwsatTime))
       }
     }
 
@@ -248,7 +248,7 @@ final case class MCSAT(mrf: MRF, pBest: Double = 0.5, pSA: Double = 0.1, maxFlip
     val mcsatStartTime = System.currentTimeMillis()
     while (samplesCounter <= samples) {
       if ((samplesCounter % 100) == 0)
-        info("samples " + samplesCounter + Utilities.msecTimeToText(" --- time: ", System.currentTimeMillis() - mcsatStartTime))
+        info("samples " + samplesCounter + msecTimeToText(" --- time: ", System.currentTimeMillis() - mcsatStartTime))
 
       //-----------------------------------------------------
       state.selectSomeSatConstraints()
@@ -283,8 +283,8 @@ final case class MCSAT(mrf: MRF, pBest: Double = 0.5, pSA: Double = 0.1, maxFlip
       samplesCounter += 1
     }
     val mcsatTime = System.currentTimeMillis() - mcsatStartTime
-    info(Utilities.msecTimeToText("Total MC-SAT time: ", mcsatTime))
-    info(Utilities.msecTimeToText("Total inference time: ", mcsatTime + mwsatTime))
+    info(msecTimeToText("Total MC-SAT time: ", mcsatTime))
+    info(msecTimeToText("Total inference time: ", mcsatTime + mwsatTime))
 
     // return the best state
     state
@@ -301,8 +301,8 @@ final case class MCSAT(mrf: MRF, pBest: Double = 0.5, pSA: Double = 0.1, maxFlip
 
     val numFormat = new DecimalFormat("0.0######")
 
-    val queryStartID = mln.evidence.domainSpace.queryStartID
-    val queryEndID = mln.evidence.domainSpace.queryEndID
+    val queryStartID = mln.evidence.predicateSpace.queryStartID
+    val queryEndID = mln.evidence.predicateSpace.queryEndID
 
     val iterator = mrf.atoms.iterator()
     while (iterator.hasNext) {

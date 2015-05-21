@@ -30,22 +30,23 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package lomrf.util
+package lomrf.mln.model
 
-import gnu.trove.iterator.TObjectIntIterator
-import gnu.trove.map.hash.TObjectIntHashMap
 import gnu.trove.TCollections
-import lomrf.logic.Constant
-import scala.collection.mutable
-import gnu.trove.map.TObjectIntMap
 import gnu.trove.impl.{Constants => TC}
+import gnu.trove.iterator.TObjectIntIterator
+import gnu.trove.map.TObjectIntMap
+import gnu.trove.map.hash.TObjectIntHashMap
+import lomrf.logic.Constant
+
+import scala.collection.mutable
 
 /**
  * A ConstantsSet is an immutable collection of unique and indexed constant symbols. The symbols are represented by
  * strings and their associated index numbers are represented by positive integers. The association between constant
  * symbols and their indexes (also referred as identities or IDs) is a bijection, that is, an one-to-one mapping.
  */
-sealed trait ConstantsSet extends Iterable[String] with IndexedSeq[String]{
+sealed trait ConstantsSet extends Iterable[String] with IndexedSeq[String] {
 
   /**
    * Gives the constant symbol that is associated to the specified identity, if exists.
@@ -139,8 +140,8 @@ sealed trait ConstantsSet extends Iterable[String] with IndexedSeq[String]{
  * @see ConstantsSetBuilder
  * @see ConstantsSet
  */
-final class ConstantsSetImpl private[util]( private[util] val constants2Id: TObjectIntMap[String],
-                                            private[util] val id2Constants: mutable.ArrayBuffer[String]) extends ConstantsSet {
+final class ConstantsSetImpl( private[model] val constants2Id: TObjectIntMap[String],
+                                      private[model] val id2Constants: mutable.ArrayBuffer[String]) extends ConstantsSet {
 
   import ConstantsSet.NO_ENTRY
 
@@ -189,7 +190,7 @@ final class ConstantsSetImpl private[util]( private[util] val constants2Id: TObj
  * @see ConstantsSetBuilder
  * @see ConstantsSet
  */
-final class ConstantsSetUnaryImpl private[util](val element: String) extends ConstantsSet {
+final class ConstantsSetUnaryImpl(val element: String) extends ConstantsSet {
   import ConstantsSet.NO_ENTRY
 
 
@@ -308,7 +309,7 @@ final class ConstantsSetBuilder(private var constants2Id: TObjectIntHashMap[Stri
                                 private var id2Constants: mutable.ArrayBuffer[String]) extends mutable.Builder[String, ConstantsSet] with Iterable[String]{ self =>
 
   import ConstantsSet.NO_ENTRY
-  import lomrf.util.ConstantsSetBuilder.ConstantSymbol
+  import ConstantsSetBuilder.ConstantSymbol
   import gnu.trove.impl.{Constants => TC}
 
 

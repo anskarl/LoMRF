@@ -37,6 +37,7 @@ import lomrf.logic.AtomSignature
 import lomrf.mln.model.MLN
 import gnu.trove.set.hash.TIntHashSet
 import org.scalatest.{FunSpec, Matchers}
+import lomrf.util.time._
 
 final class AtomIdentityFunctionSpecTest extends FunSpec with Matchers {
 
@@ -94,7 +95,7 @@ final class AtomIdentityFunctionSpecTest extends FunSpec with Matchers {
     // Create an atom identity function
     val initStartTime = currentTimeMillis
     val identityFunction = mkAtomIdentityFunction(signature, mln, 1)
-    info(Utilities.msecTimeToTextUntilNow("Identity function initialisation", initStartTime))
+    info(msecTimeToTextUntilNow("Identity function initialisation", initStartTime))
 
     val schema = mln.getSchemaOf(signature).getOrElse(sys.error("Cannot find signature: " + signature + " in the produced MLN."))
 
@@ -145,10 +146,10 @@ final class AtomIdentityFunctionSpecTest extends FunSpec with Matchers {
       }
     }
 
-    info(Utilities.nsecTimeToText("Total time producing IDs ", totalEnc))
-    info(Utilities.nsecTimeToText("Average time of producing an ID ", totalEnc / expectedNumOfGroundings))
-    info(Utilities.nsecTimeToText("Total time decoding IDs ", totalDec))
-    info(Utilities.nsecTimeToText("Average time of decoding an ID ", totalDec / expectedNumOfGroundings))
+    info(nsecTimeToText("Total time producing IDs ", totalEnc))
+    info(nsecTimeToText("Average time of producing an ID ", totalEnc / expectedNumOfGroundings))
+    info(nsecTimeToText("Total time decoding IDs ", totalDec))
+    info(nsecTimeToText("Average time of decoding an ID ", totalDec / expectedNumOfGroundings))
 
     describe("Filter all instances of Alpha/3") {
 
@@ -314,35 +315,51 @@ final class AtomIdentityFunctionSpecTest extends FunSpec with Matchers {
 
     val initStartTime = currentTimeMillis
     val identityFunction = mkAtomIdentityFunction(signature, mln, 1)
-    info(Utilities.msecTimeToTextUntilNow("Identity function initialisation", initStartTime))
+    info(msecTimeToTextUntilNow("Identity function initialisation", initStartTime))
 
     val schema = mln.getSchemaOf(signature).getOrElse(sys.error("Cannot find " + signature))
 
     val domain = for (s <- schema) yield mln.evidence.constants(s)
-    val expectedNumOfGroundings = domain.map(_.size).product
+    val expectedNumOfGroundings = domain.map(_.size).product.toLong
 
     val cartesianIterator = Cartesian.CartesianIterator(domain)
 
-    var totalEnc: Long = 0
+
     var counter = 0
 
     it("returns valid ids") {
+      var totalEnc = 0L
+      var totalDec = 0L
+
       while (cartesianIterator.hasNext) {
         val product = cartesianIterator.next()
-        val startEncTime = nanoTime
+
+        val startEncTime = System.nanoTime()
         val id = identityFunction.encode(product)
+        val endEncTime = System.nanoTime()
+
+        totalEnc = totalEnc + (endEncTime - startEncTime)
+
+        val startDecTime = System.nanoTime()
         val decElements = identityFunction.decode(id).getOrElse(sys.error("Cannot decode: " + id))
+        val endDecTime = System.nanoTime()
+        totalDec += (endDecTime - startDecTime)
+
         product shouldEqual decElements
 
-        totalEnc += nanoTime - startEncTime
         counter += 1
       }
+
+      info ("totalEnc= "+ totalEnc)
+
+      info(nsecTimeToText("Total time encoding IDs ", totalEnc))
+      info(nsecTimeToText("Average time encoding ID ", totalEnc / expectedNumOfGroundings))
+
+      info(nsecTimeToText("Total time decoding IDs ", totalDec))
+      info(nsecTimeToText("Average time decoding ID ", totalDec / expectedNumOfGroundings))
+
     }
 
-    info(Utilities.nsecTimeToText("Total time producing IDs ", totalEnc))
-    info(Utilities.nsecTimeToText("Avg time producing ID ", totalEnc / expectedNumOfGroundings))
-    info("Expected number of groundings: " + expectedNumOfGroundings)
-    info("Produced  products: " + counter)
 
     describe("The total number of Cartesian products") {
       it("should be equal to the number of expected groundings ( = " + expectedNumOfGroundings + ")") {
@@ -363,7 +380,7 @@ final class AtomIdentityFunctionSpecTest extends FunSpec with Matchers {
 
     val initStartTime = currentTimeMillis
     val identityFunction = mkAtomIdentityFunction(signature, mln, 1)
-    println(Utilities.msecTimeToTextUntilNow("Identity function initialisation", initStartTime))
+    info(msecTimeToTextUntilNow("Identity function initialisation", initStartTime))
 
     val schema = mln.getSchemaOf(signature).getOrElse(sys.error("Cannot find " + signature))
 
@@ -371,28 +388,35 @@ final class AtomIdentityFunctionSpecTest extends FunSpec with Matchers {
     val expectedNumOfGroundings = domain.map(_.size).product
 
     val cartesianIterator = Cartesian.CartesianIterator(domain)
-    //val symbol = identityFunction.signature.symbol
 
-    var totalEnc = 0L
     var counter = 0
 
     it("returns valid ids") {
+      var totalEnc = 0L
+      var totalDec = 0L
+
       while (cartesianIterator.hasNext) {
         val product = cartesianIterator.next()
+
         val startEncTime = nanoTime
         val id = identityFunction.encode(product)
+        totalEnc += nanoTime - startEncTime
+
+        val startDecTime = nanoTime
         val decElements = identityFunction.decode(id).getOrElse(sys.error("Cannot decode: " + id))
+        totalDec += nanoTime - startDecTime
+
         product shouldEqual decElements
 
-        totalEnc += nanoTime - startEncTime
         counter += 1
       }
-    }
 
-    info(Utilities.nsecTimeToText("Total time producing IDs ", totalEnc))
-    info(Utilities.nsecTimeToText("Average time producing ID ", totalEnc / expectedNumOfGroundings))
-    info("Expected number of groundings: " + expectedNumOfGroundings)
-    info("Produced  products: " + counter)
+      info(nsecTimeToText("Total time encoding IDs ", totalEnc))
+      info(nsecTimeToText("Average time encoding ID ", totalEnc / expectedNumOfGroundings))
+
+      info(nsecTimeToText("Total time decoding IDs ", totalDec))
+      info(nsecTimeToText("Average time decoding ID ", totalDec / expectedNumOfGroundings))
+    }
 
 
 

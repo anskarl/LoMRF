@@ -33,7 +33,7 @@
 package lomrf.util.evaluation
 
 import lomrf.logic.AtomSignature
-import lomrf.mln.model.MLN
+import lomrf.mln.model.{AtomEvidenceDB, MLN}
 import lomrf.mln.model.mrf.GroundAtom
 import lomrf.util._
 

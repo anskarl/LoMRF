@@ -37,7 +37,7 @@ import lomrf.logic.AtomSignature
 import lomrf.mln.grounding.MRFBuilder
 import lomrf.mln.model.MLN
 import org.scalatest.{Matchers, FunSpec}
-import lomrf.util.Utilities.io._
+import lomrf.util.io._
 import scala.io.Source
 
 /**

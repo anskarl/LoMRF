@@ -33,17 +33,16 @@
 package lomrf.mln.learning.weight
 
 import java.text.DecimalFormat
-import java.util
 import lomrf.mln.learning.weight.LossFunction.LossFunction
 import lomrf.mln.inference.Solver.Solver
 import lomrf.mln.inference.{Solver, ILP}
-import lomrf.util._
+import lomrf.mln.model.AtomEvidenceDB
+import lomrf.util.time._
 import java.io.PrintStream
 import gnu.trove.map.hash.TIntObjectHashMap
 import lomrf.logic.{FALSE, TriState, TRUE}
 import auxlib.log.Logging
 import lomrf.logic.AtomSignature
-import lomrf.util.AtomEvidenceDB
 import lomrf.mln.model.mrf._
 import optimus.optimization._
 import optimus.algebra._
@@ -359,7 +358,7 @@ final class MaxMarginLearner(mrf: MRF, annotationDB: Map[AtomSignature, AtomEvid
         // Optimize function subject to the constraints introduced
         val s = System.currentTimeMillis()
         start(PreSolve.CONSERVATIVE)
-        info(Utilities.msecTimeToText("Optimization time: ", System.currentTimeMillis() - s))
+        info(msecTimeToText("Optimization time: ", System.currentTimeMillis() - s))
 
         info(
             "\n=========================== Solution ===========================" +
@@ -468,7 +467,7 @@ final class MaxMarginLearner(mrf: MRF, annotationDB: Map[AtomSignature, AtomEvid
     release()
 
     val eLearning = System.currentTimeMillis()
-    info(Utilities.msecTimeToText("Total weight learning time: ", eLearning - sLearning))
+    info(msecTimeToText("Total weight learning time: ", eLearning - sLearning))
   }
 
   /**

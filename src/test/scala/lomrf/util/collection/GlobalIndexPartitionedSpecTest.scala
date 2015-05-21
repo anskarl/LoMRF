@@ -32,8 +32,7 @@
 
 package lomrf.util.collection
 
-import lomrf.mln.model.ConstantsDomainBuilder
-import lomrf.util.ConstantsSet
+import lomrf.mln.model.{ConstantsSet, ConstantsDomainBuilder}
 import org.scalatest.{Matchers, FunSpec}
 
 
@@ -144,40 +143,45 @@ class GlobalIndexPartitionedSpecTest extends FunSpec with Matchers {
       domainNames(idx) = k
       domainsValues(idx) = v
     }
-    val numberOfElements = domainsValues.map(_.size).sum
+
     val partitionSizes = domainsValues.map(_.size)
+    val numberOfElements = partitionSizes.sum
 
-    val partitionFetcher = PartitionFetcher.create[ConstantsSet, String]
+
+    val scenarios =
+      List[(String,GlobalIndexPartitioned[ConstantsSet, String])](
+
+        ("With partition fetcher",
+          GlobalIndexPartitioned[ConstantsSet, String](domainsValues, partitionSizes, PartitionFetcher.create[ConstantsSet, String])),
+
+        ("Without partition fetcher",
+          GlobalIndexPartitioned[ConstantsSet, String](domainsValues))
+      )
+
+    for ((message, collection) <- scenarios ) describe(message) {
 
 
-    describe("The global indexed collection of ConstantsDomain"){
-      val collection = GlobalIndexPartitioned(domainsValues, partitionSizes, partitionFetcher)
-
-      it(s"contains total '$numberOfElements' elements"){
+      it(s"contains total '$numberOfElements' elements") {
         collection.size shouldEqual numberOfElements
       }
 
-      it("provides global access to elements"){
-        var offset = 0
-        for{
-          partNumber <- 0 until collection.numberOfPartitions
-          domain = domainsValues(partNumber)
-          size = domain.size}{
+      it("provides global access to elements") {
 
-          for((element, localIndex) <- domain.zipWithIndex){
-            val globalIndex = offset + localIndex
+        var offset = 0
+        for {
+          partNumber <- 0 until collection.numberOfPartitions
+          domain = domainsValues(partNumber) } {
+
+          for((element, localIndex) <- domain.zipWithIndex; globalIndex = offset + localIndex) {
             collection(globalIndex) shouldEqual element
           }
 
-          offset += size
+          offset += domain.size
         }
 
       }
 
     }
-
-
-
 
   }
 

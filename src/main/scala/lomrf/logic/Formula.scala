@@ -32,7 +32,7 @@
 
 package lomrf.logic
 
-import lomrf.util.ConstantsSet
+import lomrf.mln.model.ConstantsSet
 
 
 sealed trait Formula extends MLNExpression {

@@ -94,27 +94,4 @@ object IndexPartitioned {
     def apply[T: ClassTag](size: Int): IndexPartitioned[T] = apply( new Array[T](size))
   }
 
-
-  /*def apply[T](data: Array[T]): IndexPartitioned[T] = new IndexPartitioned[T] {
-
-    override def apply(idx: Int) = data(math.abs(idx % data.length))
-
-    override def partitions = data.toIterable
-
-    override def size = data.length
-
-    override def partition(partitionIndex: Int) = data(partitionIndex)
-  }
-
-  def apply[T: ClassTag](size: Int, initializer:(Int => T)): IndexPartitioned[T] = {
-    val data = new Array[T](size)
-    
-    optimize(for(i <- 0 until size) data(i) = initializer(i))
-
-    apply(data)
-  }
-
-  def apply[T: ClassTag](size: Int): IndexPartitioned[T] = apply( new Array[T](size))*/
-
-
 }

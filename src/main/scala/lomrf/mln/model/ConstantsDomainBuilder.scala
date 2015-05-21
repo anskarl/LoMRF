@@ -31,7 +31,7 @@
  */
 package lomrf.mln.model
 
-import lomrf.util.ConstantsSetBuilder
+import lomrf.mln.model.ConstantsSetBuilder
 
 import scala.collection.mutable
 

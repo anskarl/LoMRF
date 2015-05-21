@@ -32,7 +32,7 @@
 
 package lomrf.util
 
-import lomrf.mln.model.{ConstantsDomain, MLN}
+import lomrf.mln.model.{ConstantsSet, ConstantsDomain, MLN}
 import lomrf.mln.model.mrf.Constraint
 
 import scala.collection.mutable
@@ -53,7 +53,7 @@ import scalaxy.streams.optimize
 final class AtomIdentityFunction private(
                                           val signature: AtomSignature,
                                           val startID: Int,
-                                          val constantsAndStep: Array[(ConstantsSet, Int, Int, String)],
+                                          val constantsAndStep: Array[(ConstantsSet, Int, Int, String, Int)],
                                           val length: Int,
                                           val schema: Seq[String]) {
 
@@ -90,7 +90,7 @@ final class AtomIdentityFunction private(
     sum
   }
 
-  def encode(constants: scala.collection.IndexedSeq[String]): Int = {
+  /*def encode(constants: scala.collection.IndexedSeq[String]): Int = {
     var sum = startID
     var idx = 0
     while (idx < constants.length) {
@@ -103,7 +103,7 @@ final class AtomIdentityFunction private(
     }
 
     sum
-  }
+  }*/
 
   def encode(constants: Array[String]): Int = {
     var sum = startID
@@ -257,18 +257,20 @@ final class AtomIdentityFunction private(
       var idx = result.length - 1
 
       while (idx > 0) {
-        val sigma = constantsAndStep(idx)._3
-        val constatsSet = constantsAndStep(idx)._1
+        val constAndStep = constantsAndStep(idx)
+        val sigma = constAndStep._3
+        val offset = constAndStep._5
 
         if (sigma <= currentID) {
-          val tmpID = (currentID - (currentID % sigma)) / sigma
-          result(idx) = constatsSet(tmpID)
-          currentID -= (tmpID * sigma)
+          val localID = (currentID - (currentID % sigma)) / sigma
+          result(idx) = offset + localID
+          currentID -= (localID * sigma)
         }
-        else result(idx) = constatsSet(0)
+        else result(idx) = offset // + (tmpID=0)
 
         idx -= 1
       }
+
       val constatsSet = constantsAndStep(idx)._1
       result(idx) = constatsSet(currentID)
 
@@ -361,6 +363,7 @@ final class AtomIdentityFunction private(
 }
 
 object AtomIdentityFunction {
+
   val IDENTITY_NOT_EXIST = 0
 
   def apply(signature: AtomSignature,
@@ -373,7 +376,16 @@ object AtomIdentityFunction {
     val descriptor: Array[String] = schema.toArray
 
     var n = 0
-    val constantsAndStep = new Array[(ConstantsSet, Int, Int, String)](descriptor.length)
+    val constantsAndStep = new Array[(ConstantsSet, Int, Int, String, Int)](descriptor.length)
+
+
+    var constOffsetMap = Map[String, Int]()
+
+    var currentOffset = 0
+    for( ((k, v), idx) <- constants.zipWithIndex ){
+      constOffsetMap += (k -> currentOffset)
+      currentOffset += v.size
+    }
 
     var length = 1
     val iterations = descriptor.length - 1
@@ -383,7 +395,7 @@ object AtomIdentityFunction {
       val symbol = descriptor(i)
       val currentDomain = constants(symbol)
       length *= currentDomain.size
-      constantsAndStep(i) = if (i == 0) (currentDomain, 0, 1, symbol) else (currentDomain, n - 1, n, symbol)
+      constantsAndStep(i) = if (i == 0) (currentDomain, 0, 1, symbol, constOffsetMap(symbol)) else (currentDomain, n - 1, n, symbol, constOffsetMap(symbol))
       n = if (n == 0) currentDomain.size else n * currentDomain.size
       i += 1
     }
@@ -395,7 +407,7 @@ object AtomIdentityFunction {
 
     val atomID = math.abs(literal)
     val signature = AtomSignature.signatureOf(atomID)
-    val idf = mln.evidence.domainSpace.identities(signature)
+    val idf = mln.evidence.predicateSpace.identities(signature)
 
     val negation = if (literal < 0) "!" else ""
 
@@ -406,7 +418,7 @@ object AtomIdentityFunction {
 
     val atomID = math.abs(literal)
     val signature = AtomSignature.signatureOf(atomID)
-    val idf = mln.evidence.domainSpace.identities(signature)
+    val idf = mln.evidence.predicateSpace.identities(signature)
 
     idf.decode(atomID).map(x => s"${signature.symbol}(${x.mkString(",")})")
   }

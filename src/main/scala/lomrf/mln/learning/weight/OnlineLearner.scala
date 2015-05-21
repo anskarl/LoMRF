@@ -41,7 +41,7 @@ import lomrf.logic.{TriState, FALSE, TRUE, AtomSignature}
 import lomrf.logic.AtomSignatureOps._
 import lomrf.mln.inference.{Solver, ILP}
 import lomrf.mln.inference.Solver._
-import lomrf.mln.model.MLN
+import lomrf.mln.model.{AtomEvidenceDB, MLN}
 import lomrf.mln.model.mrf.MRF
 import lomrf.util._
 import scalaxy.streams.optimize

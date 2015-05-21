@@ -36,8 +36,8 @@ import java.io.File
 
 import lomrf.logic.AtomSignature
 import lomrf.mln.model.MLN
-import lomrf.util.Utilities.io._
-import lomrf.util.Utilities.{measureTime, msecTimeToText}
+import lomrf.util.io._
+import lomrf.util.time.{measureTime, msecTimeToText}
 import org.scalatest.{FunSpec, Matchers}
 
 import scala.io.Source

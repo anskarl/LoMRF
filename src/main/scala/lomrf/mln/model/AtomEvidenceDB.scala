@@ -30,22 +30,24 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package lomrf.util
+package lomrf.mln.model
 
 import java.io.PrintStream
 
 import auxlib.log.Logging
-import lomrf.logic._
-import gnu.trove.set.hash.TIntHashSet
-import gnu.trove.set.TIntSet
 import gnu.trove.TCollections
-import gnu.trove.map.hash.TIntDoubleHashMap
 import gnu.trove.map.TIntDoubleMap
+import gnu.trove.map.hash.TIntDoubleHashMap
+import gnu.trove.set.TIntSet
+import gnu.trove.set.hash.TIntHashSet
+import lomrf.logic._
+import lomrf.mln.model
+import lomrf.util.AtomIdentityFunction
 
 
 /**
  * Atoms evidence database is responsible for holding the state (True, False and Unknown)
- * of ground atoms that are given as evidence. Use [[lomrf.util.AtomEvidenceDBBuilder]]
+ * of ground atoms that are given as evidence. Use [[model.AtomEvidenceDBBuilder]]
  * in order to instantiate the appropriate database implementation.
  *
  * @param identity the atom identity [[lomrf.util.AtomIdentityFunction]]

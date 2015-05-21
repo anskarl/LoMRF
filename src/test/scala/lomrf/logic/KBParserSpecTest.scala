@@ -33,7 +33,7 @@
 package lomrf.logic
 
 import lomrf.logic.dynamic.{DynSuccFunctionBuilder, DynPlusFunctionBuilder}
-import lomrf.util.ConstantsSet
+import lomrf.mln.model.ConstantsSet
 import org.scalatest.{Matchers, FunSpec}
 
 /**

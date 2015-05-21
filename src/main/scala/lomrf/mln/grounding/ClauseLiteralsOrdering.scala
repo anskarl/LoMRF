@@ -33,8 +33,7 @@
 package lomrf.mln.grounding
 
 import lomrf.logic.{AtomSignature, Literal}
-import lomrf.mln.model.MLN
-import lomrf.util.AtomEvidenceDB
+import lomrf.mln.model.{AtomEvidenceDB, MLN}
 
 /**
  *

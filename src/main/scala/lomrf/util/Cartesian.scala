@@ -35,6 +35,7 @@ package lomrf.util
 import java.util
 
 import lomrf.logic.Variable
+import lomrf.mln.model.ConstantsSet
 
 import scala.{collection => scol}
 import scalaxy.streams.optimize

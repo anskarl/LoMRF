@@ -34,7 +34,7 @@ package lomrf.mln.model
 
 import auxlib.log.Logger
 import lomrf.logic.AtomSignature
-import lomrf.util.{AtomIdentityFunction, ConstantsSet}
+import lomrf.util.AtomIdentityFunction
 
 /**
  * @param identities a map that associates atom signatures to their corresponding identity functions
@@ -43,7 +43,7 @@ import lomrf.util.{AtomIdentityFunction, ConstantsSet}
  * @param queryStartID the first index of ground query atom in the MRF
  * @param queryEndID the last index of ground query atom in the MRF
  */
-final class MLNSpace private(val identities: Identities,
+final class PredicateSpace private(val identities: Identities,
                              val orderedAtomSignatures: Array[AtomSignature],
                              val orderedStartIDs: Array[Int],
                              val queryStartID: Int,
@@ -68,7 +68,7 @@ final class MLNSpace private(val identities: Identities,
 
 }
 
-object MLNSpace {
+object PredicateSpace {
 
   private val logger = Logger(this.getClass)
 
@@ -76,8 +76,8 @@ object MLNSpace {
   def apply(schema: MLNSchema,
             queryPredicates: Set[AtomSignature],
             hiddenPredicates: Set[AtomSignature],
-            constants: ConstantsDomain): MLNSpace = {
-    MLNSpace(schema.predicates, queryPredicates, hiddenPredicates, constants)
+            constants: ConstantsDomain): PredicateSpace = {
+    PredicateSpace(schema.predicates, queryPredicates, hiddenPredicates, constants)
   }
 
   /**
@@ -92,7 +92,7 @@ object MLNSpace {
   def apply(predicateSchema: PredicateSchema,
             queryPredicates: Set[AtomSignature],
             hiddenPredicates: Set[AtomSignature],
-            constants: ConstantsDomain): MLNSpace = {
+            constants: ConstantsDomain): PredicateSpace = {
 
     val owa = queryPredicates ++ hiddenPredicates
     val cwa = predicateSchema.keySet -- owa
@@ -146,6 +146,6 @@ object MLNSpace {
     }
 
 
-    new MLNSpace(identities, orderedAtomSignatures, orderedStartIDs, queryStartID, queryEndID, queryPredicates, cwa, owa, hiddenPredicates)
+    new PredicateSpace(identities, orderedAtomSignatures, orderedStartIDs, queryStartID, queryEndID, queryPredicates, cwa, owa, hiddenPredicates)
   }
 }

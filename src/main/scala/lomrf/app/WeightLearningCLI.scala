@@ -41,7 +41,7 @@ import lomrf.mln.grounding.MRFBuilder
 import lomrf.mln.inference.Solver
 import lomrf.mln.learning.weight.{OnlineLearner, LossFunction, MaxMarginLearner}
 import lomrf.mln.model.MLN
-import lomrf.util.Utilities
+import lomrf.util.time._
 
 /**
  * Command-line tool for weight learning
@@ -324,7 +324,7 @@ object WeightLearningCLI extends OptionParser with Logging {
         learner.learningStep(step + 1, mrf, annotationDB)
       }
 
-      info(Utilities.msecTimeToTextUntilNow("Total learning time: ", start))
+      info(msecTimeToTextUntilNow("Total learning time: ", start))
       learner.writeResults(outputWriter)
     }
 

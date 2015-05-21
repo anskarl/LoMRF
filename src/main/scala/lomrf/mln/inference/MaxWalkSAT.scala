@@ -34,10 +34,10 @@ package lomrf.mln.inference
 
 import auxlib.log.Logging
 import lomrf.mln.model.mrf.{GroundAtom, MRFState, MRF}
-import MRF.{NO_ATOM, NO_CONSTRAINT, NO_ATOM_ID}
+import MRF.{NO_ATOM, NO_ATOM_ID}
 import java.io.PrintStream
 import java.util.concurrent.ThreadLocalRandom
-import lomrf.util.Utilities
+import lomrf.util.time._
 import lomrf.util.LongDoubleConversions._
 
 import scala.util.{Failure, Success}
@@ -97,7 +97,7 @@ final case class MaxWalkSAT(mrf: MRF, pBest: Double = 0.5, maxFlips: Int = 10000
     val endTime = System.currentTimeMillis()
     state.evaluateState()
     state.printStatistics()
-    info(Utilities.msecTimeToText("Total Max-WalkSAT time: ", endTime - startTime))
+    info(msecTimeToText("Total Max-WalkSAT time: ", endTime - startTime))
 
     // return the best state
     state
@@ -257,8 +257,8 @@ final case class MaxWalkSAT(mrf: MRF, pBest: Double = 0.5, maxFlips: Int = 10000
 
     implicit val mln = mrf.mln
 
-    val queryStartID = mln.evidence.domainSpace.queryStartID
-    val queryEndID = mln.evidence.domainSpace.queryEndID
+    val queryStartID = mln.evidence.predicateSpace.queryStartID
+    val queryEndID = mln.evidence.predicateSpace.queryEndID
 
     val iterator = mrf.atoms.iterator()
 

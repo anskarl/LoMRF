@@ -103,8 +103,8 @@ object MRF {
             weightHard: Double,
             dependencyMap: Option[DependencyMap] = None): MRF = {
 
-    val queryAtomStartID = mln.evidence.domainSpace.queryStartID
-    val queryAtomEndID = mln.evidence.domainSpace.queryEndID
+    val queryAtomStartID = mln.evidence.predicateSpace.queryStartID
+    val queryAtomEndID = mln.evidence.predicateSpace.queryEndID
 
     //create positive-and-negative literal to constraint occurrence maps
     val iterator = constraints.iterator()

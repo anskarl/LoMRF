@@ -37,8 +37,9 @@ import java.io.PrintStream
 import auxlib.log.Logging
 import lomrf.mln.inference.RoundingScheme.RoundingScheme
 import lomrf.mln.inference.Solver.Solver
+import lomrf.mln.model.AtomEvidenceDB
 import lomrf.mln.model.mrf._
-import lomrf.util._
+import lomrf.util.time._
 import lomrf.util.AtomIdentityFunctionOps._
 import lomrf.logic.AtomSignatureOps._
 import gnu.trove.map.hash.TIntObjectHashMap
@@ -214,7 +215,7 @@ final class ILP(mrf: MRF, annotationDB: Map[AtomSignature, AtomEvidenceDB] = Map
     }
 
     val eTranslation = System.currentTimeMillis()
-    info(Utilities.msecTimeToText("Translation time: ", eTranslation - sTranslation))
+    info(msecTimeToText("Translation time: ", eTranslation - sTranslation))
 
     info(
         "\nGround Atoms: " + mrf.numberOfAtoms +
@@ -229,7 +230,7 @@ final class ILP(mrf: MRF, annotationDB: Map[AtomSignature, AtomEvidenceDB] = Map
     release()
 
     val eSolver = System.currentTimeMillis()
-    info(Utilities.msecTimeToText("Solver time: ", eSolver - sSolver))
+    info(msecTimeToText("Solver time: ", eSolver - sSolver))
 
     info(
         "\n=========================== Solution ===========================" +
@@ -320,10 +321,10 @@ final class ILP(mrf: MRF, annotationDB: Map[AtomSignature, AtomEvidenceDB] = Map
     debug("Unfixed atoms: " + state.countUnfixAtoms())
 
     val eRoundUp = System.currentTimeMillis()
-    info(Utilities.msecTimeToText("Roundup time: ", eRoundUp - sRoundUp))
+    info(msecTimeToText("Roundup time: ", eRoundUp - sRoundUp))
 
     state.printStatistics()
-    info(Utilities.msecTimeToText("Total ILP time: ", (eTranslation - sTranslation) +
+    info(msecTimeToText("Total ILP time: ", (eTranslation - sTranslation) +
                                                       (eSolver - sSolver) +
                                                       (eRoundUp - sRoundUp)
     ))
@@ -339,8 +340,8 @@ final class ILP(mrf: MRF, annotationDB: Map[AtomSignature, AtomEvidenceDB] = Map
   def writeResults(out: PrintStream = System.out) {
 
 
-    val queryStartID = mln.evidence.domainSpace.queryStartID
-    val queryEndID = mln.evidence.domainSpace.queryEndID
+    val queryStartID = mln.evidence.predicateSpace.queryStartID
+    val queryEndID = mln.evidence.predicateSpace.queryEndID
 
     val iterator = mrf.atoms.iterator()
 

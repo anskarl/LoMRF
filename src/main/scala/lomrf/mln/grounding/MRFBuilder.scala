@@ -43,7 +43,7 @@ import gnu.trove.map.TIntFloatMap
 import gnu.trove.map.hash.TIntObjectHashMap
 import lomrf.mln.model.MLN
 import lomrf.mln.model.mrf.{Constraint, GroundAtom, MRF}
-import lomrf.util.Utilities
+import lomrf.util.time._
 import lomrf.{DEFAULT_CAPACITY, DEFAULT_LOAD_FACTOR, NO_ENTRY_KEY}
 
 import scala.concurrent.Await
@@ -220,7 +220,7 @@ final class MRFBuilder(val mln: MLN,
     }
 
     info("Grounding completed:" +
-      "\n\tTotal grounding time: " + Utilities.msecTimeToText(endTime - startTime)
+      "\n\tTotal grounding time: " + msecTimeToText(endTime - startTime)
       + "\n\tTotal ground clauses: " + constraints.size()
       + "\n\tTotal ground atoms: " + atoms.size())
 

@@ -32,10 +32,8 @@
 
 package lomrf.mln.model
 
-import auxlib.log.{Logger, Logging}
+import auxlib.log.Logger
 import lomrf.logic._
-import lomrf.mln.model.MLNSpace$
-import lomrf.util.Utilities.TimeGranularity
 import lomrf.util._
 import scala.collection.breakOut
 
@@ -57,7 +55,7 @@ final class MLN(val schema: MLNSchema,
    * @param signature the atom's signature
    * @return true if the given atom signature corresponds to an atom with closed-world assumption, otherwise false.
    */
-  def isCWA(signature: AtomSignature): Boolean = evidence.domainSpace.cwa.contains(signature)
+  def isCWA(signature: AtomSignature): Boolean = evidence.predicateSpace.cwa.contains(signature)
 
   /**
    * Determine if the given atom signature corresponds to an atom with open-world assumption.
@@ -65,7 +63,7 @@ final class MLN(val schema: MLNSchema,
    * @param signature the atom's signature
    * @return true if the given atom signature corresponds to an atom with open-world assumption, otherwise false.
    */
-  def isOWA(signature: AtomSignature): Boolean = evidence.domainSpace.owa.contains(signature)
+  def isOWA(signature: AtomSignature): Boolean = evidence.predicateSpace.owa.contains(signature)
 
   /**
    * Determine whether the given atom signature corresponds to an atom which may have three states according to
@@ -86,7 +84,7 @@ final class MLN(val schema: MLNSchema,
    * @param signature the atom's signature
    * @return true if the given atom signature corresponds to a query atom, otherwise false.
    */
-  def isQueryAtom(signature: AtomSignature): Boolean = evidence.domainSpace.queryAtoms.contains(signature)
+  def isQueryAtom(signature: AtomSignature): Boolean = evidence.predicateSpace.queryAtoms.contains(signature)
 
   /**
    * Determine if the given atom signature corresponds to a dynamic atom.
@@ -102,7 +100,7 @@ final class MLN(val schema: MLNSchema,
    * @param signature the atom's signature
    * @return true if the given atom signature corresponds to an evidence atom, otherwise false.
    */
-  def isEvidenceAtom(signature: AtomSignature): Boolean = evidence.domainSpace.cwa.contains(signature)
+  def isEvidenceAtom(signature: AtomSignature): Boolean = evidence.predicateSpace.cwa.contains(signature)
 
   /**
    * Determine if the given atom signature corresponds to a hidden atom (i.e. is not evidence and not query)
@@ -110,7 +108,7 @@ final class MLN(val schema: MLNSchema,
    * @param signature the atom's signature
    * @return true if the given atom signature corresponds to a hidden atom, otherwise false.
    */
-  def isHiddenAtom(signature: AtomSignature): Boolean = evidence.domainSpace.hiddenAtoms.contains(signature)
+  def isHiddenAtom(signature: AtomSignature): Boolean = evidence.predicateSpace.hiddenAtoms.contains(signature)
 
   /**
    * @param signature the atom's signature
@@ -135,13 +133,13 @@ final class MLN(val schema: MLNSchema,
    */
   def getStateOf(signature: AtomSignature, atomId: Int) = evidence.db(signature).get(atomId)
 
-  def queryAtoms: Set[AtomSignature] = evidence.domainSpace.queryAtoms
+  def queryAtoms: Set[AtomSignature] = evidence.predicateSpace.queryAtoms
 
-  def cwa: Set[AtomSignature] = evidence.domainSpace.cwa
+  def cwa: Set[AtomSignature] = evidence.predicateSpace.cwa
 
-  def owa: Set[AtomSignature] = evidence.domainSpace.owa
+  def owa: Set[AtomSignature] = evidence.predicateSpace.owa
 
-  def hiddenAtoms: Set[AtomSignature] = evidence.domainSpace.hiddenAtoms
+  def hiddenAtoms: Set[AtomSignature] = evidence.predicateSpace.hiddenAtoms
 
   def probabilisticAtoms: Set[AtomSignature] = evidence.probabilisticAtoms
 
@@ -183,7 +181,7 @@ object MLN {
 
     val schema = MLNSchema(predicateSchema, functionSchema, dynamicPredicates, dynamicFunctions)
 
-    val space = MLNSpace(predicateSchema, queryAtoms, hiddenPredicates, constants)
+    val space = PredicateSpace(predicateSchema, queryAtoms, hiddenPredicates, constants)
 
     val evidence = Evidence(constants, evidenceDB, functionMappers, space)
 
@@ -198,7 +196,7 @@ object MLN {
             constants: ConstantsDomain,
             functionMappers: FunctionMappers,
             evidenceDB: EvidenceDB,
-            space: MLNSpace): MLN = {
+            space: PredicateSpace): MLN = {
 
     val evidence = Evidence(constants,evidenceDB,functionMappers,space)
 
@@ -320,7 +318,7 @@ object MLN {
 
     //parse the training evidence database (contains the annotation, i.e., the truth values of all query/hidden atoms)
     val trainingEvidence = Evidence.fromFiles(kb, constantsDomainBuilder, nonEvidenceAtoms, trainingFileNames)
-    val domainSpace = trainingEvidence.domainSpace
+    val domainSpace = trainingEvidence.predicateSpace
 
     var (annotationDB, atomStateDB) = trainingEvidence.db.partition(e => nonEvidenceAtoms.contains(e._1))
 
@@ -354,7 +352,7 @@ object MLN {
 
     val clauses = NormalForm.compileCNF(formulas)(trainingEvidence.constants).toVector
 
-    val evidence = new Evidence(trainingEvidence.constants, atomStateDB, trainingEvidence.functionMappers, trainingEvidence.domainSpace)
+    val evidence = new Evidence(trainingEvidence.constants, atomStateDB, trainingEvidence.functionMappers, trainingEvidence.predicateSpace)
 
     (new MLN(kb.schema, evidence, clauses), annotationDB)
   }

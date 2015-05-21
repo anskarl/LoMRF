@@ -34,7 +34,7 @@ package lomrf.tests
 
 import lomrf.logic.AtomSignature
 import lomrf.logic.predef._
-import lomrf.util.{FunctionMapper, ConstantsSet}
+import lomrf.mln.model.{ConstantsSet, FunctionMapper}
 
 /**
  * Simple function-free EC domain for testing

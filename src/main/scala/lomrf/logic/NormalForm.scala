@@ -33,10 +33,10 @@
 package lomrf.logic
 
 import auxlib.log.Logger
+import lomrf.mln.model.ConstantsSet
 
 import annotation.tailrec
 import collection.mutable
-import lomrf.util.ConstantsSet
 
 /**
  * Contains functions that convert a First Order Logic (FOL) formula into a normal form,

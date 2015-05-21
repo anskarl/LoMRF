@@ -114,10 +114,10 @@ object AtomSignature {
   def signatureOf(literal: Int)(implicit mln: MLN): AtomSignature = {
 
     val atomID = math.abs(literal)
-    val result = java.util.Arrays.binarySearch(mln.evidence.domainSpace.orderedStartIDs, atomID)
+    val result = java.util.Arrays.binarySearch(mln.evidence.predicateSpace.orderedStartIDs, atomID)
     val position = if(result < 0) (-result) - 2 else result
 
-    mln.evidence.domainSpace.orderedAtomSignatures(position)
+    mln.evidence.predicateSpace.orderedAtomSignatures(position)
   }
 
 }
