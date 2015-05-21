@@ -61,6 +61,8 @@ final class AtomIdentityFunction private(
 
   val endID = startID + length
 
+  lazy val indices = startID until endID
+
   def encode(atom: EvidenceAtom): Int = {
     var sum = startID
     var idx = 0
@@ -214,7 +216,7 @@ final class AtomIdentityFunction private(
 
   def decode(id: Int): Try[IndexedSeq[String]] = {
     // check bounds
-    if (id < startID || id > endID)
+    if (id < startID || id >= endID)
       return Failure(new IndexOutOfBoundsException(s"The given atom id '$id' is out of bounds, thus cannot be decoded."))
 
     val baseID = id - startID
@@ -246,7 +248,7 @@ final class AtomIdentityFunction private(
   //todo
   /*def extract(id: Int): Try[IndexedSeq[Int]] = {
       // check bounds
-      if (id < startID || id > endID)
+      if (id < startID || id >= endID)
         return Failure(new IndexOutOfBoundsException(s"The given atom id '$id' is out of bounds, thus cannot be decoded."))
 
       val baseID = id - startID
