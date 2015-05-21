@@ -92,7 +92,7 @@ final class AtomIdentityFunction private(
     sum
   }
 
-  /*def encode(constants: scala.collection.IndexedSeq[String]): Int = {
+  def encode(constants: IndexedSeq[String]): Int = {
     var sum = startID
     var idx = 0
     while (idx < constants.length) {
@@ -105,7 +105,7 @@ final class AtomIdentityFunction private(
     }
 
     sum
-  }*/
+  }
 
   def encode(constants: Array[String]): Int = {
     var sum = startID
@@ -122,7 +122,7 @@ final class AtomIdentityFunction private(
     sum
   }
 
-  def encode2(constantIds: Array[Int]): Int = {
+  def encodeIndices(constantIds: Array[Int]): Int = {
     var sum = startID
     var idx = 0
     while (idx < constantIds.length) {

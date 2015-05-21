@@ -49,7 +49,7 @@ object Cartesian {
 
   object CartesianIterator {
 
-    def apply[T](sets: Iterable[Iterable[T]])(implicit m: Manifest[T]): Iterator[Seq[T]] = {
+    def apply[T](sets: Iterable[Iterable[T]])(implicit m: Manifest[T]): Iterator[Array[T]] = {
 
       val iterators = new Array[Iterator[T]](sets.size)
       val elements = new Array[T](sets.size)
@@ -92,12 +92,12 @@ object Cartesian {
   private class CartesianIteratorSeqImpl[T](
                                              sets: Array[Iterable[T]],
                                              iterators: Array[Iterator[T]],
-                                             elements: Array[T]) extends Iterator[Seq[T]] {
+                                             elements: Array[T]) extends Iterator[Array[T]] {
     private var has_next = true
 
 
-    def next(): Seq[T] = {
-      val result = elements.toList
+    def next(): Array[T] = {
+      val result = elements.clone()
       var currentIterator = iterators(0)
 
       if (currentIterator.hasNext) elements(0) = currentIterator.next()

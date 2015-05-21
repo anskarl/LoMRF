@@ -68,7 +68,7 @@ final class AtomIdentityFunctionSpecTest extends FunSpec with Matchers {
   // --------------------------------------------
   // --- Utility functions:
   // --------------------------------------------
-  private implicit def toStr(iterable: Iterable[String]): String = "(" + iterable.map(_.toString).reduceLeft(_ + "," + _) + ")"
+  private implicit def toStr(iterable: Iterable[String]): String = s"(${iterable.mkString(",")})"
 
   private def mkAtomIdentityFunction(signature: AtomSignature, mln: MLN, startID: Int): AtomIdentityFunction = {
     val schema = mln.getSchemaOf(signature).getOrElse(sys.error("Cannot find the schema of predicate: " + signature))
@@ -97,7 +97,7 @@ final class AtomIdentityFunctionSpecTest extends FunSpec with Matchers {
     val identityFunction = mkAtomIdentityFunction(signature, mln, 1)
     info(msecTimeToTextUntilNow("Identity function initialisation", initStartTime))
 
-    val schema = mln.getSchemaOf(signature).getOrElse(sys.error("Cannot find signature: " + signature + " in the produced MLN."))
+    val schema = mln.getSchemaOf(signature).getOrElse(sys.error(s"Cannot find signature: '$signature' in the produced MLN."))
 
     val domain = for (s <- schema) yield mln.evidence.constants(s)
     val expectedNumOfGroundings = domain.map(_.size).product
@@ -115,7 +115,7 @@ final class AtomIdentityFunctionSpecTest extends FunSpec with Matchers {
 
     while (cartesianIterator.hasNext) {
       val product = cartesianIterator.next() // get the next collection of Constants
-      allProductsStr += product
+      allProductsStr += product.toSeq
 
       describe("Atom '" + symbol + "(" + product + ")") {
 
@@ -141,7 +141,7 @@ final class AtomIdentityFunctionSpecTest extends FunSpec with Matchers {
     }
 
     describe("The total number of Cartesian products") {
-      it("should be equal to the number of expected groundings ( = " + expectedNumOfGroundings + ")") {
+      it(s"should be equal to the number of expected groundings ( = $expectedNumOfGroundings)") {
         idSet.size shouldEqual expectedNumOfGroundings
       }
     }
