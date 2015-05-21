@@ -73,7 +73,13 @@ final class ILP(mrf: MRF, annotationDB: Map[AtomSignature, AtomEvidenceDB] = Map
                 lossAugmented: Boolean = false) extends Logging {
 
   // Select the appropriate mathematical programming solver
-  implicit val problem = if(ilpSolver == Solver.GUROBI) LQProblem(SolverLib.gurobi) else LQProblem(SolverLib.lp_solve)
+  //implicit val problem = if(ilpSolver == Solver.GUROBI) LQProblem(SolverLib.gurobi) else LQProblem(SolverLib.lp_solve)
+
+  implicit val problem = ilpSolver match {
+    case Solver.GUROBI => LQProblem(SolverLib.gurobi)
+    case Solver.LPSOLVE => LQProblem(SolverLib.lp_solve)
+    case Solver.OJALGO => LQProblem(SolverLib.oJalgo)
+  }
 
   implicit val mln = mrf.mln
 
@@ -377,5 +383,5 @@ object RoundingScheme extends Enumeration {
  */
 object Solver extends Enumeration {
   type Solver = Value
-  val GUROBI, LPSOLVE = Value
+  val GUROBI, LPSOLVE, OJALGO = Value
 }

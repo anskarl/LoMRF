@@ -47,7 +47,7 @@ import auxlib.log.Logging
 /**
  * Command-line tool for inference.
  */
-object InferenceCLI extends OptionParser with Logging {
+object InferenceCLI extends CLIApp {
 
   // The path to the input MLN file
   private var _mlnFileName: Option[String] = None
@@ -213,11 +213,12 @@ object InferenceCLI extends OptionParser with Logging {
     }
   })
 
-  opt("ilpSolver", "ilp-solver", "<gurobi | lpsolve>", "Solver used by ILP (default is LPSolve).", {
+  opt("ilpSolver", "ilp-solver", "<lpsolve | ojalgo | gurobi>", "Solver used by ILP (default is LPSolve).", {
     v: String => v.trim.toLowerCase match {
       case "gurobi" => _ilpSolver = Solver.GUROBI
       case "lpsolve" => _ilpSolver = Solver.LPSOLVE
-      case _ => fatal("Unknown parameter for ILP solver type '" + v + "'.")
+      case "ojalgo" => _ilpSolver = Solver.OJALGO
+      case _ => fatal(s"Unknown parameter for ILP solver type '$v'.")
     }
   })
 
@@ -286,15 +287,6 @@ object InferenceCLI extends OptionParser with Logging {
     println(usage)
     sys.exit(0)
   })
-
-  def main(args: Array[String]) {
-
-    println(lomrf.ASCIILogo)
-    println(lomrf.BuildVersion)
-
-    if (args.length == 0) println(usage)
-    else if (parse(args)) infer()
-  }
 
   def infer() {
 
@@ -381,6 +373,11 @@ object InferenceCLI extends OptionParser with Logging {
       }
     }
   }
+
+  // MAIN
+
+  if (args.length == 0) println(usage)
+  else if (parse(args)) infer()
 }
 
 

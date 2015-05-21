@@ -46,7 +46,7 @@ import lomrf.util.time._
 /**
  * Command-line tool for weight learning
  */
-object WeightLearningCLI extends OptionParser with Logging {
+object WeightLearningCLI extends CLIApp {
 
   // The path to the input MLN file
   private var _mlnFileName: Option[String] = None
@@ -218,15 +218,6 @@ object WeightLearningCLI extends OptionParser with Logging {
     sys.exit(0)
   })
 
-  def main(args: Array[String]) {
-
-    println(lomrf.ASCIILogo)
-    println(lomrf.BuildVersion)
-
-    if (args.length == 0) println(usage)
-    else if (parse(args)) weightLearn()
-  }
-
   def weightLearn() = {
 
     val strMLNFileName = _mlnFileName.getOrElse(fatal("Please specify an input MLN file."))
@@ -331,6 +322,11 @@ object WeightLearningCLI extends OptionParser with Logging {
       + "\n\tEvidence atoms     : " + mln.cwa.mkString(",")
       + "\n\tNon-evidence atoms : " + mln.owa.mkString(","))
   }
+
+
+  // MAIN:
+  if (args.length == 0) println(usage)
+  else if (parse(args)) weightLearn()
 }
 
 /**
