@@ -3,7 +3,7 @@ import com.typesafe.sbt.SbtNativePackager._
 /** Project */
 name := "LoMRF"
 
-version := "0.3.1-beta_201505"
+version := "0.4-beta_201505"
 
 organization := "com.github.anskarl"
 
@@ -105,6 +105,12 @@ libraryDependencies ++= Seq(
 
 // Adding optimus library requires local publishing (for details see https://github.com/vagm/Optimus)
 libraryDependencies += "com.github.vagm" %% "optimus" % "1.2"
+
+// oJalgo library for optimization
+libraryDependencies += "org.ojalgo" % "ojalgo" % "38.0" from "https://repo1.maven.org/maven2/org/ojalgo/ojalgo/38.0/ojalgo-38.0.jar"
+
+//lp_solve
+libraryDependencies += "com.datumbox" % "lpsolve" % "5.5.2.0"
 
 // Include utility bash scripts in the 'bin' directory
 mappings in Universal <++= (packageBin in Compile) map { jar =>
