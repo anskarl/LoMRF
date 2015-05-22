@@ -37,11 +37,14 @@ fi
 # debug information in 'debug.log' file, otherwise use default (INFO level)
 # console output logging.
 #
-if [ -n "$LOMRF_DEBUG" -a "$LOMRF_DEBUG" -eq 1 ]; then
+if [[ -n $LOMRF_DEBUG && $LOMRF_DEBUG -eq 1 ]]; then
 	if [ ! -f $ETC_DIR/logback-debug.xml ]; then
 		echo "Cannot find logging configuration file '$ETC_DIR/logback-debug.xml'"
 		exit 1
 	fi
+	echo "Debug output is enabled (LOMRF_DEBUG=1)."
+	echo "Debug output will be stored into the 'debug.log' file."
+
 	VM_ARGS=" -Dlogback.configurationFile=$ETC_DIR/logback-debug.xml "
 else
 	if [ ! -f $ETC_DIR/logback.xml ]; then
