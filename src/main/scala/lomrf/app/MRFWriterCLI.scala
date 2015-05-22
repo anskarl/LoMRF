@@ -36,7 +36,9 @@ import java.io.{FileWriter, BufferedWriter}
 import java.text.DecimalFormat
 import auxlib.log.Logging
 import auxlib.opt.OptionParser
-import lomrf.logic.AtomSignature
+import lomrf.logic._
+import lomrf.logic.AtomSignatureOps._
+import lomrf.util.AtomIdentityFunctionOps._
 import lomrf.logic.PredicateCompletionMode._
 import lomrf.logic.dynamic.{DynamicFunctionBuilder, DynamicAtomBuilder}
 import lomrf.mln.grounding.MRFBuilder
@@ -44,12 +46,10 @@ import lomrf.mln.model.MLN
 import lomrf.mln.model.mrf.MRF
 import lomrf.util._
 
-import scala.collection.mutable.{ArrayBuffer, ListBuffer}
+import scala.collection.mutable.ArrayBuffer
 
 /**
  * Commandline tool for exporting ground MRF into various formats.
- *
- * @author Anastasios Skarlatidis
  */
 object MRFWriterCLI extends Logging {
   private lazy val numFormat = new DecimalFormat("0.#########")
@@ -69,8 +69,8 @@ object MRFWriterCLI extends Logging {
         case Some(paths) =>
           val implFinder = ImplFinder(classOf[DynamicAtomBuilder], classOf[DynamicFunctionBuilder])
           implFinder.searchPaths(paths)
-          MLN(strMLNFileName, strEvidenceFileName, opt.query, opt.cwa, opt.owa, pcm = Decomposed, dynamicDefinitions = Some(implFinder.result))
-        case None => MLN(strMLNFileName, strEvidenceFileName, opt.query, opt.cwa, opt.owa, pcm = Decomposed)
+          MLN.fromFile(strMLNFileName, opt.query, strEvidenceFileName, opt.cwa, opt.owa, pcm = Decomposed, dynamicDefinitions = Some(implFinder.result))
+        case None => MLN.fromFile(strMLNFileName, opt.query, strEvidenceFileName, opt.cwa, opt.owa, pcm = Decomposed)
       }
 
 
@@ -101,7 +101,7 @@ object MRFWriterCLI extends Logging {
       val constraint = constraintsIterator.value()
       out.write(
         numFormat.format(
-          if (constraint.weight == Double.PositiveInfinity) mrf.weightHard else constraint.weight
+          if (constraint.getWeight == Double.PositiveInfinity) mrf.weightHard else constraint.getWeight
         )
       )
       out.write(" ")
@@ -122,19 +122,17 @@ object MRFWriterCLI extends Logging {
     while (constraintsIterator.hasNext) {
       constraintsIterator.advance()
       val constraint = constraintsIterator.value()
+
       //begin -- write weight value (if the feature is soft-constrained)
-      if (!constraint.weight.isInfinite && !constraint.weight.isNaN && constraint.weight != mrf.weightHard) out.write(numFormat.format(constraint.weight) + " ")
+      if (!constraint.getWeight.isInfinite && !constraint.getWeight.isNaN && constraint.getWeight != mrf.weightHard)
+        out.write(numFormat.format(constraint.getWeight) + " ")
+
       //write ground literals
-      val clause = constraint.literals.map {
-        literal =>
-          decodeLiteral(literal) match {
-            case Some(litTXT) => litTXT
-            case None => sys.error("Cannot decode literal: " + literal)
-          }
-      }.reduceLeft(_ + " v " + _)
+      val clause = constraint.literals.map(l => l.decodeLiteral.getOrElse(sys.error("Cannot decode literal: " + l))).mkString(" v ")
+
       out.write(clause)
 
-      if (constraint.weight.isInfinite || constraint.weight == mrf.weightHard) out.write(".")
+      if (constraint.getWeight.isInfinite || constraint.getWeight == mrf.weightHard) out.write(".")
       //end -- change line
       out.newLine()
     }
@@ -157,24 +155,18 @@ object MRFWriterCLI extends Logging {
     fgOutput.write(mrf.constraints.size().toString)
     fgOutput.newLine()
 
-
     val constraintsIterator = mrf.constraints.iterator()
     while (constraintsIterator.hasNext) {
       fgOutput.newLine()
       constraintsIterator.advance()
       val constraint = constraintsIterator.value()
       val literals = constraint.literals
-      val weight = constraint.weight
+      val weight = constraint.getWeight
       require(!weight.isNaN && !weight.isInfinite)
 
       // write ground clause as comment for evaluation
-      val txtLiterals = constraint.literals.map {
-        literal =>
-          decodeLiteral(literal) match {
-            case Some(litTXT) => litTXT
-            case None => sys.error("Cannot decode literal: " + literal)
-          }
-      }.reduceLeft(_ + " v " + _)
+      val txtLiterals = constraint.literals.map(l => l.decodeLiteral.getOrElse(sys.error("Cannot decode literal: " + l))).mkString(" v ")
+
       fgOutput.write("# " + (if (weight == mrf.weightHard) txtLiterals + "." else weight.toString + " " + txtLiterals))
       fgOutput.newLine()
       // write the number of variables of the factor
@@ -251,13 +243,9 @@ object MRFWriterCLI extends Logging {
     while (atomsIterator.hasNext) {
       atomsIterator.advance()
       val atomID = atomsIterator.key()
-      decodeAtom(atomID) match {
-        case Some(txtAtom) =>
-          mOut.write((atomID - 1) + " " + txtAtom)
-          mOut.newLine()
-        case None => sys.error("Failed to decode atom id " + atomID + " (possible bug?).")
-      }
-
+      val txtAtom = atomID.decodeAtom.getOrElse(sys.error(s"Failed to decode atom id: '$atomID' (possible bug?)."))
+      mOut.write((atomID - 1) + " " + txtAtom)
+      mOut.newLine()
     }
     mOut.flush()
     mOut.close()
@@ -320,31 +308,33 @@ object MRFWriterCLI extends Logging {
       }
     })
 
-    booleanOpt("noNeg", "eliminate-negative-weights", "Eliminate negative weight values from ground clauses (default is " + _noNeg + ").", _noNeg = _)
+    flagOpt("noNegWeights", "eliminate-negative-weights", "Eliminate negative weight values from ground clauses.", {
+      _noNeg = true
+    })
 
-    booleanOpt("noNegatedUnit", "eliminate-negated-unit", "Eliminate negated unit ground clauses (default is " + _eliminateNegatedUnit + ").", _eliminateNegatedUnit = _)
+    flagOpt("noNegatedUnit", "eliminate-negated-unit", "Eliminate negated unit ground clauses.", {
+      _eliminateNegatedUnit = true
+    })
 
     opt("dynamic", "dynamic-implementations", "<string>", "Comma separated paths to search recursively for dynamic predicates/functions implementations (*.class and *.jar files).", {
       path: String => if (!path.isEmpty) implPaths = Some(path.split(','))
     })
-
 
     flagOpt("h", "help", "Print usage options.", {
       println(usage)
       sys.exit(0)
     })
 
-
     private def addQueryAtom(atom: String) {
-      query += parseAtomSignature(atom).getOrElse(fatal("Cannot parse the arity of query atom: " + atom))
+      query += atom.signature.getOrElse(fatal("Cannot parse the arity of query atom: " + atom))
     }
 
     private def addCWA(atom: String) {
-      cwa += parseAtomSignature(atom).getOrElse(fatal("Cannot parse the arity of CWA atom: " + atom))
+      cwa += atom.signature.getOrElse(fatal("Cannot parse the arity of CWA atom: " + atom))
     }
 
     private def addOWA(atom: String) {
-      owa += parseAtomSignature(atom).getOrElse(fatal("Cannot parse the arity of OWA atom: " + atom))
+      owa += atom.signature.getOrElse(fatal("Cannot parse the arity of OWA atom: " + atom))
     }
   }
 

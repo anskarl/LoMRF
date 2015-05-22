@@ -38,15 +38,17 @@ import akka.actor._
 import akka.pattern._
 import akka.util.Timeout
 import auxlib.log.Logging
+import auxlib.trove.TroveConversions._
+import gnu.trove.map.TIntFloatMap
 import gnu.trove.map.hash.TIntObjectHashMap
 import lomrf.mln.model.MLN
-import lomrf.mln.model.mrf.{GroundAtom, Constraint, MRF}
-import lomrf.util.Utilities
+import lomrf.mln.model.mrf.{Constraint, GroundAtom, MRF}
+import lomrf.util.time._
 import lomrf.{DEFAULT_CAPACITY, DEFAULT_LOAD_FACTOR, NO_ENTRY_KEY}
 
 import scala.concurrent.Await
 import scala.language.postfixOps
-import scalaxy.loops._
+import scalaxy.streams.optimize
 
 
 /**
@@ -93,9 +95,14 @@ import scalaxy.loops._
  * @param noNegWeights transform negative weighted clauses into (possibly several) positive weighted clauses (default is false, since the inference algorithms support negative weights).
  * @param eliminateNegatedUnit eliminate negated unit clauses by transforming them into negative positive unit clauses.
  *
- * @author Anastasios Skarlatidis
+ *
  */
-final class MRFBuilder(val mln: MLN, noNegWeights: Boolean = false, eliminateNegatedUnit: Boolean = false) extends Logging {
+final class MRFBuilder(val mln: MLN,
+                       noNegWeights: Boolean = false,
+                       eliminateNegatedUnit: Boolean = false,
+                       createDependencyMap: Boolean = false) extends Logging {
+
+  import messages._
 
   private val mcSatParam = 1
 
@@ -109,7 +116,7 @@ final class MRFBuilder(val mln: MLN, noNegWeights: Boolean = false, eliminateNeg
     val latch = new CountDownLatch(1)
 
     val startTime = System.currentTimeMillis()
-    val masterActor = system.actorOf(Props(new GroundingMaster(mln, latch, noNegWeights, eliminateNegatedUnit)), name = "master")
+    val masterActor = system.actorOf(Props(new GroundingMaster(mln, latch, noNegWeights, eliminateNegatedUnit, createDependencyMap)), name = "master")
     latch.await()
     val endTime = System.currentTimeMillis()
     val result = Await.result((masterActor ? REQUEST_RESULTS).mapTo[Result], timeout.duration)
@@ -120,25 +127,59 @@ final class MRFBuilder(val mln: MLN, noNegWeights: Boolean = false, eliminateNeg
 
     var weightHard = 10.0
     for (clause <- mln.clauses; if !clause.isHard && clause.variables.nonEmpty) {
-      val productOfVarDomains = clause.variables.iterator.map(v => mln.constants(v.domain).size).reduceLeftOption(_ * _)
-      val productOfFuncDomains = clause.functions.iterator.map(f => mln.constants(f.domain).size).reduceLeftOption(_ * _)
+      val productOfVarDomains = clause.variables.iterator.map(v => mln.evidence.constants(v.domain).size).reduceLeftOption(_ * _)
+      val productOfFuncDomains = clause.functions.iterator.map(f => mln.evidence.constants(f.domain).size).reduceLeftOption(_ * _)
 
       weightHard += (math.abs(clause.weight) * productOfVarDomains.getOrElse(0) * productOfFuncDomains.getOrElse(1))
     }
     info("Hard weight value is set to: " + weightHard)
 
     // Conversion to flat version
-    val numConstraints = if (result.cliques ne null) result.cliques.map(fs => if (fs ne null) fs.size() else 0).sum else 0
-    var numAtoms = if (result.cliques ne null) result.atom2Cliques.map(as => if (as ne null) as.size() else 0).sum else 0
-    if (numAtoms == 0) numAtoms = if (result.queryAtomIDs ne null) result.queryAtomIDs.map(qas => if (qas ne null) qas.size() else 0).sum else 0
+    val numConstraints = if (result.cliques ne null) result.cliques.partitions.map(fs => if (fs ne null) fs.size() else 0).sum else 0
+    var numAtoms = if (result.cliques ne null) result.atom2Cliques.partitions.map(as => if (as ne null) as.size() else 0).sum else 0
+    if (numAtoms == 0) numAtoms = if (result.queryAtomIDs ne null) result.queryAtomIDs.partitions.map(qas => if (qas ne null) qas.size() else 0).sum else 0
 
     if (numAtoms == 0) fatal("The ground MRF is empty.")
 
 
-    val constraints = new TIntObjectHashMap[Constraint](if (numConstraints == 0) DEFAULT_CAPACITY else numConstraints, DEFAULT_LOAD_FACTOR, NO_ENTRY_KEY)
-    val atoms = new TIntObjectHashMap[GroundAtom](if (numAtoms == 0) DEFAULT_CAPACITY else numAtoms)
+    val constraints = new TIntObjectHashMap[Constraint](
+      if (numConstraints == 0) DEFAULT_CAPACITY else numConstraints, DEFAULT_LOAD_FACTOR, NO_ENTRY_KEY)
 
-    for (qas <- result.queryAtomIDs) {
+    val atoms = new TIntObjectHashMap[GroundAtom](
+      if (numAtoms == 0) DEFAULT_CAPACITY else numAtoms)
+
+    val mergedDependencyMapOpt =
+      if (createDependencyMap) {
+        val mergedDependencyMap =
+          new TIntObjectHashMap[TIntFloatMap](
+            if (numConstraints == 0) DEFAULT_CAPACITY else numConstraints, DEFAULT_LOAD_FACTOR, NO_ENTRY_KEY)
+
+        // Update the frequencies in the DependencyMap:
+        // When a clause has negative a negative weight and the 'noNegWeights' is True:
+        //    - adjust the frequency value by dividing with the size of the corresponding FOL clause.
+
+        val dependencyMapPartitions = result.dependencyMap.getOrElse(fatal("DependencyMap is not computed."))
+
+        if (noNegWeights) for {
+          partition <- dependencyMapPartitions.partitions.par
+          (_, frequencies) <- partition.iterator()} {
+
+          val iterator = frequencies.iterator()
+          while (iterator.hasNext) {
+            iterator.advance()
+            if (iterator.value() < 0)
+              iterator.setValue(iterator.value() / mln.clauses(iterator.key()).size)
+          }
+        }
+
+        dependencyMapPartitions.partitions.foreach(mergedDependencyMap.putAll)
+
+        Some(mergedDependencyMap)
+      }
+      else None
+
+
+    for (qas <- result.queryAtomIDs.partitions) {
       val iterator = qas.iterator()
       while (iterator.hasNext) {
         val atomID = iterator.next()
@@ -146,58 +187,44 @@ final class MRFBuilder(val mln: MLN, noNegWeights: Boolean = false, eliminateNeg
       }
     }
 
-    for (segmentIdx <- (0 until result.cliques.length).optimized) {
-      if (result.cliques(segmentIdx) ne null) {
-        val clausesIterator = result.cliques(segmentIdx).iterator()
-        while (clausesIterator.hasNext) {
-          clausesIterator.advance()
-          val clique = clausesIterator.value()
-          require(!clique.weight.isNaN, "Found a clause with weight == NaN (possible bug?).")
+    optimize {
 
-          if (clique.weight.isInfinite)
-            constraints.put(clausesIterator.key(), new Constraint(weightHard, clique.variables, true, 1.0, clausesIterator.key()))
-          else if (clique.weight != 0)
-            constraints.put(clausesIterator.key(), new Constraint(clique.weight, clique.variables, false,
-              1 - math.exp(-math.abs(clique.weight) * mcSatParam), clausesIterator.key()))
+      for (segmentIdx <- 0 until result.cliques.size) {
+        if (result.cliques(segmentIdx) ne null) {
+          val clausesIterator = result.cliques(segmentIdx).iterator()
+          while (clausesIterator.hasNext) {
+            clausesIterator.advance()
+            val clique = clausesIterator.value()
+            require(!clique.weight.isNaN, "Found a clause with weight == NaN (possible bug?).")
 
-          // println(constraint.weight+" "+constraint.literals.mkString(" "))
+            if (clique.weight.isInfinite)
+              constraints.put(clausesIterator.key(), new Constraint(weightHard, clique.variables, true, 1.0, clausesIterator.key()))
+            else if (clique.weight != 0)
+              constraints.put(clausesIterator.key(), new Constraint(clique.weight, clique.variables, false,
+                1 - math.exp(-math.abs(clique.weight) * mcSatParam), clausesIterator.key()))
 
+            // println(constraint.weight+" "+constraint.literals.mkString(" "))
+
+          }
+
+          val atomsIterator = result.atom2Cliques(segmentIdx).iterator()
+
+          while (atomsIterator.hasNext) {
+            atomsIterator.advance()
+            val atomId = atomsIterator.key()
+            atoms.putIfAbsent(atomId, new GroundAtom(atomId, weightHard))
+          }
         }
 
-        val atomsIterator = result.atom2Cliques(segmentIdx).iterator()
-
-        while (atomsIterator.hasNext) {
-          atomsIterator.advance()
-          val atomId = atomsIterator.key()
-          atoms.putIfAbsent(atomId, new GroundAtom(atomId, weightHard))
-
-        }
       }
-
     }
 
     info("Grounding completed:" +
-      "\n\tTotal grounding time: " + Utilities.msecTimeToText(endTime - startTime)
+      "\n\tTotal grounding time: " + msecTimeToText(endTime - startTime)
       + "\n\tTotal ground clauses: " + constraints.size()
       + "\n\tTotal ground atoms: " + atoms.size())
 
-
-    //---------------------------------------------
-    //Test if the Clique IDs are continuous
-    /*val keys = constraints.keys()
-    var fail = false
-    util.Arrays.sort(keys)
-    for((key,idx) <- keys.zipWithIndex) {
-      if(key != idx){
-        println(key+" != "+idx)
-        fail = true
-      }
-    }
-    if(fail) sys.exit() // */
-    //---------------------------------------------
-
-    //return
-    MRF(mln, constraints, atoms, weightHard, mln.queryStartID, mln.queryEndID)
+    MRF(mln, constraints, atoms, weightHard, mergedDependencyMapOpt)
   }
 }
 

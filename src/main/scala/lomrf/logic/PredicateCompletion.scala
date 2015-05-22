@@ -79,7 +79,7 @@ import lomrf.logic.dynamic.DynEqualsBuilder
  * </ul>
  * </p>
  *
- * @author Anastasios Skarlatidis
+ *
  */
 object PredicateCompletion extends Logging {
 
@@ -98,8 +98,8 @@ object PredicateCompletion extends Logging {
    * @param functionSchema function schema [[lomrf.mln.model.MLN]]
    * @return a logically stronger knowledge base (set of formulas)
    */
-  def apply(formulas: collection.Set[Formula], definiteClauses: collection.Set[WeightedDefiniteClause])
-           (implicit predicateSchema: Map[AtomSignature, Vector[String]], functionSchema: Map[AtomSignature, (String, Vector[String])]): collection.Set[Formula] = apply(formulas, definiteClauses, PredicateCompletionMode.Simplification)
+  def apply(formulas: Set[Formula], definiteClauses: Set[WeightedDefiniteClause])
+           (implicit predicateSchema: Map[AtomSignature, Vector[String]], functionSchema: Map[AtomSignature, (String, Vector[String])]): Set[Formula] = apply(formulas, definiteClauses, PredicateCompletionMode.Simplification)
 
   /**
    * Creates a logically stronger knowledge base from the given formulas, by performing predicate completion.
@@ -179,8 +179,8 @@ object PredicateCompletion extends Logging {
 
    * @return  a logically stronger knowledge base (set of formulas)
    */
-  def apply(formulas: collection.Set[Formula], definiteClauses: collection.Set[WeightedDefiniteClause], mode: PredicateCompletionMode)
-           (implicit predicateSchema: Map[AtomSignature, Vector[String]], functionSchema: Map[AtomSignature, (String, Vector[String])]): collection.Set[Formula] = {
+  def apply(formulas: Set[Formula], definiteClauses: Set[WeightedDefiniteClause], mode: PredicateCompletionMode)
+           (implicit predicateSchema: Map[AtomSignature, Vector[String]], functionSchema: Map[AtomSignature, (String, Vector[String])]): Set[Formula] = {
 
     if (definiteClauses.isEmpty) {
       info("No definite clauses found in the given MLN.")
@@ -248,7 +248,7 @@ object PredicateCompletion extends Logging {
   }
 
 
-  private def collectAndMerge(definiteClauses: collection.Set[WeightedDefiniteClause])
+  private def collectAndMerge(definiteClauses: Set[WeightedDefiniteClause])
                              (implicit predicateSchema: Map[AtomSignature, Vector[String]], functionSchema: Map[AtomSignature, (String, Vector[String])]): (Boolean, DefiniteClausesDB) = {
 
 
@@ -312,7 +312,7 @@ object PredicateCompletion extends Logging {
                         val thetaStored = Unify(storedHead, generalisedHead).getOrElse(fatal("Cannot unify " + generalisedHead.toText + " with " + storedHead.toText + " (possible bug?)"))
 
                         // Although storedHead != generalisedHead, they may be similar but with different variable names.
-                        val areSimilarPredicates = storedHead.isSimilarTo(generalisedHead)
+                        val areSimilarPredicates = storedHead =~= generalisedHead
                         if (!areSimilarPredicates) canBeDecomposed = false
 
                         // Rename variables (from all bodies):
@@ -356,13 +356,13 @@ object PredicateCompletion extends Logging {
    * @param dcDB database of collected/merged definite clauses
    * @return the resulting KB
    */
-  private def applyPCSimplification(formulas: collection.Set[Formula], dcDB: DefiniteClausesDB): collection.Set[Formula] = {
+  private def applyPCSimplification(formulas: Set[Formula], dcDB: DefiniteClausesDB): Set[Formula] = {
     val targetSignatures = dcDB.keySet
-    var pcResultingKB = new mutable.HashSet[Formula]()
+    var pcResultingKB =  Set[Formula]()
     pcResultingKB ++= formulas
 
     for (signature <- targetSignatures) {
-      val lambdaPrime = new mutable.HashSet[Formula]()
+      var lambdaPrime = Set[Formula]()
       for (formula <- pcResultingKB) {
         if (containsSignature(signature, formula)) {
           for ((headPredicate, bodies) <- dcDB(signature)) {
@@ -391,9 +391,9 @@ object PredicateCompletion extends Logging {
    * @param dcDB database of collected/merged definite clauses
    * @return the resulting KB
    */
-  private def applyPC(formulas: collection.Set[Formula], dcDB: DefiniteClausesDB): collection.Set[Formula] = {
+  private def applyPC(formulas: Set[Formula], dcDB: DefiniteClausesDB): Set[Formula] = {
 
-    var pcResultingKB = new mutable.HashSet[Formula]()
+    var pcResultingKB = Set[Formula]()
     pcResultingKB ++= formulas
 
     for ((_, entries) <- dcDB; (head, bodies) <- entries) {
@@ -411,9 +411,9 @@ object PredicateCompletion extends Logging {
    * @param dcDB database of collected/merged definite clauses
    * @return the resulting KB
    */
-  private def applyPCDecomposed(formulas: collection.Set[Formula], definiteClauses: collection.Set[WeightedDefiniteClause], dcDB: DefiniteClausesDB): collection.Set[Formula] = {
+  private def applyPCDecomposed(formulas: Set[Formula], definiteClauses: Set[WeightedDefiniteClause], dcDB: DefiniteClausesDB): Set[Formula] = {
 
-    var pcResultingKB = new mutable.HashSet[Formula]()
+    var pcResultingKB = Set[Formula]()
     pcResultingKB ++= formulas
 
     // Insert the original definite clauses as weighted formulas:

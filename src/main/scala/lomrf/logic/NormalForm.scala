@@ -32,17 +32,20 @@
 
 package lomrf.logic
 
+import auxlib.log.Logger
+import lomrf.mln.model.ConstantsSet
+
 import annotation.tailrec
 import collection.mutable
-import lomrf.util.ConstantsSet
 
 /**
  * Contains functions that convert a First Order Logic (FOL) formula into a normal form,
  * such as Negation Normal Form (NNF), Prenex Normal Form (PNF) and Clausal Normal Form (CNF).
- *
- * @author Anastasios Skarlatidis
  */
 object NormalForm {
+
+  val log = Logger(this.getClass)
+
   /**
    * <p>
    * Clausal or Conjunctive Normal Form (CNF) is a conjunction of clauses,
@@ -72,7 +75,7 @@ object NormalForm {
    * @see Standford course CS157: Computational Logic, topic: Resolution Preliminaries  (lecture 9) [[http://logic.stanford.edu/classes/cs157/2008/lectures/lecture09.pdf]]
    * @see Russell, S.J. and Norvig, P. and Canny, J.F. and Malik, J. and Edwards, D.D. Artificial Intelligence: A Modern Approach, chapter 9.5.1 Conjunctive normal form for first-order logic [[http://aima.cs.berkeley.edu/]]
    */
-  def toCNF(constants: Map[String, ConstantsSet], source: Formula): Set[Clause] = extractClauses(
+  def toCNF(source: Formula)(implicit constants: Map[String, ConstantsSet] = Map.empty): Set[Clause] = extractClauses(
     distribute(
       removeUniversalQuantifiers(
         removeExistentialQuantifiers(constants,
@@ -83,6 +86,10 @@ object NormalForm {
       )
     )
   )
+
+  def compileCNF(formulas: Iterable[Formula])(implicit constants: Map[String, ConstantsSet] = Map.empty): Set[Clause] ={
+    formulas.par.foldLeft(Set[Clause]())((clauses, formula) => clauses ++ toCNF(formula))
+  }
 
   /**
    * Converts the given formula into Negation Normal Form (NNF). A logical formula is in NNF if negation
@@ -132,7 +139,7 @@ object NormalForm {
     }
 
     val inside = collect(source)
-    //return
+
     construct(inside)
   }
 
@@ -208,7 +215,7 @@ object NormalForm {
       }
 
       vars(x) = newVar
-      //return
+
       newVar
     }
 
@@ -250,7 +257,7 @@ object NormalForm {
    * @return the equivalent formula in which all existential quantifiers are eliminated.
    */
   def removeExistentialQuantifiers(constants: Map[String, ConstantsSet], source: Formula): Formula = {
-    //TODO: re-implement this function into a non-recursive version, in order to avoid "out of memory" errors in cases in large domains
+    //TODO: re-implement this function into a non-recursive version, in order to avoid "out of memory" errors in large domains
 
     source match {
       case x: AtomicFormula => x
@@ -338,7 +345,7 @@ object NormalForm {
       isDone = true
       result = dist(result)
     }
-    //return
+
     result
   }
 
@@ -408,9 +415,8 @@ object NormalForm {
             if (literals.size == 1) {
               units += literals.head
             } else if (literals.size > 1) {
-              if (!isTautology)
-                nonUnits += literals
-              else println("WARNING: tautology clause is produced")
+              if (!isTautology) nonUnits += literals
+              else log.warn("tautology clause is produced")
             } // end of "Or"
           case _ => throw new IllegalStateException("Failed to collect literals, illegal formula: " + source.toText)
         }
@@ -418,7 +424,6 @@ object NormalForm {
 
       collectLiterals(formula)
 
-      //return
       (units, nonUnits)
     }
 
@@ -433,15 +438,15 @@ object NormalForm {
 
         val clauseWeight =
           if (weight == Double.PositiveInfinity) weight
-          else if (unit.size > 0) weight / (nonUnit.size + 1)
+          else if (unit.nonEmpty) weight / (nonUnit.size + 1)
           else weight / nonUnit.size
 
         // Return the extracted clauses:
         // * one unit clause and possibly some other non-unit clauses
-        if (unit.size == 1) createWeightedClauses(clauseWeight, nonUnit) + new Clause(clauseWeight, unit)
+        if (unit.size == 1) createWeightedClauses(clauseWeight, nonUnit) + Clause(unit, clauseWeight)
         else if (unit.size > 1) {
           // * when more than one unit clauses are produced merge them into a single clause.
-          val mergedUnitsClauses = new Clause(-clauseWeight, unit.map(_.negate))
+          val mergedUnitsClauses = Clause(unit.map(_.negate), -clauseWeight)
           Set(mergedUnitsClauses) ++ createWeightedClauses(clauseWeight, nonUnit)
         }
         else createWeightedClauses(clauseWeight, nonUnit) //no unit clauses.

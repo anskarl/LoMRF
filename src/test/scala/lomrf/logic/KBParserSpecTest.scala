@@ -33,11 +33,11 @@
 package lomrf.logic
 
 import lomrf.logic.dynamic.{DynSuccFunctionBuilder, DynPlusFunctionBuilder}
-import lomrf.util.ConstantsSet
+import lomrf.mln.model.ConstantsSet
 import org.scalatest.{Matchers, FunSpec}
 
 /**
- * @author Anastasios Skarlatidis
+ * A series of spec tests for knowledge base parsing, e.g., predicates, formulas, weighted formulas, etc.
  */
 final class KBParserSpecTest extends FunSpec with Matchers {
 
@@ -122,6 +122,14 @@ final class KBParserSpecTest extends FunSpec with Matchers {
         AtomicFormula("InitiatedAt", Vector(Variable("f", "fluent"), Variable("t", "time"))),
         AtomicFormula("HoldsAt", Vector(Variable("f", "fluent"), functionSucc(Variable("t", "time"), "time"))))
       ), 0, 2, 1)
+
+    // InitiatedAt(f, t) => HoldsAt(f, t + (t + 1)). TODO: support recursive functions
+    /*("InitiatedAt(f, t) => HoldsAt(f, t + (t + 1)).",
+      WeightedFormula(Double.PositiveInfinity, Implies(
+        AtomicFormula("InitiatedAt", Vector(Variable("f", "fluent"), Variable("t", "time"))),
+        AtomicFormula("HoldsAt", Vector(Variable("f", "fluent"), functionPlus(Variable("t", "time"), functionPlus(Variable("t", "time"), Constant("1")), "time"))))
+      ), 1, 2, 2)*/
+
   )
 
   for( (strFormula, formula, nConst, nVar, nFun) <- formulaList ) describe("Sentence '" + strFormula + "'"){

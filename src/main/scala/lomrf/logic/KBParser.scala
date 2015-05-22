@@ -36,13 +36,10 @@ import auxlib.log.Logging
 import lomrf.logic.dynamic.{DynamicFunctionBuilder, DynamicAtomBuilder}
 import scala.collection.breakOut
 
-/**
- * @author Anastasios Skarlatidis
- */
 final class KBParser(predicateSchema: Map[AtomSignature, Vector[String]],
-                             functionSchema: Map[AtomSignature, (String, Vector[String])],
-                             dynamicAtomBuilders: Map[AtomSignature, DynamicAtomBuilder] = predef.dynAtomBuilders,
-                             dynamicFunctionBuilders: Map[AtomSignature, DynamicFunctionBuilder] = predef.dynFunctionBuilders) extends CommonsMLNParser with Logging {
+                     functionSchema: Map[AtomSignature, (String, Vector[String])],
+                     dynamicAtomBuilders: Map[AtomSignature, DynamicAtomBuilder] = predef.dynAtomBuilders,
+                     dynamicFunctionBuilders: Map[AtomSignature, DynamicFunctionBuilder] = predef.dynFunctionBuilders) extends CommonsMLNParser with Logging {
 
 
   private val minPrecedenceLevel = 1
@@ -60,6 +57,12 @@ final class KBParser(predicateSchema: Map[AtomSignature, Vector[String]],
   def getDynamicFunctions = dynamicFunctions
 
   def getDynamicFunctionsInstances = dynamicFunctionsInstances
+
+
+  // ---------------------------------------------------
+  // Parser functions:
+  // ---------------------------------------------------
+
 
   def mln: Parser[List[MLNExpression]] = rep(sentence)
 
@@ -271,7 +274,9 @@ final class KBParser(predicateSchema: Map[AtomSignature, Vector[String]],
       val functionSignature = AtomSignature(functionName, arguments.size)
 
       dynamicFunctionBuilders.get(functionSignature) match {
-        //Check this function is a special (predefined) function:
+
+
+        //Case 1. Check this function is a special (predefined) function:
         case Some(functionBuilder) =>
           // fetch the function's terms that are defined in its arguments
           val termList: Vector[Term] = (for (term <- arguments) yield term match {
@@ -284,10 +289,13 @@ final class KBParser(predicateSchema: Map[AtomSignature, Vector[String]],
           //store this special function to specialFunctions HashMap
           dynamicFunctions += (functionSignature -> functionBuilder.resultFunction)
 
+          debug("Parsed dynamic function: "+functionSignature +", with terms: "+termList.mkString(", "))
+
           // Give the resulting function --- that is a function with UNDEFINED return type.
           // The return type will be determined later inside the method: "atomicFormula".
           functionBuilder(termList)
-        // the function seems to be user-defined (thus, its arguments are typed)
+
+        //Case 2. The function seems to be user-defined (thus, its arguments are typed)
         case None =>
           //Take the function's input/output types from the functionSchema map
           val (retType, argTypes) = functionSchema.get(functionSignature) match {

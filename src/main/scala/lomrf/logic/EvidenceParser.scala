@@ -33,7 +33,7 @@
 package lomrf.logic
 
 /**
- * @author Anastasios Skarlatidis
+ *
  */
 
 class EvidenceParser extends CommonsMLNParser {
@@ -97,6 +97,11 @@ class EvidenceParser extends CommonsMLNParser {
   def functionMapping: Parser[FunctionMapping] = upperCaseID ~ "=" ~ lowerCaseID ~ "(" ~ repsep(upperCaseID, ",") ~ ")" ^^ {
     case retValue ~ "=" ~ functionSymbol ~ "(" ~ values ~ ")" => new FunctionMapping(retValue, functionSymbol, values)
   }
+
+
+  /*def functionMapping: Parser[FunctionMapping] = upperCaseID ~ "=" ~ lowerCaseID ~ "(" ~ constantArguments ~ ")" ^^ {
+    case retValue ~ "=" ~ functionSymbol ~ "(" ~ values ~ ")" => new FunctionMapping(retValue, functionSymbol, values)
+  }*/
 
   private def mkProbabilisticAtom(atomString: String, predName: String, args: List[Constant], probability: Double, isPositive: Boolean): EvidenceAtom = {
     require(probability >= 0.0 && probability <= 1.0, "The probability of evidence atom '" + atomString + "' must be between 0.0 and 1.0.")

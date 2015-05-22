@@ -48,6 +48,7 @@ tmp
 *.log
 .directory
 *.result
+*.counts
 *.fg
 *.description
 
@@ -74,5 +75,8 @@ project/target/
 .scala_dependencies
 .worksheet
 
-# ignore localy managed libraries
+# ignore locally managed libraries
 lib/
+
+# ignore scala worksheet files
+*.sc

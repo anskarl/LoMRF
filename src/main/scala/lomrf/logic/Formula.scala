@@ -32,11 +32,9 @@
 
 package lomrf.logic
 
-import lomrf.util.ConstantsSet
+import lomrf.mln.model.ConstantsSet
 
-/**
- * @author Anastasios Skarlatidis
- */
+
 sealed trait Formula extends MLNExpression {
 
   // The collection of variables that appear inside this formula
@@ -95,7 +93,7 @@ sealed trait Formula extends MLNExpression {
    * @param constants the domain of constants, required for existentially quantified variables
    * @return a set of clauses
    */
-  def toCNF(constants: Map[String, ConstantsSet]): Set[Clause] = NormalForm.toCNF(constants, this)
+  def toCNF(implicit constants: Map[String, ConstantsSet]): Set[Clause] = NormalForm.toCNF(this)(constants)
 
   /**
    * The textual representation of this formula
@@ -126,7 +124,7 @@ case class DefiniteClause(head: AtomicFormula, body: DefiniteClauseConstruct) ex
 
   override def getExistentialQuantifiers = List[ExistentialQuantifier]()
 
-  override def toCNF(constants: Map[String, ConstantsSet]): Set[Clause] = NormalForm.toCNF(constants, Or(head, Not(body)))
+  override def toCNF(implicit constants: Map[String, ConstantsSet]): Set[Clause] = NormalForm.toCNF(Or(head, Not(body)))(constants)
 
   def toText = head.toText + " :- " + body.toText
 }
@@ -159,11 +157,11 @@ final class WeightedFormula private(val weight: Double, val formula: Formula) ex
 }
 
 object WeightedFormula {
-  def apply(weight: Double, formula: Formula): WeightedFormula = {
-    //normaliseVariableDomains(formula)
 
-    new WeightedFormula(weight, formula)
-  }
+  def asUnit(formula: Formula) = WeightedFormula(1.0, formula)
+
+  def apply(weight: Double, formula: Formula): WeightedFormula = new WeightedFormula(weight, formula)
+
 
   def unapply(obj: WeightedFormula): Option[(Double, Formula)] = {
     if (obj ne null) Some(obj.weight, obj.formula) else None
@@ -193,11 +191,13 @@ final class WeightedDefiniteClause private(val weight: Double, val clause: Defin
 
 object WeightedDefiniteClause {
 
-  def apply(weight: Double, clause: DefiniteClause): WeightedDefiniteClause =
+  def apply(weight: Double, clause: DefiniteClause): WeightedDefiniteClause = {
     new WeightedDefiniteClause(weight, clause)
+  }
 
-  def unapply(obj: WeightedDefiniteClause): Option[(Double, DefiniteClause)] =
+  def unapply(obj: WeightedDefiniteClause): Option[(Double, DefiniteClause)] = {
     if (obj ne null) Some(obj.weight, obj.clause) else None
+  }
 }
 
 /**
@@ -215,6 +215,7 @@ object WeightedDefiniteClause {
 case class AtomicFormula(symbol: String, terms: Vector[Term]) extends DefiniteClauseConstruct {
 
   val isDynamic = false
+
   val arity = terms.size
 
   lazy val signature = AtomSignature(symbol, terms.size)
@@ -238,9 +239,9 @@ case class AtomicFormula(symbol: String, terms: Vector[Term]) extends DefiniteCl
 
   def isGround = variables.isEmpty
 
-  override def toText: String = symbol + "(" + terms.map(_.toText).reduceLeft((left, right) => left + "," + right) + ")"
+  override def toText: String = s"$symbol(${terms.map(_.toText).mkString(",")})"
 
-  override def toString: String = symbol + "(" + terms.map(_.toString).reduceLeft((left, right) => left + "," + right) + ")"
+  override def toString: String = s"$symbol(${terms.map(_.toString).mkString(",")})"
 
   /**
    * Two atoms are similar, when:
@@ -255,9 +256,10 @@ case class AtomicFormula(symbol: String, terms: Vector[Term]) extends DefiniteCl
    * </ul>
    *
    * @param other the atom to compare
+   *
    * @return true if this atom is similar to the given atom, otherwise false
    */
-  def isSimilarTo(other: AtomicFormula): Boolean = {
+  def =~= (other: AtomicFormula): Boolean = {
     if (signature == other.signature) {
       Unify(this, other) match {
         case Some(x) if x.forall(_._2.isInstanceOf[Variable]) => true
@@ -294,15 +296,25 @@ class EvidenceAtom(override val symbol: String, override val terms: Vector[Const
   override def isGround = true
 
 
-  override def toText: String = state match {
-    case TRUE => symbol + "(" + constants.map(_.toText).reduceLeft((left, right) => left + "," + right) + ")"
-    case FALSE => "!" + symbol + "(" + constants.map(_.toText).reduceLeft((left, right) => left + "," + right) + ")"
-    case UNKNOWN => symbol + "(" + constants.map(_.toText).reduceLeft((left, right) => left + "," + right) + ") " + probability
+  override def toText: String = {
+    lazy val sentence = s"$symbol(${terms.map(_.toText).mkString(",")})"
+
+    state match {
+      case TRUE => sentence
+      case FALSE => s"!$sentence"
+      case UNKNOWN => s"$sentence $probability"
+    }
   }
 
 }
 
 object EvidenceAtom {
+
+  def asTrue(predicate: String, args: Vector[Constant]): EvidenceAtom = new EvidenceAtom(predicate, args, TRUE)
+
+  def asFalse(predicate: String, args: Vector[Constant]): EvidenceAtom = new EvidenceAtom(predicate, args, FALSE)
+
+  def asUnknown(predicate: String, args: Vector[Constant]): EvidenceAtom = new EvidenceAtom(predicate, args, UNKNOWN)
 
   def apply(predicate: String, args: Vector[Constant], state: TriState): EvidenceAtom = new EvidenceAtom(predicate, args, state)
 
@@ -322,9 +334,15 @@ object EvidenceAtom {
 }
 
 class FunctionMapping(val retValue: String, val functionSymbol: String, val values: Vector[String]) extends EvidenceExpression {
+
   lazy val signature = AtomSignature(functionSymbol, values.size)
 
-  override def toString = retValue + " = " + functionSymbol + "(" + values.map(_.toString).reduceLeft((left, right) => left + "," + right) + ")"
+  override def toString = s"$retValue = $functionSymbol(${values.mkString(",")})"
+
+}
+
+object FunctionMapping {
+  def apply(retValue: String, functionSymbol: String, values: Vector[Constant]) = new FunctionMapping(retValue, functionSymbol, values.map(_.toString))
 }
 
 trait LogicalConnective extends Formula {
@@ -336,19 +354,12 @@ trait LogicalConnective extends Formula {
  * Negation of a formula (! { Formula } )
  */
 case class Not(arg: Formula) extends LogicalConnective with DefiniteClauseConstruct {
-  //extends Formula{
 
   private lazy val _isUnit: Boolean = arg.isInstanceOf[AtomicFormula]
 
   override def subFormulas: Seq[Formula] = Seq(arg)
 
-  /*override def toText = arg match{
-    case atom: AtomicFormula => "!"+atom.toText
-    case _ => "!("+arg.toText+")"
-  }
-  */
-
-  override def toText = if (_isUnit) "!" + arg.toText else "!(" + arg.toText + ")"
+  override def toText = if (_isUnit) s"!${arg.toText}" else s"!(${arg.toText})"
 
   def isUnit: Boolean = _isUnit
 }
@@ -357,22 +368,15 @@ case class Not(arg: Formula) extends LogicalConnective with DefiniteClauseConstr
  * Logical AND of two formulas ( { Formula1 } &#094; { Formula2 } ).
  */
 case class And(left: Formula, right: Formula) extends LogicalConnective with DefiniteClauseConstruct {
-  //extends Formula{
+
   override def subFormulas: Seq[Formula] = Seq(left, right)
 
   override def toText: String = {
-    val lPart = left match {
+    subFormulas map{
       case f: Or => "(" + left.toText + ")"
       case f: ConditionalStatement => "(" + right.toText + ")"
-      case _ => left.toText
-    }
-
-    val rPart = right match {
-      case f: Or => "(" + right.toText + ")"
-      case f: ConditionalStatement => "(" + right.toText + ")"
-      case _ => right.toText
-    }
-    lPart + " ^ " + rPart
+      case f: Formula => f.toText
+    } mkString " ^ "
   }
 
   def isUnit = false
@@ -382,23 +386,15 @@ case class And(left: Formula, right: Formula) extends LogicalConnective with Def
  * Logical OR of two formulas ( { Formula1 } v { Formula2 } ).
  */
 case class Or(left: Formula, right: Formula) extends LogicalConnective {
-  //extends Formula{
 
   override def subFormulas: Seq[Formula] = Seq(left, right)
 
   override def toText: String = {
-    val lPart = left match {
+    subFormulas map{
       case f: And => "(" + left.toText + ")"
       case f: ConditionalStatement => "(" + right.toText + ")"
-      case _ => left.toText
-    }
-
-    val rPart = right match {
-      case f: And => "(" + right.toText + ")"
-      case f: ConditionalStatement => "(" + right.toText + ")"
-      case _ => right.toText
-    }
-    lPart + " v " + rPart
+      case f: Formula => f.toText
+    } mkString " v "
   }
 
   def isUnit = false

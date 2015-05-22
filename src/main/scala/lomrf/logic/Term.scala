@@ -38,7 +38,7 @@ package lomrf.logic
  * in the domain. It can be a constant, a variable or a function applied
  * to a tuple of objects.
  *
- * @author Anastasios Skarlatidis
+ *
  */
 sealed trait Term extends MLNExpression {
 
@@ -145,7 +145,7 @@ object Variable {
  *
  * @param symbol constant value
  */
-sealed case class Constant(override val symbol: String) extends Term {
+sealed case class Constant(override val symbol: String) extends Term{
 
   override def isGround = true
 
@@ -189,12 +189,12 @@ sealed case class TermFunction(override val symbol: String, terms: Vector[_ <: T
   def isDomainDefined: Boolean = domain != "_?"
 
   def toText = {
-    if (terms == Nil) symbol + "()"
+    if (terms.isEmpty) symbol + "()"
     else symbol + "(" + terms.map((t: Term) => t.toText).reduceLeft(_ + ", " + _) + ")"
   }
 
   override def toString = {
-    if (terms == Nil) symbol + "():" + domain
+    if (terms.isEmpty) symbol + "():" + domain
     else symbol + "(" + terms.map((t: Term) => t.toString).reduceLeft(_ + ", " + _) + "):" + domain
   }
 

@@ -35,21 +35,21 @@ package lomrf.util
 import java.util
 
 import lomrf.logic.Variable
+import lomrf.mln.model.ConstantsSet
 
-import scala.collection.mutable
 import scala.{collection => scol}
-import scalaxy.loops._
+import scalaxy.streams.optimize
 import scala.language.postfixOps
 
 /**
- * @author Anastasios Skarlatidis
+ *
  */
 object Cartesian {
 
 
   object CartesianIterator {
 
-    def apply[T](sets: Iterable[Iterable[T]])(implicit m: Manifest[T]): Iterator[Seq[T]] = {
+    def apply[T](sets: Iterable[Iterable[T]])(implicit m: Manifest[T]): Iterator[Array[T]] = {
 
       val iterators = new Array[Iterator[T]](sets.size)
       val elements = new Array[T](sets.size)
@@ -84,18 +84,20 @@ object Cartesian {
 
     def mkArithmetic(sets: Iterable[ConstantsSet]) = new CartesianIteratorArithmeticImpl(sets.map(_.size - 1))
 
+    def mkArithmetic(sizes: Array[Int]) = new CartesianIteratorArithmeticImpl(sizes)
+
 
   }
 
   private class CartesianIteratorSeqImpl[T](
                                              sets: Array[Iterable[T]],
                                              iterators: Array[Iterator[T]],
-                                             elements: Array[T]) extends Iterator[Seq[T]] {
+                                             elements: Array[T]) extends Iterator[Array[T]] {
     private var has_next = true
 
 
-    def next(): Seq[T] = {
-      val result = elements.toList
+    def next(): Array[T] = {
+      val result = elements.clone()
       var currentIterator = iterators(0)
 
       if (currentIterator.hasNext) elements(0) = currentIterator.next()
@@ -106,10 +108,14 @@ object Cartesian {
         while (!stop) {
           currentIterator = iterators(idx)
           if (currentIterator.hasNext) {
-            for (i <- (0 until idx).optimized) {
-              iterators(i) = sets(i).iterator
-              elements(i) = iterators(i).next()
+
+            optimize{
+              for (i <- 0 until idx) {
+                iterators(i) = sets(i).iterator
+                elements(i) = iterators(i).next()
+              }
             }
+
             elements(idx) = currentIterator.next()
             stop = true
           }

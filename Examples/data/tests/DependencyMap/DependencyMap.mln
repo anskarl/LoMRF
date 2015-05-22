@@ -1,0 +1,16 @@
+// Meaningless theory
+p={A,B}
+
+S(p)
+C(p)
+F(p, p)
+M(p)
+K(p)
+
+!S(x) v C(x).
+F(x,y) => S(x) v S(y).
+1.0 S(x) v S(y)
+-0.5 S(x) v S(y)
+-0.8 M(x) v S(x)
+-0.2 K(y)
+-0.1 F(x,y)

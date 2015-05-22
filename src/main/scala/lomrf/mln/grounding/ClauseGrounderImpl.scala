@@ -40,32 +40,33 @@ import gnu.trove.set.TIntSet
 import lomrf.logic._
 import lomrf.mln.model.MLN
 import lomrf.util.AtomIdentityFunction.IDENTITY_NOT_EXIST
+import lomrf.util.collection.IndexPartitioned
 import lomrf.util.{AtomIdentityFunction, Cartesian}
 
 import scala.collection._
 import scala.language.postfixOps
-import scalaxy.loops._
+import scalaxy.streams.optimize
 
-/**
- * @author Anastasios Skarlatidis
- */
-class ClauseGrounderImpl(
-                          val clause: Clause,
-                          mln: MLN,
-                          cliqueRegisters: Array[ActorRef],
-                          atomSignatures: Set[AtomSignature],
-                          atomsDB: Array[TIntSet],
-                          noNegWeights: Boolean = false,
-                          eliminateNegatedUnit: Boolean = false) extends ClauseGrounder with Logging{
+
+class ClauseGrounderImpl(val clause: Clause,
+                         clauseIndex: Int,
+                         mln: MLN,
+                         cliqueRegisters: IndexPartitioned[ActorRef],
+                         atomSignatures: Set[AtomSignature],
+                         atomsDB: IndexPartitioned[TIntSet],
+                         noNegWeights: Boolean = false,
+                         eliminateNegatedUnit: Boolean = false) extends ClauseGrounder with Logging{
 
   require(!clause.weight.isNaN, "Found a clause with not a valid weight value (NaN).")
 
-  private val cliqueBatches = cliqueRegisters.length
-  private val atomsDBBatches = atomsDB.length
+  private val evidence = mln.evidence
+  private val constants = evidence.constants
+  private val domainSpace = evidence.predicateSpace
+
 
   private val variableDomains: Map[Variable, Iterable[String]] = {
     if (clause.isGround) Map.empty[Variable, Iterable[String]]
-    else (for (v <- clause.variables) yield v -> mln.constants(v.domain))(breakOut)
+    else (for (v <- clause.variables) yield v -> constants(v.domain))(breakOut)
   }
 
   private val groundIterator =
@@ -81,7 +82,7 @@ class ClauseGrounderImpl(
 
   private val identities: Map[AtomSignature, AtomIdentityFunction] =
     (for (literal <- clause.literals if !mln.isDynamicAtom(literal.sentence.signature))
-    yield literal.sentence.signature -> mln.identityFunctions(literal.sentence.signature))(breakOut)
+    yield literal.sentence.signature -> domainSpace.identities(literal.sentence.signature))(breakOut)
 
 
 
@@ -93,8 +94,8 @@ class ClauseGrounderImpl(
 
   // Collect dynamic atoms
   private val dynamicAtoms: Map[Int, (Vector[String] => Boolean)] =
-    (for (i <- 0 until orderedLiterals.length; sentence = orderedLiterals(i)._1.sentence; if sentence.isDynamic)
-    yield i -> mln.dynamicPredicates(sentence.signature))(breakOut)
+    (for (i <- orderedLiterals.indices; sentence = orderedLiterals(i)._1.sentence; if sentence.isDynamic)
+    yield i -> mln.schema.dynamicPredicates(sentence.signature))(breakOut)
 
 
   private val length = clause.literals.count(l => mln.isTriState(l.sentence.signature))
@@ -142,7 +143,7 @@ class ClauseGrounderImpl(
             // Otherwise, the atomID has a valid id number and the following pattern matching procedure
             // investigates whether the current literal satisfies the ground clause. If it does, the clause
             // is omitted from the MRF, since it is always satisfied from that literal.
-            val state = mln.atomStateDB(literal.sentence.signature).get(atomID).value
+            val state = evidence.db(literal.sentence.signature).get(atomID).value
             if ((literal.isNegative && (state == FALSE.value)) || (literal.isPositive && (state == TRUE.value))) {
               // the clause is always satisfied from that literal
               sat += 1
@@ -169,19 +170,22 @@ class ClauseGrounderImpl(
         var owaIdx = 0
         val cliqueVariables = new Array[Int](idx)
 
-        for (i <- (0 until idx).optimized) {
-          //val currentLiteral = iterator.next()
-          val currentAtomID = currentVariables(i)
-          cliqueVariables(i) = if (owaLiterals(owaIdx).isPositive) currentAtomID else -currentAtomID
+        optimize {
+          for (i <- 0 until idx) {
+            //val currentLiteral = iterator.next()
+            val currentAtomID = currentVariables(i)
+            cliqueVariables(i) = if (owaLiterals(owaIdx).isPositive) currentAtomID else -currentAtomID
 
-          // Examine whether the current literal is included to the atomsDB. If it isn't,
-          // the current clause will be omitted from the MRF
-          val atomsDBSegment = atomsDB(currentAtomID % atomsDBBatches)
-          if (!canSend && (atomsDBSegment ne null)) canSend = atomsDBSegment.contains(currentAtomID)
-          else if (atomsDBSegment eq null) canSend = true // this case happens only for Query literals
+            // Examine whether the current literal is included to the atomsDB. If it isn't,
+            // the current clause will be omitted from the MRF
+            val atomsDBSegment = atomsDB(currentAtomID)
+            if (!canSend && (atomsDBSegment ne null)) canSend = atomsDBSegment.contains(currentAtomID)
+            else if (atomsDBSegment eq null) canSend = true // this case happens only for Query literals
 
-          owaIdx += 1
+            owaIdx += 1
+          }
         }
+
 
         if (canSend) {
           // Finally, the current ground clause will be included in the MRF.
@@ -194,31 +198,36 @@ class ClauseGrounderImpl(
               // If the clause is unit and its weight value is negative
               // negate this clause (e.g. the clause "-w A" will be converted into w !A)
               cliqueVariables(0) = -cliqueVariables(0)
-              store(-clause.weight, cliqueVariables)
+              store(-clause.weight, cliqueVariables, -1)
               counter += 1
-            } else {
+            }
+            else {
               val posWeight = -clause.weight / cliqueVariables.length
               for (groundLiteral <- cliqueVariables) {
-                store(posWeight, Array(-groundLiteral))
+                store(posWeight, Array(-groundLiteral), -1)
                 counter += 1
               }
             }
           }
           else {
 
-            // store as it is
-           /* if (cliqueVariables.length > 1) jutil.Arrays.sort(cliqueVariables)
-            store(clause.weight, cliqueVariables)*/
-
-            var www = clause.weight
-            if (cliqueVariables.length > 1) jutil.Arrays.sort(cliqueVariables)
-            else if(eliminateNegatedUnit && cliqueVariables.length == 1 && cliqueVariables(0) < 0){
+            // When we have a typical ground clause, with at least two literals,
+            // we simply sort its literals and thereafter we store the ground clause.
+            if (cliqueVariables.length > 1) {
+              jutil.Arrays.sort(cliqueVariables)
+              store(clause.weight, cliqueVariables, 1)
+            }
+            // Otherwise, we have a unit ground clause
+            else {
+              // When the flag 'eliminateNegatedUnit=true' and its unique literal is negative
+              // then we negate the literal and invert the sign of its weight value
+              if(eliminateNegatedUnit && cliqueVariables(0) < 0){
                 cliqueVariables(0) = -cliqueVariables(0)
-                www = -www
+                store(-clause.weight, cliqueVariables, -1)
               }
-
-            store(www, cliqueVariables)
-
+              // Otherwise, store the unit clause as it is.
+              else store(clause.weight, cliqueVariables, 1)
+            }
             counter += 1
           }
           counter = 1
@@ -228,7 +237,7 @@ class ClauseGrounderImpl(
       counter
     }
 
-     if (clause.isGround) performGrounding()
+    if (clause.isGround) performGrounding()
     else while (groundIterator.hasNext) performGrounding(theta = groundIterator.next())
 
   }
@@ -237,17 +246,23 @@ class ClauseGrounderImpl(
     case c: Constant => c.symbol
     case v: Variable => theta(v)
     case f: TermFunction =>
-      mln.functionMappers.get(f.signature) match {
+      evidence.functionMappers.get(f.signature) match {
         case Some(m) => m(f.terms.map(a => substituteTerm(theta)(a)))
         case None => fatal("Cannot apply substitution using theta: " + theta + " in function " + f.signature)
       }
   }
 
-  private def store(weight: Double, variables: Array[Int]) {
+  /**
+   *
+   * @param weight the clause weight
+   * @param variables the ground clause literals (where negative values indicate negated atoms)
+   * @param freq: -1 when the clause weight is been inverted, +1 otherwise.
+   */
+  private def store(weight: Double, variables: Array[Int], freq: Int) {
     var hashKey = jutil.Arrays.hashCode(variables)
     if (hashKey == 0) hashKey += 1 //required for trove collections, since zero represents the key-not-found value
 
-    cliqueRegisters(math.abs(hashKey % cliqueBatches)) ! CliqueEntry(hashKey, weight, variables)
+    cliqueRegisters(hashKey) ! messages.CliqueEntry(hashKey, weight, variables, clauseIndex, freq )
   }
 
 }

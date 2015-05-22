@@ -34,11 +34,13 @@ package lomrf.mln.inference
 
 import auxlib.log.Logging
 import lomrf.mln.model.mrf.{GroundAtom, MRFState, MRF}
-import MRF.{NO_ATOM, NO_CONSTRAINT, NO_ATOM_ID}
+import MRF.{NO_ATOM, NO_ATOM_ID}
 import java.io.PrintStream
 import java.util.concurrent.ThreadLocalRandom
-import lomrf.util.Utilities
+import lomrf.util.time._
 import lomrf.util.LongDoubleConversions._
+
+import scala.util.{Failure, Success}
 
 /**
  * This is an implementation of the MaxWalkSAT local-search algorithm with tabu search for weighed satisfiability solving.
@@ -67,15 +69,14 @@ import lomrf.util.LongDoubleConversions._
  * @param satHardPriority Satisfiability priority to hard constrained clauses (default is false)
  * @param tabuLength Minimum number of flips between flipping the same atom (default is 10)
  *
- * @author Anastasios Skarlatidis
- * @author Vagelis Michelioudakis
+ *
+ *
  */
 final case class MaxWalkSAT(mrf: MRF, pBest: Double = 0.5, maxFlips: Int = 1000000, maxTries: Int = 1, targetCost: Double = 0.001,
                        outputAll: Boolean = true, satHardUnit: Boolean = false, satHardPriority: Boolean = false,
                        tabuLength: Int = 10) extends Logging {
 
   private val TARGET_COST = new LongDouble(targetCost + 0.0001)
-  //private val random = new Random()
 
   /**
    * Fetch atom given its literal code.
@@ -96,7 +97,7 @@ final case class MaxWalkSAT(mrf: MRF, pBest: Double = 0.5, maxFlips: Int = 10000
     val endTime = System.currentTimeMillis()
     state.evaluateState()
     state.printStatistics()
-    info(Utilities.msecTimeToText("Total Max-WalkSAT time: ", endTime - startTime))
+    info(msecTimeToText("Total Max-WalkSAT time: ", endTime - startTime))
 
     // return the best state
     state
@@ -127,7 +128,7 @@ final case class MaxWalkSAT(mrf: MRF, pBest: Double = 0.5, maxFlips: Int = 10000
     @inline def maxWalkSATStep(): GroundAtom = {
       val lucky = state.getRandomUnsatConstraint
 
-      if (lucky.id == NO_CONSTRAINT.id) return NO_ATOM
+      if (lucky.id == MRF.NO_CONSTRAINT_ID) return NO_ATOM
 
       bufferIdx = 0
       var idx = 0
@@ -252,29 +253,28 @@ final case class MaxWalkSAT(mrf: MRF, pBest: Double = 0.5, maxFlips: Int = 10000
    * @param out Selected output stream (default is console)
    */
   def writeResults(out: PrintStream = System.out) {
-    import lomrf.util.decodeAtom
+    import lomrf.util.AtomIdentityFunctionOps._
 
     implicit val mln = mrf.mln
 
+    val queryStartID = mln.evidence.predicateSpace.queryStartID
+    val queryEndID = mln.evidence.predicateSpace.queryEndID
+
     val iterator = mrf.atoms.iterator()
+
     while (iterator.hasNext) {
       iterator.advance()
       val atomID = iterator.key()
-      if (atomID >= mln.queryStartID && atomID <= mln.queryEndID) {
+
+      if (atomID >= queryStartID && atomID <= queryEndID) {
         val groundAtom = iterator.value()
         val state = if(groundAtom.getState) 1 else 0
-        if(outputAll) {
-          decodeAtom(iterator.key()) match {
-            case Some(txtAtom) => out.println(txtAtom + " " + state)
-            case _ => error("failed to decode id:" + atomID)
-          }
+
+        atomID.decodeAtom match {
+          case Success(txtAtom) if outputAll || state == 1 => out.println(txtAtom + " " + state)
+          case Failure(f) => error(s"failed to decode id: $atomID", f)
         }
-        else {
-          if(state == 1) decodeAtom(iterator.key()) match {
-            case Some(txtAtom) => out.println(txtAtom + " " + state)
-            case _ => error("failed to decode id:" + atomID)
-          }
-        }
+
       }
     }
   }

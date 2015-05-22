@@ -30,15 +30,12 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package lomrf.util
+package lomrf.mln.model
 
+import gnu.trove.TCollections
 import gnu.trove.map.TIntObjectMap
 import gnu.trove.map.hash.TIntObjectHashMap
-import gnu.trove.TCollections
-
-/**
- * @author Anastasios Skarlatidis
- */
+import lomrf.util.AtomIdentityFunction
 
 trait FunctionMapper {
 
@@ -48,14 +45,14 @@ trait FunctionMapper {
 }
 
 object FunctionMapper {
-  def apply(fb: FunctionMapperBuilder): FunctionMapper = fb.result
+  def apply(fb: FunctionMapperBuilder): FunctionMapper = fb.result()
 
   def apply(idf: AtomIdentityFunction, args2Value: TIntObjectMap[String]): FunctionMapper = new FunctionMapperDefaultImpl(idf, args2Value)
 
   def apply(func: Vector[String] => String): FunctionMapper = new FunctionMapperSpecialImpl(func)
 }
 
-final class FunctionMapperDefaultImpl private[util](identityFunction: AtomIdentityFunction, args2Value: TIntObjectMap[String]) extends FunctionMapper {
+final class FunctionMapperDefaultImpl(identityFunction: AtomIdentityFunction, args2Value: TIntObjectMap[String]) extends FunctionMapper {
 
   def apply(args: Vector[String]): String = {
     val id = identityFunction.encode(args)
@@ -68,7 +65,7 @@ final class FunctionMapperDefaultImpl private[util](identityFunction: AtomIdenti
     if (result eq null) None else Some(result)
   }
 
-  override def toString = "FunctionMapperDefaultImpl of " + identityFunction.signature + ", size:=" + args2Value.size()
+  override def toString = s"FunctionMapperDefaultImpl{signature:= ${identityFunction.signature}, size:=${args2Value.size()}"
 
 }
 
@@ -89,7 +86,7 @@ final class FunctionMapperBuilder(identityFunction: AtomIdentityFunction) {
     args2Value.putIfAbsent(id, value)
   }
 
-  def result: FunctionMapperDefaultImpl = {
+  def result(): FunctionMapper = {
     dirty = true
     new FunctionMapperDefaultImpl(identityFunction, TCollections.unmodifiableMap(args2Value))
   }
@@ -100,11 +97,13 @@ final class FunctionMapperBuilder(identityFunction: AtomIdentityFunction) {
   }
 }
 
-final class FunctionMapperSpecialImpl private[util](func: Vector[String] => String) extends FunctionMapper {
+final class FunctionMapperSpecialImpl(func: Vector[String] => String) extends FunctionMapper {
 
 
   def apply(args: Vector[String]) = func(args)
 
   def get(args: Vector[String]): Option[String] = Some(func(args))
+
+  override def toString = s"FunctionMapperSpecialImpl{f:= $func}"
 
 }

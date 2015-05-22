@@ -34,6 +34,7 @@ package lomrf.mln.model.mrf
 
 import java.util
 import java.util.concurrent.ThreadLocalRandom
+import java.util.concurrent.atomic.AtomicBoolean
 import auxlib.log.Logging
 import gnu.trove.list.array.TIntArrayList
 import gnu.trove.map.hash.TIntIntHashMap
@@ -41,7 +42,8 @@ import lomrf.util._
 import scala.collection.mutable.ArrayBuffer
 import scala.collection.mutable
 import scala.collection.parallel.mutable.ParArray
-import scalaxy.loops._
+import scala.util.{Failure, Success}
+import scalaxy.streams.optimize
 
 /**
  * This class represents the MRF state.
@@ -51,7 +53,7 @@ import scalaxy.loops._
  * @param parConstraints parallel array holding the constraints
  * @param satHardPriority Satisfiability priority to hard constrained clauses (default is false)
  *
- * @author Anastasios Skarlatidis
+ *
  */
 final class MRFState private(val mrf: MRF,
                              parAtoms: ParArray[GroundAtom],
@@ -101,15 +103,52 @@ final class MRFState private(val mrf: MRF,
   def computeDelta(atomID: Int): Double = {
     var delta = 0.0
 
-    for(i <- (0 until Unsatisfied.size).optimized) {
-      val constraint = Unsatisfied.apply(i)
+    val pos = mrf.pLit2Constraints.get(atomID)
+    val neg = mrf.nLit2Constraints.get(atomID)
 
-      if(constraint.literals.contains(atomID))
-        delta += constraint.weight
-      else if(constraint.literals.contains(-atomID))
-        delta -= constraint.weight
+    if(pos ne null) {
+      val positive = pos.iterator
+      while (positive.hasNext) {
+        val currentConstraint = positive.next()
+        if (!currentConstraint.isSatisfiedByFixed)
+          if (currentConstraint.getWeight > 1000) delta += 1000 else delta += currentConstraint.getWeight
+      }
     }
+
+    if(neg ne null) {
+      val negative = neg.iterator
+      while (negative.hasNext) {
+        val currentConstraint = negative.next()
+        if (!currentConstraint.isSatisfiedByFixed)
+          if (currentConstraint.getWeight > 1000) delta -= 1000 else delta -= currentConstraint.getWeight
+      }
+    }
+
     delta
+  }
+
+  /**
+   * Refine current state by setting constraints to satisfied by fixed atom if the
+   * previously fixed atom given appears as a positive or negative literal in
+   * the constraint. Used by ILP roundup procedure.
+   *
+   * @param atomID atom id
+   */
+  def refineState(atomID: Int): Unit = {
+
+    val atomState = state(atomID)
+    val pos = mrf.pLit2Constraints.get(atomID)
+    val neg = mrf.nLit2Constraints.get(atomID)
+
+    val constraints = if(atomState) pos else neg
+
+    // It doesn't matter if it is already true
+    if(constraints ne null) {
+      val constraintsIterator = constraints.iterator
+      while (constraintsIterator.hasNext) {
+        constraintsIterator.next().isSatisfiedByFixed = true
+      }
+    }
   }
 
   /**
@@ -127,8 +166,10 @@ final class MRFState private(val mrf: MRF,
 
     var countNeg = 0
 
-    for(i <- (0 until unsatisfied).optimized)
-      if(Unsatisfied(i).weight < 0) countNeg += 1
+    optimize{
+      for(i <- 0 until unsatisfied)
+        if(Unsatisfied(i).getWeight < 0) countNeg += 1
+    }
 
     var likelihood, likelihoodUB = ZERO
 
@@ -138,7 +179,7 @@ final class MRFState private(val mrf: MRF,
       iterator.advance()
       val c = iterator.value()
       if(c.isSatisfied) likelihood += c.hpWeight
-      if(c.weight > 0 || c.isHardConstraint) likelihoodUB += c.hpWeight
+      if(c.getWeight > 0 || c.isHardConstraint) likelihoodUB += c.hpWeight
     }
 
     info {
@@ -241,10 +282,12 @@ final class MRFState private(val mrf: MRF,
       if (atom.fixedValue == 1 && !state || atom.fixedValue == -1 && state)
         sys.error("Contradiction found for atomID " + atomID)
 
-      if (atom.fixedValue == 0) {
-        atom.fixedValue = if (state) 1 else -1
-        atom.state = state
-        updateSatisfiedByFix(atomID)
+      synchronized {
+        if (atom.fixedValue == 0) {
+          atom.fixedValue = if (state) 1 else -1
+          atom.state = state
+          updateSatisfiedByFix(atomID)
+        }
       }
     }
 
@@ -273,22 +316,25 @@ final class MRFState private(val mrf: MRF,
     while (nIterator.hasNext) {
       nIterator.advance()
       val constraint = nIterator.value()
-      if (!constraint.inactive && !constraint.isPositive && !constraint.isSatisfiedByFixed) {
-        for (i <- (0 until constraint.literals.length).optimized)
+      if (!constraint.inactive && !constraint.isPositive && !constraint.isSatisfiedByFixed) optimize{
+        for (i <- 0 until constraint.literals.length)
           fixAtom(math.abs(constraint.literals(i)), constraint.literals(i) < 0)
       }
     }
 
     // 3. Process positive constraints.
-    var done = false
+    //var done = false
+    val done = new AtomicBoolean(false)
 
-    while (!done) {
-      done = true
-      val pIterator = mrf.constraints.iterator()
+    while (!done.get()) {
+      //done = true
+      done.set(true)
+      parConstraints.foreach { constraint =>
+        /*val pIterator = mrf.constraints.iterator()
 
-      while (pIterator.hasNext) {
-        pIterator.advance()
-        val constraint = pIterator.value()
+        while (pIterator.hasNext) {
+          pIterator.advance()
+          val constraint = pIterator.value()*/
         if (!constraint.inactive && constraint.isPositive && !constraint.isSatisfiedByFixed) {
 
           var numOfNonFixedAtoms = 0
@@ -316,7 +362,8 @@ final class MRFState private(val mrf: MRF,
           if(isSat) constraint.isSatisfiedByFixed = true
           else if(numOfNonFixedAtoms == 1) {
             fixAtom(math.abs(nonFixedLiteral), nonFixedLiteral > 0)
-            done = false
+            //done = false
+            done.set(false)
           }
         }
       }
@@ -543,9 +590,9 @@ final class MRFState private(val mrf: MRF,
     val pickedID = atom.id
 
     whenDebug {
-      decodeAtom(pickedID)(mrf.mln) match{
-        case Some(atomStr) => debug("Flipping atom: '"+atomStr+"'")
-        case None => error("Cannot decode atom with atomID = '"+pickedID+"'")
+      AtomIdentityFunction.decodeAtom(pickedID)(mrf.mln) match{
+        case Success(atomStr) => debug(s"Flipping atom: '$atomStr'")
+        case Failure(t) => error(s"Cannot decode atom with atomID = '$pickedID'", t)
       }
     }
 
@@ -593,7 +640,7 @@ final class MRFState private(val mrf: MRF,
             //
             //    a. Remove this constraint from the set of unsatisfied constraints
             //       only when it is positive, otherwise do the opposite.
-            if (constraint.weight > 0) {
+            if (constraint.getWeight > 0) {
               Unsatisfied -= constraint
               totalCost -= (if(mode == MRF.MODE_MWS) constraint.hpWeight.abs() else ONE)
               if(constraint.isHardConstraint && priorityBuffer.contains(constraint)) priorityBuffer -= constraint
@@ -672,7 +719,7 @@ final class MRFState private(val mrf: MRF,
             //
             //    a. Insert this constraint to the set of unsatisfied constraints
             //       only when it is positive, otherwise do the opposite
-            if (constraint.weight > 0) {
+            if (constraint.getWeight > 0) {
               Unsatisfied += constraint
               totalCost += (if(mode == MRF.MODE_MWS) constraint.hpWeight.abs() else ONE)
               if(constraint.isHardConstraint) priorityBuffer += constraint
@@ -953,7 +1000,7 @@ final class MRFState private(val mrf: MRF,
 /**
  * MRFState companion object.
  *
- * @author Anastasios Skarlatidis
+ *
  */
 object MRFState {
 

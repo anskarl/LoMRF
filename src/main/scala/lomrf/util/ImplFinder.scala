@@ -41,7 +41,7 @@ import scala.collection.mutable
 
 /**
  *
- * @author Anastasios Skarlatidis
+ *
  */
 final class ImplFinder(traitSet: Set[Class[_]]) extends Logging {
 

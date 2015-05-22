@@ -34,67 +34,80 @@ package lomrf.mln
 
 import java.{util => jutil}
 
-import gnu.trove.map.TIntObjectMap
+import gnu.trove.map.{TIntFloatMap, TIntObjectMap}
 import gnu.trove.map.hash.TIntObjectHashMap
 import gnu.trove.set.TIntSet
 import gnu.trove.set.hash.TIntHashSet
 import lomrf.logic.{AtomSignature, Clause}
+import lomrf.util.collection.IndexPartitioned
 
-/**
- * @author Anastasios Skarlatidis
- */
 package object grounding {
+
+  // ----------------------------------------
+  // Types
+  // ----------------------------------------
+  type DependencyMap = TIntObjectMap[TIntFloatMap]
+
 
   // ----------------------------------------
   // Messages
   // ----------------------------------------
 
-  /**
-   * Message for requesting the final ground MRF from the Master actor.
-   */
-  private[grounding] case object REQUEST_RESULTS
+  private[grounding] object messages {
 
-  private[grounding] case object GRND_Iteration_Completed
+    /**
+     * Message for requesting the final ground MRF from the Master actor.
+     */
+    case object REQUEST_RESULTS
+    case object GRND_Iteration_Completed
+    case object GRND_Completed
 
-  private[grounding] case object GRND_Completed
+    case class Result(
+                       cliques: IndexPartitioned[TIntObjectMap[CliqueEntry]],
+                       atom2Cliques: IndexPartitioned[TIntObjectMap[TIntHashSet]],
+                       queryAtomIDs: IndexPartitioned[TIntSet],
+                       dependencyMap: Option[IndexPartitioned[DependencyMap]] = None)
 
-  private[grounding] case class Result(cliques: Array[TIntObjectMap[CliqueEntry]], atom2Cliques: Array[TIntObjectMap[TIntHashSet]], queryAtomIDs: Array[TIntSet])
+    // GroundingWorker -> Master
+    case class Signatures(collectedSignatures: Set[AtomSignature])
 
-  private[grounding] case class ClauseGroundingCompleted(clause: Clause, collectedSignatures: Set[AtomSignature])
+    // Master -> GroundingWorker
+    case class Ground(clause: Clause, clauseIndex: Int, atomSignatures: Set[AtomSignature], atomsDB: IndexPartitioned[TIntSet])
 
-  // Master -> GroundingWorker
-  private[grounding] case class Ground(clause: Clause, atomSignatures: Set[AtomSignature], atomsDB: Array[TIntSet])
-
-  // GroundingWorker -> CliqueRegister
-  private[grounding] case class CliqueEntry(hashKey: Int, var weight: Double, variables: Array[Int]) {
+    // GroundingWorker -> CliqueRegister
+    case class CliqueEntry(hashKey: Int, var weight: Double, variables: Array[Int], clauseID: Int, freq: Int) {
 
 
-    override def hashCode() = hashKey
+      override def hashCode() = hashKey
 
-    override def equals(obj: Any): Boolean = obj match {
-      case other: CliqueEntry =>
-        other.hashKey == hashKey && other.weight == weight && jutil.Arrays.equals(other.variables, variables)
-      case _ => false
+      override def equals(obj: Any): Boolean = obj match {
+        case other: CliqueEntry =>
+          other.hashKey == hashKey && other.weight == weight && jutil.Arrays.equals(other.variables, variables)
+        case _ => false
+      }
+
+      override def toString: String =
+        s"CliqueEntry(hashKey=$hashKey, weight=$weight, variables=[${variables.mkString(",")}], clauseID=$clauseID, freq=$freq)"
     }
+
+    // Master -> AtomRegister
+    case class CollectedAtomIDs(atomRegisterIdx: Int, atomIDs: TIntSet)
+
+    // AtomRegister -> Master
+    case class AtomsBatch(index: Int, registry: TIntObjectHashMap[TIntHashSet], queryAtomIDs: TIntSet)
+
+    // CliqueRegister -> AtomRegister
+    case class Register(atomID: Int, cliqueID: Int)
+
+    // CliqueRegister -> Master
+    case class CollectedCliques(index: Int, cliques: TIntObjectMap[CliqueEntry], dependencyMap: Option[DependencyMap] = None)
+
+    case class StartID(id: Int)
+
+    case class NumberOfCliques(index: Int, size: Int)
+
+    case class QueryVariable(atomID: Int)
+
   }
-
-
-  // Master -> AtomRegister
-  private[grounding] case class CollectedAtomIDs(atomRegisterIdx: Int, atomIDs: TIntSet)
-
-  // AtomRegister -> Master
-  private[grounding] case class AtomsBatch(index: Int, registry: TIntObjectHashMap[TIntHashSet], queryAtomIDs: TIntSet)
-
-  // CliqueRegister -> AtomRegister
-  private[grounding] case class Register(atomID: Int, cliqueID: Int)
-
-  // CliqueRegister -> Master
-  private[grounding] case class CollectedCliques(index: Int, cliques: TIntObjectMap[CliqueEntry])
-
-  private[grounding] case class StartID(id: Int)
-
-  private[grounding] case class NumberOfCliques(index: Int, size: Int)
-
-  private[grounding] case class QueryVariable(atomID: Int)
 
 }

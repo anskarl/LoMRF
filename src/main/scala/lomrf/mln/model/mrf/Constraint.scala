@@ -33,9 +33,8 @@
 package lomrf.mln.model.mrf
 
 import lomrf.util.LongDoubleConversions._
-import scala.annotation.switch
 
-final class Constraint(val weight: Double, val literals: Array[Int], val isHardConstraint: Boolean, val threshold: Double,
+final class Constraint(private var weight: Double, val literals: Array[Int], val isHardConstraint: Boolean, val threshold: Double,
                        val id: Int = -1, var mode: Int = MRF.MODE_MWS) {
 
   // ----------------------------------------------------------------
@@ -45,7 +44,7 @@ final class Constraint(val weight: Double, val literals: Array[Int], val isHardC
   /**
    * High precision weight used for inference computations.
    */
-  private[mln] lazy val hpWeight = new LongDouble(weight)
+  private[mln] var hpWeight = new LongDouble(weight)
 
   /**
    * Number of literals satisfying the constraint.
@@ -76,15 +75,15 @@ final class Constraint(val weight: Double, val literals: Array[Int], val isHardC
   private[mln] var watchLit2: Int = 0
 
   /**
-   * Checks if the constraint is positive.
-   */
-  val isPositive: Boolean = weight > 0
-
-  /**
    * Checks if the constraint is unit, having
    * exactly one literal.
    */
   val isUnit: Boolean = literals.length == 1
+
+  /**
+   * Checks if the constraint is positive.
+   */
+  def isPositive: Boolean = weight > 0
 
   /**
    * Checks if the constraint is satisfied at the
@@ -92,6 +91,16 @@ final class Constraint(val weight: Double, val literals: Array[Int], val isHardC
    * @return true if the constraint is satisfied; otherwise false
    */
   def isSatisfied = nsat > 0
+
+  /**
+   * Checks if the given literal is contained in this constraint. It uses
+   * binary search as it guarentees O(logn) complexity to find it fast. The
+   * literals array is always sorted.
+   *
+   * @param lit the given literal number
+   * @return true if the literal is contained
+   */
+  def containsLiteral(lit: Int) = java.util.Arrays.binarySearch(literals, lit) >= 0
 
   /**
    * This is the cost when violating this constraint. If we are in MaxWalkSAT mode then the cost depends on the
@@ -106,10 +115,9 @@ final class Constraint(val weight: Double, val literals: Array[Int], val isHardC
    */
   def cost: LongDouble = {
     if( (isPositive && nsat == 0) || (!isPositive && nsat > 0) ) {
-      (mode: @switch) match {
-        case MRF.MODE_MWS => hpWeight.abs()
-        case MRF.MODE_SAMPLE_SAT => ONE
-      }
+      // when mode is set to MaxWalkSat, return the absolute value the high precision value
+      if( mode == MRF.MODE_MWS) hpWeight.abs()
+      else ONE //otherwise, we assume that mode is set to MC-SAT and return the value 1.
     }
     else ZERO
   }
@@ -118,6 +126,22 @@ final class Constraint(val weight: Double, val literals: Array[Int], val isHardC
    * Returns the number of literals satisfying this constraint.
    */
   def getNSat: Int = nsat
+
+  /**
+   * Returns the weight of the constraint
+   */
+  def getWeight: Double = weight
+
+  /**
+   * Set the weight of the constraint. Also changes
+   * the value of high precision weight.
+   *
+   * @param weight given weight
+   */
+  private[mln] def setWeight(weight: Double) = {
+    hpWeight = new LongDouble(weight)
+    this.weight = weight
+  }
 
   override def hashCode() = id
 

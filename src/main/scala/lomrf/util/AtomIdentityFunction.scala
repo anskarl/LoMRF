@@ -32,8 +32,13 @@
 
 package lomrf.util
 
+import lomrf.mln.model.{ConstantsSet, ConstantsDomain, MLN}
+import lomrf.mln.model.mrf.Constraint
+
 import scala.collection.mutable
 import lomrf.logic._
+import scala.util.{Success, Failure, Try}
+import scalaxy.streams.optimize
 
 /**
  * The AtomIdentityFunction represents a bijection between the groundings of an atom and  integer numbers. It is
@@ -43,18 +48,20 @@ import lomrf.logic._
  * This class provides fast and thread-safe functions for encoding ground predicates of the same FOL atom into unique
  * integer numbers, as well as for the opposite (decoding integers to ground predicates).
  *
- * @author Anastasios Skarlatidis
+ *
  */
 final class AtomIdentityFunction private(
                                           val signature: AtomSignature,
                                           val startID: Int,
-                                          val constantsAndStep: Array[(ConstantsSet, Int, Int, String)],
+                                          val constantsAndStep: Array[(ConstantsSet, Int, Int, String, Int)],
                                           val length: Int,
                                           val schema: Seq[String]) {
 
   import AtomIdentityFunction.IDENTITY_NOT_EXIST
 
   val endID = startID + length
+
+  lazy val indices = startID until endID
 
   def encode(atom: EvidenceAtom): Int = {
     var sum = startID
@@ -85,7 +92,7 @@ final class AtomIdentityFunction private(
     sum
   }
 
-  def encode(constants: scala.collection.IndexedSeq[String]): Int = {
+  def encode(constants: IndexedSeq[String]): Int = {
     var sum = startID
     var idx = 0
     while (idx < constants.length) {
@@ -115,7 +122,7 @@ final class AtomIdentityFunction private(
     sum
   }
 
-  /*def encode(constantIds: Array[Int]): Int = {
+  def encodeIndices(constantIds: Array[Int]): Int = {
     var sum = startID
     var idx = 0
     while (idx < constantIds.length) {
@@ -128,7 +135,7 @@ final class AtomIdentityFunction private(
     }
 
     sum
-  }*/
+  }
 
   /**
    * Gives the ID (positive integer) of the corresponding constant ids. This is the fastest
@@ -189,6 +196,7 @@ final class AtomIdentityFunction private(
   def encode(atom: AtomicFormula, f: Term => String): Int = {
     var sum = startID
     var idx = 0
+
     for (term <- atom.terms) {
       val set: ConstantsSet = constantsAndStep(idx)._1
 
@@ -202,38 +210,72 @@ final class AtomIdentityFunction private(
       idx += 1
     }
 
+
     sum
   }
 
-  def decode(id: Int): Option[Seq[String]] = {
-    if (id >= startID && id <= endID) {
-      val baseID = id - startID
+  def decode(id: Int): Try[IndexedSeq[String]] = {
+    // check bounds
+    if (id < startID || id >= endID)
+      return Failure(new IndexOutOfBoundsException(s"The given atom id '$id' is out of bounds, thus cannot be decoded."))
 
-      //Find all id literals
-      var currentID = baseID
-      val resultIDs = new Array[Int](constantsAndStep.length)
-      //val lastIdx = resultIDs.length - 1
-      var idx = resultIDs.length - 1
+    val baseID = id - startID
 
-      while (idx > 0) {
-        val sigma = constantsAndStep(idx)._3
-        if (sigma <= currentID) {
-          val modulo = currentID % sigma
-          resultIDs(idx) = (currentID - modulo) / sigma
-          currentID -= (resultIDs(idx) * sigma)
-        }
-        else {
-          resultIDs(idx) = 0
-        }
-        idx -= 1
+    // Find all id literals
+    var currentID = baseID
+    val result = new Array[String](constantsAndStep.length)
+    var idx = result.length - 1
+
+    while (idx > 0) {
+      val sigma = constantsAndStep(idx)._3
+      val constatsSet = constantsAndStep(idx)._1
+
+      if (sigma <= currentID) {
+        val tmpID = (currentID - (currentID % sigma)) / sigma
+        result(idx) = constatsSet(tmpID)
+        currentID -= (tmpID * sigma)
       }
-      resultIDs(0) = currentID
+      else result(idx) = constatsSet(0)
 
-      val result = for (i <- 0 until resultIDs.length) yield constantsAndStep(i)._1.apply(resultIDs(i))
-
-      return Some(result)
+      idx -= 1
     }
-    None
+    val constatsSet = constantsAndStep(idx)._1
+    result(idx) = constatsSet(currentID)
+
+    Success(result)
+  }
+
+  def extract(id: Int): Try[Array[Int]] = {
+    // check bounds
+    if (id < startID || id >= endID)
+      return Failure(new IndexOutOfBoundsException(s"The given atom id '$id' is out of bounds, thus cannot be decoded."))
+
+    val baseID = id - startID
+
+    // Find all id literals
+    val result = new Array[Int](constantsAndStep.length)
+    var currentID = baseID
+    var idx = result.length - 1
+
+    while (idx > 0) {
+      val constAndStep = constantsAndStep(idx)
+      val sigma = constAndStep._3
+      val offset = constAndStep._5
+
+      if (sigma <= currentID) {
+        val localID = (currentID - (currentID % sigma)) / sigma
+        result(idx) = offset + localID
+        currentID -= (localID * sigma)
+      }
+      else result(idx) = offset // + (currentID=0)
+
+      idx -= 1
+    }
+
+    val offset = constantsAndStep(idx)._5
+    result(idx) = offset + currentID
+
+    Success(result)
   }
 
   def idsIterator: Iterator[Int] = idsRange.iterator
@@ -249,19 +291,22 @@ final class AtomIdentityFunction private(
     var iteratorsMap = mutable.Map[Int, Iterator[Int]]()
     val values = new Array[Int](length)
 
-    for (idx <- 0 until length) {
-      val constantSet = constantsAndStep(idx)._1
-      val symbol = constantsAndStep(idx)._4
-      query.get(symbol) match {
-        case Some(constantValue) => values(idx) = constantSet(constantValue)
-        case None =>
-          val range = constantSet.idsRange
-          val iterator = range.iterator
-          rangesMap += (idx -> range)
-          iteratorsMap += (idx -> iterator)
-          values(idx) = iterator.next()
+    optimize {
+      for (idx <- 0 until length) {
+        val constantSet = constantsAndStep(idx)._1
+        val symbol = constantsAndStep(idx)._4
+        query.get(symbol) match {
+          case Some(constantValue) => values(idx) = constantSet(constantValue)
+          case None =>
+            val range = constantSet.idsRange
+            val iterator = range.iterator
+            rangesMap += (idx -> range)
+            iteratorsMap += (idx -> iterator)
+            values(idx) = iterator.next()
+        }
       }
     }
+
 
     new MatchingIDsIterator(rangesMap, iteratorsMap, values)
   }
@@ -269,7 +314,7 @@ final class AtomIdentityFunction private(
 
   private class MatchingIDsIterator(rangesMap: Map[Int, Range], iteratorsMap: mutable.Map[Int, Iterator[Int]], values: Array[Int]) extends Iterator[Int] {
 
-    import scalaxy.loops._
+    import scalaxy.streams.optimize
 
 
     private val _length = rangesMap.map(_._2.size).product
@@ -285,28 +330,30 @@ final class AtomIdentityFunction private(
     def next(): Int = {
       if (counter < _length) {
         sum = startID
-        for (idx <- (0 until values.length).optimized) {
+        optimize {
+          for (idx <- 0 until values.length) {
 
-          //1. encode
-          val constantID = values(idx)
-          val step = constantsAndStep(idx)._2
-          val offset = constantID * step
-          sum += (offset + constantID)
+            //1. encode
+            val constantID = values(idx)
+            val step = constantsAndStep(idx)._2
+            val offset = constantID * step
+            sum += (offset + constantID)
 
-          //2. advance
-          iteratorsMap.get(idx) match {
-            case Some(currentIter) =>
-              values(idx) =
-                if (currentIter.hasNext) {
-                  currentIter.next()
-                } else {
-                  val nouvaIter = rangesMap(idx).iterator
-                  iteratorsMap(idx) = nouvaIter
-                  nouvaIter.next()
-                }
-            case _ => //do nothing
+            //2. advance
+            iteratorsMap.get(idx) match {
+              case Some(currentIter) =>
+                values(idx) =
+                  if (currentIter.hasNext) {
+                    currentIter.next()
+                  } else {
+                    val nouvaIter = rangesMap(idx).iterator
+                    iteratorsMap(idx) = nouvaIter
+                    nouvaIter.next()
+                  }
+              case _ => //do nothing
+            }
+
           }
-
         }
         counter += 1
       }
@@ -317,11 +364,12 @@ final class AtomIdentityFunction private(
 }
 
 object AtomIdentityFunction {
+
   val IDENTITY_NOT_EXIST = 0
 
   def apply(signature: AtomSignature,
             schema: Seq[String],
-            constants: Map[String, ConstantsSet],
+            constants: ConstantsDomain,
             startID: Int): AtomIdentityFunction = {
 
     assert(startID > 0, "Atom identity function requires startID to be greater than zero and you gave: " + startID)
@@ -329,7 +377,16 @@ object AtomIdentityFunction {
     val descriptor: Array[String] = schema.toArray
 
     var n = 0
-    val constantsAndStep = new Array[(ConstantsSet, Int, Int, String)](descriptor.size)
+    val constantsAndStep = new Array[(ConstantsSet, Int, Int, String, Int)](descriptor.length)
+
+
+    var constOffsetMap = Map[String, Int]()
+
+    var currentOffset = 0
+    for (((k, v), idx) <- constants.zipWithIndex) {
+      constOffsetMap += (k -> currentOffset)
+      currentOffset += v.size
+    }
 
     var length = 1
     val iterations = descriptor.length - 1
@@ -339,11 +396,83 @@ object AtomIdentityFunction {
       val symbol = descriptor(i)
       val currentDomain = constants(symbol)
       length *= currentDomain.size
-      constantsAndStep(i) = if (i == 0) (currentDomain, 0, 1, symbol) else (currentDomain, n - 1, n, symbol)
+      constantsAndStep(i) = if (i == 0) (currentDomain, 0, 1, symbol, constOffsetMap(symbol)) else (currentDomain, n - 1, n, symbol, constOffsetMap(symbol))
       n = if (n == 0) currentDomain.size else n * currentDomain.size
       i += 1
     }
 
     new AtomIdentityFunction(signature, startID, constantsAndStep, length, schema)
   }
+
+  def decodeLiteral(literal: Int)(implicit mln: MLN): Try[String] = {
+
+    val atomID = math.abs(literal)
+    val signature = AtomSignature.signatureOf(atomID)
+    val idf = mln.evidence.predicateSpace.identities(signature)
+
+    val negation = if (literal < 0) "!" else ""
+
+    idf.decode(atomID).map(x => s"$negation${signature.symbol}(${x.mkString(",")})")
+  }
+
+  def decodeAtom(literal: Int)(implicit mln: MLN): Try[String] = {
+
+    val atomID = math.abs(literal)
+    val signature = AtomSignature.signatureOf(atomID)
+    val idf = mln.evidence.predicateSpace.identities(signature)
+
+    idf.decode(atomID).map(x => s"${signature.symbol}(${x.mkString(",")})")
+  }
+
+  def decodeFeature(feature: Constraint, hardWeight: Double = 0)(implicit mln: MLN): Try[String] = {
+
+    val buffer = new StringBuilder()
+
+    val weight = feature.getWeight
+
+    if (weight.isPosInfinity) {
+      if (hardWeight != 0) buffer.append(hardWeight.toString)
+      buffer.append(' ')
+    }
+    else if (!weight.isNaN) {
+      buffer.append(feature.getWeight.toString)
+      buffer.append(' ')
+    }
+
+    optimize {
+      for (i <- 0 until feature.literals.length; tryLiteral = decodeLiteral(feature.literals(i))) tryLiteral match {
+        case Success(litTXT) =>
+          buffer.append(litTXT)
+          if (i != feature.literals.length - 1) buffer.append(" v ")
+
+        case f: Failure[String] => return f
+      }
+    }
+
+
+    if (feature.getWeight.isInfinite && hardWeight != 0) buffer.append('.')
+
+
+    Success(buffer.result())
+  }
+}
+
+object AtomIdentityFunctionOps {
+
+  implicit class WrappedGroundLiteral(val literal: Int) extends AnyVal {
+
+    def decodeLiteral(implicit mln: MLN) = AtomIdentityFunction.decodeLiteral(literal)
+
+    def decodeAtom(implicit mln: MLN) = AtomIdentityFunction.decodeAtom(literal)
+
+  }
+
+  implicit class WrappedConstraint(val feature: Constraint) extends AnyVal {
+
+    def decodeFeature(hardWeight: Double = 0)(implicit mln: MLN): Try[String] = {
+      AtomIdentityFunction.decodeFeature(feature, hardWeight)
+    }
+
+  }
+
 }

@@ -34,7 +34,7 @@ package lomrf.logic
 import org.scalatest.{Matchers, FunSpec}
 
 /**
- * @author Anastasios Skarlatidis
+ * A series of spec tests regarding the computation of the unification between a pair of atomic formulas.
  */
 final class UnificationSpecTest extends FunSpec with Matchers {
 
@@ -165,7 +165,7 @@ final class UnificationSpecTest extends FunSpec with Matchers {
   //Test 10 mgp(InitiatedAt(meet(C,B),t), InitiatedAt(meet(A,y),t)) = InitiatedAt(meet(x,y),t)
   describe("Atoms " + ka5.toText + " and " + ka2.toText) {
     they("have " + ka1.toText + " as MGP") {
-      assert(generalisation(ka5, ka2).getOrElse(sys.error("mgp failed")).isSimilarTo(ka1))
+      assert(generalisation(ka5, ka2).getOrElse(sys.error("mgp failed")) =~= ka1)
     }
   }
 

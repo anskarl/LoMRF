@@ -35,7 +35,7 @@ package lomrf.logic.dynamic
 import lomrf.logic.{Term, AtomicFormula}
 
 /**
- * @author Anastasios Skarlatidis
+ *
  */
 class DynamicAtom(override val symbol: String, override val terms: Vector[Term]) extends AtomicFormula(symbol,terms){
   override val isDynamic = true

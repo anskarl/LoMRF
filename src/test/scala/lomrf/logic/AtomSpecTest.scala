@@ -34,7 +34,7 @@ package lomrf.logic
 import org.scalatest.{Matchers, FunSpec}
 
 /**
- * @author Anastasios Skarlatidis
+ * A series of spec tests for Atomic formulas (a.k.a atoms and (atomic) predicates)
  */
 final class AtomSpecTest extends FunSpec with Matchers {
 
@@ -71,15 +71,15 @@ final class AtomSpecTest extends FunSpec with Matchers {
     }
 
     it("has no variables") {
-      result.variables.isEmpty should be(true)
+      result.variables.isEmpty shouldEqual true
     }
 
     it("has no functions") {
-      result.functions.isEmpty should be(true)
+      result.functions.isEmpty shouldEqual true
     }
 
     it("is ground") {
-      result.isGround should be(true)
+      result.isGround shouldEqual true
     }
 
     it("has two constants: 'Foo' and '10')") {
@@ -110,15 +110,15 @@ final class AtomSpecTest extends FunSpec with Matchers {
     }
 
     it("has one variable") {
-      result.variables.size should be(1)
+      result.variables.size shouldEqual 1
     }
 
     it("has no functions") {
-      result.functions.isEmpty should be(true)
+      result.functions.isEmpty shouldEqual true
     }
 
     it("is not ground") {
-      result.isGround should be(false)
+      result.isGround shouldEqual false
     }
 
     it("composed of constant 'Foo' and variable 't'") {
@@ -173,10 +173,10 @@ final class AtomSpecTest extends FunSpec with Matchers {
     }
 
     if (nVar > 0) it("is ground") {
-      result.isGround should not be (true)
+      result.isGround should not be true
     }
     else it("is not ground") {
-      result.isGround should be(true)
+      result.isGround shouldEqual true
     }
 
     it("composed of '"+term1.toText+"' and '"+term2.toText+"'") {

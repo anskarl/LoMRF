@@ -33,197 +33,150 @@
 package lomrf.mln.model
 
 import java.io.{File, BufferedReader, FileReader}
-import auxlib.log.Logging
+import auxlib.log.Logger
 import lomrf.logic._
 import lomrf.util._
-import scala.collection
-import scala.collection.{mutable, breakOut}
-import scala.Some
-
-/**
- * @author Anastasios Skarlatidis
- */
-
-private[model] class Evidence(
-                               val constants: Map[String, ConstantsSet],
-                               val atomsEvDB: Map[AtomSignature, AtomEvidenceDB],
-                               val functionMappers: Map[AtomSignature, FunctionMapper],
-                               val identities: Map[AtomSignature, AtomIdentityFunction],
-                               val orderedStartIDs: Array[Int],
-                               val orderedAtomSignatures: Array[AtomSignature],
-                               val queryStartID: Int,
-                               val queryEndID: Int)
+import scala.util.{Failure, Try, Success}
 
 
+class Evidence(val constants: ConstantsDomain,
+               val db: EvidenceDB,
+               val functionMappers: FunctionMappers,
+               val predicateSpace: PredicateSpace){
 
-private[model] object Evidence extends Logging {
+  /**
+   * collection of atoms with tri-state, i.e., open-world assumption (unknown state) with some evidence (true/false state)
+   */
+  lazy val tristateAtoms: Set[AtomSignature] = db.filter(x => x._2.isTriStateDB).keySet
 
-  def apply(kb: KB, queryPredicates: collection.Set[AtomSignature], hiddenPredicates: collection.Set[AtomSignature], filenames: List[String]): Evidence = {
-    load(kb, queryPredicates, hiddenPredicates, if(filenames.isEmpty) List(emptyDBFile) else filenames.map(filename => new File(filename)))
+  /**
+   * probabilisticAtoms collection of probabilistic atoms
+   */
+  lazy val probabilisticAtoms: Set[AtomSignature] = db.filter(x => x._2.isProbabilistic).keySet
+
+}
+
+object Evidence {
+
+  private lazy val log = Logger(this.getClass)
+
+  def apply(constants: ConstantsDomain, db: EvidenceDB, fm: FunctionMappers, space: PredicateSpace): Evidence = {
+    new Evidence(constants, db, fm, space)
   }
 
-  def apply(kb: KB, queryPredicates: collection.Set[AtomSignature], hiddenPredicates: collection.Set[AtomSignature], filename: String): Evidence = {
-    val evidenceFile: File = if ((filename eq null) || (filename.trim == "")) this.emptyDBFile else new File(filename)
-    load(kb, queryPredicates, hiddenPredicates, List(evidenceFile))
+  def fromFiles(kb: KB, constantsDomainBuilders: ConstantsDomainBuilder, queryPredicates: Set[AtomSignature], filenames: List[String]): Evidence ={
+    val fileList = if (filenames.isEmpty) List(createTempEmptyDBFile) else filenames.map(filename => new File(filename))
+
+    fromFiles(kb, constantsDomainBuilders, queryPredicates, Set.empty[AtomSignature], fileList)
   }
 
+  def fromFiles(kb: KB, constantsDomainBuilders: ConstantsDomainBuilder, queryPredicates: Set[AtomSignature], hiddenPredicates: Set[AtomSignature], filenames: List[String]): Evidence ={
+    val fileList = if (filenames.isEmpty) List(createTempEmptyDBFile) else filenames.map(filename => new File(filename))
 
-  def load(kb: KB, queryPredicates: collection.Set[AtomSignature], hiddenPredicates: collection.Set[AtomSignature], files: Iterable[File]): Evidence = {
-    load(kb.predicateSchema, kb.functionSchema, kb.constants, queryPredicates, hiddenPredicates, files)
+    fromFiles(kb, constantsDomainBuilders, queryPredicates, hiddenPredicates, fileList)
   }
 
-  def load(schema: Map[AtomSignature, Seq[String]],
-           functionSchema: Map[AtomSignature, (String, Seq[String])],
-           kb_constants: mutable.HashMap[String, ConstantsSetBuilder],
-           queryPredicates: collection.Set[AtomSignature],
-           hiddenPredicates: collection.Set[AtomSignature],
-           files: Iterable[File]): Evidence = {
+  def fromFiles(kb: KB, constantsDomainBuilders: ConstantsDomainBuilder, queryPredicates: Set[AtomSignature], files: Iterable[File]): Evidence = {
+    fromFiles(kb.predicateSchema, kb.functionSchema, constantsDomainBuilders, kb.dynamicFunctions, queryPredicates, Set.empty[AtomSignature], files)
+  }
 
-    val constantMap = kb_constants
+  def fromFiles(kb: KB, constantsDomainBuilders: ConstantsDomainBuilder, queryPredicates: Set[AtomSignature], hiddenPredicates: Set[AtomSignature], files: Iterable[File]): Evidence = {
+    fromFiles(kb.predicateSchema, kb.functionSchema, constantsDomainBuilders, kb.dynamicFunctions, queryPredicates, hiddenPredicates, files)
+  }
+
+  def fromFiles(predicateSchema: PredicateSchema,
+                functionSchema: FunctionSchema,
+                constantsDomainBuilder: ConstantsDomainBuilder,
+                dynamicFunctions: DynamicFunctions,
+                queryPredicates: Set[AtomSignature],
+                hiddenPredicates: Set[AtomSignature],
+                files: Iterable[File]): Evidence = {
+
+
+    import log._
+
+
+    def isOWA(signature: AtomSignature) = queryPredicates.contains(signature) || hiddenPredicates.contains(signature)
 
     val evidenceParser = new EvidenceParser
     val evidenceExpressionsDB =
-    for (file <- files; fileReader = new BufferedReader(new FileReader(file)))
-      yield evidenceParser.parseAll(evidenceParser.evidence, fileReader) match {
-        case evidenceParser.Success(expr, _) =>  expr
-        case x => fatal("Can't parse the following expression: " + x+" in file: "+file.getPath)
-      }
+      for (file <- files; fileReader = new BufferedReader(new FileReader(file)))
+        yield evidenceParser.parseAll(evidenceParser.evidence, fileReader) match {
+          case evidenceParser.Success(expr, _) => expr
+          case x => fatal(s"Can't parse the following expression: '$x' in file: '${file.getPath}'")
+        }
 
-    info("Stage 1: Parsing constants")
+    info("--- Stage 1: Parsing constants")
     for (evidenceExpressions <- evidenceExpressionsDB; expr <- evidenceExpressions) expr match {
       case f: FunctionMapping =>
         //Collect information for functionMappings
-        functionSchema.get(f.signature) match {
-          case Some(fSchema) =>
-            val (returnType, argTypes) = fSchema
-            constantMap.get(returnType) match {
-              case Some(builder) => builder += f.retValue
-              case None => error("Type " + returnType + " in function " + f.signature + " is not defined.")
-            }
-            for ((argType, argValue) <- argTypes.zip(f.values)) {
-              constantMap.get(argType) match {
-                case Some(builder) => builder += argValue
-                case None => error("Type " + argType + " in function " + f.signature + " is not defined.")
-              }
-            }
-          case None => fatal("The function definition of " + f.signature + " does not appear in the KB.")
+
+        val (returnType, argTypes) = functionSchema.getOrElse(
+          f.signature,
+          fatal(s"The function definition of '${f.signature}' does not appear in the knowledge base."))
+
+        val builder = constantsDomainBuilder.getOrElse(
+          returnType,
+          fatal(s"Type '$returnType' in function '${f.signature}' is not defined."))
+
+        builder += f.retValue
+
+        for ((argType, argValue) <- argTypes.zip(f.values)){
+          val currBuilder = constantsDomainBuilder.getOrElse(
+            argType,
+            fatal(s"Type '$argType' in function '${f.signature}' is not defined."))
+
+          currBuilder += argValue //.symbol
         }
+
       case atom: EvidenceAtom =>
-        schema.get(atom.signature) match {
+        predicateSchema.get(atom.signature) match {
           case Some(argTypes) =>
-            //append its constants into constantMap
-            for ((value, index) <- atom.constants.view.zipWithIndex) {
+            //append its constants into constantsMap
+            for ((value, index) <- atom.terms.view.zipWithIndex) {
               val constantType = argTypes(index)
-              constantMap.get(constantType) match {
+
+              constantsDomainBuilder.get(constantType) match {
                 case Some(x) => x += value.symbol
                 case None =>
-                  val currMap = new ConstantsSetBuilder()
-                  currMap += value.symbol
-                  constantMap(constantType) = currMap
+                  constantsDomainBuilder += (constantType -> value.symbol)
               }
             }
-          case _ => fatal("The type of " + atom + " is not defined")
+          case _ => fatal(s"The type of '$atom' is not defined.")
         }
       case _ => //ignore
     }
 
-    val constants: Map[String, ConstantsSet] = (for ((symbol, builder) <- constantMap) yield symbol -> builder.result)(breakOut)
+    val constants: Map[String, ConstantsSet] = constantsDomainBuilder.result()
 
-    //constants.foreach(entry => println("|"+entry._1+"|="+entry._2.size))
+    info("--- Stage 2: Creating function mappings, and evidence database.")
 
+    val builder = EvidenceBuilder(predicateSchema, functionSchema, queryPredicates, hiddenPredicates, constants)
 
-    val functionMapperBuilders = mutable.HashMap[AtomSignature, FunctionMapperBuilder]()
-    val atomsEvDBBuilders = mutable.HashMap[AtomSignature, AtomEvidenceDBBuilder]()
-
-    info("Stage 2: Creating atom unique identity functions.")
-    var identities: Map[AtomSignature, AtomIdentityFunction] = Map[AtomSignature, AtomIdentityFunction]()
-
-    var currentID = 1
-    val orderedStartIDs = new Array[Int](schema.size)
-    val orderedAtomSignatures = new Array[AtomSignature](schema.size)
-    var index = 0
-
-
-    // Query predicates
-    for ((signature, atomSchema) <- schema; if queryPredicates.contains(signature)) {
-      orderedStartIDs(index) = currentID
-      orderedAtomSignatures(index) = signature
-      index += 1
-      val idFunction = AtomIdentityFunction(signature, atomSchema, constants, currentID)
-      currentID += idFunction.length + 1
-      identities += (signature -> idFunction)
-      //println(signature + " {[" + idFunction.startID + "," + (idFunction.length + idFunction.startID) + "], length:" + idFunction.length + "}")
-    }
-
-    val queryStartID = 1
-    val queryEndID = currentID - 1
-
-
-    // Other OWA predicates
-    for ((signature, atomSchema) <- schema; if hiddenPredicates.contains(signature)) {
-      orderedStartIDs(index) = currentID
-      orderedAtomSignatures(index) = signature
-      index += 1
-      val idFunction = AtomIdentityFunction(signature, atomSchema, constants, currentID)
-      currentID += idFunction.length + 1
-      identities += (signature -> idFunction)
-      //println(signature + " {[" + idFunction.startID + "," + (idFunction.length + idFunction.startID) + "], length:" + idFunction.length + "}")
-    }
-
-    val predicatesOWA = queryPredicates ++ hiddenPredicates
-
-    // CWA predicates (Evidence predicates)
-    for ((signature, atomSchema) <- schema; if !predicatesOWA.contains(signature)) {
-      orderedStartIDs(index) = currentID
-      orderedAtomSignatures(index) = signature
-      index += 1
-      val idFunction = AtomIdentityFunction(signature, atomSchema, constants, currentID)
-      currentID += idFunction.length + 1
-      identities += (signature -> idFunction)
-      //println(signature + " {[" + idFunction.startID + "," + (idFunction.length + idFunction.startID) + "], length:" + idFunction.length + "}")
-    }
-
-
-    //orderedAtomSignatures.zip(orderedStartIDs).foreach{case (sig, startid) => println(sig+" -> "+startid) }
-    //sys.exit(0)
-
-    info("Stage 3: Creating function mappings, and evidence atoms database.")
-
-    //var currentAtomStartID = 1
     for (evidenceExpressions <- evidenceExpressionsDB; expr <- evidenceExpressions) expr match {
-      case fm: FunctionMapping =>
-        functionMapperBuilders.get(fm.signature) match {
-          case Some(fMappingBuilder) => fMappingBuilder += (fm.values, fm.retValue)
-          case None =>
-            val idFunction = AtomIdentityFunction(fm.signature, functionSchema(fm.signature)._2, constants, 1)
-            val builder = new FunctionMapperBuilder(idFunction)
-            builder +=(fm.values, fm.retValue)
-            functionMapperBuilders += (fm.signature -> builder)
-        }
-      case atom: EvidenceAtom =>
-        atomsEvDBBuilders.get(atom.signature) match {
-          case Some(builder) => builder += atom
-          case None =>
-            val signature = atom.signature
-            val atomSchema = schema(signature)
-            val db = AtomEvidenceDBBuilder(signature, atomSchema, identities(signature), !predicatesOWA.contains(signature))
-            db += atom
-            atomsEvDBBuilders += (signature -> db)
-        }
-      case _ => //ignore
+      case fm: FunctionMapping => builder.functions += fm
+      case atom: EvidenceAtom => builder.evidence += atom
     }
 
-    val atomsEvDB: Map[AtomSignature, AtomEvidenceDB] = (for ((signature, builder) <- atomsEvDBBuilders) yield signature -> builder.toAtomEvidenceDB)(breakOut)
-    val functionMappers: Map[AtomSignature, FunctionMapper] = (for ((signature, builder) <- functionMapperBuilders) yield signature -> builder.result)(breakOut)
-
-    new Evidence(constants, atomsEvDB, functionMappers, identities, orderedStartIDs, orderedAtomSignatures, queryStartID, queryEndID)
+    builder.result()
   }
 
-  private def emptyDBFile: File = {
-    val tmpfile = File.createTempFile("mlnc_empty_" + System.currentTimeMillis(), ".db")
-    tmpfile.createNewFile()
-    tmpfile.deleteOnExit()
-    tmpfile
+  private def createTempEmptyDBFile: File = {
+    import log._
+    val filePrefix = s".mlnc_empty_${System.currentTimeMillis()}"
+
+    Try[File](File.createTempFile(filePrefix, ".db")) match {
+      case Success(tmpFile) =>
+        tmpFile.deleteOnExit()
+        tmpFile
+
+      case Failure(f) =>
+        sys.props.get("java.io.tmpdir") match {
+          case Some(e) => fatal("Cannot create temporary file in the default JVM temporary files directory [java.io.tmpdir])")
+          case None => fatal("Cannot create temporary file (default JVM temporary files directory is not defined [java.io.tmpdir])")
+        }
+
+    }
   }
 
 }

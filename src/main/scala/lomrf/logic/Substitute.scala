@@ -43,7 +43,7 @@ package lomrf.logic
  * @see Wikipedia article [[http://en.wikipedia.org/wiki/First-order_logic]]
  * @see Russell, S.J. and Norvig, P. and Canny, J.F. and Malik, J. and Edwards, D.D. Artificial Intelligence: A Modern Approach, chapter 8.3 Using First-Order Logic [[http://aima.cs.berkeley.edu/]]
  *
- * @author Anastasios Skarlatidis
+ *
  */
 object Substitute {
 

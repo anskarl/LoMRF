@@ -34,13 +34,11 @@ package lomrf.util
 
 
 import lomrf.logic.AtomSignature
-import lomrf.mln.model.MLN
+import lomrf.mln.model.{ConstantsDomainBuilder, ConstantsSet, MLN}
 import gnu.trove.set.hash.TIntHashSet
+import lomrf.util.collection.GlobalIndexPartitioned
 import org.scalatest.{FunSpec, Matchers}
-
-/**
- * @author Anastasios Skarlatidis
- */
+import lomrf.util.time._
 
 final class AtomIdentityFunctionSpecTest extends FunSpec with Matchers {
 
@@ -65,17 +63,17 @@ final class AtomIdentityFunctionSpecTest extends FunSpec with Matchers {
   // Beta(fluent,time)
   // Alpha(e,f,t) => Beta(f,t).
   info("Constructing MLN from '" + naiveMLN + "' with evidence '" + emptyEvidence + "'")
-  val mln = MLN(naiveMLN, emptyEvidence, queryAtoms, cwa)
+  val mln = MLN.fromFile(naiveMLN, queryAtoms, emptyEvidence, cwa)
 
 
   // --------------------------------------------
   // --- Utility functions:
   // --------------------------------------------
-  private implicit def toStr(iterable: Iterable[String]): String = "(" + iterable.map(_.toString).reduceLeft(_ + "," + _) + ")"
+  private implicit def toStr(iterable: Iterable[String]): String = s"(${iterable.mkString(",")})"
 
   private def mkAtomIdentityFunction(signature: AtomSignature, mln: MLN, startID: Int): AtomIdentityFunction = {
     val schema = mln.getSchemaOf(signature).getOrElse(sys.error("Cannot find the schema of predicate: " + signature))
-    AtomIdentityFunction(signature, schema, mln.constants, startID)
+    AtomIdentityFunction(signature, schema, mln.evidence.constants, startID)
   }
 
 
@@ -98,11 +96,11 @@ final class AtomIdentityFunctionSpecTest extends FunSpec with Matchers {
     // Create an atom identity function
     val initStartTime = currentTimeMillis
     val identityFunction = mkAtomIdentityFunction(signature, mln, 1)
-    info(Utilities.msecTimeToTextUntilNow("Identity function initialisation", initStartTime))
+    info(msecTimeToTextUntilNow("Identity function initialisation", initStartTime))
 
-    val schema = mln.getSchemaOf(signature).getOrElse(sys.error("Cannot find signature: " + signature + " in the produced MLN."))
+    val schema = mln.getSchemaOf(signature).getOrElse(sys.error(s"Cannot find signature: '$signature' in the produced MLN."))
 
-    val domain = for (s <- schema) yield mln.constants(s)
+    val domain = for (s <- schema) yield mln.evidence.constants(s)
     val expectedNumOfGroundings = domain.map(_.size).product
 
     info("Initialising Cartesian iterator")
@@ -118,7 +116,7 @@ final class AtomIdentityFunctionSpecTest extends FunSpec with Matchers {
 
     while (cartesianIterator.hasNext) {
       val product = cartesianIterator.next() // get the next collection of Constants
-      allProductsStr += product
+      allProductsStr += product.toSeq
 
       describe("Atom '" + symbol + "(" + product + ")") {
 
@@ -144,15 +142,15 @@ final class AtomIdentityFunctionSpecTest extends FunSpec with Matchers {
     }
 
     describe("The total number of Cartesian products") {
-      it("should be equal to the number of expected groundings ( = " + expectedNumOfGroundings + ")") {
+      it(s"should be equal to the number of expected groundings ( = $expectedNumOfGroundings)") {
         idSet.size shouldEqual expectedNumOfGroundings
       }
     }
 
-    info(Utilities.nsecTimeToText("Total time producing IDs ", totalEnc))
-    info(Utilities.nsecTimeToText("Average time of producing an ID ", totalEnc / expectedNumOfGroundings))
-    info(Utilities.nsecTimeToText("Total time decoding IDs ", totalDec))
-    info(Utilities.nsecTimeToText("Average time of decoding an ID ", totalDec / expectedNumOfGroundings))
+    info(nsecTimeToText("Total time producing IDs ", totalEnc))
+    info(nsecTimeToText("Average time of producing an ID ", totalEnc / expectedNumOfGroundings))
+    info(nsecTimeToText("Total time decoding IDs ", totalDec))
+    info(nsecTimeToText("Average time of decoding an ID ", totalDec / expectedNumOfGroundings))
 
     describe("Filter all instances of Alpha/3") {
 
@@ -312,45 +310,57 @@ final class AtomIdentityFunctionSpecTest extends FunSpec with Matchers {
     val queryAtoms = Set[AtomSignature](AtomSignature("HoldsAt", 2))
     val cwa = Set[AtomSignature](AtomSignature("Happens", 2), AtomSignature("Close", 4), AtomSignature("Next", 2))
     val owa = Set[AtomSignature](AtomSignature("InitiatedAt", 2), AtomSignature("TerminatedAt", 2))
-    val mln = MLN(
-      testFilesPath + "DEC_TEST.mln",
-      testFilesPath + "Empty.db",
-      queryAtoms,
-      cwa, owa)
+    val mln = MLN.fromFile(testFilesPath + "DEC_TEST.mln", queryAtoms, testFilesPath + "Empty.db", cwa, owa)
 
     val signature = AtomSignature("Next", 2)
 
     val initStartTime = currentTimeMillis
     val identityFunction = mkAtomIdentityFunction(signature, mln, 1)
-    info(Utilities.msecTimeToTextUntilNow("Identity function initialisation", initStartTime))
+    info(msecTimeToTextUntilNow("Identity function initialisation", initStartTime))
 
     val schema = mln.getSchemaOf(signature).getOrElse(sys.error("Cannot find " + signature))
 
-    val domain = for (s <- schema) yield mln.constants(s)
-    val expectedNumOfGroundings = domain.map(_.size).product
+    val domain = for (s <- schema) yield mln.evidence.constants(s)
+    val expectedNumOfGroundings = domain.map(_.size).product.toLong
 
     val cartesianIterator = Cartesian.CartesianIterator(domain)
 
-    var totalEnc: Long = 0
+
     var counter = 0
 
     it("returns valid ids") {
+      var totalEnc = 0L
+      var totalDec = 0L
+
       while (cartesianIterator.hasNext) {
         val product = cartesianIterator.next()
-        val startEncTime = nanoTime
+
+        val startEncTime = System.nanoTime()
         val id = identityFunction.encode(product)
+        val endEncTime = System.nanoTime()
+
+        totalEnc = totalEnc + (endEncTime - startEncTime)
+
+        val startDecTime = System.nanoTime()
         val decElements = identityFunction.decode(id).getOrElse(sys.error("Cannot decode: " + id))
+        val endDecTime = System.nanoTime()
+        totalDec += (endDecTime - startDecTime)
+
         product shouldEqual decElements
 
-        totalEnc += nanoTime - startEncTime
         counter += 1
       }
+
+      info ("totalEnc= "+ totalEnc)
+
+      info(nsecTimeToText("Total time encoding IDs ", totalEnc))
+      info(nsecTimeToText("Average time encoding ID ", totalEnc / expectedNumOfGroundings))
+
+      info(nsecTimeToText("Total time decoding IDs ", totalDec))
+      info(nsecTimeToText("Average time decoding ID ", totalDec / expectedNumOfGroundings))
+
     }
 
-    info(Utilities.nsecTimeToText("Total time producing IDs ", totalEnc))
-    info(Utilities.nsecTimeToText("Avg time producing ID ", totalEnc / expectedNumOfGroundings))
-    info("Expected number of groundings: " + expectedNumOfGroundings)
-    info("Produced  products: " + counter)
 
     describe("The total number of Cartesian products") {
       it("should be equal to the number of expected groundings ( = " + expectedNumOfGroundings + ")") {
@@ -365,46 +375,49 @@ final class AtomIdentityFunctionSpecTest extends FunSpec with Matchers {
     val queryAtoms = Set[AtomSignature](AtomSignature("AdvisedBy", 2))
     val cwa = Set[AtomSignature](AtomSignature("GradStudent", 1), AtomSignature("Prof", 1), AtomSignature("TA", 2), AtomSignature("SameGroup", 2), AtomSignature("SameGroup", 2))
     val owa = Set[AtomSignature]()
-    val mln = MLN(
-      testFilesPath + "TestUniversityBIG.mln",
-      testFilesPath + "Empty.db",
-      queryAtoms,
-      cwa, owa)
+    val mln = MLN.fromFile(testFilesPath + "TestUniversityBIG.mln", queryAtoms, testFilesPath + "Empty.db", cwa, owa)
 
     val signature = AtomSignature("AdvisedBy", 2)
 
     val initStartTime = currentTimeMillis
     val identityFunction = mkAtomIdentityFunction(signature, mln, 1)
-    println(Utilities.msecTimeToTextUntilNow("Identity function initialisation", initStartTime))
+    info(msecTimeToTextUntilNow("Identity function initialisation", initStartTime))
 
     val schema = mln.getSchemaOf(signature).getOrElse(sys.error("Cannot find " + signature))
 
-    val domain = for (s <- schema) yield mln.constants(s)
+    val domain = for (s <- schema) yield mln.evidence.constants(s)
     val expectedNumOfGroundings = domain.map(_.size).product
 
     val cartesianIterator = Cartesian.CartesianIterator(domain)
-    //val symbol = identityFunction.signature.symbol
 
-    var totalEnc = 0L
     var counter = 0
 
     it("returns valid ids") {
+      var totalEnc = 0L
+      var totalDec = 0L
+
       while (cartesianIterator.hasNext) {
         val product = cartesianIterator.next()
+
         val startEncTime = nanoTime
         val id = identityFunction.encode(product)
+        totalEnc += nanoTime - startEncTime
+
+        val startDecTime = nanoTime
         val decElements = identityFunction.decode(id).getOrElse(sys.error("Cannot decode: " + id))
+        totalDec += nanoTime - startDecTime
+
         product shouldEqual decElements
 
-        totalEnc += nanoTime - startEncTime
         counter += 1
       }
-    }
 
-    info(Utilities.nsecTimeToText("Total time producing IDs ", totalEnc))
-    info(Utilities.nsecTimeToText("Average time producing ID ", totalEnc / expectedNumOfGroundings))
-    info("Expected number of groundings: " + expectedNumOfGroundings)
-    info("Produced  products: " + counter)
+      info(nsecTimeToText("Total time encoding IDs ", totalEnc))
+      info(nsecTimeToText("Average time encoding ID ", totalEnc / expectedNumOfGroundings))
+
+      info(nsecTimeToText("Total time decoding IDs ", totalDec))
+      info(nsecTimeToText("Average time decoding ID ", totalDec / expectedNumOfGroundings))
+    }
 
 
 
@@ -415,5 +428,69 @@ final class AtomIdentityFunctionSpecTest extends FunSpec with Matchers {
     }
   }
 
+  describe("Decoding using global constant IDs") {
 
+    // Constants:
+    val builder = ConstantsDomainBuilder()
+
+    builder.of("domainA") ++= (1 to 10).map(n => "A" + n)
+    builder.of("domainB") ++= (1 to 7).map(n => "B" + n)
+    builder.of("domainC") ++= (1 to 10000).map(n => "C" + n)
+    builder.of("domainD") ++= (1 to 2).map(n => "D" + n)
+
+    val constants = builder.result()
+
+    val domainsValues = new Array[ConstantsSet](constants.size)
+
+    for (((k, v), idx) <- constants.zipWithIndex) {
+      domainsValues(idx) = v
+    }
+
+    // globally indexed constants
+    val gConstants = GlobalIndexPartitioned[ConstantsSet, String](domainsValues)
+
+    // Foo(domainA, domainC, domainD)
+    val schema = Vector("domainA", "domainB", "domainC", "domainD")
+    val signature = AtomSignature("Foo", schema.length)
+
+    val expectedNumOfGroundings = domainsValues.map(_.size).product.toLong
+    val cartesianIterator = Cartesian.CartesianIterator(domainsValues)
+
+    val identityFunction = AtomIdentityFunction(signature, schema, constants, 1)
+
+    var allProductsStr = Set[String]()
+
+    it("extracts valid ids") {
+      var totalEnc = 0L
+      var totalExt = 0L
+
+      while (cartesianIterator.hasNext) {
+        val product = cartesianIterator.next() // get the next collection of Constants
+        allProductsStr += product.toSeq
+
+
+        val startEncTime = System.nanoTime
+        val encodedID = identityFunction.encode(product)
+        totalEnc += System.nanoTime - startEncTime
+
+        if (encodedID == AtomIdentityFunction.IDENTITY_NOT_EXIST) fail(s"Failed to encode Foo(${product.mkString(",")})")
+
+        val startExtTime = System.nanoTime
+        val extracted = identityFunction.extract(encodedID).getOrElse(fail("Cannot extract id: " + encodedID))
+        totalExt += System.nanoTime - startExtTime
+
+        val decoded = extracted.map(id => gConstants(id))
+
+        decoded shouldEqual product
+      }
+
+
+
+      info(nsecTimeToText("Total time encoding IDs ", totalEnc))
+      info(nsecTimeToText("Average time encoding ID ", totalEnc / expectedNumOfGroundings))
+
+      info(nsecTimeToText("Total time extracting IDs ", totalExt))
+      info(nsecTimeToText("Average time extracting ID ", totalExt / expectedNumOfGroundings))
+    }
+  }
 }

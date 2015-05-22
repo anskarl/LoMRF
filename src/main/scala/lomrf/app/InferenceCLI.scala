@@ -33,22 +33,21 @@
 package lomrf.app
 
 import java.io.{FileOutputStream, PrintStream}
-import lomrf.logic.AtomSignature
+import lomrf.logic._
+import lomrf.logic.AtomSignatureOps._
 import lomrf.logic.PredicateCompletionMode._
 import lomrf.logic.dynamic.{DynamicFunctionBuilder, DynamicAtomBuilder}
 import lomrf.mln.grounding.MRFBuilder
 import lomrf.mln.inference._
 import lomrf.mln.model.MLN
-import lomrf.util.{ImplFinder, parseAtomSignature}
+import lomrf.util.ImplFinder
 import auxlib.opt.OptionParser
 import auxlib.log.Logging
 
 /**
  * Command-line tool for inference.
- *
- * @author Anastasios Skarlatidis
  */
-object InferenceCLI extends OptionParser with Logging {
+object InferenceCLI extends CLIApp {
 
   // The path to the input MLN file
   private var _mlnFileName: Option[String] = None
@@ -57,7 +56,7 @@ object InferenceCLI extends OptionParser with Logging {
   private var _resultsFileName: Option[String] = None
 
   // Input evidence file(s) (path)
-  private var _evidenceFileNames: Option[List[String]] = None
+  private var _evidenceFileNames: List[String] = Nil
 
   // The set of query atoms (in the form of AtomName/Arity)
   private var _queryAtoms = Set[AtomSignature]()
@@ -142,32 +141,21 @@ object InferenceCLI extends OptionParser with Logging {
 
 
   private def addQueryAtom(atom: String) {
-    parseAtomSignature(atom) match {
-      case Some(s) => _queryAtoms += s
-      case None => fatal("Cannot parse the arity of query atom: " + atom)
-    }
+    _queryAtoms += atom.signature.getOrElse(fatal(s"Cannot parse the arity of query atom: $atom"))
   }
 
   private def addCWA(atom: String) {
-    parseAtomSignature(atom) match {
-      case Some(s) => _cwa += s
-      case None => fatal("Cannot parse the arity of CWA atom: " + atom)
-    }
+    _cwa += atom.signature.getOrElse(fatal(s"Cannot parse the arity of CWA atom: $atom"))
   }
 
   private def addOWA(atom: String) {
-    parseAtomSignature(atom) match {
-      case Some(s) => _owa += s
-      case None => fatal("Cannot parse the arity of OWA atom: " + atom)
-    }
+    _owa += atom.signature.getOrElse(fatal(s"Cannot parse the arity of OWA atom: $atom"))
   }
 
-  opt("i", "input", "<kb file>", "Markov Logic file", {
-    v: String => _mlnFileName = Some(v)
-  })
-  opt("e", "evidence", "<db file(s)>", "Comma separated evidence database files.", {
-    v: String => _evidenceFileNames = Some(v.split(',').toList)
-  })
+  opt("i", "input", "<kb file>", "Markov Logic file", { v: String => _mlnFileName = Some(v)})
+
+  opt("e", "evidence", "<db file(s)>", "Comma separated evidence database files.", { v: String => _evidenceFileNames = v.split(',').toList})
+
   opt("r", "result", "<result file>", "Results file", {
     v: String => _resultsFileName = Some(v)
   })
@@ -209,11 +197,13 @@ object InferenceCLI extends OptionParser with Logging {
     }
   })
 
-  booleanOpt("satHardUnit", "sat-hard-unit", "Trivially satisfy hard constrained unit clauses (default is " + _satHardUnit + ")" +
-    " in MaxWalkSAT.", _satHardUnit = _)
+  flagOpt("satHardUnit", "sat-hard-unit", "Trivially satisfy hard constrained unit clauses in MaxWalkSAT.", {
+    _satHardUnit = true
+  })
 
-  booleanOpt("satHardPriority", "sat-hard-priority", "Priority to hard constrained clauses (default is " + _satHardPriority + ")" +
-    " in MaxWalkSAT.", _satHardPriority = _)
+  flagOpt("satHardPriority", "sat-hard-priority", "Priority to hard constrained clauses in MaxWalkSAT.", {
+    _satHardPriority = true
+  })
 
   opt("ilpRounding", "ilp-rounding", "<roundup | mws>", "Rounding algorithm for ILP (default is RoundUp).", {
     v: String => v.trim.toLowerCase match {
@@ -223,11 +213,12 @@ object InferenceCLI extends OptionParser with Logging {
     }
   })
 
-  opt("ilpSolver", "ilp-solver", "<gurobi | lpsolve>", "Solver used by ILP (default is LPSolve).", {
+  opt("ilpSolver", "ilp-solver", "<lpsolve | ojalgo | gurobi>", "Solver used by ILP (default is LPSolve).", {
     v: String => v.trim.toLowerCase match {
       case "gurobi" => _ilpSolver = Solver.GUROBI
       case "lpsolve" => _ilpSolver = Solver.LPSOLVE
-      case _ => fatal("Unknown parameter for ILP solver type '" + v + "'.")
+      case "ojalgo" => _ilpSolver = Solver.OJALGO
+      case _ => fatal(s"Unknown parameter for ILP solver type '$v'.")
     }
   })
 
@@ -274,14 +265,17 @@ object InferenceCLI extends OptionParser with Logging {
       "Disabling lateSA (= false) causes MC-SAT to converge slower, since in every iteration simulated annealing is performed (with probability = 'pSA'). " +
       "By default lateSA is '" + _lateSA + "'", _lateSA = _)
 
-  booleanOpt("noNeg", "eliminate-negative-weights", "Eliminate negative weight values from ground clauses (default is " + _noNeg + ").", _noNeg = _)
+  flagOpt("noNegWeights", "eliminate-negative-weights", "Eliminate negative weight values from ground clauses.", {
+    _noNeg = true
+  })
 
-  booleanOpt("noNegatedUnit", "eliminate-negated-unit", "Eliminate negated unit ground clauses (default is " + _eliminateNegatedUnit + ").", _eliminateNegatedUnit = _)
+  flagOpt("noNegatedUnit", "eliminate-negated-unit", "Eliminate negated unit ground clauses.", {
+    _eliminateNegatedUnit = true
+  })
 
   opt("dynamic", "dynamic-implementations", "<string>", "Comma separated paths to search recursively for dynamic predicates/functions implementations (*.class and *.jar files).", {
     path: String => if (!path.isEmpty) _implPaths = Some(path.split(','))
   })
-
 
   flagOpt("f:dpart", "flag:domain-partition", "Try to partition the domain and create several smaller MLNs.", {
     _domainPartition = true
@@ -294,19 +288,12 @@ object InferenceCLI extends OptionParser with Logging {
     sys.exit(0)
   })
 
-  def main(args: Array[String]) {
-
-    println(lomrf.ASCIILogo)
-    println(lomrf.BuildVersion)
-
-    if (args.length == 0) println(usage)
-    else if (parse(args)) infer()
-  }
-
   def infer() {
-    //First load the KB and the evidence files
+
+    // First load the KB and the evidence files
     val strMLNFileName = _mlnFileName.getOrElse(fatal("Please specify an input MLN file."))
-    val strEvidenceFileNames = _evidenceFileNames.getOrElse(fatal("Please specify input evidence file(s)."))
+    if(_evidenceFileNames.isEmpty) warn("You haven't specified any evidence file.")
+
     val resultsWriter = _resultsFileName match {
       case Some(fileName) => new PrintStream(new FileOutputStream(fileName), true)
       case None => System.out
@@ -333,7 +320,7 @@ object InferenceCLI extends OptionParser with Logging {
       + "\n\t(tabuLength) Minimum number of flips between flipping the same atom: " + _tabuLength
       + "\n\t(numSolutions) Number of solutions in MC-SAT: " + _numSolutions
       + "\n\t(lateSA) Simulated annealing is performed only when MC-SAT reaches a plateau: " + _lateSA
-      + "\n\t(noNeg) Eliminate negative weights: " + _noNeg
+      + "\n\t(noNegWeights) Eliminate negative weights: " + _noNeg
       + "\n\t(noNegatedUnit) Eliminate negated ground unit clauses: " + _eliminateNegatedUnit
       + "\n\t(unitProp) Perform unit-propagation: " + _unitProp
     )
@@ -343,19 +330,22 @@ object InferenceCLI extends OptionParser with Logging {
         case Some(paths) =>
           val implFinder = ImplFinder(classOf[DynamicAtomBuilder], classOf[DynamicFunctionBuilder])
           implFinder.searchPaths(paths)
-          MLN(strMLNFileName, strEvidenceFileNames, _queryAtoms, _cwa, _owa, pcm = Decomposed, dynamicDefinitions = Some(implFinder.result), domainPart =_domainPartition)
-        case None => MLN(strMLNFileName, strEvidenceFileNames, _queryAtoms, _cwa, _owa, pcm = Decomposed, dynamicDefinitions = None, domainPart =_domainPartition)
+          MLN.fromFile(strMLNFileName, _evidenceFileNames, _queryAtoms, _cwa, _owa, pcm = Decomposed, dynamicDefinitions = Some(implFinder.result), domainPart =_domainPartition)
+        case None => MLN.fromFile(strMLNFileName, _evidenceFileNames, _queryAtoms, _cwa, _owa, pcm = Decomposed, dynamicDefinitions = None, domainPart =_domainPartition)
       }
 
 
     info("Markov Logic:"
-      + "\n\tConstant domains   : " + mln.constants.size
-      + "\n\tSchema definitions : " + mln.predicateSchema.size
-      + "\n\tFormulas           : " + mln.formulas.size)
+      + "\n\tConstant domains   : " + mln.evidence.constants.size
+      + "\n\tSchema definitions : " + mln.schema.predicates.size
+      + "\n\tClauses            : " + mln.clauses.size)
 
-    info("Number of CNF clauses = " + mln.clauses.size)
-    debug("List of CNF clauses: ")
-    if(isDebugEnabled) mln.clauses.zipWithIndex.foreach{case (c, idx) => debug(idx+": "+c)}
+    //info("Number of CNF clauses = " + mln.clauses.size)
+    whenDebug{
+      debug("List of CNF clauses: ")
+      mln.clauses.zipWithIndex.foreach{case (c, idx) => debug(idx+": "+c)}
+    }
+
 
     info("Creating MRF...")
     val mrfBuilder = new MRFBuilder(mln, noNegWeights = _noNeg, eliminateNegatedUnit = _eliminateNegatedUnit)
@@ -383,6 +373,11 @@ object InferenceCLI extends OptionParser with Logging {
       }
     }
   }
+
+  // MAIN
+
+  if (args.length == 0) println(usage)
+  else if (parse(args)) infer()
 }
 
 

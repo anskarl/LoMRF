@@ -33,8 +33,7 @@
 package lomrf.mln.grounding
 
 import lomrf.logic.{AtomSignature, Literal}
-import lomrf.mln.model.MLN
-import lomrf.util.AtomEvidenceDB
+import lomrf.mln.model.{AtomEvidenceDB, MLN}
 
 /**
  *
@@ -66,7 +65,7 @@ import lomrf.util.AtomEvidenceDB
  * </ul>
  *
  *
- * @author Anastasios Skarlatidis
+ *
  */
 class ClauseLiteralsOrdering(atomStateDB: Map[AtomSignature, AtomEvidenceDB]) extends Ordering[Literal] {
 
@@ -126,5 +125,5 @@ object ClauseLiteralsOrdering {
 
   def apply(atomStateDB: Map[AtomSignature, AtomEvidenceDB]) = new ClauseLiteralsOrdering(atomStateDB)
 
-  def apply(mln: MLN) = new ClauseLiteralsOrdering(mln.atomStateDB)
+  def apply(mln: MLN) = new ClauseLiteralsOrdering(mln.evidence.db)
 }

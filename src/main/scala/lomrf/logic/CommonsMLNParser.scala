@@ -35,7 +35,7 @@ package lomrf.logic
 import util.parsing.combinator.{RegexParsers, JavaTokenParsers}
 
 /**
- * @author Anastasios Skarlatidis
+ *
  */
 
 trait CommonsMLNParser extends JavaTokenParsers with RegexParsers {

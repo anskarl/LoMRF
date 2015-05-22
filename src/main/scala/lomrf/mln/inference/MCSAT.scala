@@ -37,8 +37,10 @@ import java.text.DecimalFormat
 import java.util.concurrent.ThreadLocalRandom
 import auxlib.log.Logging
 import lomrf.mln.model.mrf.{GroundAtom, MRFState, MRF}
-import lomrf.util.Utilities
+import lomrf.util.time._
 import lomrf.util.LongDoubleConversions._
+
+import scala.util.Success
 
 /**
  * This is an implementation of the MC-SAT sampling algorithm for marginal inference in the presence
@@ -64,8 +66,8 @@ import lomrf.util.LongDoubleConversions._
  * @param satHardPriority Satisfiability priority to hard constrained clauses (default is true)
  * @param tabuLength Minimum number of flips between flipping the same atom (default is 10)
  *
- * @author Anastasios Skarlatidis
- * @author Vagelis Michelioudakis
+ *
+ *
  *
  * @todo merge duplicate duplicate code with MaxWalkSAT (= maxWalkSATStep).
  * @todo perform optimisations to improve the performance.
@@ -75,7 +77,7 @@ final case class MCSAT(mrf: MRF, pBest: Double = 0.5, pSA: Double = 0.1, maxFlip
                       unitPropagation: Boolean = true, satHardPriority: Boolean = false, tabuLength: Int = 10) extends Logging {
 
   private val TARGET_COST = new LongDouble(targetCost + 0.0001)
-  //private val random = new Random()
+  implicit val mln = mrf.mln
 
   /**
    * Fetch atom given its literal code.
@@ -115,7 +117,7 @@ final case class MCSAT(mrf: MRF, pBest: Double = 0.5, pSA: Double = 0.1, maxFlip
         val mwsatStartTime = System.currentTimeMillis()
         sat.infer(state)
         mwsatTime = System.currentTimeMillis() - mwsatStartTime
-        info(Utilities.msecTimeToText("Total Max-WalkSAT time: ", mwsatTime))
+        info(msecTimeToText("Total Max-WalkSAT time: ", mwsatTime))
       }
     }
 
@@ -246,7 +248,7 @@ final case class MCSAT(mrf: MRF, pBest: Double = 0.5, pSA: Double = 0.1, maxFlip
     val mcsatStartTime = System.currentTimeMillis()
     while (samplesCounter <= samples) {
       if ((samplesCounter % 100) == 0)
-        info("samples " + samplesCounter + Utilities.msecTimeToText(" --- time: ", System.currentTimeMillis() - mcsatStartTime))
+        info("samples " + samplesCounter + msecTimeToText(" --- time: ", System.currentTimeMillis() - mcsatStartTime))
 
       //-----------------------------------------------------
       state.selectSomeSatConstraints()
@@ -281,8 +283,8 @@ final case class MCSAT(mrf: MRF, pBest: Double = 0.5, pSA: Double = 0.1, maxFlip
       samplesCounter += 1
     }
     val mcsatTime = System.currentTimeMillis() - mcsatStartTime
-    info(Utilities.msecTimeToText("Total MC-SAT time: ", mcsatTime))
-    info(Utilities.msecTimeToText("Total inference time: ", mcsatTime + mwsatTime))
+    info(msecTimeToText("Total MC-SAT time: ", mcsatTime))
+    info(msecTimeToText("Total inference time: ", mcsatTime + mwsatTime))
 
     // return the best state
     state
@@ -292,26 +294,28 @@ final case class MCSAT(mrf: MRF, pBest: Double = 0.5, pSA: Double = 0.1, maxFlip
   /**
    * Write the results of inference into the selected output stream.
    *
-   * @param out Selected output stream (default is console)
+   * @param result Selected output stream for results (default is console)
    */
-  def writeResults(out: PrintStream = System.out) {
-    import lomrf.util.decodeAtom
+  def writeResults(result: PrintStream = System.out) {
+    import lomrf.util.AtomIdentityFunctionOps._
+
     val numFormat = new DecimalFormat("0.0######")
 
-    implicit val mln = mrf.mln
+    val queryStartID = mln.evidence.predicateSpace.queryStartID
+    val queryEndID = mln.evidence.predicateSpace.queryEndID
 
     val iterator = mrf.atoms.iterator()
     while (iterator.hasNext) {
       iterator.advance()
       val atomID = iterator.key()
-      if (atomID >= mln.queryStartID && atomID <= mln.queryEndID) {
+
+      if (atomID >= queryStartID && atomID <= queryEndID) {
         val groundAtom = iterator.value()
         val probability = (groundAtom.getTruesCount * 1.0) / samples
-        // Add Gaussian noise for P=0.0 and P=1.0. Also reformat the displayed probability result in order to have at maximum 7 floating point decimals
-        //val txtProbability = if (probability == 0.0) "4.9995e-05" else if(probability == 1.0) "0.99995" else numFormat.format(probability)
-        decodeAtom(iterator.key()) match {
-          case Some(txtAtom) => out.println(txtAtom + " " + numFormat.format(probability))
-          case _ => error("failed to decode id:" + atomID)
+
+        atomID.decodeAtom match {
+          case Success(txtAtom) => result.println(txtAtom + " " + numFormat.format(probability))
+          case _ => error(s"failed to decode id: $atomID")
         }
       }
     }

@@ -33,20 +33,17 @@
 package lomrf.logic
 
 import org.scalatest.{FunSpec, Matchers}
-import org.junit.Assert._
-import lomrf.mln.model.MLN
-import lomrf.util.ConstantsSet
+import lomrf.mln.model.{ConstantsSet, MLN}
 
 /**
- * @author Anastasios Skarlatidis
+ * A series of spec test for the computation of normal forms (e.g., CNF, NNF, etc).
  */
-
 final class NormalFormSpecTest extends FunSpec with Matchers{
 
   private val sep = System.getProperty("file.separator")
   private val testFilesPath = System.getProperty("user.dir") + sep + "Examples" + sep + "data" + sep + "tests" + sep
 
-  private val constants = Map[String, ConstantsSet](
+  private implicit val constants = Map[String, ConstantsSet](
     "time" -> ConstantsSet("1", "2", "3", "4"),
     "event" -> ConstantsSet("Abrupt", "Walking", "Running", "Active", "Inactive", "Exit"),
     "fluent" -> ConstantsSet("Fight", "Move", "Meet", "Leaving_object"),
@@ -95,14 +92,15 @@ final class NormalFormSpecTest extends FunSpec with Matchers{
 
   describe("Formula 'InitiatedAt(Fight,t) => Happens(Abrupt, t).'"){
     val formula = kbParser.parseFormula("InitiatedAt(Fight,t) => Happens(Abrupt, t).")
-    val clauses = NormalForm.toCNF(constants, formula)
+    val clauses = NormalForm.toCNF(formula)
 
     it("results to a single valid clause"){
       clauses.size shouldEqual 1
       val literals = clauses.head.literals
-      assertEquals(2, literals.size)
-      assertTrue(literals.contains(kbParser.parseLiteral("!InitiatedAt(Fight,t)")))
-      assertTrue(literals.contains(kbParser.parseLiteral("Happens(Abrupt, t)")))
+      literals.size shouldBe 2
+
+      assert(literals.contains(kbParser.parseLiteral("!InitiatedAt(Fight,t)")))
+      assert(literals.contains(kbParser.parseLiteral("Happens(Abrupt, t)")))
     }
   }
 
@@ -110,7 +108,7 @@ final class NormalFormSpecTest extends FunSpec with Matchers{
 
   describe("Formula 'InitiatedAt(Fight,t) <=> Happens(Abrupt, t).'"){
     val formula = kbParser.parseFormula("InitiatedAt(Fight,t) <=> Happens(Abrupt, t).")
-    val clauses = NormalForm.toCNF(constants, formula)
+    val clauses = NormalForm.toCNF(formula)
 
     it("produces two valid clauses"){
       clauses.size shouldEqual 2
@@ -125,7 +123,7 @@ final class NormalFormSpecTest extends FunSpec with Matchers{
     val clauses0 = f0.toCNF(constants)
 
     it("produces three valid clauses"){
-      assertEquals(3, clauses0.size)
+      clauses0.size shouldBe  3
       assertContainsClause(clauses0, "{InitiatedAt(Fight, t) | !Happens(Abrupt, t) | !Close(10,t)}")
       assertContainsClause(clauses0, "{Happens(Abrupt,t) | !InitiatedAt(Fight, t)}")
       assertContainsClause(clauses0, "{Close(10,t) | !InitiatedAt(Fight, t)}")
@@ -150,7 +148,7 @@ final class NormalFormSpecTest extends FunSpec with Matchers{
     val clauses_1and2 = f1.toCNF(constants) ++ f2.toCNF(constants)
 
     they("produce three valid clauses"){
-      assertEquals(3, clauses_1and2.size)
+      clauses_1and2.size shouldBe 3
 
       assertContainsClause(clauses_1and2, "{InitiatedAt(Fight, t) | !Happens(Abrupt, t) | !Close(10,t)}")
       assertContainsClause(clauses_1and2, "{Happens(Abrupt,t) | !InitiatedAt(Fight, t)}")
@@ -263,39 +261,36 @@ final class NormalFormSpecTest extends FunSpec with Matchers{
 
   describe("The MLN from file '"+testFilesPath + "DEC.mln' with evidence from file '"+testFilesPath + "DEC.db'"){
 
-    val mln = MLN(
+    val mln = MLN.fromFile(
       mlnFileName = testFilesPath + "DEC.mln",
       evidenceFileName = testFilesPath + "DEC.db",
       queryAtoms = Set(AtomSignature("HoldsAt", 2)),
       cwa = Set(AtomSignature("Happens", 2), AtomSignature("Close", 4), AtomSignature("Next", 2)),
       owa = Set(AtomSignature("Initiates", 3), AtomSignature("Terminates", 3), AtomSignature("StartsAt", 3), AtomSignature("StopsAt", 3)))
 
-    info("Found " + mln.formulas.size + " formulas")
-    info("Found " + mln.constants.size + " constant types")
-    info("Found " + mln.predicateSchema.size + " predicate schemas")
-    info("Found " + mln.functionSchema.size + " function schemas")
+    info(mln.toString)
 
-    it("should contain 14 formulas"){
+    /*it("should contain 14 formulas"){
       mln.formulas.size should be (14)
 
       for {
         f <- mln.formulas
         clauses = f.toCNF(constants)} {
         clInfo("Formula '" + f.toText + "'", clauses)
-        assert(clauses.size > 0)
+        assert(clauses.nonEmpty)
       }
-    }
+    }*/
 
     it("should constants 5 constants sets (domains)"){
-      mln.constants.size should be (5)
+      mln.evidence.constants.size should be (5)
     }
 
     it("should contain 8 predicate schemas"){
-      mln.predicateSchema.size should be (8)
+      mln.schema.predicates.size should be (8)
     }
 
     it("should contain 11 function schemas"){
-      mln.functionSchema.size should be (11)
+      mln.schema.functions.size should be (11)
     }
   }
 
@@ -342,7 +337,7 @@ final class NormalFormSpecTest extends FunSpec with Matchers{
     var literals = Set[Literal]()
 
     for (lit <- txtLiterals) literals += kbParser.parseLiteral(lit)
-    assertTrue {
+    assert {
       clauses.find(c => c.literals == literals) match {
         case Some(_) => true
         case _ => false

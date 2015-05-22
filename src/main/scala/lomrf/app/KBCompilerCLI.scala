@@ -45,8 +45,6 @@ import lomrf.util.ImplFinder
 /**
  * Command-line tool for knowledge compilation. In particular with this tool we can perform
  * predicate completion, CNF transformation, FOL function transformation, as well as weights elimination.
- *
- * @author Anastasios Skarlatidis
  */
 object KBCompilerCLI extends Logging {
 
@@ -62,17 +60,19 @@ object KBCompilerCLI extends Logging {
     val opt = new KBCOptions
     if (args.length == 0) println(opt.usage)
     else if (opt.parse(args)) {
-      if(opt.eliminateFunctions && !opt.cnf)
+      if(opt.eliminateFunctions && !opt.cnf) {
         warn("Function elimination enables CNF compilation")
+        opt.cnf = true
+      }
 
-      if(opt.introduceFunctions && !opt.cnf)
+      if(opt.introduceFunctions && !opt.cnf){
         warn("Function introduction enables CNF compilation")
-
-      opt.cnf = opt.eliminateFunctions || opt.introduceFunctions
+        opt.cnf = true
+      }
 
       compile(
         opt.mlnFileName.getOrElse(fatal("Please define the input MLN file.")),
-        opt.evidenceFileName.getOrElse(""),
+        opt.evidenceFileName, //.getOrElse(""),
         opt.outputMLNFileName.getOrElse(fatal("Please define the output MLN file.")),
         opt.profile,
         opt.includeDomain,
@@ -88,8 +88,7 @@ object KBCompilerCLI extends Logging {
     }
   }
 
-
-  def compile(source: String, evidence: String, target: String, profile: Profile,
+  def compile(source: String, evidenceOpt: Option[String], target: String, profile: Profile,
               includeDomain: Boolean,
               includePredicateDefinitions: Boolean,
               includeFunctionDefinitions: Boolean,
@@ -109,37 +108,36 @@ object KBCompilerCLI extends Logging {
       case Some(paths) =>
         val implFinder = ImplFinder(classOf[DynamicAtomBuilder], classOf[DynamicFunctionBuilder])
         implFinder.searchPaths(paths)
-        MLN(source, evidence, Set[AtomSignature](), Set[AtomSignature](), Set[AtomSignature](), pcm, dynamicDefinitions = Some(implFinder.result))
-      case None => MLN(source, evidence, Set[AtomSignature](), Set[AtomSignature](), Set[AtomSignature](), pcm)
+        MLN.fromFile(source, Set[AtomSignature](), evidenceOpt.getOrElse(""), Set[AtomSignature](), Set[AtomSignature](), pcm, dynamicDefinitions = Some(implFinder.result))
+      case None => MLN.fromFile(source, Set[AtomSignature](), evidenceOpt.getOrElse(""), Set[AtomSignature](), Set[AtomSignature](), pcm)
     }
 
     info(
       "\nSource MLN: " + source + "\n" +
-        "\tFound " + mln.formulas.size + " formulas.\n" +
-        "\tFound " + mln.predicateSchema.size + " predicates.\n" +
-        "\tFound " + mln.functionSchema.size + " functions.")
+        "\tFound " + mln.clauses.size + " clauses.\n" +
+        "\tFound " + mln.schema.predicates.size + " predicates.\n" +
+        "\tFound " + mln.schema.functions.size + " functions.")
 
 
     val fileWriter = new FileWriter(target)
     import fileWriter.write
 
+    val constants = mln.evidence.constants
 
     // write domain data
-    if (includeDomain && mln.constants.nonEmpty) {
+    if (includeDomain && constants.nonEmpty) {
       write("// Domain\n")
-      for ((name, constants) <- mln.constants; if !constants.isEmpty) {
-        write(name + "={" + constants.map(_.toString).reduceLeft((left, right) => left + "," + right) + "}\n")
-      }
+      for ((name, constants) <- constants; if constants.nonEmpty) write(name + "={" + constants.mkString(",") + "}\n")
       write("\n")
     }
 
     // write predicate definitions. In case we introduce functions do not write function predicates (beginning with function prefix)
-    if (includePredicateDefinitions && mln.predicateSchema.nonEmpty) {
+    if (includePredicateDefinitions && mln.schema.predicates.nonEmpty) {
       write("// Predicate definitions\n")
-      for ((signature, args) <- mln.predicateSchema ; if !introduceFunctions || !signature.symbol.contains(profile.functionPrefix)) {
+      for ((signature, args) <- mln.schema.predicates ; if !introduceFunctions || !signature.symbol.contains(profile.functionPrefix)) {
         val line = signature.symbol + (
           if (args.isEmpty) "\n"
-          else "(" + args.map(_.toString).reduceLeft((left, right) => left + "," + right) + ")\n")
+          else "(" + args.mkString(",") + ")\n")
         write(line)
       }
       write("\n")
@@ -147,33 +145,34 @@ object KBCompilerCLI extends Logging {
 
     // write function definitions or functions as predicates
     if (includeFunctionDefinitions) {
-      if (eliminateFunctions && mln.functionSchema.nonEmpty) { // in order to eliminate functions, functions must exist
+      if (eliminateFunctions && mln.schema.functions.nonEmpty) { // in order to eliminate functions, functions must exist
         write("// Function definitions as predicates\n")
-        for ((signature, (retType, args)) <- mln.functionSchema) {
-          val predicate = profile.functionPrefix + signature.symbol + "(" + retType + "," + args.map(_.toString).reduceLeft((left, right) => left + "," + right) + ")\n"
+        for ((signature, (retType, args)) <- mln.schema.functions) {
+          val predicate = profile.functionPrefix + signature.symbol + "(" + retType + "," + args.mkString(",") + ")\n"
           write(predicate)
         }
       }
       else if(introduceFunctions) {
         write("// Function definitions\n")
-        for ((signature, args) <- mln.predicateSchema) {
+        for ((signature, args) <- mln.schema.predicates) {
           if(signature.symbol.contains(profile.functionPrefix)) {
-            val function = args(0) + " " + signature.symbol.replace(profile.functionPrefix, "") + "(" + args.drop(1).map(_.toString).reduceLeft((left, right) => left + "," + right) + ")\n"
+            val function = args(0) + " " + signature.symbol.replace(profile.functionPrefix, "") + "(" + args.drop(1).mkString(",") + ")\n"
             write(function)
           }
         }
         write("\n")
       }
-      else if(mln.functionSchema.nonEmpty) { // in order to write functions definitions, functions must exist
+      else if(mln.schema.functions.nonEmpty) { // in order to write functions definitions, functions must exist
         write("// Function definitions\n")
-        for ((signature, (retType, args)) <- mln.functionSchema) {
-          val line = retType + " " + signature.symbol + "(" + args.map(_.toString).reduceLeft((left, right) => left + "," + right) + ")\n"
+        for ((signature, (retType, args)) <- mln.schema.functions) {
+          val line = retType + " " + signature.symbol + "(" + args.mkString(",") + ")\n"
           write(line)
         }
       }
     }
 
-    if (cnf) {
+    // TODO:
+    /*if (cnf) {
       var clauseCounter = 0
       write("\n\n// Clauses\n")
       for (formula <- mln.formulas) {
@@ -192,7 +191,7 @@ object KBCompilerCLI extends Logging {
       mln.formulas.foreach(f => {
         write(formulaFormatter(f, weightsMode)); write("\n\n")
       })
-    }
+    }*/
 
     fileWriter.flush()
     fileWriter.close()
@@ -225,7 +224,7 @@ object KBCompilerCLI extends Logging {
       // Is a unit clause with negative weight,
       // thus negate it and convert its weight into a positive value
       // (e.g the '-w A(x)' will be converted into 'w !A(x)')
-      clauseFormatter(Clause(-clause.weight, Set(clause.literals.head.negate)), weightsMode, eliminateFunctions, introduceFunctions)
+      clauseFormatter(Clause(Set(clause.literals.head.negate), -clause.weight), weightsMode, eliminateFunctions, introduceFunctions)
     } else {
       val txtLiterals =
         profile match {
@@ -233,7 +232,7 @@ object KBCompilerCLI extends Logging {
           //
           // Just write the given clause as it is (no functions elimination or introduction)
           //
-          case NormalProfile if !(eliminateFunctions || introduceFunctions) => clause.literals.map(_.toText).reduceLeft(_ + " v " + _)
+          case NormalProfile if !(eliminateFunctions || introduceFunctions) => clause.literals.view.map(_.toText).mkString(" v ")
 
           //
           // Replace all functions in the given clause with utility predicates
@@ -281,22 +280,22 @@ object KBCompilerCLI extends Logging {
               literalsNoFunctions.foreach(literal => results2 = literal :: results2)
               replacedLiterals.foreach(literal => results2 = literal :: results2)
               fMap.values.foreach(entry => results2 = entry._2 :: results2)
-              results2.map(_.toText).reduceLeft(_ + " v " + _)*/
+              results2.map(_.toText).mkString(" v ")*/
 
               var results =
                 if (literalsNoFunctions.nonEmpty)
-                  List[String](literalsNoFunctions.map(_.toText).reduceLeft(_ + " v " + _))
+                  List[String](literalsNoFunctions.map(_.toText).mkString(" v "))
                 else List[String]()
 
               if (replacedLiterals.nonEmpty)
-                results = results ::: List[String](replacedLiterals.map(_.toText).reduceLeft(_ + " v " + _))
+                results = results ::: List[String](replacedLiterals.map(_.toText).mkString(" v "))
 
               if (fMap.nonEmpty)
-                results = results ::: List[String](fMap.values.map(_._2.toText).reduceLeft(_ + " v " + _))
+                results = results ::: List[String](fMap.values.map(_._2.toText).mkString(" v "))
 
-              results.reduceLeft(_ + " v " + _)
+              results.mkString(" v ")
             }
-            else literalsNoFunctions.map(_.toText).reduceLeft(_ + " v " + _)
+            else literalsNoFunctions.map(_.toText).mkString(" v ")
 
           //
           // Replace all function predicates in the given clause with actual functions
@@ -338,29 +337,26 @@ object KBCompilerCLI extends Logging {
 
               val results =
                 if(replacedLiterals.nonEmpty)
-                  List[String](replacedLiterals.map(_.toText).reduceLeft(_ + " v " + _))
+                  List[String](replacedLiterals.map(_.toText).mkString(" v "))
                 else List[String]()
 
-              results.reduceLeft(_ + " v " + _)
+              results.mkString(" v ")
             }
-            else literalsNoFunctions.map(_.toText).reduceLeft(_ + " v " + _)
+            else literalsNoFunctions.map(_.toText).mkString(" v ")
         }
 
       weightsMode match {
         case KEEP =>
-          //println("KEEP")
           if (clause.weight.isInfinity) txtLiterals + "."
           else if (!clause.weight.isNaN) numFormat.format(clause.weight) + " " + txtLiterals
           else txtLiterals
         case RM_SOFT =>
-          //println("RM_SOFT")
           if (clause.weight.isInfinity) txtLiterals + "."
           else txtLiterals
         case RM_ALL => txtLiterals
       }
     }
   }
-
 
   private class KBCOptions extends OptionParser {
 
@@ -375,7 +371,7 @@ object KBCompilerCLI extends Logging {
     var includeDomain: Boolean = false
     var includePredicateDefinitions: Boolean = true
     var includeFunctionDefinitions: Boolean = true
-    //var includeWeights: Boolean = true
+
     var weightsMode = KEEP
     var pcm: PredicateCompletionMode = Simplification
     var cnf: Boolean = true
@@ -402,7 +398,6 @@ object KBCompilerCLI extends Logging {
       }
     })
 
-
     opt("w", "weights", "<keep | removeSoft | removeAll>",
     "(keep) Keep all given weights, " +
       "or (removeSoft) eliminate the weighs from all soft-constrained formulas, " +
@@ -423,7 +418,6 @@ object KBCompilerCLI extends Logging {
         case _ => sys.error("Unknown predicate completion mode '" + pc + "'.")
       }
     })
-
 
     booleanOpt("fDomain", "flag-domain", "boolean", "Write domain definitions (default is false)", {
       v: Boolean => includeDomain = v

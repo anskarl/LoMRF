@@ -26,14 +26,4 @@ declare -r lib_dir="$base_dir/lib"
 declare -r INFER_JAVA_OPTS=$VM_ARGS" -XX:+AggressiveOpts"
 declare -r INFER_CLASSPATH=$PRJ_COMMONS_CLASSPATH
 
-os_name=`uname`
-architecture=`uname -m`
-if [[ "$os_name" == 'Linux' ]]; then
-   export LD_LIBRARY_PATH="$lib_dir/native/linux/$architecture/":$LD_LIBRARY_PATH
-elif [[ "$os_name" == 'Darwin' ]]; then
-   export LD_LIBRARY_PATH="$lib_dir/native/darwin/$architecture/":$LD_LIBRARY_PATH
-else
-    echo "[ ERROR ] Unsupported OS for native dependencies: MAP inference with Integer Linear Programming is not supported in this OS."
-fi
-
 nice java $INFER_JAVA_OPTS -cp $INFER_CLASSPATH lomrf.app.InferenceCLI $@

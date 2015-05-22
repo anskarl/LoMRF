@@ -32,20 +32,19 @@
 
 package lomrf
 
+
 import scala.collection.mutable
 import lomrf.logic.dynamic._
-import auxlib.log.Logging
 import scala.annotation.tailrec
 import scala.collection.breakOut
 
-/**
- * @author Anastasios Skarlatidis
- */
-package object logic extends Logging {
+
+package object logic {
 
   type Theta = Map[Term, Term]
 
 
+  @deprecated(message = "Use import LogicOps._")
   def containsSignature(signature: AtomSignature, formula: Formula): Boolean = formula match {
     case atom: AtomicFormula => atom.signature == signature
     case _ =>
@@ -61,13 +60,13 @@ package object logic extends Logging {
       false
   }
 
-
+  @deprecated(message = "Use import LogicOps._")
   def fetchAtom(signature: AtomSignature, formula: Formula): Option[AtomicFormula] = formula match {
     case atom: AtomicFormula => if (atom.signature == signature) Some(atom) else None
     case _ =>
       val queue = mutable.Queue[Formula]()
       formula.subFormulas.foreach(queue.enqueue(_))
-      while (queue.size != 0) {
+      while (queue.nonEmpty) {
         val currentFormula = queue.dequeue()
         currentFormula match {
           case atom: AtomicFormula => if (atom.signature == signature) {
@@ -79,6 +78,7 @@ package object logic extends Logging {
       None
   }
 
+  @deprecated(message = "Use import LogicOps._")
   def extractSignatures(formula: Formula): Set[AtomSignature] = formula match {
     case atom: AtomicFormula => Set(atom.signature)
     case _ =>
@@ -97,14 +97,15 @@ package object logic extends Logging {
       result
   }
 
+  @deprecated(message = "Use import LogicOps._")
   def replaceAtom(targetAtom: AtomicFormula, inFormula: Formula, replacement: Formula): Option[Formula] = {
     Unify(targetAtom, inFormula) match {
       case Some(theta) if theta.nonEmpty =>
         val replacementPrime = Substitute(theta, replacement)
         val targetPrime = Substitute(theta, inFormula)
-        debug("Substituted formula: " + targetPrime.toText)
+        //debug("Substituted formula: " + targetPrime.toText)
         val result = _replaceAtom(targetAtom, targetPrime, replacementPrime)
-        debug("Replaced formula: " + result.toText)
+        //debug("Replaced formula: " + result.toText)
         Some(result)
       case _ => None // nothing to unify
     }
@@ -349,24 +350,116 @@ package object logic extends Logging {
   }
 
 
+  def flatMatchedTerms(literals: Iterable[Literal], matcher: Term => Boolean): Vector[Term] = {
+    val queue = mutable.Queue[Term]()
+
+    var result = Vector[Term]()
+
+    for (literal <- literals) {
+      queue ++= literal.sentence.terms
+
+      while (queue.nonEmpty) {
+        val candidate = queue.dequeue()
+        if (matcher(candidate))
+          result ++= Vector(candidate)
+        else candidate match {
+          case f: TermFunction => queue ++= f.terms
+          case _ => //do nothing
+        }
+      }
+    }
+
+    result
+  }
+
+
+  def uniqFlatMatchedTerms(literals: Iterable[Literal], matcher: Term => Boolean): Vector[Term] = {
+    val queue = mutable.Queue[Term]()
+
+    var memory = Set[Term]()
+    var result = Vector[Term]()
+
+    for (literal <- literals) {
+      queue ++= literal.sentence.terms
+
+      while (queue.nonEmpty) {
+        val candidate = queue.dequeue()
+
+        if (matcher(candidate) && !memory.contains(candidate)){
+          result ++= Vector(candidate)
+          memory += candidate
+        }
+        else candidate match {
+          case f: TermFunction => queue ++= f.terms
+          case _ => //do nothing
+        }
+      }
+    }
+
+    result
+  }
+
+  def matchedTermsInLiterals(literals: Iterable[Literal], matcher: Term => Boolean): Vector[Vector[Term]] = {
+    val stack = mutable.Stack[Term]()
+
+    var result = Vector[Vector[Term]]()
+
+    for (literal <- literals) {
+      stack.pushAll(literal.sentence.terms)
+      var matchedTerms = Vector[Term]()
+
+      while (stack.nonEmpty) {
+        val candidate = stack.pop()
+        if (matcher(candidate))
+          matchedTerms ++= Vector(candidate)
+        else candidate match {
+          case f: TermFunction => stack.pushAll(f.terms)
+          case _ => //do nothing
+        }
+      }
+      result ++= Vector(matchedTerms)
+    }
+
+    result
+  }
+
+  def matchedTerms(terms: Iterable[Term], matcher: Term => Boolean): Vector[Term] = {
+    var matchedTerms = Vector[Term]()
+    val stack = mutable.Stack[Term]()
+
+    stack.pushAll(terms)
+
+    while (stack.nonEmpty) {
+      val candidate = stack.pop()
+      if (matcher(candidate))
+        matchedTerms ++= Vector(candidate)
+      else candidate match {
+        case f: TermFunction => stack.pushAll(f.terms)
+        case _ => //do nothing
+      }
+    }
+
+    matchedTerms
+  }
+
+
   object predef {
 
-    val dynAtomBuilders: Map[AtomSignature, DynamicAtomBuilder] =
-      List(
-        DynEqualsBuilder(), DynLessThanBuilder(), DynLessThanEqBuilder(),
-        DynGreaterThanBuilder(), DynGreaterThanEqBuilder(), DynSubstringBuilder()
-      ).map(builder => builder.signature -> builder).toMap
+    val dynAtomBuilders: Map[AtomSignature, DynamicAtomBuilder] = List(
+      DynEqualsBuilder(), DynLessThanBuilder(), DynLessThanEqBuilder(),
+      DynGreaterThanBuilder(), DynGreaterThanEqBuilder(), DynSubstringBuilder()
+    ).map(builder => builder.signature -> builder).toMap
 
 
     val dynAtoms: Map[AtomSignature, Vector[String] => Boolean] =
       dynAtomBuilders.map { case (signature, builder) => signature -> builder.stateFunction}
 
 
-    val dynFunctionBuilders: Map[AtomSignature, DynamicFunctionBuilder] =
-      List(
-        DynSuccFunctionBuilder(), DynPrecFunctionBuilder(), DynPlusFunctionBuilder(), DynMinusFunctionBuilder(),
-        DynTimesFunctionBuilder(), DynDividedByFunctionBuilder(), DynModFunctionBuilder(), DynConcatFunctionBuilder()
-      ).map(builder => builder.signature -> builder).toMap
+    val dynFunctionBuilders: Map[AtomSignature, DynamicFunctionBuilder] = List(
+      DynSuccFunctionBuilder(), DynPrecFunctionBuilder(), DynPlusFunctionBuilder(),
+      DynMinusFunctionBuilder(), DynTimesFunctionBuilder(), DynDividedByFunctionBuilder(),
+      DynModFunctionBuilder(), DynConcatFunctionBuilder()
+    ).map(builder => builder.signature -> builder).toMap
 
     val dynFunctions: Map[AtomSignature, Vector[String] => String] =
       dynFunctionBuilders.map { case (signature, builder) => signature -> builder.resultFunction}
