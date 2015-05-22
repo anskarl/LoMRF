@@ -24,13 +24,11 @@ javacOptions ++= Seq("-source", "1.8", "-target", "1.8", "-Xlint:unchecked", "-X
 // Append scalac options
 scalacOptions ++= Seq(
 	"-Yclosure-elim",
-	//"-Yinline-warnings",
-	//"-deprecation",
 	"-Yinline",
 	"-feature",
 	"-target:jvm-1.8",
 	"-language:implicitConversions",
-    "-Ybackend:GenBCode" //use the new optimisation level
+	"-Ybackend:GenBCode" //use the new optimisation level
 )
 
 
@@ -45,12 +43,10 @@ javaOptions ++= Seq(
         "-XX:+DoEscapeAnalysis",
         "-XX:+UseFastAccessorMethods",
         "-XX:+OptimizeStringConcat",
-        "-XX:+UseCompressedOops",
-        "-Xms2g",
-        "-Xmx4g",
-        "-Xss32m",
         "-Dlogback.configurationFile=src/main/resources/logback.xml")
 
+
+conflictManager := ConflictManager.latestRevision
 
 /** Dependencies */
 resolvers ++= Seq(
@@ -65,21 +61,22 @@ libraryDependencies ++= Seq(
   "org.scala-lang" % "scala-reflect" % scalaVersion.value
 )
 
+
 // Scala-modules
 libraryDependencies += "org.scala-lang.modules" %% "scala-parser-combinators" % "1.0.3"
 
 // Akka.io
 libraryDependencies ++= Seq(
-	"com.typesafe.akka" %% "akka-actor"  % "2.3.9",
-	"com.typesafe.akka" %% "akka-remote" % "2.3.9",
-	"com.typesafe.akka" %% "akka-slf4j"  % "2.3.9"
+	"com.typesafe.akka" %% "akka-actor"  % "2.3.11",
+	"com.typesafe.akka" %% "akka-remote" % "2.3.11",
+	"com.typesafe.akka" %% "akka-slf4j"  % "2.3.11"
 )
 
 // Logging with slf4j and logback
 libraryDependencies ++= Seq(
-	"ch.qos.logback" % "logback-classic" % "1.1.2",
-	"ch.qos.logback" % "logback-core" % "1.1.2",
-	"org.slf4j" % "slf4j-api" % "1.7.10"
+	"ch.qos.logback" % "logback-classic" % "1.1.3",
+	"ch.qos.logback" % "logback-core" % "1.1.3",
+	"org.slf4j" % "slf4j-api" % "1.7.12"
 )
 
 // GNU Trove4j for high performance and memory efficient data-structures
@@ -110,6 +107,13 @@ libraryDependencies += "org.ojalgo" % "ojalgo" % "38.0" from "https://repo1.mave
 // lpsolve library for optimization
 libraryDependencies += "com.datumbox" % "lpsolve" % "5.5.2.0"
 
+
+dependencyOverrides += "org.scala-lang" % "scala-compiler" % scalaVersion.value
+dependencyOverrides += "org.scala-lang" % "scala-library" % scalaVersion.value
+dependencyOverrides += "org.scala-lang" %% "scala-parser-combinators" % scalaVersion.value
+dependencyOverrides += "org.scala-lang" % "scala-reflect" % scalaVersion.value
+dependencyOverrides += "org.scala-lang.modules" %% "scala-xml" % "1.0.3"
+
 // Include utility bash scripts in the 'bin' directory
 mappings in Universal <++= (packageBin in Compile) map { jar =>
   val scriptsDir = new java.io.File("scripts/")
@@ -123,6 +127,23 @@ mappings in Universal <++= (packageBin in Compile) map { jar =>
   val scriptsDir = new java.io.File("src/main/resources/")
   scriptsDir.listFiles.toSeq.map { f =>
     f -> ("etc/" + f.getName)
+  }
+}
+
+// Manage support for commersial ILP solver(s)
+excludeFilter := {
+  var excludeNames = Set[String]()
+  try {
+    val jars = unmanagedBase.value.list().map(_.toLowerCase).filter(_.endsWith(".jar"))
+    if (jars.contains("gurobi.jar")){
+      println("[info] Gurobi solver support is enabled")
+    } else {
+      println(s"[warn] Will build without the support of Gurobi solver ('gurobi.jar' is missing from '${unmanagedBase.value.getName}' directory)")
+      excludeNames += "Gurobi"
+    }
+    excludeNames.map(n => new SimpleFileFilter(_.getName.contains(n)).asInstanceOf[FileFilter]).reduceRight(_ || _)
+  } catch {
+    case _ : Exception => new SimpleFileFilter(_ => false)
   }
 }
 
