@@ -221,7 +221,7 @@ final class AtomIdentityFunction private(
 
     val baseID = id - startID
 
-    //Find all id literals
+    // Find all id literals
     var currentID = baseID
     val result = new Array[String](constantsAndStep.length)
     var idx = result.length - 1
@@ -245,39 +245,38 @@ final class AtomIdentityFunction private(
     Success(result)
   }
 
-  //todo
-  /*def extract(id: Int): Try[IndexedSeq[Int]] = {
-      // check bounds
-      if (id < startID || id >= endID)
-        return Failure(new IndexOutOfBoundsException(s"The given atom id '$id' is out of bounds, thus cannot be decoded."))
+  def extract(id: Int): Try[Array[Int]] = {
+    // check bounds
+    if (id < startID || id >= endID)
+      return Failure(new IndexOutOfBoundsException(s"The given atom id '$id' is out of bounds, thus cannot be decoded."))
 
-      val baseID = id - startID
+    val baseID = id - startID
 
-      //Find all id literals
-      var currentID = baseID
-      val result = new Array[Int](constantsAndStep.length)
-      var idx = result.length - 1
+    // Find all id literals
+    val result = new Array[Int](constantsAndStep.length)
+    var currentID = baseID
+    var idx = result.length - 1
 
-      while (idx > 0) {
-        val constAndStep = constantsAndStep(idx)
-        val sigma = constAndStep._3
-        val offset = constAndStep._5
+    while (idx > 0) {
+      val constAndStep = constantsAndStep(idx)
+      val sigma = constAndStep._3
+      val offset = constAndStep._5
 
-        if (sigma <= currentID) {
-          val localID = (currentID - (currentID % sigma)) / sigma
-          result(idx) = offset + localID
-          currentID -= (localID * sigma)
-        }
-        else result(idx) = offset // + (tmpID=0)
-
-        idx -= 1
+      if (sigma <= currentID) {
+        val localID = (currentID - (currentID % sigma)) / sigma
+        result(idx) = offset + localID
+        currentID -= (localID * sigma)
       }
+      else result(idx) = offset // + (currentID=0)
 
-      val constatsSet = constantsAndStep(idx)._1
-      result(idx) = constatsSet(currentID)
+      idx -= 1
+    }
 
-      Success(result)
-    }*/
+    val offset = constantsAndStep(idx)._5
+    result(idx) = offset + currentID
+
+    Success(result)
+  }
 
   def idsIterator: Iterator[Int] = idsRange.iterator
 
@@ -384,7 +383,7 @@ object AtomIdentityFunction {
     var constOffsetMap = Map[String, Int]()
 
     var currentOffset = 0
-    for( ((k, v), idx) <- constants.zipWithIndex ){
+    for (((k, v), idx) <- constants.zipWithIndex) {
       constOffsetMap += (k -> currentOffset)
       currentOffset += v.size
     }
@@ -425,33 +424,33 @@ object AtomIdentityFunction {
     idf.decode(atomID).map(x => s"${signature.symbol}(${x.mkString(",")})")
   }
 
-  def decodeFeature(feature: Constraint, hardWeight: Double = 0)(implicit mln: MLN): Try[String] ={
+  def decodeFeature(feature: Constraint, hardWeight: Double = 0)(implicit mln: MLN): Try[String] = {
 
     val buffer = new StringBuilder()
 
     val weight = feature.getWeight
 
-    if(weight.isPosInfinity){
-      if(hardWeight != 0) buffer.append(hardWeight.toString)
+    if (weight.isPosInfinity) {
+      if (hardWeight != 0) buffer.append(hardWeight.toString)
       buffer.append(' ')
     }
-    else if(!weight.isNaN){
+    else if (!weight.isNaN) {
       buffer.append(feature.getWeight.toString)
       buffer.append(' ')
     }
 
     optimize {
-      for(i <- 0 until feature.literals.length; tryLiteral = decodeLiteral(feature.literals(i))) tryLiteral match{
+      for (i <- 0 until feature.literals.length; tryLiteral = decodeLiteral(feature.literals(i))) tryLiteral match {
         case Success(litTXT) =>
           buffer.append(litTXT)
-          if(i != feature.literals.length - 1) buffer.append(" v ")
+          if (i != feature.literals.length - 1) buffer.append(" v ")
 
         case f: Failure[String] => return f
       }
     }
 
 
-    if(feature.getWeight.isInfinite && hardWeight != 0) buffer.append('.')
+    if (feature.getWeight.isInfinite && hardWeight != 0) buffer.append('.')
 
 
     Success(buffer.result())
@@ -471,7 +470,7 @@ object AtomIdentityFunctionOps {
   implicit class WrappedConstraint(val feature: Constraint) extends AnyVal {
 
     def decodeFeature(hardWeight: Double = 0)(implicit mln: MLN): Try[String] = {
-      AtomIdentityFunction.decodeFeature(feature,hardWeight)
+      AtomIdentityFunction.decodeFeature(feature, hardWeight)
     }
 
   }

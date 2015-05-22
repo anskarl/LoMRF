@@ -34,8 +34,9 @@ package lomrf.util
 
 
 import lomrf.logic.AtomSignature
-import lomrf.mln.model.MLN
+import lomrf.mln.model.{ConstantsDomainBuilder, ConstantsSet, MLN}
 import gnu.trove.set.hash.TIntHashSet
+import lomrf.util.collection.GlobalIndexPartitioned
 import org.scalatest.{FunSpec, Matchers}
 import lomrf.util.time._
 
@@ -427,5 +428,69 @@ final class AtomIdentityFunctionSpecTest extends FunSpec with Matchers {
     }
   }
 
+  describe("Decoding using global constant IDs") {
 
+    // Constants:
+    val builder = ConstantsDomainBuilder()
+
+    builder.of("domainA") ++= (1 to 10).map(n => "A" + n)
+    builder.of("domainB") ++= (1 to 7).map(n => "B" + n)
+    builder.of("domainC") ++= (1 to 10000).map(n => "C" + n)
+    builder.of("domainD") ++= (1 to 2).map(n => "D" + n)
+
+    val constants = builder.result()
+
+    val domainsValues = new Array[ConstantsSet](constants.size)
+
+    for (((k, v), idx) <- constants.zipWithIndex) {
+      domainsValues(idx) = v
+    }
+
+    // globally indexed constants
+    val gConstants = GlobalIndexPartitioned[ConstantsSet, String](domainsValues)
+
+    // Foo(domainA, domainC, domainD)
+    val schema = Vector("domainA", "domainB", "domainC", "domainD")
+    val signature = AtomSignature("Foo", schema.length)
+
+    val expectedNumOfGroundings = domainsValues.map(_.size).product.toLong
+    val cartesianIterator = Cartesian.CartesianIterator(domainsValues)
+
+    val identityFunction = AtomIdentityFunction(signature, schema, constants, 1)
+
+    var allProductsStr = Set[String]()
+
+    it("extracts valid ids") {
+      var totalEnc = 0L
+      var totalExt = 0L
+
+      while (cartesianIterator.hasNext) {
+        val product = cartesianIterator.next() // get the next collection of Constants
+        allProductsStr += product.toSeq
+
+
+        val startEncTime = System.nanoTime
+        val encodedID = identityFunction.encode(product)
+        totalEnc += System.nanoTime - startEncTime
+
+        if (encodedID == AtomIdentityFunction.IDENTITY_NOT_EXIST) fail(s"Failed to encode Foo(${product.mkString(",")})")
+
+        val startExtTime = System.nanoTime
+        val extracted = identityFunction.extract(encodedID).getOrElse(fail("Cannot extract id: " + encodedID))
+        totalExt += System.nanoTime - startExtTime
+
+        val decoded = extracted.map(id => gConstants(id))
+
+        decoded shouldEqual product
+      }
+
+
+
+      info(nsecTimeToText("Total time encoding IDs ", totalEnc))
+      info(nsecTimeToText("Average time encoding ID ", totalEnc / expectedNumOfGroundings))
+
+      info(nsecTimeToText("Total time extracting IDs ", totalExt))
+      info(nsecTimeToText("Average time extracting ID ", totalExt / expectedNumOfGroundings))
+    }
+  }
 }
