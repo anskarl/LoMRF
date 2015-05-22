@@ -72,11 +72,6 @@ Depending your requirements you may want to adjust the heap memory parameters of
 [![Intellij IDEA](https://www.jetbrains.com/idea/docs/logo_intellij_idea.png)](https://www.jetbrains.com/idea/)
 
 
-##### LoMRF is powered by:
-
-[![Java profiler](http://www.ej-technologies.com/images/product_banners/jprofiler_medium.png)](http://www.ej-technologies.com/products/jprofiler/overview.html)
-
-
 ##### References
 
 Many of algorithms implemeted in the LoMRF library are based on the following publications:
