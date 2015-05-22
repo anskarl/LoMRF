@@ -191,10 +191,11 @@ object WeightLearningCLI extends CLIApp {
 
   flagOpt("printLearnedWeightsPerIteration", "print-learned-weights-per-iteration", "Print the learned weights for each iteration.", { _printLearnedWeightsPerIteration = true})
 
-  opt("ilpSolver", "ilp-solver", "<gurobi | lpsolve>", "Solver used by ILP (default is LPSolve).", {
+  opt("ilpSolver", "ilp-solver", "<lpsolve | ojalgo | gurobi >", "Solver used by ILP (default is lpsolve).", {
     v: String => v.trim.toLowerCase match {
       case "gurobi" => _ilpSolver = Solver.GUROBI
       case "lpsolve" => _ilpSolver = Solver.LPSOLVE
+      case "ojalgo" => _ilpSolver = Solver.OJALGO
       case _ => fatal("Unknown parameter for ILP solver type '" + v + "'.")
     }
   })
@@ -253,6 +254,11 @@ object WeightLearningCLI extends CLIApp {
 
     if(_algorithm == Algorithm.MAX_MARGIN) {
 
+      if(_ilpSolver != Solver.GUROBI) {
+        warn("For MAXMARGIN training, only GUROBI solver is supported. Switching to GUROBI.")
+        _ilpSolver = Solver.GUROBI
+      }
+
       val (mln, annotationDB) = MLN.forLearning(strMLNFileName, strTrainingFileNames, _nonEvidenceAtoms, addUnitClauses = _addUnitClauses)
 
       mlnInfo(mln)
@@ -289,8 +295,7 @@ object WeightLearningCLI extends CLIApp {
         mlnInfo(mln)
 
         info("AnnotationDB: "
-          + "\n\tAtoms with annotations: " + annotationDB.keys.mkString(",")
-        )
+          + "\n\tAtoms with annotations: " + annotationDB.keys.mkString(","))
 
         info("Number of CNF clauses = " + mln.clauses.size)
         info("List of CNF clauses: ")

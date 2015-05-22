@@ -499,8 +499,8 @@ final class MaxMarginLearner(mrf: MRF, annotationDB: Map[AtomSignature, AtomEvid
     val clauses = mrf.mln.clauses
     out.println("\n// Clauses")
     for(clauseIdx <- clauses.indices) {
-      if(clauses(clauseIdx).isHard) out.println(clauses(clauseIdx).literals.mkString(" v ") + ".\n")
-      else out.println(numFormat.format(weights(clauseIdx)) + " " + clauses(clauseIdx).literals.mkString(" v ") + "\n")
+      if(clauses(clauseIdx).isHard) out.println(clauses(clauseIdx).literals.map(_.toText).mkString(" v ") + ".\n")
+      else out.println(numFormat.format(weights(clauseIdx)) + " " + clauses(clauseIdx).literals.map(_.toText).mkString(" v ") + "\n")
     }
   }
 

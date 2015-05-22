@@ -385,8 +385,8 @@ final class OnlineLearner(mln: MLN, algorithm: Algorithm, lossAugmented: Boolean
     out.println("\n// Clauses")
     for(clauseIdx <- clauses.indices) {
       if(clauses(clauseIdx).isHard)
-        out.println(clauses(clauseIdx).literals.map(_.toText).reduceLeft(_ + " v " + _) + ".\n")
-      else out.println(numFormat.format(weights(clauseIdx)) + " " + clauses(clauseIdx).literals.mkString(" v ") + "\n")
+        out.println(clauses(clauseIdx).literals.map(_.toText).mkString(" v ") + ".\n")
+      else out.println(numFormat.format(weights(clauseIdx)) + " " + clauses(clauseIdx).literals.map(_.toText).mkString(" v ") + "\n")
     }
   }
 
