@@ -30,14 +30,13 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package lomrf.util
+package lomrf.mln.model
 
-import lomrf.mln.model.{ConstantsSet, ConstantsDomain, MLN}
+import lomrf.logic._
 import lomrf.mln.model.mrf.Constraint
 
 import scala.collection.mutable
-import lomrf.logic._
-import scala.util.{Success, Failure, Try}
+import scala.util.{Failure, Success, Try}
 import scalaxy.streams.optimize
 
 /**
@@ -408,7 +407,7 @@ object AtomIdentityFunction {
 
     val atomID = math.abs(literal)
     val signature = AtomSignature.signatureOf(atomID)
-    val idf = mln.evidence.predicateSpace.identities(signature)
+    val idf = mln.space.identities(signature)
 
     val negation = if (literal < 0) "!" else ""
 
@@ -419,7 +418,7 @@ object AtomIdentityFunction {
 
     val atomID = math.abs(literal)
     val signature = AtomSignature.signatureOf(atomID)
-    val idf = mln.evidence.predicateSpace.identities(signature)
+    val idf = mln.space.identities(signature)
 
     idf.decode(atomID).map(x => s"${signature.symbol}(${x.mkString(",")})")
   }

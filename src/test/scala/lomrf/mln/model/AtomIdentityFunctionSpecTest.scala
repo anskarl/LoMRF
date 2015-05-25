@@ -30,15 +30,14 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package lomrf.util
+package lomrf.mln.model
 
-
-import lomrf.logic.AtomSignature
-import lomrf.mln.model.{ConstantsDomainBuilder, ConstantsSet, MLN}
 import gnu.trove.set.hash.TIntHashSet
+import lomrf.logic.AtomSignature
+import lomrf.util.Cartesian
 import lomrf.util.collection.GlobalIndexPartitioned
-import org.scalatest.{FunSpec, Matchers}
 import lomrf.util.time._
+import org.scalatest.{FunSpec, Matchers}
 
 final class AtomIdentityFunctionSpecTest extends FunSpec with Matchers {
 

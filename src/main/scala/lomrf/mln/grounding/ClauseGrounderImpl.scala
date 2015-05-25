@@ -38,10 +38,10 @@ import akka.actor.ActorRef
 import auxlib.log.Logging
 import gnu.trove.set.TIntSet
 import lomrf.logic._
-import lomrf.mln.model.MLN
-import lomrf.util.AtomIdentityFunction.IDENTITY_NOT_EXIST
+import lomrf.mln.model.{AtomIdentityFunction, MLN}
+import AtomIdentityFunction.IDENTITY_NOT_EXIST
 import lomrf.util.collection.IndexPartitioned
-import lomrf.util.{AtomIdentityFunction, Cartesian}
+import lomrf.util.Cartesian
 
 import scala.collection._
 import scala.language.postfixOps
@@ -61,7 +61,6 @@ class ClauseGrounderImpl(val clause: Clause,
 
   private val evidence = mln.evidence
   private val constants = evidence.constants
-  private val domainSpace = evidence.predicateSpace
 
 
   private val variableDomains: Map[Variable, Iterable[String]] = {
@@ -82,7 +81,7 @@ class ClauseGrounderImpl(val clause: Clause,
 
   private val identities: Map[AtomSignature, AtomIdentityFunction] =
     (for (literal <- clause.literals if !mln.isDynamicAtom(literal.sentence.signature))
-    yield literal.sentence.signature -> domainSpace.identities(literal.sentence.signature))(breakOut)
+    yield literal.sentence.signature -> mln.space.identities(literal.sentence.signature))(breakOut)
 
 
 

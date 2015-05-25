@@ -33,9 +33,9 @@
 package lomrf.mln.grounding
 
 import lomrf.logic._
-import lomrf.mln.model.MLN
+import lomrf.mln.model.{AtomIdentityFunctionOps, MLN}
 import lomrf.mln.model.mrf.MRF
-import lomrf.util.AtomIdentityFunctionOps._
+import AtomIdentityFunctionOps._
 import org.scalatest.{Matchers, FunSpec}
 
 /**

@@ -41,8 +41,7 @@ import scala.util.{Failure, Try, Success}
 
 class Evidence(val constants: ConstantsDomain,
                val db: EvidenceDB,
-               val functionMappers: FunctionMappers,
-               val predicateSpace: PredicateSpace){
+               val functionMappers: FunctionMappers){
 
   /**
    * collection of atoms with tri-state, i.e., open-world assumption (unknown state) with some evidence (true/false state)
@@ -60,8 +59,8 @@ object Evidence {
 
   private lazy val log = Logger(this.getClass)
 
-  def apply(constants: ConstantsDomain, db: EvidenceDB, fm: FunctionMappers, space: PredicateSpace): Evidence = {
-    new Evidence(constants, db, fm, space)
+  def apply(constants: ConstantsDomain, db: EvidenceDB, fm: FunctionMappers): Evidence = {
+    new Evidence(constants, db, fm)
   }
 
   def fromFiles(kb: KB, constantsDomainBuilders: ConstantsDomainBuilder, queryPredicates: Set[AtomSignature], filenames: List[String]): Evidence ={

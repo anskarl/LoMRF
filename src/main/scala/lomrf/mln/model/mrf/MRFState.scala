@@ -38,6 +38,7 @@ import java.util.concurrent.atomic.AtomicBoolean
 import auxlib.log.Logging
 import gnu.trove.list.array.TIntArrayList
 import gnu.trove.map.hash.TIntIntHashMap
+import lomrf.mln.model.AtomIdentityFunction
 import lomrf.util._
 import scala.collection.mutable.ArrayBuffer
 import scala.collection.mutable

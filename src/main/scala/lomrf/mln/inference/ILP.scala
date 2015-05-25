@@ -37,10 +37,10 @@ import java.io.PrintStream
 import auxlib.log.Logging
 import lomrf.mln.inference.RoundingScheme.RoundingScheme
 import lomrf.mln.inference.Solver.Solver
-import lomrf.mln.model.AtomEvidenceDB
+import lomrf.mln.model.{AtomIdentityFunctionOps, AtomEvidenceDB}
 import lomrf.mln.model.mrf._
 import lomrf.util.time._
-import lomrf.util.AtomIdentityFunctionOps._
+import AtomIdentityFunctionOps._
 import lomrf.logic.AtomSignatureOps._
 import gnu.trove.map.hash.TIntObjectHashMap
 import optimus.algebra._
@@ -346,8 +346,8 @@ final class ILP(mrf: MRF, annotationDB: Map[AtomSignature, AtomEvidenceDB] = Map
   def writeResults(out: PrintStream = System.out) {
 
 
-    val queryStartID = mln.evidence.predicateSpace.queryStartID
-    val queryEndID = mln.evidence.predicateSpace.queryEndID
+    val queryStartID = mln.space.queryStartID
+    val queryEndID = mln.space.queryEndID
 
     val iterator = mrf.atoms.iterator()
 

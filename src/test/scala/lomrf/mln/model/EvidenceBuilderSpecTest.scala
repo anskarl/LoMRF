@@ -35,7 +35,7 @@ package lomrf.mln.model
 
 import lomrf.logic._
 import lomrf.logic.AtomSignatureOps._
-import lomrf.util.AtomIdentityFunction
+import lomrf.mln.model.AtomIdentityFunction
 import org.scalatest.{Matchers, FunSpec}
 import LogicImplicits._
 

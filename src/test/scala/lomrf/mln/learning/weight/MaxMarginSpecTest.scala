@@ -34,9 +34,9 @@ package lomrf.mln.learning.weight
 
 import org.scalatest.{PrivateMethodTester, Matchers, FunSpec}
 import lomrf.logic.AtomSignature
-import lomrf.mln.model.MLN
+import lomrf.mln.model.{AtomIdentityFunctionOps, MLN}
 import lomrf.mln.model.mrf.MRF
-import lomrf.util.AtomIdentityFunctionOps._
+import AtomIdentityFunctionOps._
 
 /**
  * Specification test for Max-Margin learner

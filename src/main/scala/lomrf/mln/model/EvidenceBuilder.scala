@@ -39,7 +39,7 @@ import lomrf.util._
 /**
  * Evidence builder (fluent interface)
  */
-class EvidenceBuilder private(domainSpace: PredicateSpace,
+class EvidenceBuilder private(predicateSpace: PredicateSpace,
                               constants: ConstantsDomain,
                               predicateSchema: PredicateSchema,
                               functionSchema: FunctionSchema = Map.empty) { self =>
@@ -58,7 +58,7 @@ class EvidenceBuilder private(domainSpace: PredicateSpace,
         "Cannot have atom evidence builders for predicates with unspecified schema. " +
           s"The following atom signatures are missing from the predicate schema: '${missingSignatures.mkString(", ")}'")
 
-    val result = new EvidenceBuilder(domainSpace, constants, predicateSchema, functionSchema)
+    val result = new EvidenceBuilder(predicateSpace, constants, predicateSchema, functionSchema)
     result.edbBuilders = builders
     result
   }
@@ -75,7 +75,7 @@ class EvidenceBuilder private(domainSpace: PredicateSpace,
         s"The following function signatures are missing from the function schema: '${missingSignatures.mkString(", ")}'")
 
 
-    val result = new EvidenceBuilder(domainSpace, constants, predicateSchema, functionSchema)
+    val result = new EvidenceBuilder(predicateSpace, constants, predicateSchema, functionSchema)
     result.fmBuilders = builders
     result
   }
@@ -92,8 +92,8 @@ class EvidenceBuilder private(domainSpace: PredicateSpace,
       edbBuilders.get(signature) match {
         case Some(builder) => builder.result()
         case None =>
-          val idf = domainSpace.identities(signature)
-          val isCWA = domainSpace.isCWA(signature)
+          val idf = predicateSpace.identities(signature)
+          val isCWA = predicateSpace.isCWA(signature)
 
           if(isCWA) AtomEvidenceDB.allFalse(idf)
           else AtomEvidenceDB.allUnknown(idf)
@@ -105,7 +105,7 @@ class EvidenceBuilder private(domainSpace: PredicateSpace,
 
     val fm = fmBuilders.map(entries => entries._1 -> entries._2.result())
 
-    Evidence(constants, db, fm, domainSpace)
+    Evidence(constants, db, fm)
   }
 
   object evidence {
@@ -160,8 +160,8 @@ class EvidenceBuilder private(domainSpace: PredicateSpace,
 
         case None if predicateSchema.contains(atom.signature) =>
 
-          val idf = domainSpace.identities(atom.signature)
-          val isCWA = domainSpace.isCWA(atom.signature)
+          val idf = predicateSpace.identities(atom.signature)
+          val isCWA = predicateSpace.isCWA(atom.signature)
           val builder = AtomEvidenceDBBuilder(idf, isCWA)
           builder += atom
 

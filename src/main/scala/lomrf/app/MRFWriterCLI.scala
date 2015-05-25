@@ -38,7 +38,8 @@ import auxlib.log.Logging
 import auxlib.opt.OptionParser
 import lomrf.logic._
 import lomrf.logic.AtomSignatureOps._
-import lomrf.util.AtomIdentityFunctionOps._
+import lomrf.mln.model.{AtomIdentityFunctionOps, MLN}
+import AtomIdentityFunctionOps._
 import lomrf.logic.PredicateCompletionMode._
 import lomrf.logic.dynamic.{DynamicFunctionBuilder, DynamicAtomBuilder}
 import lomrf.mln.grounding.MRFBuilder

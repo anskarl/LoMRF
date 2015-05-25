@@ -33,6 +33,7 @@
 package lomrf.mln.inference
 
 import auxlib.log.Logging
+import lomrf.mln.model.AtomIdentityFunctionOps
 import lomrf.mln.model.mrf.{GroundAtom, MRFState, MRF}
 import MRF.{NO_ATOM, NO_ATOM_ID}
 import java.io.PrintStream
@@ -253,12 +254,12 @@ final case class MaxWalkSAT(mrf: MRF, pBest: Double = 0.5, maxFlips: Int = 10000
    * @param out Selected output stream (default is console)
    */
   def writeResults(out: PrintStream = System.out) {
-    import lomrf.util.AtomIdentityFunctionOps._
+    import AtomIdentityFunctionOps._
 
     implicit val mln = mrf.mln
 
-    val queryStartID = mln.evidence.predicateSpace.queryStartID
-    val queryEndID = mln.evidence.predicateSpace.queryEndID
+    val queryStartID = mln.space.queryStartID
+    val queryEndID = mln.space.queryEndID
 
     val iterator = mrf.atoms.iterator()
 

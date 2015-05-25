@@ -34,7 +34,7 @@ package lomrf.mln.model
 
 import auxlib.log.Logger
 import lomrf.logic.AtomSignature
-import lomrf.util.AtomIdentityFunction
+import lomrf.mln.model.AtomIdentityFunction
 
 /**
  * @param identities a map that associates atom signatures to their corresponding identity functions
@@ -71,6 +71,12 @@ final class PredicateSpace private(val identities: Identities,
 object PredicateSpace {
 
   private val logger = Logger(this.getClass)
+
+  def apply(schema: MLNSchema,
+            nonEvidence: Set[AtomSignature],
+            constants: ConstantsDomain): PredicateSpace = {
+    PredicateSpace(schema.predicates, nonEvidence, Set.empty[AtomSignature], constants)
+  }
 
 
   def apply(schema: MLNSchema,

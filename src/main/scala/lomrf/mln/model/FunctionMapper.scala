@@ -35,7 +35,7 @@ package lomrf.mln.model
 import gnu.trove.TCollections
 import gnu.trove.map.TIntObjectMap
 import gnu.trove.map.hash.TIntObjectHashMap
-import lomrf.util.AtomIdentityFunction
+import lomrf.mln.model.AtomIdentityFunction
 
 trait FunctionMapper {
 

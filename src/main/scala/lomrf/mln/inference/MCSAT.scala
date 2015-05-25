@@ -36,6 +36,7 @@ import java.io.PrintStream
 import java.text.DecimalFormat
 import java.util.concurrent.ThreadLocalRandom
 import auxlib.log.Logging
+import lomrf.mln.model.AtomIdentityFunctionOps
 import lomrf.mln.model.mrf.{GroundAtom, MRFState, MRF}
 import lomrf.util.time._
 import lomrf.util.LongDoubleConversions._
@@ -69,7 +70,7 @@ import scala.util.Success
  *
  *
  *
- * @todo merge duplicate duplicate code with MaxWalkSAT (= maxWalkSATStep).
+ * @todo merge duplicate code with MaxWalkSAT (= maxWalkSATStep).
  * @todo perform optimisations to improve the performance.
  */
 final case class MCSAT(mrf: MRF, pBest: Double = 0.5, pSA: Double = 0.1, maxFlips: Int = 100000, maxTries: Int = 1, targetCost: Double = 0.001,
@@ -297,12 +298,12 @@ final case class MCSAT(mrf: MRF, pBest: Double = 0.5, pSA: Double = 0.1, maxFlip
    * @param result Selected output stream for results (default is console)
    */
   def writeResults(result: PrintStream = System.out) {
-    import lomrf.util.AtomIdentityFunctionOps._
+    import AtomIdentityFunctionOps._
 
     val numFormat = new DecimalFormat("0.0######")
 
-    val queryStartID = mln.evidence.predicateSpace.queryStartID
-    val queryEndID = mln.evidence.predicateSpace.queryEndID
+    val queryStartID = mln.space.queryStartID
+    val queryEndID = mln.space.queryEndID
 
     val iterator = mrf.atoms.iterator()
     while (iterator.hasNext) {

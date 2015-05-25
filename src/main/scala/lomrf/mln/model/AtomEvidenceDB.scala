@@ -42,7 +42,7 @@ import gnu.trove.set.TIntSet
 import gnu.trove.set.hash.TIntHashSet
 import lomrf.logic._
 import lomrf.mln.model
-import lomrf.util.AtomIdentityFunction
+import lomrf.mln.model.AtomIdentityFunction
 
 
 /**
@@ -50,7 +50,7 @@ import lomrf.util.AtomIdentityFunction
  * of ground atoms that are given as evidence. Use [[model.AtomEvidenceDBBuilder]]
  * in order to instantiate the appropriate database implementation.
  *
- * @param identity the atom identity [[lomrf.util.AtomIdentityFunction]]
+ * @param identity the atom identity [[model.AtomIdentityFunction]]
  *
  *
  */
@@ -272,7 +272,7 @@ object AtomEvidenceDB {
      * with True state value, while the state of the rest is assumed to be False.
      *
      * @param positives the collection of positive ground atom ids (i.e. their state is fixed to True).
-     * @param identity the identity of the atom [[lomrf.util.AtomIdentityFunction]]
+     * @param identity the identity of the atom [[model.AtomIdentityFunction]]
      *
      * @return an AtomEvidenceDB instance
      */
@@ -285,7 +285,7 @@ object AtomEvidenceDB {
      *
      * @param positives a collection of ground atom ids, where their state is explicitly defined as True
      * @param unknown a collection of ground atom ids, where their state is explicitly defined as Unknown
-     * @param identity the identity of the atom [[lomrf.util.AtomIdentityFunction]]
+     * @param identity the identity of the atom [[model.AtomIdentityFunction]]
      *
      * @return an AtomEvidenceDB instance
      */
@@ -297,7 +297,7 @@ object AtomEvidenceDB {
      *
      * @param positives the collection of positive ground atom ids (i.e. their state is fixed to True).
      * @param probabilistic the collection of probabilistic ground atom ids (i.e. their state is True with some probability).
-     * @param identity the identity of the atom [[lomrf.util.AtomIdentityFunction]]
+     * @param identity the identity of the atom [[model.AtomIdentityFunction]]
      *
      * @return an AtomEvidenceDB instance
      */
@@ -311,7 +311,7 @@ object AtomEvidenceDB {
     /**
      * Creates an AtomEvidenceDB with open-world assumption.
      *
-     * @param identity the identity of the atom [[lomrf.util.AtomIdentityFunction]]
+     * @param identity the identity of the atom [[model.AtomIdentityFunction]]
      *
      * @return an AtomEvidenceDB instance
      */
@@ -323,7 +323,7 @@ object AtomEvidenceDB {
      *
      * @param positives the collection of positive ground atom ids (i.e. their state is fixed to True).
      * @param negatives the collection of negative ground atom ids (i.e. their state is fixed to False).
-     * @param identity the identity of the atom [[lomrf.util.AtomIdentityFunction]]
+     * @param identity the identity of the atom [[model.AtomIdentityFunction]]
      *
      * @return an AtomEvidenceDB instance
      */
@@ -335,7 +335,7 @@ object AtomEvidenceDB {
      * @param positives the collection of positive ground atom ids (i.e. their state is fixed to True).
      * @param negatives the collection of negative ground atom ids (i.e. their state is fixed to False).
      * @param probabilistic the collection of probabilistic ground atom ids (i.e. their state is True with some probability).
-     * @param identity the identity of the atom [[lomrf.util.AtomIdentityFunction]]
+     * @param identity the identity of the atom [[model.AtomIdentityFunction]]
      *
      * @return an AtomEvidenceDB instance
      */

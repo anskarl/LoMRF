@@ -33,7 +33,7 @@
 package lomrf.mln
 
 import lomrf.logic.AtomSignature
-import lomrf.util.AtomIdentityFunction
+import lomrf.mln.model.AtomIdentityFunction
 
 package object model {
 
