@@ -277,9 +277,9 @@ final class AtomIdentityFunction private(
     Success(result)
   }
 
-  def idsIterator: Iterator[Int] = idsRange.iterator
+  //def idsIterator: Iterator[Int] = idsRange.iterator
 
-  def idsRange = startID to (startID + length)
+  //def idsRange = startID to (startID + length)
 
   def matchesIterator(key: String, value: String): Iterator[Int] = matchesIterator(Map(key -> value))
 

@@ -707,7 +707,8 @@ final class AtomEvidenceDBBuilder private(val signature: AtomSignature,
   }
 
   def += (literal: Int) {
-    require(identity.idsRange.contains(math.abs(literal)), "The given literal has incompatible id.")
+    val atomID = math.abs(literal)
+    require(atomID >= identity.startID && atomID < identity.endID, "The given literal has incompatible id.")
     copyIfDirty()
     putLiteral(literal)
   }
