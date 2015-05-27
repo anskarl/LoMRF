@@ -173,11 +173,14 @@ sealed abstract class Literal(val sentence: AtomicFormula) {
    */
   def negate: Literal = if(isPositive) NegativeLiteral(sentence) else PositiveLiteral(sentence)
 
-  override def equals(obj: Any) = {
-    obj match{
-      case other:Literal => other.positive == this.positive && other.sentence == this.sentence
-      case _ =>  false
-    }
+  override def equals(obj: Any): Boolean = obj match {
+    case other: Literal => other.positive == this.positive && other.sentence == this.sentence
+    case _ =>  false
+  }
+
+
+  def =~= (other: Literal): Boolean = {
+    this.positive == other.positive && this.sentence =~= other.sentence
   }
 
   def toText: String

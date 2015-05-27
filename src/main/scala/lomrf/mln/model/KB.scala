@@ -310,6 +310,8 @@ object KB {
       .withDynamicFunctions(kbParser.getDynamicFunctions)
       .result()
 
+    info(s"Total formulas: ${kb.formulas.size}")
+
     (kb, constantsBuilder)
   }
 
