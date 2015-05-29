@@ -39,8 +39,10 @@ import auxlib.opt.OptionParser
 import lomrf.logic._
 import lomrf.logic.PredicateCompletionMode._
 import lomrf.logic.dynamic.{DynamicFunctionBuilder, DynamicAtomBuilder}
-import lomrf.mln.model.MLN
+import lomrf.mln.model.{KB, MLN}
 import lomrf.util.ImplFinder
+
+import scala.annotation.tailrec
 
 /**
  * Command-line tool for knowledge compilation. In particular with this tool we can perform
@@ -102,27 +104,26 @@ object KBCompilerCLI extends Logging {
     if (source == target)
       fatal("Target file cannot be the same with source file.")
 
-    //val mln = MLN(source, evidence, Set[AtomSignature](), Set[AtomSignature](), Set[AtomSignature](), pcm)
-
-    val mln = dynamicDefinitionPaths match {
+    val (kb, constBuilder) = dynamicDefinitionPaths match {
       case Some(paths) =>
         val implFinder = ImplFinder(classOf[DynamicAtomBuilder], classOf[DynamicFunctionBuilder])
         implFinder.searchPaths(paths)
-        MLN.fromFile(source, Set[AtomSignature](), evidenceOpt.getOrElse(""), Set[AtomSignature](), Set[AtomSignature](), pcm, dynamicDefinitions = Some(implFinder.result))
-      case None => MLN.fromFile(source, Set[AtomSignature](), evidenceOpt.getOrElse(""), Set[AtomSignature](), Set[AtomSignature](), pcm)
+        KB.fromFile(source,pcm,Some(implFinder.result))
+      case None => KB.fromFile(source, pcm, None)
     }
+    val constants = constBuilder.result()
 
     info(
       "\nSource MLN: " + source + "\n" +
-        "\tFound " + mln.clauses.size + " clauses.\n" +
-        "\tFound " + mln.schema.predicates.size + " predicates.\n" +
-        "\tFound " + mln.schema.functions.size + " functions.")
+        "\tFound " + kb.formulas.size + " formulas.\n" +
+        "\tFound " + kb.predicateSchema.size + " predicates.\n" +
+        "\tFound " + kb.functionSchema.size + " functions.")
 
 
     val fileWriter = new FileWriter(target)
     import fileWriter.write
 
-    val constants = mln.evidence.constants
+    //val constants = mln.evidence.constants
 
     // write domain data
     if (includeDomain && constants.nonEmpty) {
@@ -132,9 +133,9 @@ object KBCompilerCLI extends Logging {
     }
 
     // write predicate definitions. In case we introduce functions do not write function predicates (beginning with function prefix)
-    if (includePredicateDefinitions && mln.schema.predicates.nonEmpty) {
+    if (includePredicateDefinitions && kb.predicateSchema.nonEmpty) {
       write("// Predicate definitions\n")
-      for ((signature, args) <- mln.schema.predicates ; if !introduceFunctions || !signature.symbol.contains(profile.functionPrefix)) {
+      for ((signature, args) <- kb.predicateSchema ; if !introduceFunctions || !signature.symbol.contains(profile.functionPrefix)) {
         val line = signature.symbol + (
           if (args.isEmpty) "\n"
           else "(" + args.mkString(",") + ")\n")
@@ -145,16 +146,16 @@ object KBCompilerCLI extends Logging {
 
     // write function definitions or functions as predicates
     if (includeFunctionDefinitions) {
-      if (eliminateFunctions && mln.schema.functions.nonEmpty) { // in order to eliminate functions, functions must exist
+      if (eliminateFunctions && kb.functionSchema.nonEmpty) { // in order to eliminate functions, functions must exist
         write("// Function definitions as predicates\n")
-        for ((signature, (retType, args)) <- mln.schema.functions) {
+        for ((signature, (retType, args)) <- kb.functionSchema) {
           val predicate = profile.functionPrefix + signature.symbol + "(" + retType + "," + args.mkString(",") + ")\n"
           write(predicate)
         }
       }
       else if(introduceFunctions) {
         write("// Function definitions\n")
-        for ((signature, args) <- mln.schema.predicates) {
+        for ((signature, args) <- kb.predicateSchema) {
           if(signature.symbol.contains(profile.functionPrefix)) {
             val function = args(0) + " " + signature.symbol.replace(profile.functionPrefix, "") + "(" + args.drop(1).mkString(",") + ")\n"
             write(function)
@@ -162,24 +163,24 @@ object KBCompilerCLI extends Logging {
         }
         write("\n")
       }
-      else if(mln.schema.functions.nonEmpty) { // in order to write functions definitions, functions must exist
+      else if(kb.functionSchema.nonEmpty) { // in order to write functions definitions, functions must exist
         write("// Function definitions\n")
-        for ((signature, (retType, args)) <- mln.schema.functions) {
+        for ((signature, (retType, args)) <- kb.functionSchema) {
           val line = retType + " " + signature.symbol + "(" + args.mkString(",") + ")\n"
           write(line)
         }
       }
     }
 
-    // TODO:
-    /*if (cnf) {
+
+    if (cnf) {
       var clauseCounter = 0
       write("\n\n// Clauses\n")
-      for (formula <- mln.formulas) {
+      for (formula <- kb.formulas) {
         write("\n// Source formula: " + formula.toText + "\n")
-        val clauses = formula.toCNF(mln.constants)
+        val clauses = formula.toCNF(constants)
         for (c <- clauses) {
-          write(clauseFormatter(c, weightsMode, eliminateFunctions, introduceFunctions)(profile, mln))
+          write(clauseFormatter(c, weightsMode, eliminateFunctions, introduceFunctions)(profile))
           clauseCounter += 1
           write("\n")
         }
@@ -188,10 +189,10 @@ object KBCompilerCLI extends Logging {
     }
     else {
       write("\n\n// Formulas\n")
-      mln.formulas.foreach(f => {
+      kb.formulas.foreach(f => {
         write(formulaFormatter(f, weightsMode)); write("\n\n")
       })
-    }*/
+    }
 
     fileWriter.flush()
     fileWriter.close()
@@ -214,7 +215,8 @@ object KBCompilerCLI extends Logging {
     }
   }
 
-  private def clauseFormatter(clause: Clause, weightsMode: WeightsMode, eliminateFunctions: Boolean, introduceFunctions: Boolean)(implicit profile: Profile, mln: MLN): String = {
+  @tailrec
+  private def clauseFormatter(clause: Clause, weightsMode: WeightsMode, eliminateFunctions: Boolean, introduceFunctions: Boolean)(implicit profile: Profile): String = {
     import lomrf.logic.{TermFunction, Variable, Term, AtomicFormula}
 
     val functionVarPrefix = profile.functionVarPrefix

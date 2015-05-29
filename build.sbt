@@ -1,3 +1,5 @@
+import sbt.Keys._
+import sbt._
 /** Project */
 name := "LoMRF"
 
@@ -15,23 +17,58 @@ packageDescription in Debian := "LoMRF: Logical Markov Random Fields"
 
 maintainer in Debian := "Anastasios Skarlatidis"
 
+initialize := {
+  initialize.value
+  val javaVersion = sys.props("java.specification.version").toDouble
+  if (javaVersion < 1.7) {
+    sys.error("Java 7 or higher is required for this project")
+    sys.exit(1)
+  }
+  if(javaVersion >= 1.8 ){
+    println("[info] Loading settings for Java 8 or higher")
+    javacOptions ++= Seq("-source", "1.8", "-target", "1.8", "-Xlint:unchecked", "-Xlint:deprecation")
+
+    javaOptions ++= Seq(
+      "-XX:+DoEscapeAnalysis",
+      "-XX:+UseFastAccessorMethods",
+      "-XX:+OptimizeStringConcat",
+      "-Dlogback.configurationFile=src/main/resources/logback.xml")
+
+    scalacOptions ++= Seq(
+      "-Yclosure-elim",
+      "-Yinline",
+      "-feature",
+      "-target:jvm-1.8",
+      "-language:implicitConversions",
+      "-Ybackend:GenBCode" //use the new optimisation level
+    )
+  } else {
+    println("[info] Loading settings for Java 7")
+    javacOptions ++= Seq("-source", "1.7", "-target", "1.7", "-Xlint:unchecked", "-Xlint:deprecation")
+
+    scalacOptions ++= Seq(
+      "-Yclosure-elim",
+      "-Yinline",
+      "-feature",
+      "-target:jvm-1.7",
+      "-language:implicitConversions",
+      "-optimize" // old optimisation level
+    )
+  }
+}
+
 enablePlugins(JavaAppPackaging)
 
 logLevel in Test := Level.Info
 logLevel in Compile := Level.Error
 
-// Append several options to the list of options passed to the Java compiler
-javacOptions ++= Seq("-source", "1.8", "-target", "1.8", "-Xlint:unchecked", "-Xlint:deprecation")
 
-// Append scalac options
-scalacOptions ++= Seq(
-	"-Yclosure-elim",
-	"-Yinline",
-	"-feature",
-	"-target:jvm-1.8",
-	"-language:implicitConversions",
-	"-Ybackend:GenBCode" //use the new optimisation level
-)
+// Add JVM options to use when forking a JVM for 'run'
+javaOptions ++= Seq(
+  "-XX:+DoEscapeAnalysis",
+  "-XX:+UseFastAccessorMethods",
+  "-XX:+OptimizeStringConcat",
+  "-Dlogback.configurationFile=src/main/resources/logback.xml")
 
 
 // fork a new JVM for 'run' and 'test:run'
@@ -39,14 +76,6 @@ fork := true
 
 // fork a new JVM for 'test:run', but not 'run'
 fork in Test := true
-
-// add a JVM option to use when forking a JVM for 'run'
-javaOptions ++= Seq(
-        "-XX:+DoEscapeAnalysis",
-        "-XX:+UseFastAccessorMethods",
-        "-XX:+OptimizeStringConcat",
-        "-Dlogback.configurationFile=src/main/resources/logback.xml")
-
 
 conflictManager := ConflictManager.latestRevision
 
