@@ -1,5 +1,3 @@
-import com.typesafe.sbt.SbtNativePackager._
-
 /** Project */
 name := "LoMRF"
 
@@ -13,7 +11,11 @@ autoScalaLibrary := true
 
 managedScalaInstance := true
 
-packageArchetype.java_application
+packageDescription in Debian := "LoMRF: Logical Markov Random Fields"
+
+maintainer in Debian := "Anastasios Skarlatidis"
+
+enablePlugins(JavaAppPackaging)
 
 logLevel in Test := Level.Info
 logLevel in Compile := Level.Error
@@ -147,3 +149,5 @@ excludeFilter := {
   }
 }
 
+
+val publishSettings: Setting[_] = publishTo := Some(Resolver.file("file",  new File(Path.userHome.absolutePath+"/.m2/repository")))
