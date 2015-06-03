@@ -49,26 +49,29 @@ object Partitioner {
 
     import scala.reflect.runtime.universe._
 
-    def apply[K: TypeTag](size: Int): Partitioner[K] = (typeOf[K] match {
+    def apply[K: TypeTag](size: Int): Partitioner[K] = {
 
-      case t if t == typeOf[Int] => new FixedSizePartitionerInt(size)
+      (typeOf[K] match {
 
-      case t if t == typeOf[Short] => new FixedSizePartitionerShort(size)
+        case TypeTag.Int => new FixedSizePartitionerInt(size)
 
-      case t if t == typeOf[Byte] => new FixedSizePartitionerByte(size)
+        case TypeTag.Long => new FixedSizePartitionerLong(size)
 
-      case t if t == typeOf[Long] => new FixedSizePartitionerLong(size)
+        case TypeTag.Short => new FixedSizePartitionerShort(size)
 
-      case t =>
-        println(s"initializing Partitioner[$t]")
-        new FixedSizePartitioner[K](size) {
+        case TypeTag.Byte => new FixedSizePartitionerByte(size)
+
+        case t => new FixedSizePartitioner[K](size) {
           override def apply(key: K): Int = {
             if (key == null) 0
             else (key.## & Int.MaxValue) % size // always return non-negative integer
           }
         }
-    }).asInstanceOf[Partitioner[K]]
+      }).asInstanceOf[Partitioner[K]]
+    }
+
   }
+
 
   object indexed {
 
@@ -79,7 +82,8 @@ object Partitioner {
         val searchResult = java.util.Arrays.binarySearch(indices, math.abs(key))
         val partitionIndex = if (searchResult < 0) (-searchResult) - 2 else searchResult
 
-        assert(partitionIndex >= 0)
+        //assert(partitionIndex >= 0)
+
         partitionIndex
       }
 
@@ -88,10 +92,12 @@ object Partitioner {
 
     def apply[@sp(Byte, Short, Int, Long) K](indices: Array[Int], f: K => Int): Partitioner[K] = new FixedSizePartitioner[K](indices.length) {
       override def apply(key: K): Int = {
+
         val searchResult = java.util.Arrays.binarySearch(indices, math.abs(f(key)))
         val partitionIndex = if (searchResult < 0) (-searchResult) - 2 else searchResult
 
-        assert(partitionIndex > 0)
+        //assert(partitionIndex >= 0)
+
         partitionIndex
       }
     }
