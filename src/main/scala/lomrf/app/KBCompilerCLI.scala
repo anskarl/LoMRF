@@ -61,6 +61,11 @@ object KBCompilerCLI extends Logging {
     val opt = new KBCOptions
     if (args.length == 0) println(opt.usage)
     else if (opt.parse(args)) {
+      
+      if(opt.eliminateFunctions && opt.introduceFunctions)
+        fatal("Simultaneous elimination and introduction of functions in not possible!")
+
+      // In order to eliminate or introduce function CNF must be enabled, otherwise is not possible.
       if(opt.eliminateFunctions && !opt.cnf) {
         warn("Function elimination enables CNF compilation")
         opt.cnf = true
@@ -75,10 +80,10 @@ object KBCompilerCLI extends Logging {
         opt.mlnFileName.getOrElse(fatal("Please define the input MLN file.")),
         opt.evidenceFileName, //.getOrElse(""),
         opt.outputMLNFileName.getOrElse(fatal("Please define the output MLN file.")),
-        opt.profile,
+        opt.functionPrefix,
         opt.includeDomain,
-        opt.includePredicateDefinitions,
-        opt.includeFunctionDefinitions,
+        opt.removePredicateDefinitions,
+        opt.removeFunctionDefinitions,
         opt.eliminateFunctions,
         opt.introduceFunctions,
         opt.weightsMode,
@@ -89,10 +94,11 @@ object KBCompilerCLI extends Logging {
     }
   }
 
-  def compile(source: String, evidenceOpt: Option[String], target: String, profile: Profile,
+  def compile(source: String, evidenceOpt: Option[String], target: String,
+              functionPrefix: String,
               includeDomain: Boolean,
-              includePredicateDefinitions: Boolean,
-              includeFunctionDefinitions: Boolean,
+              removePredicateDefinitions: Boolean,
+              removeFunctionDefinitions: Boolean,
               eliminateFunctions: Boolean,
               introduceFunctions: Boolean,
               weightsMode: WeightsMode,
@@ -101,11 +107,11 @@ object KBCompilerCLI extends Logging {
               dynamicDefinitionPaths: Option[Array[String]]) {
 
     info("Parameters:"
-      + "\n\t(p) Output settings profile (default Alchemy): " + (if (profile == AlchemyProfile) "Alchemy"
-                                                                  else "Normal")
+      + "\n\t(cnf) Convert formulas into CNF: " + cnf
       + "\n\t(includeDomain) Include domain definitions : " + includeDomain
-      + "\n\t(includePredicateDefinitions) Include predicate definitions : " + includePredicateDefinitions
-      + "\n\t(includeFunctionDefinitions) Include function definitions : " + includeFunctionDefinitions
+      + "\n\t(removePredicateDefinitions) Remove predicate definitions : " + removePredicateDefinitions
+      + "\n\t(removeFunctionDefinitions) Remove function definitions : " + removeFunctionDefinitions
+      + "\n\t(functionPrefix) Function prefix used for elimination : " + functionPrefix
       + "\n\t(eliminateFunctions) Eliminate functions : " + eliminateFunctions
       + "\n\t(introduceFunctions) Introduce functions : " + introduceFunctions
       + "\n\t(weightsMode) Weights mode for output : " + (if (weightsMode == KEEP) "Keep"
@@ -114,7 +120,6 @@ object KBCompilerCLI extends Logging {
       + "\n\t(pcm) Predicate completion mode : " + (if (pcm == Standard) "Standard"
                                                     else if (pcm == Simplification) "Simplification"
                                                     else "Decomposed")
-      + "\n\t(cnf) Convert formulas into CNF: " + cnf
     )
 
     if (source == target)
@@ -146,9 +151,9 @@ object KBCompilerCLI extends Logging {
     }
 
     // write predicate definitions. In case we introduce functions do not write function predicates (beginning with function prefix)
-    if (includePredicateDefinitions && kb.predicateSchema.nonEmpty) {
+    if (!removePredicateDefinitions && kb.predicateSchema.nonEmpty) {
       write("// Predicate definitions\n")
-      for ((signature, args) <- kb.predicateSchema ; if !introduceFunctions || !signature.symbol.contains(profile.functionPrefix)) {
+      for ((signature, args) <- kb.predicateSchema ; if !introduceFunctions || !signature.symbol.contains(functionPrefix)) {
         val line = signature.symbol + (
           if (args.isEmpty) "\n"
           else "(" + args.mkString(",") + ")\n")
@@ -158,19 +163,19 @@ object KBCompilerCLI extends Logging {
     }
 
     // write function definitions or functions as predicates
-    if (includeFunctionDefinitions) {
+    if (!removeFunctionDefinitions) {
       if (eliminateFunctions && kb.functionSchema.nonEmpty) { // in order to eliminate functions, functions must exist
         write("// Function definitions as predicates\n")
         for ((signature, (retType, args)) <- kb.functionSchema) {
-          val predicate = profile.functionPrefix + signature.symbol + "(" + retType + "," + args.mkString(",") + ")\n"
+          val predicate = functionPrefix + signature.symbol + "(" + retType + "," + args.mkString(",") + ")\n"
           write(predicate)
         }
       }
       else if(introduceFunctions) {
         write("// Function definitions\n")
         for ((signature, args) <- kb.predicateSchema) {
-          if(signature.symbol.contains(profile.functionPrefix)) {
-            val function = args.head + " " + signature.symbol.replace(profile.functionPrefix, "") + "(" + args.drop(1).mkString(",") + ")\n"
+          if(signature.symbol.contains(functionPrefix)) {
+            val function = args.head + " " + signature.symbol.replace(functionPrefix, "") + "(" + args.drop(1).mkString(",") + ")\n"
             write(function)
           }
         }
@@ -193,7 +198,7 @@ object KBCompilerCLI extends Logging {
         write("\n// Source formula: " + formula.toText + "\n")
         val clauses = formula.toCNF(constants)
         for (c <- clauses) {
-          write(clauseFormatter(c, weightsMode, eliminateFunctions, introduceFunctions)(profile))
+          write(clauseFormatter(c, weightsMode, eliminateFunctions, introduceFunctions, functionPrefix))
           clauseCounter += 1
           write("\n")
         }
@@ -239,25 +244,26 @@ object KBCompilerCLI extends Logging {
 
   @tailrec
   private def clauseFormatter(clause: Clause, weightsMode: WeightsMode, eliminateFunctions: Boolean,
-                              introduceFunctions: Boolean)(implicit profile: Profile): String = {
+                              introduceFunctions: Boolean, functionPrefix: String): String = {
     import lomrf.logic.{TermFunction, Variable, Term, AtomicFormula}
 
-    val functionVarPrefix = profile.functionVarPrefix
-    val functionPrefix = profile.functionPrefix
+    val functionVarPrefix = "funcRetVar"
 
-    if (clause.isUnit && clause.weight < 0) {
-      // Is a unit clause with negative weight, thus negate it and convert its weight
-      // into a positive value (e.g the '-w A(x)' will be converted into 'w !A(x)')
-      clauseFormatter(Clause(Set(clause.literals.head.negate), -clause.weight), weightsMode, eliminateFunctions, introduceFunctions)
-    }
+    /*
+     * Is a unit clause with negative weight, thus negate it and convert its weight
+     * into a positive value (e.g the '-w A(x)' will be converted into 'w !A(x)').
+     */
+    if (clause.isUnit && clause.weight < 0)
+      clauseFormatter(Clause(Set(clause.literals.head.negate), -clause.weight), weightsMode, eliminateFunctions, introduceFunctions, functionPrefix)
     else {
-      val txtLiterals = profile match {
+        var txtLiterals = ""
 
         // Just write the given clause as it is (no functions elimination or introduction)
-        case NormalProfile if !(eliminateFunctions || introduceFunctions) => clause.literals.view.map(_.toText).mkString(" v ")
+        if (!eliminateFunctions && !introduceFunctions)
+          txtLiterals = clause.literals.view.map(_.toText).mkString(" v ")
 
         // Replace all functions in the given clause with utility predicates
-        case _ if eliminateFunctions =>
+        else if(eliminateFunctions) {
 
           val (literalsNoFunctions, literalsWithFunctions) = clause.literals.span(l => l.sentence.functions.isEmpty)
 
@@ -304,13 +310,14 @@ object KBCompilerCLI extends Logging {
             if (fMap.nonEmpty)
               results = results ::: List[String](fMap.values.map(_._2.toText).mkString(" v "))
 
-            results.mkString(" v ")
+            txtLiterals = results.mkString(" v ")
           }
-          else literalsNoFunctions.map(_.toText).mkString(" v ")
+          else
+            txtLiterals = literalsNoFunctions.map(_.toText).mkString(" v ")
+        }
 
         // Replace all function predicates in the given clause with actual functions
-        case _ if introduceFunctions =>
-
+        else if(introduceFunctions) {
           val (literalsNoFunctions, literalsFunctions) = clause.literals.partition(l => !l.sentence.symbol.contains(functionPrefix))
 
           if (literalsFunctions.nonEmpty) {
@@ -349,10 +356,10 @@ object KBCompilerCLI extends Logging {
                 List[String](replacedLiterals.map(_.toText).mkString(" v "))
               else List[String]()
 
-            results.mkString(" v ")
+            txtLiterals = results.mkString(" v ")
           }
-          else literalsNoFunctions.map(_.toText).mkString(" v ")
-      }
+          else txtLiterals = literalsNoFunctions.map(_.toText).mkString(" v ")
+        }
 
       weightsMode match {
         case KEEP =>
@@ -378,11 +385,11 @@ object KBCompilerCLI extends Logging {
     // The path to the output file
     var outputMLNFileName: Option[String] = None
 
-    // Output settings profile
-    var profile: Profile = AlchemyProfile
+    // Function prefix for transformation of functions to predicates
+    var functionPrefix: String = "ReturnValueOf"
 
     // Eliminate functions
-    var eliminateFunctions: Boolean = profile.functionDefinitionsAsPredicates
+    var eliminateFunctions: Boolean = false
 
     // Introduce functions
     var introduceFunctions: Boolean = false
@@ -391,10 +398,10 @@ object KBCompilerCLI extends Logging {
     var includeDomain: Boolean = false
 
     // Include predicate definitions
-    var includePredicateDefinitions: Boolean = true
+    var removePredicateDefinitions: Boolean = false
 
     // Include function definitions
-    var includeFunctionDefinitions: Boolean = true
+    var removeFunctionDefinitions: Boolean = false
 
     // Weights mode for output (keep, remove soft or remove all)
     var weightsMode = KEEP
@@ -403,7 +410,7 @@ object KBCompilerCLI extends Logging {
     var pcm: PredicateCompletionMode = Simplification
 
     // Convert formulas into CNF
-    var cnf: Boolean = true
+    var cnf: Boolean = false
 
     var implPaths: Option[Array[String]] = None
 
@@ -419,22 +426,18 @@ object KBCompilerCLI extends Logging {
       v: String => outputMLNFileName = Some(v)
     })
 
-    opt("p", "profile", "<alchemy | normal>", "Choose an output settings profile (default is Alchemy).", {
-      v: String => profile = v.trim.toLowerCase match {
-        case "alchemy" => AlchemyProfile
-        case "normal" => NormalProfile
-        case _ => sys.error("Unknown profile '" + v + "'.")
-      }
+    flagOpt("cnf", "clausal-form", "Convert formulas to clausal form", {
+      cnf = true
     })
 
-    opt("w", "weights", "<keep | removeSoft | removeAll>",
+    opt("w", "weights", "<keep | remove_soft | remove_all>",
       "(keep) Keep all given weights, " +
-      "or (removeSoft) eliminate the weighs from all soft-constrained formulas, " +
-      "or (removeAll) convert all formulas to soft-constrained without weights. Please note, that in some cases the weights cannot be kept (e.g. predicate completion with simplification).", {
+      "or (remove_soft) eliminate the weighs from all soft-constrained formulas, " +
+      "or (remove_all) convert all formulas to soft-constrained without weights. Please note, that in some cases the weights cannot be kept (e.g. predicate completion with simplification).", {
       v: String => weightsMode = v.trim.toLowerCase match {
         case "keep" => KEEP
-        case "removesoft" => RM_SOFT
-        case "removeall" => RM_ALL
+        case "remove_soft" => RM_SOFT
+        case "remove_all" => RM_ALL
         case _ => sys.error("Unknown parameter '" + v + "'.")
       }
     })
@@ -448,28 +451,28 @@ object KBCompilerCLI extends Logging {
       }
     })
 
-    booleanOpt("fDomain", "flag-domain", "boolean", "Write domain definitions (default is false)", {
-      v: Boolean => includeDomain = v
+    flagOpt("includeDomainDef", "domain-definitions", "Include domain definitions", {
+      includeDomain = true
     })
 
-    booleanOpt("fPredicates", "flag-predicates", "boolean", "Write predicate definitions (default is true)", {
-      v: Boolean => includePredicateDefinitions = v
+    flagOpt("removePredicateDef", "remove-predicate-definitions", "Remove predicate definitions", {
+      removePredicateDefinitions = true
     })
 
-    booleanOpt("fFunctions", "flag-functions", "boolean", "Write function definitions (default is true)", {
-      v: Boolean => includeFunctionDefinitions = v
+    flagOpt("removeFunctionsDef", "remove-function-definitions", "Remove function definitions", {
+      removeFunctionDefinitions = true
     })
 
-    booleanOpt("fEliminateFunctions", "flag-EliminateFunctions", "boolean", "Write function definitions as predicates (override profile)", {
-      v: Boolean => eliminateFunctions = v
+    opt("functionsPrefix", "functions-prefix", "<string>", "Function prefix used for transformation of functions to predicates (default is ReturnValueOf)", {
+      v: String => functionPrefix = v
     })
 
-    booleanOpt("fIntroduceFunctions", "flag-IntroduceFunctions", "boolean", "Write functions produced by specific predicates (default is false)", {
-      v: Boolean => introduceFunctions = v
+    flagOpt("eliminateFunctions", "eliminate-functions", "Write function definitions as predicates", {
+      eliminateFunctions = true
     })
 
-    booleanOpt("cnf", "clausal-form", "boolean", "Convert formulas to clausal form (default is true)", {
-      v: Boolean => cnf = v
+    flagOpt("introduceFunctions", "introduce-functions", "Write functions produced by specific predicates", {
+      introduceFunctions = true
     })
 
     opt("dynamic", "dynamic-implementations", "<string>", "Comma separated paths to search recursively for dynamic predicates/functions implementations (*.class and *.jar files).", {
@@ -482,33 +485,6 @@ object KBCompilerCLI extends Logging {
     })
 
   }
-
-  sealed abstract class Profile {
-    def functionPrefix: String
-
-    def functionVarPrefix: String = "funcRetVar"
-
-    def eliminateFunctions: Boolean
-
-    def functionDefinitionsAsPredicates: Boolean
-  }
-
-  case object AlchemyProfile extends Profile {
-    def functionPrefix = "isReturnValueOf"
-
-    def eliminateFunctions = true
-
-    def functionDefinitionsAsPredicates = false
-  }
-
-  case object NormalProfile extends Profile {
-    def functionPrefix = "ReturnValueOf"
-
-    def eliminateFunctions = false
-
-    def functionDefinitionsAsPredicates = false
-  }
-
 }
 
 object WeightsMode extends Enumeration {
