@@ -34,7 +34,6 @@ package lomrf
 
 import java.io.{IOException, File}
 import java.nio.file.Path
-
 import gnu.trove.map.TIntObjectMap
 import gnu.trove.set.TIntSet
 import scala.collection.mutable
@@ -46,21 +45,21 @@ package object util {
   object seg {
 
     @inline
-    def fetchKey[T](idx: Int, elements: Array[TIntSet]): Int ={
+    def fetchKey[T](idx: Int, elements: Array[TIntSet]): Int = {
       var sum = 0
       var found = false
       var segIndex = -1
 
-      while(!found && segIndex < elements.length - 1){
+      while(!found && segIndex < elements.length - 1) {
         segIndex += 1
-        if((elements(segIndex) ne null) && !elements(segIndex).isEmpty){
+        if ((elements(segIndex) ne null) && !elements(segIndex).isEmpty) {
           val next_sum = sum + elements(segIndex).size()
           if(idx < next_sum) found = true
           else sum = next_sum
         }
       }
 
-      if(!found) throw new IndexOutOfBoundsException(idx.toString)
+      if (!found) throw new IndexOutOfBoundsException(idx.toString)
 
       val position = idx - sum
       val iterator = elements(segIndex).iterator()
@@ -69,26 +68,25 @@ package object util {
         for( i <- 0 until position) iterator.next()
       }
 
-
       iterator.next()
     }
 
     @inline
-    def fetchKey[T](idx: Int, elements: Array[TIntObjectMap[T]]): Int ={
+    def fetchKey[T](idx: Int, elements: Array[TIntObjectMap[T]]): Int = {
       var sum = 0
       var found = false
       var segIndex = -1
 
-      while(!found && segIndex < elements.length - 1){
+      while(!found && segIndex < elements.length - 1) {
         segIndex += 1
-        if((elements(segIndex) ne null) && !elements(segIndex).isEmpty){
+        if ((elements(segIndex) ne null) && !elements(segIndex).isEmpty) {
           val next_sum = sum + elements(segIndex).size()
           if(idx < next_sum) found = true
           else sum = next_sum
         }
       }
 
-      if(!found) throw new IndexOutOfBoundsException(idx.toString)
+      if (!found) throw new IndexOutOfBoundsException(idx.toString)
 
       val position = idx - sum
       val iterator = elements(segIndex).iterator()
@@ -101,29 +99,28 @@ package object util {
     }
 
     @inline
-    def fetchKeyValue[T](idx: Int, elements: Array[TIntObjectMap[T]]): (Int, T) ={
+    def fetchKeyValue[T](idx: Int, elements: Array[TIntObjectMap[T]]): (Int, T) = {
       var sum = 0
       var found = false
       var segIndex = -1
 
-      while(!found && segIndex < elements.length - 1){
+      while(!found && segIndex < elements.length - 1) {
         segIndex += 1
-        if((elements(segIndex) ne null) && !elements(segIndex).isEmpty){
+        if ((elements(segIndex) ne null) && !elements(segIndex).isEmpty) {
           val next_sum = sum + elements(segIndex).size()
           if(idx < next_sum) found = true
           else sum = next_sum
         }
       }
 
-      if(!found) throw new IndexOutOfBoundsException(idx.toString)
+      if (!found) throw new IndexOutOfBoundsException(idx.toString)
 
       val position = idx - sum
       val iterator = elements(segIndex).iterator()
 
-      optimize{
+      optimize {
         for( i <- 0 to position) iterator.advance()
       }
-
 
       (iterator.key(), iterator.value())
     }
@@ -131,7 +128,9 @@ package object util {
   }
 
   object time {
+
     import lomrf.util.TimeGranularity.TimeGranularity
+
     /**
      * Calculates the actual time in hours, minutes, seconds and milliseconds given the
      * total time in milliseconds and concatenates it along a given message.
@@ -232,7 +231,6 @@ package object util {
     }
   }
 
-
   def powerSet[T](xs: Set[T]) = (Set(Set.empty[T]) /: xs)((xss, x) => xss ++ xss.map(_ + x))
 
   def naturals: Stream[Int] = Stream.cons(1, naturals.map(_ + 1))
@@ -241,7 +239,6 @@ package object util {
     type TimeGranularity = Value
     val Millisecond, Nanosecond = Value
   }
-
 
   /**
    * Safe dereference operator.
@@ -255,7 +252,7 @@ package object util {
    * @return the instance when is not null, otherwise the specified alternative value
    */
   implicit def dereferenceOperator[T](alt: => T) = new {
-    def ??:[A >: T](pred: A) = if (pred == null) alt else pred
+    def ??:[A >: T](predicate: A) = if (predicate == null) alt else predicate
   }
 
   object io {
@@ -298,7 +295,7 @@ package object util {
 
       while (directories.nonEmpty) {
         for (currentFile <- directories.dequeue().listFiles) {
-          // When the current file is a directory and the recursively=true, then
+          // When the current file is a directory and the recursively is true, then
           // simply enqueue this file in the directories queue, otherwise continue.
           if (recursively && currentFile.isDirectory) directories.enqueue(currentFile)
 
@@ -342,10 +339,9 @@ package object util {
 
       val directories = mutable.Queue[File](targetDir)
 
-
       while (directories.nonEmpty) {
         for (currentFile <- directories.dequeue().listFiles) {
-          // When the current file is a directory and the recursively=true, then
+          // When the current file is a directory and the recursively is true, then
           // simply enqueue this file in the directories queue, otherwise continue.
           if (recursively && currentFile.isDirectory) directories.enqueue(currentFile)
 

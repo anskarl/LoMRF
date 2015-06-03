@@ -34,8 +34,16 @@ package lomrf.util
 
 import java.util
 
+/**
+ * Array utilities.
+ */
 object ArrayUtils {
 
+  /**
+   * Specialized hash code calculation for arbitrary array type.
+   *
+   * @return the hash code for any array type
+   */
   def hashCodeOf(array: Array[_]): Int = array match {
     case x: Array[Char] => util.Arrays.hashCode(x)
     case x: Array[Byte] => util.Arrays.hashCode(x)
@@ -49,13 +57,25 @@ object ArrayUtils {
     case _ => throw new RuntimeException("possible bug?")
   }
 
+  /**
+   * Specialized equality between arrays for arbitrary types. It checks
+   * if the arrays have the same length and contain elements from the
+   * same class type.
+   *
+   * @param array1 one array
+   * @param array2 another array
+   *
+   * @return true if arrays are equal, false otherwise
+   */
   def equals(array1: Array[_], array2: Array[_]): Boolean = {
 
+    // length checking
     if(array1.length != array2.length) return false
 
     val classOfArray1 = array1.getClass
     val classOfArray2 = array2.getClass
 
+    // class type checking
     if(classOfArray1 == classOfArray2) array1 match {
       case x: Array[Char] => util.Arrays.equals(array1.asInstanceOf[Array[Char]], array2.asInstanceOf[Array[Char]])
       case x: Array[Byte] => util.Arrays.equals(array1.asInstanceOf[Array[Byte]], array2.asInstanceOf[Array[Byte]])
