@@ -38,7 +38,7 @@ import auxlib.log.Logging
 import auxlib.opt.OptionParser
 import lomrf.logic._
 import lomrf.logic.AtomSignatureOps._
-import lomrf.mln.model.{AtomIdentityFunctionOps, MLN}
+import lomrf.mln.model.AtomIdentityFunctionOps
 import AtomIdentityFunctionOps._
 import lomrf.logic.PredicateCompletionMode._
 import lomrf.logic.dynamic.{DynamicFunctionBuilder, DynamicAtomBuilder}
@@ -327,6 +327,10 @@ object MRFWriterCLI extends Logging {
       v: String => mlnFileName = Some(v)
     })
 
+    opt("e", "evidence", "<db file>", "Evidence database file", {
+      v: String => evidenceFileName = Some(v)
+    })
+
     opt("q", "query", "<string>", "Comma separated query predicates", _.split(',').foreach(v => addQueryAtom(v)))
 
     opt("cwa", "closed-world-assumption", "<string>",
@@ -334,10 +338,6 @@ object MRFWriterCLI extends Logging {
 
     opt("owa", "open-world-assumption", "<string>",
       "Specified evidence atoms (comma-separated with no space) are open world, while other evidence atoms are closed-world.", _.split(",").foreach(v => addOWA(v)))
-
-    opt("e", "evidence", "<db file>", "Evidence database file", {
-      v: String => evidenceFileName = Some(v)
-    })
 
     opt("o", "output", "<output filename>", "Output filename", {
       v: String => outputFileName = Some(v)
