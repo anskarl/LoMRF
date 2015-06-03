@@ -33,8 +33,6 @@
 package lomrf.app
 
 import java.io.{FileOutputStream, PrintStream}
-import auxlib.log.Logging
-import auxlib.opt.OptionParser
 import lomrf.logic.AtomSignature
 import lomrf.logic.AtomSignatureOps._
 import lomrf.mln.grounding.MRFBuilder
@@ -44,7 +42,7 @@ import lomrf.mln.model.MLN
 import lomrf.util.time._
 
 /**
- * Command-line tool for weight learning
+ * Command line tool for weight learning.
  */
 object WeightLearningCLI extends CLIApp {
 
@@ -144,9 +142,9 @@ object WeightLearningCLI extends CLIApp {
       _nonEvidenceAtoms ++= _.split(',').map(s => s.signature.getOrElse(fatal(s"Cannot parse the arity of atom signature: $s")))
   })
 
-  opt("alg", "algorithm", "<MAXMARGIN | CDA | ADAGRAD>", "Algorithm used to perform learning (default is Max-Margin).", {
+  opt("alg", "algorithm", "<MAX_MARGIN | CDA | ADAGRAD>", "Algorithm used to perform learning (default is Max-Margin).", {
     v: String => v.trim.toLowerCase match {
-      case "maxmargin" => _algorithm = Algorithm.MAX_MARGIN
+      case "max_margin" => _algorithm = Algorithm.MAX_MARGIN
       case "cda" => _algorithm = Algorithm.COORDINATE_DUAL_ASCEND
       case "adagrad" => _algorithm = Algorithm.ADAGRAD_FB
       case _ => fatal("Unknown parameter for learning algorithm type '" + v + "'.")
@@ -255,7 +253,7 @@ object WeightLearningCLI extends CLIApp {
     if(_algorithm == Algorithm.MAX_MARGIN) {
 
       if(_ilpSolver != Solver.GUROBI) {
-        warn("For MAXMARGIN training, only GUROBI solver is supported. Switching to GUROBI.")
+        warn("For MAX_MARGIN training, only GUROBI solver is supported. Switching to GUROBI.")
         _ilpSolver = Solver.GUROBI
       }
 
@@ -328,8 +326,7 @@ object WeightLearningCLI extends CLIApp {
       + "\n\tNon-evidence atoms : " + mln.owa.mkString(","))
   }
 
-
-  // MAIN:
+  // Main:
   if (args.length == 0) println(usage)
   else if (parse(args)) weightLearn()
 }
