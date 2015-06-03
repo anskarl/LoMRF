@@ -37,7 +37,6 @@ import gnu.trove.map.hash.TIntObjectHashMap
 import lomrf.mln.grounding.DependencyMap
 import lomrf.mln.model.MLN
 
-
 /**
  * This class represents a ground Markov Random Field.
  *
@@ -50,8 +49,6 @@ import lomrf.mln.model.MLN
  * @param queryAtomEndID  the id (integer) of the last query atom.
  * @param weightHard the estimated weight for all hard-constrained ground clauses.
  * @param maxNumberOfLiterals that is the length of the bigger ground clause in this MRF.
- *
- *
  *
  */
 class MRF(val mln: MLN,
@@ -106,7 +103,7 @@ object MRF {
     val queryAtomStartID = mln.space.queryStartID
     val queryAtomEndID = mln.space.queryEndID
 
-    //create positive-and-negative literal to constraint occurrence maps
+    // create positive-and-negative literal to constraint occurrence maps
     val iterator = constraints.iterator()
     val pLit2Constraints = new TIntObjectHashMap[List[Constraint]]()
     val nLit2Constraints = new TIntObjectHashMap[List[Constraint]]()

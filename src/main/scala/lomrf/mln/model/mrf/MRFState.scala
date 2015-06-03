@@ -39,7 +39,6 @@ import auxlib.log.Logging
 import gnu.trove.list.array.TIntArrayList
 import gnu.trove.map.hash.TIntIntHashMap
 import lomrf.mln.model.AtomIdentityFunction
-import lomrf.util._
 import scala.collection.mutable.ArrayBuffer
 import scala.collection.mutable
 import scala.collection.parallel.mutable.ParArray
@@ -53,7 +52,6 @@ import scalaxy.streams.optimize
  * @param parAtoms parallel array holding the ground atoms
  * @param parConstraints parallel array holding the constraints
  * @param satHardPriority Satisfiability priority to hard constrained clauses (default is false)
- *
  *
  */
 final class MRFState private(val mrf: MRF,
@@ -318,7 +316,7 @@ final class MRFState private(val mrf: MRF,
       nIterator.advance()
       val constraint = nIterator.value()
       if (!constraint.inactive && !constraint.isPositive && !constraint.isSatisfiedByFixed) optimize{
-        for (i <- 0 until constraint.literals.length)
+        for (i <- constraint.literals.indices)
           fixAtom(math.abs(constraint.literals(i)), constraint.literals(i) < 0)
       }
     }
@@ -916,7 +914,7 @@ final class MRFState private(val mrf: MRF,
     }
 
     if(Unsatisfied.isEmpty) MRF.NO_CONSTRAINT
-    else if (satHardPriority && priorityBuffer.size > 0) priorityBuffer.remove(0)
+    else if (satHardPriority && priorityBuffer.nonEmpty) priorityBuffer.remove(0)
     else if (satHardPriority &&  Unsatisfied.numOfHard > 0) Unsatisfied.getRandomHardConstraint
     else Unsatisfied(ThreadLocalRandom.current().nextInt(Unsatisfied.size))
   }
@@ -1000,8 +998,6 @@ final class MRFState private(val mrf: MRF,
 
 /**
  * MRFState companion object.
- *
- *
  */
 object MRFState {
 
