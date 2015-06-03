@@ -141,9 +141,9 @@ libraryDependencies += "com.datumbox" % "lpsolve" % "5.5.2.0"
 
 dependencyOverrides += "org.scala-lang" % "scala-compiler" % scalaVersion.value
 dependencyOverrides += "org.scala-lang" % "scala-library" % scalaVersion.value
-dependencyOverrides += "org.scala-lang" %% "scala-parser-combinators" % scalaVersion.value
 dependencyOverrides += "org.scala-lang" % "scala-reflect" % scalaVersion.value
-dependencyOverrides += "org.scala-lang.modules" %% "scala-xml" % "1.0.3"
+dependencyOverrides += "org.scala-lang.modules" %% "scala-parser-combinators" % "1.0.4"
+dependencyOverrides += "org.scala-lang.modules" %% "scala-xml" % "1.0.4"
 
 // Include utility bash scripts in the 'bin' directory
 mappings in Universal <++= (packageBin in Compile) map { jar =>
