@@ -372,10 +372,10 @@ case class And(left: Formula, right: Formula) extends LogicalConnective with Def
   override def subFormulas: Seq[Formula] = Seq(left, right)
 
   override def toText: String = {
-    subFormulas map{
-      case f: Or => "(" + left.toText + ")"
+    subFormulas map {
+      case currFormula @ (f: Or) => "(" + currFormula.toText + ")"
       case f: ConditionalStatement => "(" + right.toText + ")"
-      case f: Formula => f.toText
+      case currFormula => currFormula.toText
     } mkString " ^ "
   }
 
@@ -390,10 +390,10 @@ case class Or(left: Formula, right: Formula) extends LogicalConnective {
   override def subFormulas: Seq[Formula] = Seq(left, right)
 
   override def toText: String = {
-    subFormulas map{
-      case f: And => "(" + left.toText + ")"
+    subFormulas map {
+      case currFormula @ (f: And) => "(" + currFormula.toText + ")"
       case f: ConditionalStatement => "(" + right.toText + ")"
-      case f: Formula => f.toText
+      case currFormula => currFormula.toText
     } mkString " v "
   }
 
