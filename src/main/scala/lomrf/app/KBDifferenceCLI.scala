@@ -37,7 +37,7 @@ import lomrf.logic.AtomSignature
 import java.io.FileWriter
 
 /**
- * Command-line tool for knowledge base difference checking. In particular with this tool we can perform
+ * Command line tool for knowledge base difference checking. In particular using this tool we can perform
  * difference checking given two knowledge bases.
  */
 object KBDifferenceCLI extends CLIApp {
@@ -47,7 +47,6 @@ object KBDifferenceCLI extends CLIApp {
     if (source.size != evidence.size)
       fatal("The number of input files and evidence files must be the same.")
 
-    // Iterator[(Seq[Source, Evidence], Index)]
     val combinations = source.view.zip(evidence).combinations(2).zipWithIndex
 
     val queryAtoms = Set.empty[AtomSignature]
@@ -101,8 +100,13 @@ object KBDifferenceCLI extends CLIApp {
     }
   }
 
+  // Input file(s) (path)
   var inputFileName: Option[IndexedSeq[String]] = None
+
+  // Evidence file(s) (path)
   var evidenceFileName: Option[IndexedSeq[String]] = None
+
+  // Prefix for the output difference files
   var prefixOpt: Option[String] = None
 
   opt("i", "input", "<files>", "At least two comma separated input files", {
@@ -136,6 +140,7 @@ object KBDifferenceCLI extends CLIApp {
     sys.exit(0)
   })
 
+  // Main:
   if (args.length == 0) println(usage)
   else if (parse(args)) {
     compare(
@@ -143,7 +148,6 @@ object KBDifferenceCLI extends CLIApp {
       evidenceFileName.getOrElse(fatal("Please define the evidence files.")),
       prefixOpt
     )
-
   }
 
 }

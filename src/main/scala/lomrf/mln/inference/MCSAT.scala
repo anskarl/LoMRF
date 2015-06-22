@@ -40,7 +40,6 @@ import lomrf.mln.model.AtomIdentityFunctionOps
 import lomrf.mln.model.mrf.{GroundAtom, MRFState, MRF}
 import lomrf.util.time._
 import lomrf.util.LongDoubleConversions._
-
 import scala.util.Success
 
 /**
@@ -66,9 +65,6 @@ import scala.util.Success
  * @param unitPropagation Perform unit-propagation (default is true)
  * @param satHardPriority Satisfiability priority to hard constrained clauses (default is true)
  * @param tabuLength Minimum number of flips between flipping the same atom (default is 10)
- *
- *
- *
  *
  * @todo merge duplicate code with MaxWalkSAT (= maxWalkSATStep).
  * @todo perform optimisations to improve the performance.

@@ -35,13 +35,11 @@ package lomrf.util
 import java.io.{IOException, FilenameFilter, File}
 import java.util.jar.{JarFile, JarEntry}
 import auxlib.log.Logging
-
 import scala.Predef._
 import scala.collection.mutable
 
 /**
- *
- *
+ * Implementations finder.
  */
 final class ImplFinder(traitSet: Set[Class[_]]) extends Logging {
 
@@ -65,13 +63,13 @@ final class ImplFinder(traitSet: Set[Class[_]]) extends Logging {
     result
   }
 
-  def searchPaths(dirPaths: Array[String]){
+  def searchPaths(dirPaths: Array[String]) {
     check()
     val classLoader = this.getClass.getClassLoader
     dirPaths.foreach(dirPath => loadDir(dirPath, dirPath, classLoader))
   }
 
-  def searchPaths(dirPaths: String*){
+  def searchPaths(dirPaths: String*) {
     check()
     val classLoader = this.getClass.getClassLoader
     dirPaths.foreach(dirPath => loadDir(dirPath, dirPath, classLoader))
@@ -81,7 +79,6 @@ final class ImplFinder(traitSet: Set[Class[_]]) extends Logging {
     check()
     loadDir(dirPath, dirPath, this.getClass.getClassLoader)
   }
-
 
   private def check() {
     if (map eq null) map = mutable.Map[Class[_], mutable.HashSet[Class[_]]]()
@@ -95,7 +92,6 @@ final class ImplFinder(traitSet: Set[Class[_]]) extends Logging {
     val jarFiles = dirFile.listFiles(jarFF)
     val dirFiles = dirFile.listFiles(dirFF)
 
-    //.class files
     classFiles.foreach(f => addClassFile(basePath, f, clazzLoader))
     jarFiles.foreach(f => loadJar(f.getPath))
     dirFiles.foreach(dir => loadDir(basePath, dir.getPath, clazzLoader))
@@ -114,7 +110,6 @@ final class ImplFinder(traitSet: Set[Class[_]]) extends Logging {
   }
 
   private def addJarFile(jarFile: JarFile, clazzLoader: ClassLoader) {
-    //info("Opening jar file: " + jarFile.getName)
     val entries: java.util.Enumeration[JarEntry] = jarFile.entries
 
     while (entries.hasMoreElements) {
@@ -122,7 +117,6 @@ final class ImplFinder(traitSet: Set[Class[_]]) extends Logging {
       if (name.toLowerCase.endsWith(".class")) addIfMatch(name, clazzLoader)
     }
   }
-
 
   private def addClassFile(basePath: String, classFile: File, clazzLoader: ClassLoader) {
     if (classFile.isFile && classFile.getName.toLowerCase.endsWith(".class"))
@@ -132,14 +126,14 @@ final class ImplFinder(traitSet: Set[Class[_]]) extends Logging {
   private def addIfMatch(n: String, clazzLoader: ClassLoader) {
     var name = n
     if (name.indexOf('$') == -1) {
-      //clear string
+      // clear string
       if (name.toLowerCase.endsWith(".class")) name = name.substring(0, name.length - 6)
 
       name = name.replace('\\', '.').replace('/', '.')
       while (name.startsWith(".")) name = name.substring(1)
 
 
-      //Now check if this class implements one of the specified Interfaces
+      // check if this class implements one of the specified Interfaces
       val clazz = try {
         Class.forName(name, true, clazzLoader)
       }
@@ -149,20 +143,18 @@ final class ImplFinder(traitSet: Set[Class[_]]) extends Logging {
       }
 
       if (clazz != null && !clazz.isInterface) {
-
         val interfaces: Set[Class[_]] = extractInterfaces(clazz)
 
-        interfaces.find(iface => traitSet.contains(iface)) match {
+        interfaces.find(interface => traitSet.contains(interface)) match {
           case Some(entry) =>
-
             map.get(entry) match {
               case Some(entries) => map(entry) += clazz
               case None => map(entry) = mutable.HashSet[Class[_]](clazz)
             }
-          case _ => //ignore
+          case _ => // ignore
         }
       }
-    } //end if(name.indexOf('$') == -1)
+    }
   }
 
   private def extractInterfaces(clazz: Class[_]): Set[Class[_]] = {
@@ -170,14 +162,14 @@ final class ImplFinder(traitSet: Set[Class[_]]) extends Logging {
     var result = Set[Class[_]]()
 
     while (current != null) {
-      clazz.getInterfaces.foreach(iface => result += iface)
+      clazz.getInterfaces.foreach(interface => result += interface)
       current = current.getSuperclass
     }
     result
   }
 }
 
-object ImplFinder{
+object ImplFinder {
 
   type ImplementationsMap = scala.collection.Map[Class[_], scala.collection.Set[Class[_]]]
 

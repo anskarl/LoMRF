@@ -31,7 +31,7 @@
  */
 
 /**
- *
+ * LoMRF utilities.
  */
 package object lomrf {
 

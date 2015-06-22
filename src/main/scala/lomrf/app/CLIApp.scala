@@ -35,8 +35,11 @@ package lomrf.app
 import auxlib.log.Logging
 import auxlib.opt.OptionParser
 
+/**
+ * Command line basic functionality shared across all command line interfaces. Should
+ * be extended by any command line interface.
+ */
 trait CLIApp extends App with Logging with OptionParser {
   println(lomrf.ASCIILogo)
   println(lomrf.BuildVersion)
-
 }
