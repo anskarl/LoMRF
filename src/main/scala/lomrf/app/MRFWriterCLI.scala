@@ -38,7 +38,7 @@ import auxlib.log.Logging
 import auxlib.opt.OptionParser
 import lomrf.logic._
 import lomrf.logic.AtomSignatureOps._
-import lomrf.mln.model.{AtomIdentityFunctionOps, MLN}
+import lomrf.mln.model.AtomIdentityFunctionOps
 import AtomIdentityFunctionOps._
 import lomrf.logic.PredicateCompletionMode._
 import lomrf.logic.dynamic.{DynamicFunctionBuilder, DynamicAtomBuilder}
@@ -50,9 +50,10 @@ import lomrf.util._
 import scala.collection.mutable.ArrayBuffer
 
 /**
- * Commandline tool for exporting ground MRF into various formats.
+ * Command line tool for exporting ground MRF into various formats.
  */
 object MRFWriterCLI extends Logging {
+
   private lazy val numFormat = new DecimalFormat("0.#########")
 
   def main(args: Array[String]) {
@@ -66,6 +67,14 @@ object MRFWriterCLI extends Logging {
       val strMLNFileName = opt.mlnFileName.getOrElse(fatal("Please specify an input MLN file."))
       val strEvidenceFileName = opt.evidenceFileName.getOrElse(fatal("Please specify an input evidence file."))
 
+      info("Parameters:"
+        + "\n\t(q) Query predicate(s): " + opt.query.map(_.toString).reduceLeft((left, right) => left + "," + right)
+        + "\n\t(cwa) Closed-world assumption predicate(s): " + (if (opt.cwa.isEmpty) "empty" else opt.cwa.map(_.toString).reduceLeft((left, right) => left + "," + right))
+        + "\n\t(owa) Open-world assumption predicate(s): " + (if (opt.owa.isEmpty) "empty" else opt.owa.map(_.toString).reduceLeft((left, right) => left + "," + right))
+        + "\n\t(noNegWeights) Eliminate negative weights: " + opt._noNeg
+        + "\n\t(noNegatedUnit) Eliminate negated ground unit clauses: " + opt._eliminateNegatedUnit
+      )
+
       val mln = opt.implPaths match {
         case Some(paths) =>
           val implFinder = ImplFinder(classOf[DynamicAtomBuilder], classOf[DynamicFunctionBuilder])
@@ -73,7 +82,6 @@ object MRFWriterCLI extends Logging {
           MLN.fromFile(strMLNFileName, opt.query, strEvidenceFileName, opt.cwa, opt.owa, pcm = Decomposed, dynamicDefinitions = Some(implFinder.result))
         case None => MLN.fromFile(strMLNFileName, opt.query, strEvidenceFileName, opt.cwa, opt.owa, pcm = Decomposed)
       }
-
 
       val outputFilePath = opt.outputFileName.getOrElse(fatal("Please specify an output file"))
       val builder = new MRFBuilder(mln = mln, noNegWeights = opt._noNeg, eliminateNegatedUnit = opt._eliminateNegatedUnit)
@@ -87,16 +95,32 @@ object MRFWriterCLI extends Logging {
     }
   }
 
+  /**
+   * Write the MRF into the DIMACS format.
+   *
+   * @param mrf input ground Markov Network
+   * @param filepath the output path
+   */
   def writeDIMACS(mrf: MRF, filepath: String) {
+
     val out = new BufferedWriter(new FileWriter(filepath))
+
+    // comment lines
     out.write("c\n")
     out.write("c weighted ground clauses\n")
     out.write("c\n")
+    // p line indicating the exact number of variables and clauses contained in the file
     out.write("p wcnf " + mrf.numberOfAtoms + " " + mrf.numberOfConstraints)
     out.newLine()
 
     val constraintsIterator = mrf.constraints.iterator()
 
+    /*
+     * Each constraint is a sequence of distinct non-null numbers ending with 0 on the
+     * same line; it cannot contain the opposite literals simultaneously. Positive numbers
+     * denote the corresponding variables. Negative numbers denote the negations of the
+     * corresponding variables.
+     */
     while (constraintsIterator.hasNext) {
       constraintsIterator.advance()
       val constraint = constraintsIterator.value()
@@ -113,7 +137,14 @@ object MRFWriterCLI extends Logging {
     out.close()
   }
 
+  /**
+   * Write the MRF ground network.
+   *
+   * @param mrf input ground Markov Network
+   * @param filepath the output path
+   */
   def writeNetwork(mrf: MRF, filepath: String) {
+
     implicit val mln = mrf.mln
     val out = new BufferedWriter(new FileWriter(filepath))
     out.write("// weighted ground clauses\n")
@@ -124,17 +155,17 @@ object MRFWriterCLI extends Logging {
       constraintsIterator.advance()
       val constraint = constraintsIterator.value()
 
-      //begin -- write weight value (if the feature is soft-constrained)
+      // begin -- write weight value (if the feature is soft-constrained)
       if (!constraint.getWeight.isInfinite && !constraint.getWeight.isNaN && constraint.getWeight != mrf.weightHard)
         out.write(numFormat.format(constraint.getWeight) + " ")
 
-      //write ground literals
+      // write ground literals
       val clause = constraint.literals.map(l => l.decodeLiteral.getOrElse(sys.error("Cannot decode literal: " + l))).mkString(" v ")
 
       out.write(clause)
 
       if (constraint.getWeight.isInfinite || constraint.getWeight == mrf.weightHard) out.write(".")
-      //end -- change line
+      // end -- change line
       out.newLine()
     }
     out.flush()
@@ -142,13 +173,15 @@ object MRFWriterCLI extends Logging {
   }
 
   /**
-   * Write as factor graph file format. For more details visit:
-   * https://staff.fnwi.uva.nl/j.m.mooij/libDAI/doc/fileformats.html
+   * Write the MRF as factor graph file format.
    *
    * @param mrf input ground Markov Network
    * @param filePath output path
+   *
+   * @see https://staff.fnwi.uva.nl/j.m.mooij/libDAI/doc/fileformats.html
    */
   def writeFactorGraph(mrf: MRF, filePath: String) {
+
     implicit val mln = mrf.mln
     val fgOutput = new BufferedWriter(new FileWriter(filePath))
     fgOutput.write("# Factor graph")
@@ -181,10 +214,11 @@ object MRFWriterCLI extends Logging {
       fgOutput.newLine()
       literals.foreach(lit => fgOutput.write((math.abs(lit) - 1).toString + " "))
       fgOutput.newLine()
+
       // write possible values, in our case all variables are simply binary
       fgOutput.write("# all variables are binary:")
       fgOutput.newLine()
-      (0 until literals.length).foreach(_ => fgOutput.write("2 "))
+      literals.indices.foreach(_ => fgOutput.write("2 "))
       fgOutput.newLine()
 
       // compute the factor table
@@ -232,11 +266,10 @@ object MRFWriterCLI extends Logging {
       fgOutput.flush()
     }
 
-
     fgOutput.newLine()
     fgOutput.close()
 
-    // Write the ground atoms in a separate file:
+    // write the ground atoms in a separate file:
     val mOut = new BufferedWriter(new FileWriter(filePath + ".description"))
     mOut.write("# Ground atoms:")
     mOut.newLine()
@@ -255,14 +288,25 @@ object MRFWriterCLI extends Logging {
 
   private class MRFWOptions extends OptionParser {
 
+    // The path to the input MLN file
     var mlnFileName: Option[String] = None
+
+    // The path to the output MLN file
     var outputFileName: Option[String] = None
+
+    // Input evidence file(s) (path)
     var evidenceFileName: Option[String] = None
 
+    // Output type for the MRF (default is DIMACS)
     var outputType: OutputFormatType = DIMACS
 
+    // The set of query atoms (in the form of AtomName/Arity)
     var query = Set[AtomSignature]()
+
+    //  The set of open-world assumption atoms (in the form of AtomName/Arity)
     var owa = Set[AtomSignature]()
+
+    // The set of closed-world assumption atoms (in the form of AtomName/Arity)
     var cwa = Set[AtomSignature]()
 
     // Eliminate negative weights, i.e. convert the clause:
@@ -279,9 +323,12 @@ object MRFWriterCLI extends Logging {
 
     var implPaths: Option[Array[String]] = None
 
-
     opt("i", "input", "<mln filename>", "Input Markov Logic file", {
       v: String => mlnFileName = Some(v)
+    })
+
+    opt("e", "evidence", "<db file>", "Evidence database file", {
+      v: String => evidenceFileName = Some(v)
     })
 
     opt("q", "query", "<string>", "Comma separated query predicates", _.split(',').foreach(v => addQueryAtom(v)))
@@ -291,10 +338,6 @@ object MRFWriterCLI extends Logging {
 
     opt("owa", "open-world-assumption", "<string>",
       "Specified evidence atoms (comma-separated with no space) are open world, while other evidence atoms are closed-world.", _.split(",").foreach(v => addOWA(v)))
-
-    opt("e", "evidence", "<db file>", "Evidence database file", {
-      v: String => evidenceFileName = Some(v)
-    })
 
     opt("o", "output", "<output filename>", "Output filename", {
       v: String => outputFileName = Some(v)

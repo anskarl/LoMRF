@@ -41,11 +41,9 @@ import lomrf.mln.grounding.MRFBuilder
 import lomrf.mln.inference._
 import lomrf.mln.model.MLN
 import lomrf.util.ImplFinder
-import auxlib.opt.OptionParser
-import auxlib.log.Logging
 
 /**
- * Command-line tool for inference.
+ * Command line tool for inference.
  */
 object InferenceCLI extends CLIApp {
 
@@ -334,18 +332,15 @@ object InferenceCLI extends CLIApp {
         case None => MLN.fromFile(strMLNFileName, _evidenceFileNames, _queryAtoms, _cwa, _owa, pcm = Decomposed, dynamicDefinitions = None, domainPart =_domainPartition)
       }
 
-
     info("Markov Logic:"
       + "\n\tConstant domains   : " + mln.evidence.constants.size
       + "\n\tSchema definitions : " + mln.schema.predicates.size
       + "\n\tClauses            : " + mln.clauses.size)
 
-    //info("Number of CNF clauses = " + mln.clauses.size)
     whenDebug{
       debug("List of CNF clauses: ")
       mln.clauses.zipWithIndex.foreach{case (c, idx) => debug(idx+": "+c)}
     }
-
 
     info("Creating MRF...")
     val mrfBuilder = new MRFBuilder(mln, noNegWeights = _noNeg, eliminateNegatedUnit = _eliminateNegatedUnit)
@@ -374,8 +369,7 @@ object InferenceCLI extends CLIApp {
     }
   }
 
-  // MAIN
-
+  // Main:
   if (args.length == 0) println(usage)
   else if (parse(args)) infer()
 }

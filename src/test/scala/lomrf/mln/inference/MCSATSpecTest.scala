@@ -33,13 +33,11 @@
 package lomrf.mln.inference
 
 import java.io.{File, FileOutputStream, PrintStream}
-
 import lomrf.logic.AtomSignature
 import lomrf.mln.grounding.MRFBuilder
 import lomrf.mln.model.MLN
 import lomrf.util.io._
 import org.scalatest.{FunSpec, Matchers}
-
 import scala.io.Source
 
 /**

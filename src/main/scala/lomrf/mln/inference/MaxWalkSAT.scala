@@ -40,7 +40,6 @@ import java.io.PrintStream
 import java.util.concurrent.ThreadLocalRandom
 import lomrf.util.time._
 import lomrf.util.LongDoubleConversions._
-
 import scala.util.{Failure, Success}
 
 /**
@@ -69,8 +68,6 @@ import scala.util.{Failure, Success}
  * @param satHardUnit Trivially satisfy hard constrained unit clauses (default is true)
  * @param satHardPriority Satisfiability priority to hard constrained clauses (default is false)
  * @param tabuLength Minimum number of flips between flipping the same atom (default is 10)
- *
- *
  *
  */
 final case class MaxWalkSAT(mrf: MRF, pBest: Double = 0.5, maxFlips: Int = 1000000, maxTries: Int = 1, targetCost: Double = 0.001,

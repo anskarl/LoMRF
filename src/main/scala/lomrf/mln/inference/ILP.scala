@@ -65,16 +65,12 @@ import auxlib.trove.TroveConversions._
  * @param ilpSolver Solver type selection option (default is LPSolve)
  * @param lossAugmented Perform loss augmented inference using hamming distance (default is false)
  *
- *
- *
  */
 final class ILP(mrf: MRF, annotationDB: Map[AtomSignature, AtomEvidenceDB] = Map.empty[AtomSignature, AtomEvidenceDB],
                 outputAll: Boolean = true, ilpRounding: RoundingScheme = RoundingScheme.ROUNDUP, ilpSolver: Solver = Solver.LPSOLVE,
                 lossAugmented: Boolean = false) extends Logging {
 
   // Select the appropriate mathematical programming solver
-  //implicit val problem = if(ilpSolver == Solver.GUROBI) LQProblem(SolverLib.gurobi) else LQProblem(SolverLib.lp_solve)
-
   implicit val problem = ilpSolver match {
     case Solver.GUROBI => LQProblem(SolverLib.gurobi)
     case Solver.LPSOLVE => LQProblem(SolverLib.lp_solve)
