@@ -4,13 +4,13 @@ LoMRF is an open-source library for Markov Logic Networks (MLN) written in [Scal
 
 ## Licence 
 
-This program comes with ABSOLUTELY NO WARRANTY. This is free software, and you are welcome to redistribute it under certain conditions; See the [GNU General Public License v3 for more details](http://www.gnu.org/licenses/gpl-3.0.html).
+LoMRF comes with ABSOLUTELY NO WARRANTY. This is free software, and you are welcome to redistribute it under certain conditions; See the [GNU Lesser General Public License v3 for more details](http://www.gnu.org/licenses/lgpl-3.0.html).
 
 #### Features overview:
 
 1. Parallel grounding algorithm based on [Akka actors library](http://akka.io/).
 2. Marginal (MC-SAT) and MAP (MaxWalkSAT and LP-relaxed Integer Linear Programming) inference.
-3. Experimental support for batch and online weight learning (max-margin and ADAGRAD) (lomrf-wlearn).
+3. Batch and online weight learning (max-margin and ADAGRAD) (lomrf-wlearn).
 4. MLN knowledge base compilation (mlnc):
   * Predicate completion.
   * Knowledge base simplification.
@@ -23,23 +23,24 @@ This program comes with ABSOLUTELY NO WARRANTY. This is free software, and you a
 
 ## Instrunctions to build LoMRF from source
 
-In order to build LoMRF from source, you need to have Java SE Development Kit 8 (e.g., OpenJDK) and [sbt](http://www.scala-sbt.org/) (v0.13.x) installed in your system. Furthermore, LoMRF build depends on the [auxlib](https://github.com/anskarl/auxlib) (v0.1-SNAPSHOT), as well as to [Optimus](https://github.com/vagm/Optimus) and [Gurobi](http://www.gurobi.com/).
+In order to build LoMRF from source, you need to have Java SE Development Kit (e.g., OpenJDK) version 8 or higher and [sbt](http://www.scala-sbt.org/) (v0.13.x) installed in your system. Furthermore, LoMRF build depends on the [auxlib](https://github.com/anskarl/auxlib) (v0.1-SNAPSHOT), as well as to [Optimus](https://github.com/vagm/Optimus) and (optionally) [Gurobi](http://www.gurobi.com/).
 
 Step 1. To clone and publish locally the auxlib project, type the following commands:
 
 ```
 $ git clone https://github.com/anskarl/auxlib.git
 $ cd auxlib
-$ sbt publishLocal
+$ sbt ++2.11.7 publishLocal
 ```
 
 Step 2. To clone and publish locally the Optimus project, follow the instructions [here](https://github.com/vagm/Optimus).
 
-Step 3. Include Gurobi library dependencies to `./lib`, as it is illustrated in the tree below:
+Step 3 (optional). Please note that Gurobi is required for max-margin weight learning and optionally can also be used for MAP inference. In order to enable support for Gurobi, you have to build Optimus with Gurobi support ([see instructions](https://github.com/vagm/Optimus)) and then include Gurobi library dependencies to the `./lib` subdirectory inside the cloned to LoMRF directory (create if not already exists), as it is illustrated in the tree below:
 
 ```
-lib/
-|-- gurobi.jar
+LoMRF
+|--lib/
+    |-- gurobi.jar
 ```
 
 Step 4. To start building the LoMRF distribution, type the following command:
@@ -74,9 +75,12 @@ Depending your requirements you may want to adjust the heap memory parameters of
 
 ##### References
 
-Many of algorithms implemeted in the LoMRF library are based on the following publications:
+Many of algorithms implemented in LoMRF are based on the following publications:
+
 
 * Domingos, P., & Lowd, D. (2009). Markov Logic: An Interface Layer for Artificial Intelligence. Synthesis Lectures on Artiﬁcial Intelligence and Machine Learning. Morgan & Claypool Publishers.
+
+* Duchi, J., Hazan, E., Singer, Y. (2011). Adaptive Subgradient Methods for Online Learning and Stochastic Optimization. The Journal of Machine Learning Research, Vol. 12, pp. 2121--2159.
 
 * Kautz, H., Selman, B., & Jiang, Y. (1997). A General Stochastic Approach to Solving Problems with Hard and Soft Constraints. In Gu, D., Du, J., & Pardalos, P. (Eds.), The Satisﬁability Problem: Theory and Applications, Vol. 35 of DIMACS Series in Discrete Mathematics and Theoretical Computer Science, pp. 573-586. AMS
 
@@ -90,10 +94,9 @@ Many of algorithms implemeted in the LoMRF library are based on the following pu
 
 * Shavlik, J. W., & Natarajan, S. (2009). Speeding up inference in Markov Logic Networks by preprocessing to reduce the size of the resulting grounded network. In Proceedings of the 21st International Joint Conference on Artificial Intelligence (IJCAI), pp. 1951-1956.
 
-* Skarlatidis A., Paliouras G., Artikis A. and Vouros G. Probabilistic Event Calculus for Event Recognition. ACM Transactions on Computational Logic, to appear.
+* Skarlatidis A., Paliouras G., Artikis A. and Vouros G. (2015) Probabilistic Event Calculus for Event Recognition. ACM Transactions on Computational Logic, 16, 2, Article 11, pp. 11:1-11:37.
 
 * Tuyen N. Huynh and Raymond J. Mooney. (2011). Max-Margin Weight Learning for Markov Logic Networks. In Proceedings of the European Conference on Machine Learning and Principles and Practice of Knowledge Discovery in Databases (ECML-PKDD 2011), Vol. 2, pp. 81-96.
 
-* Tuyen N. Huynh and Raymond J. Mooney. (2011). Online Max-Margin Weight Learning for Markov Logic Networks. In Proceedings of the Eleventh SIAM International Conference on Data Mining (SDM11), USA, April 2011.
+* Tuyen N. Huynh and Raymond J. Mooney. (2011). Online Max-Margin Weight Learning for Markov Logic Networks. In Proceedings of the Eleventh SIAM International Conference on Data Mining (SDM11).
 
-* John Duchi, Elad Hazan, Yoram Singer. (2011). Adaptive Subgradient Methods for Online Learning and Stochastic Optimization. The Journal of Machine Learning Research, Vol. 12, pp. 2121--2159, July 2011

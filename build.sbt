@@ -7,7 +7,7 @@ version := "0.4"
 
 organization := "com.github.anskarl"
 
-scalaVersion := "2.11.6"
+scalaVersion := "2.11.7"
 
 autoScalaLibrary := true
 
@@ -43,7 +43,9 @@ initialize := {
       "-Ybackend:GenBCode" //use the new optimisation level
     )
   } else {
-    println("[info] Loading settings for Java 7")
+    println("[info] Loading settings for Java 7. However it is strongly recommended to used Java 8 or higher.")
+    println("[warn] The library dependency ojalgo is not compatible with Java version 7, thus it cannot be used for MAP inference.")
+
     javacOptions ++= Seq("-source", "1.7", "-target", "1.7", "-Xlint:unchecked", "-Xlint:deprecation")
 
     scalacOptions ++= Seq(
@@ -94,13 +96,13 @@ libraryDependencies ++= Seq(
 
 
 // Scala-modules
-libraryDependencies += "org.scala-lang.modules" %% "scala-parser-combinators" % "1.0.3"
+libraryDependencies += "org.scala-lang.modules" %% "scala-parser-combinators" % "1.0.4"
 
 // Akka.io
 libraryDependencies ++= Seq(
-	"com.typesafe.akka" %% "akka-actor"  % "2.3.11",
-	"com.typesafe.akka" %% "akka-remote" % "2.3.11",
-	"com.typesafe.akka" %% "akka-slf4j"  % "2.3.11"
+	"com.typesafe.akka" %% "akka-actor"  % "2.3.12",
+	"com.typesafe.akka" %% "akka-remote" % "2.3.12",
+	"com.typesafe.akka" %% "akka-slf4j"  % "2.3.12"
 )
 
 // Logging with slf4j and logback
@@ -143,7 +145,7 @@ dependencyOverrides += "org.scala-lang" % "scala-compiler" % scalaVersion.value
 dependencyOverrides += "org.scala-lang" % "scala-library" % scalaVersion.value
 dependencyOverrides += "org.scala-lang" %% "scala-parser-combinators" % scalaVersion.value
 dependencyOverrides += "org.scala-lang" % "scala-reflect" % scalaVersion.value
-dependencyOverrides += "org.scala-lang.modules" %% "scala-xml" % "1.0.3"
+dependencyOverrides += "org.scala-lang.modules" %% "scala-xml" % "1.0.4"
 
 // Include utility bash scripts in the 'bin' directory
 mappings in Universal <++= (packageBin in Compile) map { jar =>
