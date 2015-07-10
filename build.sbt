@@ -3,7 +3,7 @@ import sbt._
 /** Project */
 name := "LoMRF"
 
-version := "0.4-beta3_201506"
+version := "0.4"
 
 organization := "com.github.anskarl"
 
