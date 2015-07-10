@@ -25,7 +25,7 @@ LoMRF comes with ABSOLUTELY NO WARRANTY. This is free software, and you are welc
 
 In order to build LoMRF from source, you need to have Java SE Development Kit (e.g., OpenJDK) version 8 or higher and [sbt](http://www.scala-sbt.org/) (v0.13.x) installed in your system. Furthermore, LoMRF build depends on the [auxlib](https://github.com/anskarl/auxlib) (v0.1-SNAPSHOT), as well as to [Optimus](https://github.com/vagm/Optimus) and (optionally) [Gurobi](http://www.gurobi.com/).
 
-Step 1. To clone and publish locally the auxlib project, type the following commands:
+Step 1. Clone and publish locally the auxlib project:
 
 ```
 $ git clone https://github.com/anskarl/auxlib.git
@@ -33,7 +33,7 @@ $ cd auxlib
 $ sbt ++2.11.7 publishLocal
 ```
 
-Step 2. To clone and publish locally the Optimus project, follow the instructions [here](https://github.com/vagm/Optimus).
+Step 2. Clone and publish locally the Optimus project (see instructions [here](https://github.com/vagm/Optimus)).
 
 Step 3 (optional). Please note that Gurobi is required for max-margin weight learning and optionally can also be used for MAP inference. In order to enable support for Gurobi, you have to build Optimus with Gurobi support ([see instructions](https://github.com/vagm/Optimus)) and then include Gurobi library dependencies to the `./lib` subdirectory inside the cloned to LoMRF directory (create if not already exists), as it is illustrated in the tree below:
 
@@ -43,7 +43,7 @@ LoMRF
     |-- gurobi.jar
 ```
 
-Step 4. To start building the LoMRF distribution, type the following command:
+Step 4. Build the LoMRF distribution, type the following command:
 
 ```
 $ sbt dist

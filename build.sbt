@@ -1,5 +1,8 @@
 import sbt.Keys._
 import sbt._
+
+import scala.util.Try
+
 /** Project */
 name := "LoMRF"
 
@@ -176,7 +179,9 @@ excludeFilter := {
     }
     excludeNames.map(n => new SimpleFileFilter(_.getName.contains(n)).asInstanceOf[FileFilter]).reduceRight(_ || _)
   } catch {
-    case _ : Exception => new SimpleFileFilter(_ => false)
+    case _ : Exception =>
+      println(s"[warn] Will build without the support of Gurobi solver ('gurobi.jar' is missing from '${unmanagedBase.value.getName}' directory)")
+      new SimpleFileFilter(_ => false)
   }
 }
 
