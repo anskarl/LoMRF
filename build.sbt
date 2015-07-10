@@ -3,11 +3,11 @@ import sbt._
 /** Project */
 name := "LoMRF"
 
-version := "0.4-beta3_201506"
+version := "0.4"
 
 organization := "com.github.anskarl"
 
-scalaVersion := "2.11.6"
+scalaVersion := "2.11.7"
 
 autoScalaLibrary := true
 
@@ -43,7 +43,9 @@ initialize := {
       "-Ybackend:GenBCode" //use the new optimisation level
     )
   } else {
-    println("[info] Loading settings for Java 7")
+    println("[info] Loading settings for Java 7. However it is strongly recommended to used Java 8 or higher.")
+    println("[warn] The library dependency ojalgo is not compatible with Java version 7, thus it cannot be used for MAP inference.")
+
     javacOptions ++= Seq("-source", "1.7", "-target", "1.7", "-Xlint:unchecked", "-Xlint:deprecation")
 
     scalacOptions ++= Seq(
@@ -94,13 +96,13 @@ libraryDependencies ++= Seq(
 
 
 // Scala-modules
-libraryDependencies += "org.scala-lang.modules" %% "scala-parser-combinators" % "1.0.3"
+libraryDependencies += "org.scala-lang.modules" %% "scala-parser-combinators" % "1.0.4"
 
 // Akka.io
 libraryDependencies ++= Seq(
-	"com.typesafe.akka" %% "akka-actor"  % "2.3.11",
-	"com.typesafe.akka" %% "akka-remote" % "2.3.11",
-	"com.typesafe.akka" %% "akka-slf4j"  % "2.3.11"
+	"com.typesafe.akka" %% "akka-actor"  % "2.3.12",
+	"com.typesafe.akka" %% "akka-remote" % "2.3.12",
+	"com.typesafe.akka" %% "akka-slf4j"  % "2.3.12"
 )
 
 // Logging with slf4j and logback
