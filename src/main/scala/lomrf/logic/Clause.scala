@@ -35,6 +35,8 @@
 
 package lomrf.logic
 
+import java.text.DecimalFormat
+
 /**
  * This class represents a weighted clause, which contains a disjunction of literal. A literal is an atom of its negation.
  *
@@ -101,6 +103,18 @@ final class Clause(val weight: Double, val literals: Set[Literal]){
   }
 
 
+  def toText(weighted: Boolean = true)(implicit numFormat: DecimalFormat = Clause.defaultNumFormat): String = {
+    if(weighted) {
+      if(isHard)
+        literals.map(_.toText).mkString(" v ")+"."
+      else
+        numFormat.format(weight)+" "+literals.map(_.toText).mkString(" v ")
+    }
+    else {
+      literals.map(_.toText).mkString(" v ")
+    }
+  }
+
   override def equals(that: Any) = {
     that match {
       case x: Clause => x.weight == this.weight && this.literals.size == x.literals.size  && x.literals == this.literals
@@ -110,7 +124,7 @@ final class Clause(val weight: Double, val literals: Set[Literal]){
 
   override def hashCode(): Int = hash
 
-  override def toString: String = weight+" {" + literals.map(_.toString).reduceLeft(_ + " v " + _) + "}"
+  override def toString: String = weight+" {" + literals.map(_.toString).mkString(" v ") + "}"
 
   private lazy val hash: Int = {
     var code = weight.hashCode()
@@ -120,6 +134,8 @@ final class Clause(val weight: Double, val literals: Set[Literal]){
 }
 
 object Clause {
+
+  private val defaultNumFormat = new DecimalFormat("0.############")
 
   def apply(literals: Set[Literal], weight: Double = Double.PositiveInfinity): Clause = new Clause(weight, literals)
 
@@ -137,8 +153,7 @@ trait FOLDefiniteClause
 
 class ImplicationDefiniteClause(val premise: Set[AtomicFormula],
                                 val conclusion: AtomicFormula) extends FOLDefiniteClause {
-  override def toString =
-    "((" + premise.map(_.toString).reduceLeft(_ + " ^ " + _) + ") => " + conclusion.toString + ")"
+  override def toString = s"((${premise.mkString(" ^ ")}) => ${conclusion.toString})"
 }
 
 
@@ -192,8 +207,7 @@ sealed abstract class Literal(val sentence: AtomicFormula) {
 object Literal {
 
   def apply(a: AtomicFormula, negative: Boolean): Literal = {
-    if(negative) NegativeLiteral(a)
-    else PositiveLiteral(a)
+    if(negative) NegativeLiteral(a) else PositiveLiteral(a)
   }
 
   def asNegative(a: AtomicFormula): Literal = NegativeLiteral(a)

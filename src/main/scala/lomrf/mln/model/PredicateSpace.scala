@@ -46,15 +46,16 @@ import lomrf.mln.model.AtomIdentityFunction
  * @param queryStartID the first index of ground query atom in the MRF
  * @param queryEndID the last index of ground query atom in the MRF
  */
-final class PredicateSpace private(val identities: Identities,
-                             val orderedAtomSignatures: Array[AtomSignature],
-                             val orderedStartIDs: Array[Int],
-                             val queryStartID: Int,
-                             val queryEndID: Int,
-                             val queryAtoms: Set[AtomSignature],
-                             val cwa: Set[AtomSignature],
-                             val owa: Set[AtomSignature],
-                             val hiddenAtoms: Set[AtomSignature]) {
+final class PredicateSpace private(
+                                    val identities: Identities,
+                                    val orderedAtomSignatures: Array[AtomSignature],
+                                    val orderedStartIDs: Array[Int],
+                                    val queryStartID: Int,
+                                    val queryEndID: Int,
+                                    val queryAtoms: Set[AtomSignature],
+                                    val cwa: Set[AtomSignature],
+                                    val owa: Set[AtomSignature],
+                                    val hiddenAtoms: Set[AtomSignature]) {
   
   /**
    * Total number of ground query atoms
@@ -68,6 +69,15 @@ final class PredicateSpace private(val identities: Identities,
   def isHidden(signature: AtomSignature): Boolean = hiddenAtoms.contains(signature)
 
   def isQuery(signature: AtomSignature): Boolean = queryAtoms.contains(signature)
+
+  def signatureOf(literal: Int): AtomSignature = {
+
+    val atomID = math.abs(literal)
+    val result = java.util.Arrays.binarySearch(orderedStartIDs, atomID)
+    val position = if(result < 0) (-result) - 2 else result
+
+   orderedAtomSignatures(position)
+  }
 
 }
 

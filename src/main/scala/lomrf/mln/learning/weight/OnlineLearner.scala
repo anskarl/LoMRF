@@ -366,7 +366,7 @@ final class OnlineLearner(mln: MLN, algorithm: Algorithm, lossAugmented: Boolean
    */
   def writeResults(out: PrintStream = System.out) = {
 
-    val numFormat = new DecimalFormat("0.############")
+    implicit val numFormat = new DecimalFormat("0.############")
 
     out.println("// Predicate definitions")
     for ((signature, args) <- mln.schema.predicates) {
@@ -384,12 +384,10 @@ final class OnlineLearner(mln: MLN, algorithm: Algorithm, lossAugmented: Boolean
       }
     }
 
-    val clauses = mln.clauses
     out.println("\n// Clauses")
-    for(clauseIdx <- clauses.indices) {
-      if(clauses(clauseIdx).isHard)
-        out.println(clauses(clauseIdx).literals.map(_.toText).mkString(" v ") + ".\n")
-      else out.println(numFormat.format(weights(clauseIdx)) + " " + clauses(clauseIdx).literals.map(_.toText).mkString(" v ") + "\n")
+    for((clause, clauseIdx) <- mln.clauses.zipWithIndex){
+      if(clause.isHard) out.println(clause.toText(weighted = false) + ".\n")
+      else out.println(numFormat.format(weights(clauseIdx)) + " " + clause.toText(weighted = false) + "\n")
     }
   }
 

@@ -409,7 +409,7 @@ object AtomIdentityFunction {
   def decodeLiteral(literal: Int)(implicit mln: MLN): Try[String] = {
 
     val atomID = math.abs(literal)
-    val signature = AtomSignature.signatureOf(atomID)
+    val signature = mln.space.signatureOf(atomID)
     val idf = mln.space.identities(signature)
 
     val negation = if (literal < 0) "!" else ""
@@ -420,7 +420,7 @@ object AtomIdentityFunction {
   def decodeAtom(literal: Int)(implicit mln: MLN): Try[String] = {
 
     val atomID = math.abs(literal)
-    val signature = AtomSignature.signatureOf(atomID)
+    val signature = mln.space.signatureOf(atomID)
     val idf = mln.space.identities(signature)
 
     idf.decode(atomID).map(x => s"${signature.symbol}(${x.mkString(",")})")
