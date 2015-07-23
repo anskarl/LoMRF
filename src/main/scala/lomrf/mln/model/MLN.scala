@@ -35,6 +35,9 @@
 
 package lomrf.mln.model
 
+import java.io.PrintStream
+import java.text.DecimalFormat
+
 import auxlib.log.Logger
 import lomrf.logic._
 import lomrf.mln.model.AtomIdentityFunction
@@ -369,6 +372,28 @@ object MLN {
     val evidence = new Evidence(trainingEvidence.constants, atomStateDB, trainingEvidence.functionMappers)
 
     (new MLN(kb.schema, domainSpace, evidence, clauses), annotationDB)
+  }
+
+  def export(mln: MLN, out: PrintStream = System.out)(implicit numFormat: DecimalFormat = new DecimalFormat("0.############")): Unit ={
+
+    out.println("// Predicate definitions")
+    for ((signature, args) <- mln.schema.predicates) {
+      val line = signature.symbol + (
+        if (args.isEmpty) "\n"
+        else "(" + args.mkString(",") + ")\n")
+      out.print(line)
+    }
+
+    if(mln.schema.functions.nonEmpty) {
+      out.println("\n// Functions definitions")
+      for ((signature, (retType, args)) <- mln.schema.functions) {
+        val line = retType + " " + signature.symbol + "(" + args.mkString(",") + ")\n"
+        out.print(line)
+      }
+    }
+
+    out.println("\n// Clauses")
+    mln.clauses.foreach(clause => out.println(clause.toText()))
   }
 
 }
