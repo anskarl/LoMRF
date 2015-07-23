@@ -93,23 +93,23 @@ final class MaxMarginSpecTest extends FunSpec with Matchers with PrivateMethodTe
   describe("Checking count true groundings functionality") {
     val trueCounts:Array[Int] = learner invokePrivate countGroundings()
 
-    val clause0 = mln.clauses(0).literals.map(_.toText).reduceLeft(_ + " v " + _)
-    it(s"clause { $clause0 } should have 6 true counts"){
+    val clause0 = mln.clauses(0).toText()
+    it(s"clause '$clause0' should have 6 true counts"){
       trueCounts(0) shouldBe 6
     }
 
-    val clause1 = mln.clauses(1).literals.map(_.toText).reduceLeft(_ + " v " + _)
-    it(s"clause { $clause1 } should have 16 true counts"){
+    val clause1 = mln.clauses(1).toText()
+    it(s"clause '$clause1' should have 16 true counts"){
       trueCounts(1) shouldBe 16
     }
 
-    val clause2 = mln.clauses(2).literals.map(_.toText).reduceLeft(_ + " v " + _)
-    it(s"clause { $clause2 } should have 15 true counts"){
+    val clause2 = mln.clauses(2).toText()
+    it(s"clause '$clause2' should have 15 true counts"){
       trueCounts(2) shouldBe 15
     }
 
-    val clause3 = mln.clauses(3).literals.map(_.toText).reduceLeft(_ + " v " + _)
-    it(s"clause { $clause3 } should have 15 true counts"){
+    val clause3 = mln.clauses(3).toText()
+    it(s"clause '$clause3' should have 15 true counts"){
       trueCounts(3) shouldBe 15
     }
   }
