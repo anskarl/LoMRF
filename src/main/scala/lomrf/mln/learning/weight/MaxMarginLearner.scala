@@ -109,6 +109,8 @@ final class MaxMarginLearner(mrf: MRF, annotationDB: Map[AtomSignature, AtomEvid
   // Get the dependency map for the ground network if any exist
   val dependencyMap = mrf.dependencyMap.getOrElse(sys.error("Dependency map does not exists."))
 
+  val space = mrf.mln.space
+
   /**
    * Fetch atom given its literal code.
    *
@@ -125,7 +127,7 @@ final class MaxMarginLearner(mrf: MRF, annotationDB: Map[AtomSignature, AtomEvid
    * @return annotation TriState value (TRUE, FALSE or UNKNOWN)
    */
   @inline private def getAnnotation(atomID: Int): TriState = {
-    val annotation = annotationDB(AtomSignature.signatureOf(atomID)(mrf.mln))
+    val annotation = annotationDB(space.signatureOf(atomID))
     annotation(atomID)
   }
 

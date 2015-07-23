@@ -114,14 +114,14 @@ object AtomSignature {
       else Try(AtomSignature(sentence.slice(0, pos), sentence.slice(pos + 1, sentence.length).toInt))
   }
 
-  def signatureOf(literal: Int)(implicit mln: MLN): AtomSignature = {
+  /*def signatureOf(literal: Int)(implicit mln: MLN): AtomSignature = {
 
     val atomID = math.abs(literal)
     val result = java.util.Arrays.binarySearch(mln.space.orderedStartIDs, atomID)
     val position = if(result < 0) (-result) - 2 else result
 
     mln.space.orderedAtomSignatures(position)
-  }
+  }*/
 
 }
 
@@ -134,7 +134,7 @@ object AtomSignatureOps {
   }
 
   implicit class AtomSignatureInt(val literal: Int) extends AnyVal{
-    def signature(implicit mln: MLN): AtomSignature = AtomSignature.signatureOf(literal)
+    def signature(implicit mln: MLN): AtomSignature = mln.space.signatureOf(literal)
   }
 
 
