@@ -63,7 +63,7 @@ final class Clause(val weight: Double, val literals: Set[Literal]){
   /**
    * @return true if this clause is hard-constrained (i.e. weight = Infinity), otherwise false.
    */
-  def isHard: Boolean = weight == Double.PositiveInfinity
+  def isHard: Boolean = weight.isInfinity
 
   /**
    * @return true if this clause does not contain any variable, otherwise false.
