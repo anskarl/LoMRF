@@ -1,8 +1,6 @@
 import sbt.Keys._
 import sbt._
 
-import scala.util.Try
-
 /** Project */
 name := "LoMRF"
 
@@ -12,9 +10,9 @@ organization := "com.github.anskarl"
 
 scalaVersion := "2.11.7"
 
-autoScalaLibrary := true
+//autoScalaLibrary := true
 
-managedScalaInstance := true
+//managedScalaInstance := true
 
 packageDescription in Debian := "LoMRF: Logical Markov Random Fields"
 
@@ -22,67 +20,35 @@ maintainer in Debian := "Anastasios Skarlatidis"
 
 initialize := {
   initialize.value
-  val javaVersion = sys.props("java.specification.version").toDouble
-  if (javaVersion < 1.7) {
+  val javaVersion = LoMRFBuild.javaVersion
+  if (javaVersion == 1.7) {
     sys.error("Java 7 or higher is required for this project")
     sys.exit(1)
   }
-  if(javaVersion >= 1.8 ){
-    println("[info] Loading settings for Java 8 or higher")
-    javacOptions ++= Seq("-source", "1.8", "-target", "1.8", "-Xlint:unchecked", "-Xlint:deprecation")
-
-    javaOptions ++= Seq(
-      "-XX:+DoEscapeAnalysis",
-      "-XX:+UseFastAccessorMethods",
-      "-XX:+OptimizeStringConcat",
-      "-Dlogback.configurationFile=src/main/resources/logback.xml")
-
-    scalacOptions ++= Seq(
-      "-Yclosure-elim",
-      "-Yinline",
-      "-feature",
-      "-target:jvm-1.8",
-      "-language:implicitConversions",
-      "-Ybackend:GenBCode" //use the new optimisation level
-    )
-  } else {
+  else if(javaVersion == 1.7){
     println("[info] Loading settings for Java 7. However it is strongly recommended to used Java 8 or higher.")
-    println("[warn] The library dependency ojalgo is not compatible with Java version 7, thus it cannot be used for MAP inference.")
-
-    javacOptions ++= Seq("-source", "1.7", "-target", "1.7", "-Xlint:unchecked", "-Xlint:deprecation")
-
-    scalacOptions ++= Seq(
-      "-Yclosure-elim",
-      "-Yinline",
-      "-feature",
-      "-target:jvm-1.7",
-      "-language:implicitConversions",
-      "-optimize" // old optimisation level
-    )
+  }
+  else {
+    println("[info] Loading settings for Java 8 or higher.")
   }
 }
 
+// Load LoMRF Build settings
+LoMRFBuild.settings
+
 enablePlugins(JavaAppPackaging)
 
-logLevel in Test := Level.Info
-logLevel in Compile := Level.Error
-
-
-// Add JVM options to use when forking a JVM for 'run'
-javaOptions ++= Seq(
-  "-XX:+DoEscapeAnalysis",
-  "-XX:+UseFastAccessorMethods",
-  "-XX:+OptimizeStringConcat",
-  "-Dlogback.configurationFile=src/main/resources/logback.xml")
+//logLevel in Test := Level.Info
+//logLevel in Compile := Level.Error
 
 
 // fork a new JVM for 'run' and 'test:run'
-fork := true
+//fork := true
 
 // fork a new JVM for 'test:run', but not 'run'
-fork in Test := true
+//fork in Test := true
 
-conflictManager := ConflictManager.latestRevision
+//conflictManager := ConflictManager.latestRevision
 
 /** Dependencies */
 resolvers ++= Seq(
@@ -167,7 +133,7 @@ mappings in Universal <++= (packageBin in Compile) map { jar =>
 }
 
 // Manage support for commercial ILP solver(s)
-excludeFilter := {
+/*excludeFilter := {
   var excludeNames = Set[String]()
   try {
     val jars = unmanagedBase.value.list().map(_.toLowerCase).filter(_.endsWith(".jar"))
@@ -183,7 +149,7 @@ excludeFilter := {
       println(s"[warn] Will build without the support of Gurobi solver ('gurobi.jar' is missing from '${unmanagedBase.value.getName}' directory)")
       new SimpleFileFilter(_ => false)
   }
-}
+}*/
 
 
 val publishSettings: Setting[_] = publishTo := Some(Resolver.file("file",  new File(Path.userHome.absolutePath+"/.m2/repository")))
