@@ -34,15 +34,39 @@
  */
 
 
+import com.typesafe.sbt.SbtNativePackager.autoImport._
+import com.typesafe.sbt.packager.archetypes.JavaAppPackaging
 import sbt._
 import sbt.Keys._
+import com.typesafe.sbt.packager.debian.DebianPlugin.autoImport._
+import com.typesafe.sbt.packager.universal.UniversalPlugin.autoImport._
+import sbt.dsl._
+
 
 object LoMRFBuild {
   val javaVersion = sys.props("java.specification.version").toDouble
 
-  lazy val settings: Seq[Setting[_]] = commonSettings
+  lazy val settings: Seq[Setting[_]] = {
+    if(javaVersion < 1.7)
+      sys.error("Java 7 or higher is required for this project")
+    else if(javaVersion == 1.7){
+      println("[info] Loading settings for Java 7. However it is strongly recommended to use Java 8 or higher.")
+      jdk7Settings
+    }
+    else {
+      println("[info] Loading settings for Java 8 or higher.")
+      jdk8Settings
+    }
+  }
 
   private val commonSettings: Seq[Setting[_]] = Seq(
+    name := "LoMRF",
+    version := "0.4",
+    organization := "com.github.anskarl",
+    scalaVersion := "2.11.7",
+    packageDescription in Debian := "LoMRF: Logical Markov Random Fields",
+    maintainer in Debian := "Anastasios Skarlatidis",
+
     autoScalaLibrary := true,
     managedScalaInstance := true,
 
@@ -61,10 +85,29 @@ object LoMRFBuild {
     // fork a new JVM for 'test:run', but not 'run'
     fork in Test := true,
 
-    conflictManager := ConflictManager.latestRevision
+    conflictManager := ConflictManager.latestRevision,
+
+    publishTo := Some(Resolver.file("file",  new File(Path.userHome.absolutePath+"/.m2/repository"))),
+
+    // Include utility bash scripts in the 'bin' directory
+    mappings in Universal <++= (packageBin in Compile) map { jar =>
+      val scriptsDir = new java.io.File("scripts/")
+      scriptsDir.listFiles.toSeq.map { f =>
+        f -> ("bin/" + f.getName)
+      }
+    },
+
+    // Include logger configuration file to the final distribution
+    mappings in Universal <++= (packageBin in Compile) map { jar =>
+      val scriptsDir = new java.io.File("src/main/resources/")
+      scriptsDir.listFiles.toSeq.map { f =>
+        f -> ("etc/" + f.getName)
+      }
+    }
+
   )
 
-  private val jdk7Settings: Seq[Setting[_]] = Seq(
+  private lazy val jdk7Settings: Seq[Setting[_]] = commonSettings ++ Seq(
     javacOptions ++= Seq("-source", "1.7", "-target", "1.7", "-Xlint:unchecked", "-Xlint:deprecation"),
     scalacOptions ++= Seq(
       "-Yclosure-elim",
@@ -75,7 +118,7 @@ object LoMRFBuild {
       "-optimize" // old optimisation level
       )
   )
-  private val jdk8Settings: Seq[Setting[_]] = Seq(
+  private lazy val jdk8Settings: Seq[Setting[_]] = commonSettings ++ Seq(
     javacOptions ++= Seq("-source", "1.8", "-target", "1.8", "-Xlint:unchecked", "-Xlint:deprecation"),
     scalacOptions ++= Seq(
       "-Yclosure-elim",
@@ -88,3 +131,4 @@ object LoMRFBuild {
   )
 
 }
+
