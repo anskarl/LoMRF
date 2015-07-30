@@ -61,28 +61,44 @@ class Evidence(val constants: ConstantsDomain,
 object Evidence {
 
   private lazy val log = Logger(this.getClass)
+  private val AUX_PRED_PREFIX = "F_"
 
   def apply(constants: ConstantsDomain, db: EvidenceDB, fm: FunctionMappers): Evidence = {
     new Evidence(constants, db, fm)
   }
 
-  def fromFiles(kb: KB, constantsDomainBuilders: ConstantsDomainBuilder, queryPredicates: Set[AtomSignature], filenames: List[String]): Evidence ={
+  def fromFiles(kb: KB,
+                constantsDomainBuilders: ConstantsDomainBuilder,
+                queryPredicates: Set[AtomSignature],
+                filenames: List[String]): Evidence ={
+
     val fileList = if (filenames.isEmpty) List(createTempEmptyDBFile) else filenames.map(filename => new File(filename))
 
     fromFiles(kb, constantsDomainBuilders, queryPredicates, Set.empty[AtomSignature], fileList)
   }
 
-  def fromFiles(kb: KB, constantsDomainBuilders: ConstantsDomainBuilder, queryPredicates: Set[AtomSignature], hiddenPredicates: Set[AtomSignature], filenames: List[String]): Evidence ={
+  def fromFiles(kb: KB,
+                constantsDomainBuilders: ConstantsDomainBuilder,
+                queryPredicates: Set[AtomSignature],
+                hiddenPredicates: Set[AtomSignature],
+                filenames: List[String]): Evidence ={
     val fileList = if (filenames.isEmpty) List(createTempEmptyDBFile) else filenames.map(filename => new File(filename))
 
     fromFiles(kb, constantsDomainBuilders, queryPredicates, hiddenPredicates, fileList)
   }
 
-  def fromFiles(kb: KB, constantsDomainBuilders: ConstantsDomainBuilder, queryPredicates: Set[AtomSignature], files: Iterable[File]): Evidence = {
+  def fromFiles(kb: KB,
+                constantsDomainBuilders: ConstantsDomainBuilder,
+                queryPredicates: Set[AtomSignature],
+                files: Iterable[File]): Evidence = {
     fromFiles(kb.predicateSchema, kb.functionSchema, constantsDomainBuilders, kb.dynamicFunctions, queryPredicates, Set.empty[AtomSignature], files)
   }
 
-  def fromFiles(kb: KB, constantsDomainBuilders: ConstantsDomainBuilder, queryPredicates: Set[AtomSignature], hiddenPredicates: Set[AtomSignature], files: Iterable[File]): Evidence = {
+  def fromFiles(kb: KB,
+                constantsDomainBuilders: ConstantsDomainBuilder,
+                queryPredicates: Set[AtomSignature],
+                hiddenPredicates: Set[AtomSignature],
+                files: Iterable[File]): Evidence = {
     fromFiles(kb.predicateSchema, kb.functionSchema, constantsDomainBuilders, kb.dynamicFunctions, queryPredicates, hiddenPredicates, files)
   }
 
@@ -92,7 +108,8 @@ object Evidence {
                 dynamicFunctions: DynamicFunctions,
                 queryPredicates: Set[AtomSignature],
                 hiddenPredicates: Set[AtomSignature],
-                files: Iterable[File]): Evidence = {
+                files: Iterable[File],
+                convertFunctions: Boolean = false): Evidence = {
 
 
     import log._
@@ -153,10 +170,30 @@ object Evidence {
 
     info("--- Stage 2: Creating function mappings, and evidence database.")
 
-    val builder = EvidenceBuilder(predicateSchema, functionSchema, queryPredicates, hiddenPredicates, constants)
+    val builder = {
+      if (convertFunctions) {
+        var enhancedPredicateSchema = predicateSchema
+
+        for (( signature, (retDomain, termDomain)) <- functionSchema) {
+          val symbol = AUX_PRED_PREFIX + signature.symbol
+          val arity = termDomain.size + 1
+          enhancedPredicateSchema += AtomSignature.apply(symbol, arity) -> termDomain
+        }
+
+        EvidenceBuilder(enhancedPredicateSchema, Map.empty, queryPredicates, hiddenPredicates, constants)
+
+      }
+      else EvidenceBuilder(predicateSchema, functionSchema, queryPredicates, hiddenPredicates, constants)
+    }
 
     for (evidenceExpressions <- evidenceExpressionsDB; expr <- evidenceExpressions) expr match {
-      case fm: FunctionMapping => builder.functions += fm
+      case fm: FunctionMapping =>
+        if(convertFunctions) {
+          val symbol = AUX_PRED_PREFIX + fm.functionSymbol
+          val terms = fm.values.+:(fm.retValue).map(Constant) // prepend fm.retValue and map to Constants
+          EvidenceAtom.asTrue(symbol, terms)
+        }
+        else builder.functions += fm
       case atom: EvidenceAtom => builder.evidence += atom
     }
 
@@ -174,8 +211,10 @@ object Evidence {
 
       case Failure(f) =>
         sys.props.get("java.io.tmpdir") match {
-          case Some(e) => fatal("Cannot create temporary file in the default JVM temporary files directory [java.io.tmpdir])")
-          case None => fatal("Cannot create temporary file (default JVM temporary files directory is not defined [java.io.tmpdir])")
+          case Some(e) =>
+            fatal("Cannot create temporary file in the default JVM temporary files directory [java.io.tmpdir])")
+          case None =>
+            fatal("Cannot create temporary file (default JVM temporary files directory is not defined [java.io.tmpdir])")
         }
 
     }
