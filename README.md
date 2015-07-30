@@ -2,7 +2,7 @@
 
 LoMRF is an open-source library for Markov Logic Networks (MLN) written in [Scala programming language](http://scala-lang.org).
 
-## Licence 
+## License 
 
 LoMRF comes with ABSOLUTELY NO WARRANTY. This is free software, and you are welcome to redistribute it under certain conditions; See the [GNU Lesser General Public License v3 for more details](http://www.gnu.org/licenses/lgpl-3.0.html).
 
@@ -21,7 +21,7 @@ LoMRF comes with ABSOLUTELY NO WARRANTY. This is free software, and you are welc
 6. Can compare MLN theories (mlndiff).  
 
 
-## Instrunctions to build LoMRF from source
+## Instructions to build LoMRF from source
 
 In order to build LoMRF from source, you need to have Java SE Development Kit (e.g., OpenJDK) version 8 or higher and [sbt](http://www.scala-sbt.org/) (v0.13.x) installed in your system. Furthermore, LoMRF build depends on the [auxlib](https://github.com/anskarl/auxlib) (v0.1-SNAPSHOT), as well as to [Optimus](https://github.com/vagm/Optimus) and (optionally) [Gurobi](http://www.gurobi.com/).
 
