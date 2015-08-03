@@ -42,7 +42,7 @@ import scala.collection.mutable
 /**
  * Constants domain builder (fluent interface)
  */
-class ConstantsDomainBuilder extends mutable.Builder[(String, String), ConstantsDomain]{ self =>
+final class ConstantsDomainBuilder extends mutable.Builder[(String, String), ConstantsDomain]{ self =>
 
   private var constantBuilders = Map.empty[String, ConstantsSetBuilder]
 

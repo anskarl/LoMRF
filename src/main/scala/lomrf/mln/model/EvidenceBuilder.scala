@@ -35,26 +35,31 @@
 
 package lomrf.mln.model
 
-import lomrf.logic.{FunctionMapping, EvidenceAtom, AtomSignature}
+import lomrf.logic.{Constant, FunctionMapping, EvidenceAtom, AtomSignature}
 import scala.collection.breakOut
 import lomrf.util._
 
 /**
  * Evidence builder (fluent interface)
  */
-class EvidenceBuilder private(predicateSpace: PredicateSpace,
-                              constants: ConstantsDomain,
-                              predicateSchema: PredicateSchema,
-                              functionSchema: FunctionSchema = Map.empty) { self =>
+final class EvidenceBuilder private(predicateSpace: PredicateSpace,
+                                    constants: ConstantsDomain,
+                                    predicateSchema: PredicateSchema,
+                                    functionSchema: FunctionSchema = Map.empty,
+                                    convertFunctionsToPredicates: Boolean = false) { self =>
 
-  private var edbBuilders = Map[AtomSignature, AtomEvidenceDBBuilder]()
+  private var edbBuilders = Map.empty[AtomSignature, AtomEvidenceDBBuilder]
 
-  private var fmBuilders = Map[AtomSignature, FunctionMapperBuilder]()
+  private var fmBuilders = Map.empty[AtomSignature, FunctionMapperBuilder]
+
+  private val functionRegister =
+    if(convertFunctionsToPredicates) new FunctionToAUXPredRegister else new DefaultFunctionRegister
 
 
-  def withEvidenceBuilders(builders: Map[AtomSignature, AtomEvidenceDBBuilder]): EvidenceBuilder = {
 
-    val missingSignatures = builders.keys.filterNot(functionSchema.contains)
+  def withEvidenceBuilders(evBuilders: Map[AtomSignature, AtomEvidenceDBBuilder]): self.type = {
+
+    val missingSignatures = evBuilders.keys.filterNot(functionSchema.contains)
 
     if(missingSignatures.nonEmpty)
       throw new IllegalArgumentException(
@@ -62,31 +67,39 @@ class EvidenceBuilder private(predicateSpace: PredicateSpace,
           s"The following atom signatures are missing from the predicate schema: '${missingSignatures.mkString(", ")}'")
 
     val result = new EvidenceBuilder(predicateSpace, constants, predicateSchema, functionSchema)
-    result.edbBuilders = builders
+    result.edbBuilders = evBuilders
     result
   }
 
-  def withFunctionBuilders(builders: Map[AtomSignature, FunctionMapperBuilder]): EvidenceBuilder = {
+  def withFunctionBuilders(fmBuilders: Map[AtomSignature, FunctionMapperBuilder]): self.type = {
     if(functionSchema.isEmpty)
       throw new IllegalArgumentException("Cannot have function mapping builders when function schema is missing.")
 
-    val missingSignatures = builders.keys.filterNot(functionSchema.contains)
+    val missingSignatures = fmBuilders.keys.filterNot(functionSchema.contains)
 
     if(missingSignatures.nonEmpty)
       throw new IllegalArgumentException(
         "Cannot have function mapping builders for functions with unspecified schema. " +
         s"The following function signatures are missing from the function schema: '${missingSignatures.mkString(", ")}'")
 
-
     val result = new EvidenceBuilder(predicateSpace, constants, predicateSchema, functionSchema)
-    result.fmBuilders = builders
+    if(convertFunctionsToPredicates) {
+      for( (signature, builder) <- fmBuilders){
+        val fm = builder.result()
+
+      }
+    }
+    else {
+      result.fmBuilders = fmBuilders
+    }
+
     result
   }
 
 
   def clear(): Unit = {
-    edbBuilders =  Map[AtomSignature, AtomEvidenceDBBuilder]()
-    fmBuilders = Map[AtomSignature, FunctionMapperBuilder]()
+    edbBuilders =  Map.empty[AtomSignature, AtomEvidenceDBBuilder]
+    fmBuilders = Map.empty[AtomSignature, FunctionMapperBuilder]
   }
 
   def result(): Evidence = {
@@ -152,7 +165,10 @@ class EvidenceBuilder private(predicateSpace: PredicateSpace,
     }
 
     def clear(): Unit = {
-      edbBuilders = Map[AtomSignature, AtomEvidenceDBBuilder]()
+      if(convertFunctionsToPredicates)
+        edbBuilders = edbBuilders.filterKeys(signature => functionSchema.contains(signature))
+      else
+        edbBuilders = Map.empty[AtomSignature, AtomEvidenceDBBuilder]
     }
 
 
@@ -180,25 +196,64 @@ class EvidenceBuilder private(predicateSpace: PredicateSpace,
   object functions {
 
     def += (fm: FunctionMapping): self.type = {
-      insert(fm)
+      functionRegister.insert(fm)
       self
     }
 
     def ++= (fms: Iterable[FunctionMapping]): self.type ={
-      fms.foreach(insert)
+      fms.foreach(functionRegister.insert)
       self
     }
 
     def ++= (fms: FunctionMapping*): self.type ={
-      fms.foreach(insert)
+      fms.foreach(functionRegister.insert)
       self
     }
 
     def clear(): Unit = {
-      fmBuilders = Map[AtomSignature, FunctionMapperBuilder]()
-    }
+      if(convertFunctionsToPredicates)
+        edbBuilders = edbBuilders -- functionSchema.keys
 
-    private def insert(fm: FunctionMapping): Unit ={
+      fmBuilders = Map.empty[AtomSignature, FunctionMapperBuilder]
+    }
+  }
+
+  private sealed trait FunctionRegister {
+    def insert(fm: FunctionMapping): Unit
+  }
+
+  private final class DefaultFunctionRegister extends FunctionRegister{
+    override def insert(fm: FunctionMapping): Unit = {
+      fmBuilders.get(fm.signature) match {
+        case Some(fMappingBuilder) =>
+          fMappingBuilder += ( fm.values, fm.retValue)
+
+        case None if functionSchema.contains(fm.signature) =>
+
+          val idFunction = AtomIdentityFunction(fm.signature, functionSchema(fm.signature)._2, constants, 1)
+          val builder = new FunctionMapperBuilder(idFunction)
+          builder += ( fm.values, fm.retValue)
+
+          fmBuilders += (fm.signature -> builder)
+
+        case _ =>
+          throw new IllegalArgumentException(s"Unknown function signature for function mapping '${fm.toString}'")
+      }
+    }
+  }
+
+  private final class FunctionToAUXPredRegister extends FunctionRegister{
+    override def insert(fm: FunctionMapping): Unit = {
+      if(functionSchema.contains(fm.signature)){
+        val symbol = EvidenceBuilder.AUX_PRED_PREFIX + fm.functionSymbol
+        val terms = fm.values.+:(fm.retValue).map(Constant) // prepend fm.retValue and map to Constants
+
+        self.evidence += EvidenceAtom.asTrue(symbol, terms)
+      }
+      else {
+        throw new IllegalArgumentException(s"Unknown function signature for function mapping '${fm.toString}'")
+      }
+
       fmBuilders.get(fm.signature) match {
         case Some(fMappingBuilder) =>
           fMappingBuilder += ( fm.values, fm.retValue)
@@ -220,6 +275,9 @@ class EvidenceBuilder private(predicateSpace: PredicateSpace,
 }
 
 object EvidenceBuilder {
+
+  // predicate prefix when functions are converted into auxiliary predicates
+  private val AUX_PRED_PREFIX = "F_"
 
 
   def apply(predicateSchema: PredicateSchema,

@@ -102,17 +102,15 @@ class EvidenceParser extends CommonsMLNParser {
   }
 
 
-  /*def functionMapping: Parser[FunctionMapping] = upperCaseID ~ "=" ~ lowerCaseID ~ "(" ~ constantArguments ~ ")" ^^ {
-    case retValue ~ "=" ~ functionSymbol ~ "(" ~ values ~ ")" => new FunctionMapping(retValue, functionSymbol, values)
-  }*/
-
   private def mkProbabilisticAtom(atomString: String, predName: String, args: List[Constant], probability: Double, isPositive: Boolean): EvidenceAtom = {
     require(probability >= 0.0 && probability <= 1.0, "The probability of evidence atom '" + atomString + "' must be between 0.0 and 1.0.")
 
     probability match {
       case 1.0 => EvidenceAtom(predName, args, isPositive = true)
       case 0.0 => EvidenceAtom(predName, args, isPositive = false)
-      case _ => EvidenceAtom(predName, args, if (isPositive) probability else 1.0 - probability)
+      case _ =>
+        // EvidenceAtom(predName, args, if (isPositive) probability else 1.0 - probability)
+        throw new UnsupportedOperationException("Probabilistic atoms are not supported yet.")
     }
   }
 
