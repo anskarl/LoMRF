@@ -14,7 +14,7 @@ TERMINAL_WITH=$(tput cols)
 ETC_DIR="$base_dir/etc"
 
 #
-# Architecture independent JVM options:
+# JVM options:
 #
 
 VM_ARGS=" -XX:+DoEscapeAnalysis -XX:+UseFastAccessorMethods -XX:+OptimizeStringConcat "
@@ -22,13 +22,13 @@ VM_ARGS=" -XX:+DoEscapeAnalysis -XX:+UseFastAccessorMethods -XX:+OptimizeStringC
 #
 # Architecture dependent JVM options:
 #
-architecture=`uname -m`
-if [ $architecture = 'x86_64' ]; then
-  VM_ARGS=$VM_ARGS" -Xms1g -Xmx4g -XX:+UseCompressedOops -Xss32m "
-else
-  VM_ARGS=$VM_ARGS" -Xms2g -Xmx3g -Xss32m "
-  architecture='x86_32'
-fi
+#architecture=`uname -m`
+#if [ $architecture = 'x86_64' ]; then
+#  VM_ARGS=$VM_ARGS" -Xms1g -Xmx4g -XX:+UseCompressedOops -Xss32m "
+#else
+#  VM_ARGS=$VM_ARGS" -Xms2g -Xmx3g -Xss32m "
+#  architecture='x86_32'
+#fi
 
 #
 # Logging configuration
