@@ -58,8 +58,8 @@ class EvidenceBuilderSpecTest extends FunSpec with Matchers {
   ).map(schema => AtomSignature(schema._1, schema._2.size) -> schema._2).toMap
 
   private val sampleFunctionSchema = Map(
-    AtomSignature("walking", 1) -> ("event", Vector("person")),
-    AtomSignature("running", 1) -> ("event", Vector("person"))
+    AtomSignature("walking", 1) ->("event", Vector("person")),
+    AtomSignature("running", 1) ->("event", Vector("person"))
   )
 
   private val sampleFunctionMappings = Seq(
@@ -77,10 +77,6 @@ class EvidenceBuilderSpecTest extends FunSpec with Matchers {
   private val sampleFunctionMappers = sampleFunctionMappings map {
     case (retValue, symbol, args) => new FunctionMapping(retValue, symbol, args)
   }
-
-
-
-
 
   private val queryPredicates = Set[AtomSignature](("HoldsAt", 2))
   private val hiddenPredicates = Set[AtomSignature](("InitiatedAt", 2), ("TerminatedAt", 2))
@@ -118,6 +114,7 @@ class EvidenceBuilderSpecTest extends FunSpec with Matchers {
   private val space = samplePredicateSchemas map {
     case (signature, schema) => signature -> schema.map(d => constantsDomain(d).size).product
   }
+
 
 
   // ------------------------------------------------------------------------------------------------------------------
@@ -476,29 +473,118 @@ class EvidenceBuilderSpecTest extends FunSpec with Matchers {
   describe("Incremental addition of function mappings using EvidenceBuilder") {
     val builder = EvidenceBuilder(samplePredicateSchemas, sampleFunctionSchema, queryPredicates, hiddenPredicates, constantsDomain)
 
-    for((retValue, symbol, args) <- sampleFunctionMappings)
+    for ((retValue, symbol, args) <- sampleFunctionMappings)
       builder.functions += new FunctionMapping(retValue, symbol, args)
 
     val resultFM = builder.result().functionMappers
 
     it("should contain all inserted function mappings") {
       assert {
-        sampleFunctionMappings.forall{
+        sampleFunctionMappings.forall {
           case (retValue, symbol, args) =>
             val mappingOpt = resultFM(AtomSignature(symbol, args.size)).get(args)
-            if(mappingOpt.isEmpty) false
+            if (mappingOpt.isEmpty) false
             else mappingOpt.get == retValue
         }
       }
     }
 
     it("should not contain undefined function mappings") {
-      assert{
+      assert {
         val mappingOpt = resultFM(AtomSignature("running", 1)).get(Vector("other"))
-        if(mappingOpt.isEmpty) true
+        if (mappingOpt.isEmpty) true
         else false
       }
     }
+  }
+
+  // ------------------------------------------------------------------------------------------------------------------
+  // --- TEST: Evidence Builder (incremental addition of function mappings as auxiliary predicates)
+  // ------------------------------------------------------------------------------------------------------------------
+  describe("Incremental addition of function mappings, converted to auxiliary predicates, using EvidenceBuilder") {
+    val builder = EvidenceBuilder(
+      samplePredicateSchemas, sampleFunctionSchema, queryPredicates,
+      hiddenPredicates, constantsDomain, convertFunctionsToPredicates = true)
+
+    // construct the schema of all auxiliary predicates
+    val auxPredicateSchema = sampleFunctionSchema.map {
+      case (originalSignature, (retType, argTypes)) =>
+        val convertedSignature = AtomSignature(lomrf.AUX_PRED_PREFIX + originalSignature.symbol, originalSignature.arity + 1)
+        val convertedTermTypes = argTypes.+:(retType)
+        (convertedSignature, convertedTermTypes)
+    }
+
+    // compute the space for each auxiliary predicate (i.e., the number of possible groundings)
+    val auxSpace = auxPredicateSchema map {
+      case (signature, schema) =>
+        signature -> schema.map(d => constantsDomain(d).size).product
+    }
+
+    // utility mapping for associating function symbol to function signature,
+    // please note that in this test we assume that function symbols are unique
+    val symbol2Signature = sampleFunctionSchema.keys.map { originalSignature =>
+      val convertedSignature = AtomSignature(lomrf.AUX_PRED_PREFIX + originalSignature.symbol, originalSignature.arity + 1)
+      originalSignature.symbol -> convertedSignature
+    }.toMap
+
+
+    // compute the number of positives for each function, i.e., the true groundings of the function.
+    val numOfPositives = sampleFunctionMappings
+      .groupBy(_._2)
+      .map{
+        case (symbol, entries) =>
+          symbol2Signature(symbol) -> entries.size
+      }
+
+
+    for ((retValue, symbol, args) <- sampleFunctionMappings)
+      builder.functions += new FunctionMapping(retValue, symbol, args)
+
+    val evidence = builder.result()
+
+    it("has empty functionMappers") {
+      evidence.functionMappers.isEmpty should be(true)
+    }
+
+    it("contains all function schemas as auxiliary predicate schemas") {
+      val edb = evidence.db
+      val signatures = edb.keys.filterNot(samplePredicateSchemas.contains)
+      assert(signatures.size == sampleFunctionSchema.size)
+
+      assert {
+        auxPredicateSchema.forall {
+          case (convertedSignature, convertedTermTypes) =>
+            edb.get(convertedSignature).exists(adb => adb.identity.schema == convertedTermTypes)
+        }
+      }
+
+    }
+
+    for (signature <- auxPredicateSchema.keys) describe(s"Groundings of the auxiliary predicate '$signature'") {
+      val known = auxSpace(signature)
+      val positives = numOfPositives(signature)
+      val negatives = known - positives
+      val unknown = 0
+      val atomDB = evidence.db(signature)
+
+      they(s"should have $known known groundings") {
+        assert(atomDB.numberOfKnown == known)
+      }
+
+      they(s"should have $unknown unknown groundings") {
+        assert(atomDB.numberOfUnknown == unknown)
+      }
+
+      they(s"should have $positives true groundings") {
+        assert(atomDB.numberOfTrue == positives)
+      }
+
+      they(s"should have $negatives false groundings") {
+        assert(atomDB.numberOfFalse == negatives)
+      }
+    }
+
+
   }
 
   // ------------------------------------------------------------------------------------------------------------------
@@ -514,37 +600,37 @@ class EvidenceBuilderSpecTest extends FunSpec with Matchers {
     )
 
     val dummyConstantsDomain = Map(
-      "foo" -> ConstantsSet((1 to 5).map(v=> "F"+v)),
-      "bar" -> ConstantsSet((1 to 5).map(v=> "B"+v)))
+      "foo" -> ConstantsSet((1 to 5).map(v => "F" + v)),
+      "bar" -> ConstantsSet((1 to 5).map(v => "B" + v)))
 
-    val dummyIDF = dummySchema.map{
+    val dummyIDF = dummySchema.map {
       case (signature, schema) => signature -> AtomIdentityFunction(signature, schema, dummyConstantsDomain, 1)
     }
 
-    val dummyBuilders = dummySchema.map{
-      case (s, _) => s ->  AtomEvidenceDBBuilder.CWA(dummyIDF(s))
+    val dummyBuilders = dummySchema.map {
+      case (s, _) => s -> AtomEvidenceDBBuilder.CWA(dummyIDF(s))
     }
 
     val dummyDB = dummyBuilders.map(e => e._1 -> e._2.result())
 
-    it("should throw IllegalArgumentException when inserting evidence atom with unknown signature"){
+    it("should throw IllegalArgumentException when inserting evidence atom with unknown signature") {
       intercept[IllegalArgumentException] {
         builder.evidence += EvidenceAtom.asTrue("Foo", Vector(Constant("bar")))
       }
     }
 
     it("should throw IllegalArgumentException when setting builders that are related to unknown signatures (using 'builder.withEvidenceBuilders(dummyBuilders)')") {
-      intercept[IllegalArgumentException]( builder.withEvidenceBuilders(dummyBuilders))
+      intercept[IllegalArgumentException](builder.withEvidenceBuilders(dummyBuilders))
     }
 
     it("should throw IllegalArgumentException when setting builders that are related to unknown signatures (using 'builder.evidence() = dummyDB')") {
-      intercept[IllegalArgumentException]{
+      intercept[IllegalArgumentException] {
         builder.evidence() = dummyDB
       }
     }
 
-    it("should throw Exception when adding evidence with unknown constants"){
-      intercept[NoSuchElementException]{
+    it("should throw Exception when adding evidence with unknown constants") {
+      intercept[NoSuchElementException] {
         builder.evidence += EvidenceAtom.asTrue("Next", Vector(Constant("100"), Constant("99")))
       }
 

@@ -34,10 +34,7 @@
  */
 package lomrf.mln.model
 
-import lomrf.mln.model.ConstantsSetBuilder
-
 import scala.collection.mutable
-
 
 /**
  * Constants domain builder (fluent interface)

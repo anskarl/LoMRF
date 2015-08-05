@@ -307,7 +307,8 @@ object KB {
       constantsBuilder().foreach(entry => debug(s"|${entry._1}|=${entry._2.size}"))
     }
 
-    val kb = kbBuilder.withFormulas(Await.result(resultingFormulas, Duration.Inf))
+    val kb = kbBuilder
+      .withFormulas(Await.result(resultingFormulas, Duration.Inf))
       .withPredicateSchema(Await.result(resultingPredicateSchema, Duration.Inf))
       .withDynamicPredicates(kbParser.getDynamicPredicates)
       .withDynamicFunctions(kbParser.getDynamicFunctions)

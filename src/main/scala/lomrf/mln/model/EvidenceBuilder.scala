@@ -56,8 +56,7 @@ final class EvidenceBuilder private(predicateSpace: PredicateSpace,
     if(convertFunctionsToPredicates) new FunctionToAUXPredRegister else new DefaultFunctionRegister
 
 
-
-  def withEvidenceBuilders(evBuilders: Map[AtomSignature, AtomEvidenceDBBuilder]): self.type = {
+  def withEvidenceBuilders(evBuilders: Map[AtomSignature, AtomEvidenceDBBuilder]): EvidenceBuilder = {
 
     val missingSignatures = evBuilders.keys.filterNot(functionSchema.contains)
 
@@ -71,7 +70,7 @@ final class EvidenceBuilder private(predicateSpace: PredicateSpace,
     result
   }
 
-  def withFunctionBuilders(fmBuilders: Map[AtomSignature, FunctionMapperBuilder]): self.type = {
+  def withFunctionBuilders(fmBuilders: Map[AtomSignature, FunctionMapperBuilder]): EvidenceBuilder = {
     if(functionSchema.isEmpty)
       throw new IllegalArgumentException("Cannot have function mapping builders when function schema is missing.")
 
@@ -84,9 +83,8 @@ final class EvidenceBuilder private(predicateSpace: PredicateSpace,
 
     val result = new EvidenceBuilder(predicateSpace, constants, predicateSchema, functionSchema)
     if(convertFunctionsToPredicates) {
-      for( (signature, builder) <- fmBuilders){
-        val fm = builder.result()
-
+      fmBuilders.values foreach {
+        builder => self.functions ++= builder.decoded
       }
     }
     else {
@@ -119,7 +117,9 @@ final class EvidenceBuilder private(predicateSpace: PredicateSpace,
 
     val db: EvidenceDB = (for(signature <- predicateSchema.keys) yield signature -> mkEvidenceDB(signature))(breakOut)
 
-    val fm = fmBuilders.map(entries => entries._1 -> entries._2.result())
+    val fm =
+      if(convertFunctionsToPredicates) Map.empty[AtomSignature, FunctionMapper]
+      else fmBuilders.map(entries => entries._1 -> entries._2.result())
 
     Evidence(constants, db, fm)
   }
@@ -245,7 +245,7 @@ final class EvidenceBuilder private(predicateSpace: PredicateSpace,
   private final class FunctionToAUXPredRegister extends FunctionRegister{
     override def insert(fm: FunctionMapping): Unit = {
       if(functionSchema.contains(fm.signature)){
-        val symbol = EvidenceBuilder.AUX_PRED_PREFIX + fm.functionSymbol
+        val symbol = lomrf.AUX_PRED_PREFIX + fm.functionSymbol
         val terms = fm.values.+:(fm.retValue).map(Constant) // prepend fm.retValue and map to Constants
 
         self.evidence += EvidenceAtom.asTrue(symbol, terms)
@@ -276,10 +276,19 @@ final class EvidenceBuilder private(predicateSpace: PredicateSpace,
 
 object EvidenceBuilder {
 
-  // predicate prefix when functions are converted into auxiliary predicates
-  private val AUX_PRED_PREFIX = "F_"
 
-
+  /**
+   * Construct an EvidenceBuilder for the specified predicate schema, query predicates, hidden predicates and constants.
+   *
+   * @param predicateSchema a mapping of atomic signature (i.e., Predicate_Symbol/Arity) to the predicate's term types
+   * @param queryPredicates a collection atomic signatures of the query predicates
+   * @param hiddenPredicates a collection atomic signatures of the hidden predicates
+   * @param constants a collection of the domain of constants
+   *
+   * @return new instance of an EvidenceBuilder
+   * @see PredicateSchema
+   * @see AtomSignature
+   */
   def apply(predicateSchema: PredicateSchema,
             queryPredicates: Set[AtomSignature],
             hiddenPredicates: Set[AtomSignature],
@@ -290,15 +299,39 @@ object EvidenceBuilder {
     new EvidenceBuilder(domainSpace, constants, predicateSchema)
   }
 
+  /**
+   * Construct an EvidenceBuilder for the specified predicate and function schema, as well as, for the specified
+   * query predicates, hidden predicates and constant domains.
+   *
+   * @param predicateSchema a mapping of atomic signature (i.e., Predicate_Symbol/Arity) to the predicates' term types
+   * @param functionSchema a mapping of atomic signature (i.e., Function_Symbol/Arity) to the functions' term types
+   * @param queryPredicates a collection atomic signatures of the query predicates
+   * @param hiddenPredicates a collection atomic signatures of the hidden predicates
+   * @param constants a collection of the domain of constants
+   * @param convertFunctionsToPredicates (optional, default is false) when it is given as true, all specified functions
+   *                                     will be converted and represented as auxiliary predicates.
+   *
+   * @return new instance of an EvidenceBuilder
+   * @see PredicateSchema
+   * @see AtomSignature
+   */
   def apply(predicateSchema: PredicateSchema,
             functionSchema: FunctionSchema,
             queryPredicates: Set[AtomSignature],
             hiddenPredicates: Set[AtomSignature],
-            constants: ConstantsDomain): EvidenceBuilder = {
+            constants: ConstantsDomain,
+            convertFunctionsToPredicates: Boolean = false): EvidenceBuilder = {
 
-    val domainSpace = PredicateSpace(predicateSchema, queryPredicates, hiddenPredicates, constants)
+    // When `convertFunctionsToPredicates` is true,
+    // we should convert all entries in `functionSchema` as the entries in `predicateSchema`
+    val finalPredicateSchema =
+      if (convertFunctionsToPredicates) predicateSchema ++ functionSchema.toPredicateSchema
+      else predicateSchema
 
-    new EvidenceBuilder(domainSpace, constants, predicateSchema, functionSchema)
+
+    val domainSpace = PredicateSpace(finalPredicateSchema, queryPredicates, hiddenPredicates, constants)
+
+    new EvidenceBuilder(domainSpace, constants, finalPredicateSchema, functionSchema, convertFunctionsToPredicates)
   }
 
 

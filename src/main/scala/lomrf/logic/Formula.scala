@@ -342,6 +342,12 @@ class FunctionMapping(val retValue: String, val functionSymbol: String, val valu
 
   override def toString = s"$retValue = $functionSymbol(${values.mkString(",")})"
 
+  def toEvidenceAtom: EvidenceAtom ={
+    val symbol = lomrf.AUX_PRED_PREFIX + functionSymbol
+    val terms = values.+:(retValue).map(Constant)
+    EvidenceAtom.asTrue(symbol, terms)
+  }
+
 }
 
 object FunctionMapping {

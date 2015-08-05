@@ -56,4 +56,15 @@ package object model {
 
   type Identities = Map[AtomSignature, AtomIdentityFunction]
 
+
+  implicit class FunctionSchemaWrapped(val fs: FunctionSchema) extends AnyVal {
+
+    def toPredicateSchema: PredicateSchema = fs.map {
+      case (signature, (retType, argTypes)) =>
+        val symbol = lomrf.AUX_PRED_PREFIX + signature.symbol
+        val termTypes = argTypes.+:(retType)
+        (AtomSignature(symbol, signature.arity + 1), termTypes)
+    }
+  }
+
 }

@@ -42,6 +42,9 @@ package object lomrf {
   val DEFAULT_CAPACITY = 43
   val DEFAULT_LOAD_FACTOR = 0.75f
 
+  // predicate prefix when functions are converted into auxiliary predicates
+  val AUX_PRED_PREFIX = "AUX"
+
   val ASCIILogo =
     """
       |o                        o     o   o         o

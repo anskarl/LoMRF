@@ -52,13 +52,16 @@ final class KBBuilder { self =>
 
   private var _dynamicFunctions = Map.empty[AtomSignature, Vector[String] => String]
 
+  private var _functionsAsAUXPredicates = false
+
 
   def withPredicateSchema(input: Map[AtomSignature, Vector[String]]): self.type ={
     _predicateSchema = input
     self
   }
 
-  def withFunctionSchema(input: Map[AtomSignature, (String, Vector[String])]): self.type ={
+  def withFunctionSchema(input: Map[AtomSignature, (String, Vector[String])], asAUXPredicates: Boolean = false): self.type ={
+    _functionsAsAUXPredicates = asAUXPredicates
     _functionSchema = input
     self
   }
@@ -77,8 +80,12 @@ final class KBBuilder { self =>
     _dynamicFunctions = input
     self
   }
-
+  
   def result(): KB = {
+    if(_functionsAsAUXPredicates){
+
+    }
+
     new KB(_predicateSchema, _functionSchema, _formulas, _dynamicPredicates, _dynamicFunctions)
   }
 
