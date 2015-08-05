@@ -60,8 +60,8 @@ class KBBuilderSpecTest extends FunSpec with Matchers {
     ("HappensAt", Vector("event", "time")),
     ("InitiatedAt", Vector("fluent", "time")),
     ("TerminatedAt", Vector("fluent", "time")),
-    ("Initiates", Vector("event","fluent", "time")),
-    ("Terminates", Vector("event","fluent", "time"))
+    ("Initiates", Vector("event", "fluent", "time")),
+    ("Terminates", Vector("event", "fluent", "time"))
   ).map(schema => AtomSignature(schema._1, schema._2.size) -> schema._2)
 
 
@@ -105,7 +105,7 @@ class KBBuilderSpecTest extends FunSpec with Matchers {
   // --------------------------------------------------------
   // --- KB Builder (insertion of predicate schema)
   // --------------------------------------------------------
-  describe("KBBuilder insertion of predicate schemas"){
+  describe("KBBuilder insertion of predicate schemas") {
 
     describe("Incremental addition of predicate schemas") {
       val builder = KBBuilder()
@@ -114,7 +114,7 @@ class KBBuilderSpecTest extends FunSpec with Matchers {
         builder.predicateSchema += schema
 
 
-      it(s"contains ${samplePredicateSchemas.size} predicate schema definitions"){
+      it(s"contains ${samplePredicateSchemas.size} predicate schema definitions") {
         builder.predicateSchema().size shouldEqual samplePredicateSchemas.size
       }
 
@@ -140,7 +140,7 @@ class KBBuilderSpecTest extends FunSpec with Matchers {
       builder.predicateSchema ++= samplePredicateSchemas
 
 
-      it(s"contains ${samplePredicateSchemas.size} predicate schema definitions"){
+      it(s"contains ${samplePredicateSchemas.size} predicate schema definitions") {
         builder.predicateSchema().size shouldEqual samplePredicateSchemas.size
       }
 
@@ -163,7 +163,7 @@ class KBBuilderSpecTest extends FunSpec with Matchers {
   // --------------------------------------------------------
   // --- KB Builder (insertion of function schema)
   // --------------------------------------------------------
-  describe("KBBuilder insertion of function schemas"){
+  describe("KBBuilder insertion of function schemas") {
 
 
     describe("Incremental addition of function schemas") {
@@ -173,7 +173,7 @@ class KBBuilderSpecTest extends FunSpec with Matchers {
         builder.functionSchema += schema
 
 
-      it(s"contains ${sampleFunctionsSchema.size} function schema definitions"){
+      it(s"contains ${sampleFunctionsSchema.size} function schema definitions") {
         builder.functionSchema().size shouldEqual sampleFunctionsSchema.size
       }
 
@@ -199,7 +199,7 @@ class KBBuilderSpecTest extends FunSpec with Matchers {
       builder.functionSchema ++= sampleFunctionsSchema
 
 
-      it(s"contains ${sampleFunctionsSchema.size} function schema definitions"){
+      it(s"contains ${sampleFunctionsSchema.size} function schema definitions") {
         builder.functionSchema().size shouldEqual sampleFunctionsSchema.size
       }
 
@@ -209,7 +209,7 @@ class KBBuilderSpecTest extends FunSpec with Matchers {
         builder.functionSchema().size shouldEqual sampleFunctionsSchema.size
       }
 
-      it("contains all the batched inserted schema definitions") {
+      it("contains all schema definitions") {
         val kb = builder.result()
 
         val functionSchema = kb.functionSchema
@@ -220,9 +220,109 @@ class KBBuilderSpecTest extends FunSpec with Matchers {
   }
 
   // --------------------------------------------------------
+  // --- KB Builder (insertion of function schema as auxiliary predicate schema)
+  // --------------------------------------------------------
+  describe("KBBuilder insertion of function schemas as auxiliary predicate schemas") {
+    describe("Incremental addition of function schemas") {
+      val builder = KBBuilder(convertFunctions = true)
+
+      for (schema <- sampleFunctionsSchema)
+        builder.functionSchema += schema
+
+
+      it(s"contains ${sampleFunctionsSchema.size} original function schema definitions") {
+        builder.functionSchema().size shouldEqual sampleFunctionsSchema.size
+      }
+
+      it(s"contains ${sampleFunctionsSchema.size} original function schema definitions, after re-adding the same schema definitions") {
+        for (schema <- sampleFunctionsSchema)
+          builder.functionSchema += schema
+
+        builder.functionSchema().size shouldEqual sampleFunctionsSchema.size
+      }
+
+      it("contains all the incrementally inserted original schema definitions") {
+        val kb = builder.result()
+
+        val functionSchema = kb.functionSchema
+
+        assert(sampleFunctionsSchema.forall(schema => functionSchema(schema._1) == schema._2))
+      }
+
+      describe("The converted function schemas as auxiliary predicate schemas") {
+        val kb = builder.result()
+
+        val auxSchema = kb.predicateSchema.filterKeys(_.symbol.startsWith(lomrf.AUX_PRED_PREFIX))
+
+        they(s"contain ${kb.functionSchema.size} auxiliary definitions") {
+          auxSchema.size should be(kb.functionSchema.size)
+        }
+
+        they("are composed of the correct auxiliary definitions") {
+          assert {
+            kb.functionSchema.forall {
+              case (origSignature, (retType, argTypes)) =>
+                val convSignature = AtomSignature(lomrf.AUX_PRED_PREFIX + origSignature.symbol, origSignature.arity + 1)
+                val convTypes = argTypes.+:(retType)
+                auxSchema(convSignature) == convTypes
+            }
+          }
+        }
+      }
+
+    }
+
+    describe("Batch addition of function schemas as auxiliary predicate schemas") {
+      val builder = KBBuilder(convertFunctions = true)
+
+      builder.functionSchema ++= sampleFunctionsSchema
+
+
+      it(s"contains ${sampleFunctionsSchema.size} original function schema definitions") {
+        builder.functionSchema().size shouldEqual sampleFunctionsSchema.size
+      }
+
+      it(s"contains ${sampleFunctionsSchema.size} original function schema definitions, after re-adding the same schema definitions") {
+        builder.functionSchema ++= sampleFunctionsSchema
+
+        builder.functionSchema().size shouldEqual sampleFunctionsSchema.size
+      }
+
+      it("contains all original schema definitions") {
+        val kb = builder.result()
+
+        val functionSchema = kb.functionSchema
+
+        assert(sampleFunctionsSchema.forall(schema => functionSchema(schema._1) == schema._2))
+      }
+
+      describe("The converted function schemas as auxiliary predicate schemas") {
+        val kb = builder.result()
+
+        val auxSchema = kb.predicateSchema.filterKeys(_.symbol.startsWith(lomrf.AUX_PRED_PREFIX))
+
+        they(s"contain ${kb.functionSchema.size} auxiliary definitions") {
+          auxSchema.size should be(kb.functionSchema.size)
+        }
+
+        they("are composed of the correct auxiliary definitions") {
+          assert {
+            kb.functionSchema.forall {
+              case (origSignature, (retType, argTypes)) =>
+                val convSignature = AtomSignature(lomrf.AUX_PRED_PREFIX + origSignature.symbol, origSignature.arity + 1)
+                val convTypes = argTypes.+:(retType)
+                auxSchema(convSignature) == convTypes
+            }
+          }
+        }
+      }
+    }
+  }
+
+  // --------------------------------------------------------
   // --- KB Builder (insertion of dynamic predicate schemas)
   // --------------------------------------------------------
-  describe("KBBuilder insertion of dynamic predicate schemas"){
+  describe("KBBuilder insertion of dynamic predicate schemas") {
 
     describe("Incremental addition of dynamic predicate schemas") {
       val builder = KBBuilder()
@@ -231,7 +331,7 @@ class KBBuilderSpecTest extends FunSpec with Matchers {
         builder.dynamicPredicates += schema
 
 
-      it(s"contains ${dynAtoms.size} dynamic predicate schema definitions"){
+      it(s"contains ${dynAtoms.size} dynamic predicate schema definitions") {
         builder.dynamicPredicates().size shouldEqual dynAtoms.size
       }
 
@@ -257,7 +357,7 @@ class KBBuilderSpecTest extends FunSpec with Matchers {
       builder.dynamicPredicates ++= dynAtoms
 
 
-      it(s"contains ${dynAtoms.size} dynamic predicate schema definitions"){
+      it(s"contains ${dynAtoms.size} dynamic predicate schema definitions") {
         builder.dynamicPredicates().size shouldEqual dynAtoms.size
       }
 
@@ -280,7 +380,7 @@ class KBBuilderSpecTest extends FunSpec with Matchers {
   // --------------------------------------------------------
   // --- KB Builder (insertion of dynamic function schemas)
   // --------------------------------------------------------
-  describe("KBBuilder insertion of dynamic function schemas"){
+  describe("KBBuilder insertion of dynamic function schemas") {
 
     describe("Incremental addition of dynamic function schemas") {
       val builder = KBBuilder()
@@ -289,7 +389,7 @@ class KBBuilderSpecTest extends FunSpec with Matchers {
         builder.dynamicFunctions += schema
 
 
-      it(s"contains ${dynFunctions.size} dynamic function schema definitions"){
+      it(s"contains ${dynFunctions.size} dynamic function schema definitions") {
         builder.dynamicFunctions().size shouldEqual dynFunctions.size
       }
 
@@ -315,7 +415,7 @@ class KBBuilderSpecTest extends FunSpec with Matchers {
       builder.dynamicFunctions ++= dynFunctions
 
 
-      it(s"contains ${dynFunctions.size} dynamic function schema definitions"){
+      it(s"contains ${dynFunctions.size} dynamic function schema definitions") {
         builder.dynamicFunctions().size shouldEqual dynFunctions.size
       }
 
@@ -339,21 +439,21 @@ class KBBuilderSpecTest extends FunSpec with Matchers {
   // --------------------------------------------------------
   // --- KB Builder (insertion of formulas)
   // --------------------------------------------------------
-  describe("KBBuilder insertion of formulas"){
+  describe("KBBuilder insertion of formulas") {
 
     describe("Incremental addition of formulas") {
       val builder = KBBuilder()
 
-      for(formula <- sampleFormulas)
+      for (formula <- sampleFormulas)
         builder.formulas += formula
 
 
-      it(s"contains ${sampleFormulas.size} dynamic function schema definitions"){
+      it(s"contains ${sampleFormulas.size} dynamic function schema definitions") {
         builder.formulas().size shouldEqual sampleFormulas.size
       }
 
       it(s"contains ${sampleFormulas.size} dynamic function schema definitions, after re-adding the same schema definitions") {
-        for(formula <- sampleFormulas)
+        for (formula <- sampleFormulas)
           builder.formulas += formula
 
         builder.formulas().size shouldEqual sampleFormulas.size
@@ -375,7 +475,7 @@ class KBBuilderSpecTest extends FunSpec with Matchers {
       builder.formulas ++= sampleFormulas
 
 
-      it(s"contains ${sampleFormulas.size} dynamic function schema definitions"){
+      it(s"contains ${sampleFormulas.size} dynamic function schema definitions") {
         builder.formulas().size shouldEqual sampleFormulas.size
       }
 
@@ -412,23 +512,23 @@ class KBBuilderSpecTest extends FunSpec with Matchers {
         .withDynamicPredicates(dynAtoms)
         .result()
 
-    it("contains all specified predicate schemas"){
+    it("contains all specified predicate schemas") {
       assert(samplePredicateSchema == kb.predicateSchema)
     }
 
-    it("contains all specified function schemas"){
+    it("contains all specified function schemas") {
       assert(sampleFunctionsSchema == kb.functionSchema)
     }
 
-    it("contains all specified formulas"){
+    it("contains all specified formulas") {
       assert(sampleFormulas.forall(kb.formulas.contains))
     }
 
-    it("contains all specified dynamic functions"){
+    it("contains all specified dynamic functions") {
       assert(dynFunctions == kb.dynamicFunctions)
     }
 
-    it("contains all specified dynamic predicates"){
+    it("contains all specified dynamic predicates") {
       assert(dynAtoms == kb.dynamicPredicates)
     }
 

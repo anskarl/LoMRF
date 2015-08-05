@@ -38,9 +38,7 @@ package lomrf.mln.model
 import java.io.{File, BufferedReader, FileReader}
 import auxlib.log.Logger
 import lomrf.logic._
-import lomrf.util._
 import scala.util.{Failure, Try, Success}
-
 
 class Evidence(val constants: ConstantsDomain,
                val db: EvidenceDB,
@@ -61,45 +59,29 @@ class Evidence(val constants: ConstantsDomain,
 object Evidence {
 
   private lazy val log = Logger(this.getClass)
-  private val AUX_PRED_PREFIX = "F_"
 
   def apply(constants: ConstantsDomain, db: EvidenceDB, fm: FunctionMappers): Evidence = {
     new Evidence(constants, db, fm)
   }
 
+
   def fromFiles(kb: KB,
                 constantsDomainBuilders: ConstantsDomainBuilder,
                 queryPredicates: Set[AtomSignature],
-                filenames: List[String]): Evidence ={
+                files: Iterable[File],
+                convertFunctions: Boolean): Evidence = {
 
-    val fileList = if (filenames.isEmpty) List(createTempEmptyDBFile) else filenames.map(filename => new File(filename))
-
-    fromFiles(kb, constantsDomainBuilders, queryPredicates, Set.empty[AtomSignature], fileList)
+    fromFiles(kb.predicateSchema, kb.functionSchema, constantsDomainBuilders, kb.dynamicFunctions, queryPredicates, Set.empty[AtomSignature], files, convertFunctions)
   }
 
   def fromFiles(kb: KB,
                 constantsDomainBuilders: ConstantsDomainBuilder,
                 queryPredicates: Set[AtomSignature],
                 hiddenPredicates: Set[AtomSignature],
-                filenames: List[String]): Evidence ={
-    val fileList = if (filenames.isEmpty) List(createTempEmptyDBFile) else filenames.map(filename => new File(filename))
+                files: Iterable[File],
+                convertFunctions: Boolean): Evidence = {
 
-    fromFiles(kb, constantsDomainBuilders, queryPredicates, hiddenPredicates, fileList)
-  }
-
-  def fromFiles(kb: KB,
-                constantsDomainBuilders: ConstantsDomainBuilder,
-                queryPredicates: Set[AtomSignature],
-                files: Iterable[File]): Evidence = {
-    fromFiles(kb.predicateSchema, kb.functionSchema, constantsDomainBuilders, kb.dynamicFunctions, queryPredicates, Set.empty[AtomSignature], files)
-  }
-
-  def fromFiles(kb: KB,
-                constantsDomainBuilders: ConstantsDomainBuilder,
-                queryPredicates: Set[AtomSignature],
-                hiddenPredicates: Set[AtomSignature],
-                files: Iterable[File]): Evidence = {
-    fromFiles(kb.predicateSchema, kb.functionSchema, constantsDomainBuilders, kb.dynamicFunctions, queryPredicates, hiddenPredicates, files)
+    fromFiles(kb.predicateSchema, kb.functionSchema, constantsDomainBuilders, kb.dynamicFunctions, queryPredicates, hiddenPredicates, files, convertFunctions)
   }
 
   def fromFiles(predicateSchema: PredicateSchema,
@@ -109,17 +91,23 @@ object Evidence {
                 queryPredicates: Set[AtomSignature],
                 hiddenPredicates: Set[AtomSignature],
                 files: Iterable[File],
-                convertFunctions: Boolean = false): Evidence = {
+                convertFunctions: Boolean): Evidence = {
 
 
     import log._
 
 
+    val inputFiles =
+      if(files.isEmpty) {
+        log.warn("Loading from empty evidence")
+        List(createTempEmptyDBFile)
+      } else files
+
     def isOWA(signature: AtomSignature) = queryPredicates.contains(signature) || hiddenPredicates.contains(signature)
 
     val evidenceParser = new EvidenceParser
     val evidenceExpressionsDB =
-      for (file <- files; fileReader = new BufferedReader(new FileReader(file)))
+      for (file <- inputFiles; fileReader = new BufferedReader(new FileReader(file)))
         yield evidenceParser.parseAll(evidenceParser.evidence, fileReader) match {
           case evidenceParser.Success(expr, _) => expr
           case x => fatal(s"Can't parse the following expression: '$x' in file: '${file.getPath}'")
@@ -129,7 +117,6 @@ object Evidence {
     for (evidenceExpressions <- evidenceExpressionsDB; expr <- evidenceExpressions) expr match {
       case f: FunctionMapping =>
         //Collect information for functionMappings
-
         val (returnType, argTypes) = functionSchema.getOrElse(
           f.signature,
           fatal(s"The function definition of '${f.signature}' does not appear in the knowledge base."))
@@ -170,30 +157,10 @@ object Evidence {
 
     info("--- Stage 2: Creating function mappings, and evidence database.")
 
-    val builder = {
-      if (convertFunctions) {
-        var enhancedPredicateSchema = predicateSchema
-
-        for (( signature, (retDomain, termDomain)) <- functionSchema) {
-          val symbol = AUX_PRED_PREFIX + signature.symbol
-          val arity = termDomain.size + 1
-          enhancedPredicateSchema += AtomSignature.apply(symbol, arity) -> termDomain
-        }
-
-        EvidenceBuilder(enhancedPredicateSchema, Map.empty, queryPredicates, hiddenPredicates, constants)
-
-      }
-      else EvidenceBuilder(predicateSchema, functionSchema, queryPredicates, hiddenPredicates, constants)
-    }
+    val builder = EvidenceBuilder(predicateSchema, functionSchema, queryPredicates, hiddenPredicates, constants, convertFunctions)
 
     for (evidenceExpressions <- evidenceExpressionsDB; expr <- evidenceExpressions) expr match {
-      case fm: FunctionMapping =>
-        if(convertFunctions) {
-          val symbol = AUX_PRED_PREFIX + fm.functionSymbol
-          val terms = fm.values.+:(fm.retValue).map(Constant) // prepend fm.retValue and map to Constants
-          EvidenceAtom.asTrue(symbol, terms)
-        }
-        else builder.functions += fm
+      case fm: FunctionMapping => builder.functions += fm
       case atom: EvidenceAtom => builder.evidence += atom
     }
 

@@ -35,7 +35,7 @@
 
 package lomrf.mln.model
 
-import java.io.PrintStream
+import java.io.{File, PrintStream}
 import java.text.DecimalFormat
 
 import auxlib.log.Logger
@@ -289,7 +289,7 @@ object MLN {
       fatal(s"Predicate(s): ${openClosedSignatures.mkString(", ")} defined both as closed and open.")
 
     //parse the evidence database (.db)
-    val evidence: Evidence = Evidence.fromFiles(kb, constantsDomainBuilders, queryAtoms, owa, evidenceFileNames)
+    val evidence: Evidence = Evidence.fromFiles(kb, constantsDomainBuilders, queryAtoms, owa, evidenceFileNames.map(new File(_)), convertFunctions = false)
 
     val clauses = NormalForm.compileCNF(kb.formulas)(evidence.constants).toVector
 
@@ -331,7 +331,7 @@ object MLN {
     val evidenceAtoms = atomSignatures -- nonEvidenceAtoms
 
     //parse the training evidence database (contains the annotation, i.e., the truth values of all query/hidden atoms)
-    val trainingEvidence = Evidence.fromFiles(kb, constantsDomainBuilder, nonEvidenceAtoms, trainingFileNames)
+    val trainingEvidence = Evidence.fromFiles(kb, constantsDomainBuilder, nonEvidenceAtoms, trainingFileNames.map(new File(_)), convertFunctions = false)
 
     val domainSpace = PredicateSpace(kb.schema, nonEvidenceAtoms, trainingEvidence.constants)
 

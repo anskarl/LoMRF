@@ -40,7 +40,7 @@ import lomrf.logic.{Formula, AtomSignature}
 /**
  * Knowledge base builder (fluent interface)
  */
-final class KBBuilder { self =>
+final class KBBuilder(convertFunctions: Boolean = false) { self =>
 
   private var _predicateSchema = Map.empty[AtomSignature, Vector[String]]
 
@@ -52,16 +52,12 @@ final class KBBuilder { self =>
 
   private var _dynamicFunctions = Map.empty[AtomSignature, Vector[String] => String]
 
-  private var _functionsAsAUXPredicates = false
-
-
   def withPredicateSchema(input: Map[AtomSignature, Vector[String]]): self.type ={
     _predicateSchema = input
     self
   }
 
-  def withFunctionSchema(input: Map[AtomSignature, (String, Vector[String])], asAUXPredicates: Boolean = false): self.type ={
-    _functionsAsAUXPredicates = asAUXPredicates
+  def withFunctionSchema(input: Map[AtomSignature, (String, Vector[String])]): self.type ={
     _functionSchema = input
     self
   }
@@ -82,11 +78,11 @@ final class KBBuilder { self =>
   }
   
   def result(): KB = {
-    if(_functionsAsAUXPredicates){
+    val finalPredicateSchema =
+      if(convertFunctions) _functionSchema.toPredicateSchema ++ _predicateSchema
+      else _predicateSchema
 
-    }
-
-    new KB(_predicateSchema, _functionSchema, _formulas, _dynamicPredicates, _dynamicFunctions)
+    new KB(finalPredicateSchema, _functionSchema, _formulas, _dynamicPredicates, _dynamicFunctions)
   }
 
   object predicateSchema {
@@ -210,6 +206,6 @@ final class KBBuilder { self =>
 
 object KBBuilder {
 
-  def apply(): KBBuilder = new KBBuilder
+  def apply(convertFunctions: Boolean = false): KBBuilder = new KBBuilder(convertFunctions)
 
 }

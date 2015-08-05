@@ -108,7 +108,8 @@ object KB {
 
   def fromFile(filename: String,
                pcMode: PredicateCompletionMode = Simplification,
-               dynamicDefinitions: Option[ImplFinder.ImplementationsMap] = None): (KB, ConstantsDomainBuilder) = {
+               dynamicDefinitions: Option[ImplFinder.ImplementationsMap] = None,
+               convertFunctions: Boolean = false): (KB, ConstantsDomainBuilder) = {
     import log._
 
 
@@ -120,7 +121,7 @@ object KB {
     val domainParser = new DomainParser()
 
     val constantsBuilder = new ConstantsDomainBuilder()
-    val kbBuilder = KBBuilder()
+    val kbBuilder = KBBuilder(convertFunctions)
 
     // -------------------------------------------------------
     // Load dynamic predicates (predefined and user-defined)
