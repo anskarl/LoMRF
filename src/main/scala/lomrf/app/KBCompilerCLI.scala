@@ -389,7 +389,7 @@ object KBCompilerCLI extends Logging {
     var outputMLNFileName: Option[String] = None
 
     // Function prefix for transformation of functions to predicates
-    var functionPrefix: String = "ReturnValueOf"
+    var functionPrefix: String = lomrf.AUX_PRED_PREFIX //"ReturnValueOf"
 
     // Eliminate functions
     var eliminateFunctions: Boolean = false
@@ -466,7 +466,7 @@ object KBCompilerCLI extends Logging {
       removeFunctionDefinitions = true
     })
 
-    opt("functionsPrefix", "functions-prefix", "<string>", "Function prefix used for transformation of functions to predicates (default is ReturnValueOf)", {
+    opt("functionsPrefix", "functions-prefix", "<string>", s"Function prefix used for transformation of functions to predicates (default is ${lomrf.AUX_PRED_PREFIX}})", {
       v: String => functionPrefix = v
     })
 
