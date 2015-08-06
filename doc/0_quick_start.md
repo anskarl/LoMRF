@@ -256,7 +256,7 @@ Next(t1,t0) ^ !HoldsAt(f,t0) ^ !InitiatedAt(f, t0) => !HoldsAt(f,t1).
 2 Happens(Load,t) => InitiatedAt(Loaded,t)
 InitiatedAt(Loaded,t) => Happens(Load,t).
 
-// The stops from being loaded after a shot.
+// The gun stops from being loaded after a shot.
 2 Happens(Shoot,t) ^ HoldsAt(Loaded,t) => TerminatedAt(Loaded,t)
 TerminatedAt(Loaded,t) => Happens(Shoot,t) ^ HoldsAt(Loaded,t).
 
@@ -336,6 +336,24 @@ Next(14,13)
 
 ## Perform inference
 
+Two types of inference can be performed in LoMRF, marginal inference and maximum a-posteriori inference (MAP).  
+
+### Marginal inference
+Marginal inference computes the conditional probability of query predicates (e.g., HoldsAt), given the evidence (e.g., Happens 
+and Next).
+```
+lomrf -infer marginal -i theory.mln -e evidence.db -r marginal.result -q HoldsAt/2 -owa InitiatedAt/2,TerminatedAt/2 -cwa Happens/2,Next/2
+```
+
+### MAP inference
+
+MAP inference, on the other hand, identifies the most probable assignment among all query predicate instantiations that 
+are consistent with the given evidence. This task reduces to finding the truth assignment of all query predicate 
+instantiations that maximises the sum of weights of satisfied ground clauses. This is equivalent to the weighted maximum 
+satisfiability problem. 
+```
+lomrf -infer map -i theory.mln -e evidence.db -r marginal.result -q HoldsAt/2 -owa InitiatedAt/2,TerminatedAt/2 -cwa Happens/2,Next/2
+```
 
 ## References
 
