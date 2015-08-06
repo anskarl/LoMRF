@@ -34,9 +34,35 @@ Step 4. Build the LoMRF distribution, type the following command:
 $ sbt dist
 ```
 
-After a successful compilation, the LoMRF distribution is located inside the `./target/universal/lomrf-<version>.zip` file. You can extract this file and add the `path/to/lomrf-<version>/bin` in your PATH, in order to execute the LoMRF scripts from terminal. The distribution contains all library dependencies and requires only a Java 8 (or higher runtime). Sources, documentation and the compiled library (without dependencies) are archived as jar files into the `./target/scala-2.11/` directory.
+After a successful compilation, the LoMRF distribution is located inside the `./target/universal/lomrf-<version>.zip` 
+file. You can extract this file and add the `path/to/lomrf-<version>/bin` in your PATH, in order to execute the LoMRF 
+scripts from terminal (see next Section). The distribution contains all library dependencies and requires only a Java 7 
+(or higher runtime). Sources, documentation and the compiled library (without dependencies) are archived as jar files 
+into the `./target/scala-2.11/` directory. The resulting documentation is located inside the `./target/site/scaladocs` 
+directory.
 
-The resulting documentation is located inside the `./target/site/scaladocs` directory.
+
+## Add LoMRF executables in your default PATH
+
+You can add all CLI tools to your default PATH, in order to directly call LoMRF tools from anywhere in the command line 
+interface. Depending on your OS configuration you have the add and export the path `/path/to/lomrf-<version>/bin` to 
+the `PATH` variable.
+
+For example, lets say that the LoMRF distribution version 0.4 is being installed in your home directory in `$HOME/lomrf-0.4`, 
+the directory structure inside the LoMRF directory is the following:
+
+```bash
+lomrf-0.4/
+|-- bin
+|-- etc
+`-- lib
+```
+The `bin` sub-directory contains all LoMRF executable tools. In order to add this sub-directory in your default `PATH` 
+add the following line in you profile file (e.g., inside `.profile`, `.bashrc` or `.bash_profile` in your home directory):
+
+```bash
+export PATH=$PATH:$HOME/lomrf-0.4/bin
+```
 
 
 ## Using LoMRF as a library
