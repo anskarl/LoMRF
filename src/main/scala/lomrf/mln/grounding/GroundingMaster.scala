@@ -348,17 +348,26 @@ final class GroundingMaster(mln: MLN,
         // When clauses of the current batch are all grounded inform all atom register workers that this iteration
         // is completed, in order to send back the CollectedAtomIDs
         if (clauseCounter == clausesBatchSize) optimize {
-          atomRegisters.partitions.foreach(_ ! GRND_Iteration_Completed)
+          //atomRegisters.partitions.foreach(_ ! GRND_Iteration_Completed)
+          cliqueRegisters.partitions.foreach(_ ! ITERATION_COMPLETED)
         }
 
+      case REGISTRATION_COMPLETED =>
+        regSendCounter += 1
+        if(regSendCounter == cliqueRegisters.size) {
+          optimize {
+            atomRegisters.partitions.foreach(_ ! ITERATION_COMPLETED)
+          }
+          regSendCounter = 0
+        }
       /**
        * At the end of each grounding iteration (i.e., grounding of a batch of clauses) each atom register worker sends
        * back all collected ground atom ids (representing MRF random variables).
        */
       case CollectedAtomIDs(partitionIndex, atomIDs) =>
-
         atomIDBatchesCounter += 1 //increment by one the number of completed atom ID batches
         partitioned.atomsDB(partitionIndex) = atomIDs // assign to the corresponding partition the received atom IDs
+        //partitioned.atomsDB.update(partitionIndex, atomIDs)
 
         // When we have collected atom ID batches from all atom registers:
         // (1) reset the counter for the next grounding iteration, if exists.
@@ -382,6 +391,7 @@ final class GroundingMaster(mln: MLN,
 
         }
     }
+  var regSendCounter = 0
 
   /**
    * Master actor behavior for the phase two, that is when receiving by all workers the collected MRF data.
@@ -479,7 +489,7 @@ final class GroundingMaster(mln: MLN,
           warn(s"Clause '$clause' is being ignored, since is not associated directly or indirectly with query atoms.")
       }
 
-      cliqueRegisters.partitions.foreach(_ ! GRND_Completed)
+      cliqueRegisters.partitions.foreach(_ ! GROUNDING_COMPLETED)
     }
   }
 

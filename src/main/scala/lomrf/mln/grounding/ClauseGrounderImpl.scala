@@ -35,6 +35,7 @@
 
 package lomrf.mln.grounding
 
+import java.io.{FileWriter, File}
 import java.{util => jutil}
 
 import akka.actor.ActorRef
@@ -50,6 +51,7 @@ import scala.collection._
 import scala.language.postfixOps
 import scalaxy.streams.optimize
 
+import lomrf.mln.model.AtomIdentityFunctionOps._
 
 class ClauseGrounderImpl(val clause: Clause,
                          clauseIndex: Int,
@@ -266,5 +268,6 @@ class ClauseGrounderImpl(val clause: Clause,
 
     cliqueRegisters(hashKey) ! messages.CliqueEntry(hashKey, weight, variables, clauseIndex, freq )
   }
+  private var counter = 0
 
 }
