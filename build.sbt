@@ -1,3 +1,7 @@
+name := "LoMRF"
+
+version := "0.4"
+
 // Load LoMRF Build settings
 LoMRFBuild.settings
 
