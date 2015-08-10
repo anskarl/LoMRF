@@ -35,6 +35,7 @@
 
 package lomrf.mln.model
 
+
 import auxlib.log.Logger
 import scala.collection.mutable
 import java.io.{BufferedReader, File, FileReader}
@@ -47,6 +48,7 @@ import lomrf.util.ImplFinder
 import scala.concurrent.duration.Duration
 import scala.concurrent._
 import ExecutionContext.Implicits.global
+import scala.util.{Failure, Success, Try}
 
 /**
  * KB class contains the parsed components of an MLN theory.
@@ -114,6 +116,9 @@ object KB {
 
 
     val kbFile = new File(filename)
+    if(!kbFile.exists() || !kbFile.isFile || !kbFile.canRead)
+      fatal(s"Cannot read input MLN file '${kbFile.getPath}'.")
+
     val fileReader = new BufferedReader(new FileReader(kbFile))
     val formulaMatcher = formulaRegex.matcher("")
     val commentMatcher = ignoreRegex.matcher("")
@@ -236,10 +241,18 @@ object KB {
     var definiteClauses = Set[WeightedDefiniteClause]()
     val queue = mutable.Queue[IncludeFile]()
 
-    val kbExpressions: Iterable[MLNExpression] = kbParser.parseAll(kbParser.mln, fileReader) match {
+    val kbExpressions = Try(kbParser.parseAll(kbParser.mln, fileReader)).map {
       case kbParser.Success(exprs, _) => exprs.asInstanceOf[Iterable[MLNExpression]]
       case x => fatal(s"Can't parse the following expression: '$x' in file: '$kbFile'")
+    } match {
+      case Success(expressions) => expressions
+      case Failure(ex) => fatal(ex.getMessage)
     }
+
+    /*val kbExpressions: Iterable[MLNExpression] = kbParser.parseAll(kbParser.mln, fileReader) match {
+      case kbParser.Success(exprs, _) => exprs.asInstanceOf[Iterable[MLNExpression]]
+      case x => fatal(s"Can't parse the following expression: '$x' in file: '$kbFile'")
+    }*/
 
     def processMLNExpression(expr: MLNExpression): Unit = expr match {
       case f: WeightedFormula =>

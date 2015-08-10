@@ -78,9 +78,7 @@ class ClauseGrounderImpl(val clause: Clause,
       Cartesian.CartesianIterator(variableDomains)
     } catch {
       case ex: NoSuchElementException =>
-        fatal("Failed to initialise CartesianIterator for clause: " +
-          clause.toString + " --- domain = " +
-          variableDomains)
+        fatal(s"Failed to initialise CartesianIterator for clause '${clause.toText()}' with domain '$variableDomains'")
     }
 
 
@@ -252,7 +250,14 @@ class ClauseGrounderImpl(val clause: Clause,
     case f: TermFunction =>
       evidence.functionMappers.get(f.signature) match {
         case Some(m) => m(f.terms.map(a => substituteTerm(theta)(a)))
-        case None => fatal("Cannot apply substitution using theta: " + theta + " in function " + f.signature)
+
+        case None =>
+          val thetaStr = theta.map {
+              case (k, v) => s"${k.toText} -> $v"
+            }
+            .mkString(", ")
+
+          fatal(s"Cannot apply substitution using theta '[$thetaStr]' in function '${f.signature.toString}'")
       }
   }
 
@@ -268,6 +273,5 @@ class ClauseGrounderImpl(val clause: Clause,
 
     cliqueRegisters(hashKey) ! messages.CliqueEntry(hashKey, weight, variables, clauseIndex, freq )
   }
-  private var counter = 0
 
 }

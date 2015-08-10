@@ -52,9 +52,10 @@ final class EvidenceBuilder private(predicateSpace: PredicateSpace,
 
   private var fmBuilders = Map.empty[AtomSignature, FunctionMapperBuilder]
 
+  private var dynFunctions = Map.empty[AtomSignature, Vector[String] => String]
+
   private val functionRegister =
     if(convertFunctionsToPredicates) new FunctionToAUXPredRegister else new DefaultFunctionRegister
-
 
   def withEvidenceBuilders(evBuilders: Map[AtomSignature, AtomEvidenceDBBuilder]): EvidenceBuilder = {
 
@@ -94,6 +95,12 @@ final class EvidenceBuilder private(predicateSpace: PredicateSpace,
     result
   }
 
+  def withDynamicFunctions(df: DynamicFunctions): EvidenceBuilder ={
+    val result = new EvidenceBuilder(predicateSpace, constants, predicateSchema, functionSchema)
+    result.dynFunctions = df
+    result
+  }
+
 
   def clear(): Unit = {
     edbBuilders =  Map.empty[AtomSignature, AtomEvidenceDBBuilder]
@@ -117,9 +124,15 @@ final class EvidenceBuilder private(predicateSpace: PredicateSpace,
 
     val db: EvidenceDB = (for(signature <- predicateSchema.keys) yield signature -> mkEvidenceDB(signature))(breakOut)
 
-    val fm =
+    /*val fm =
       if(convertFunctionsToPredicates) Map.empty[AtomSignature, FunctionMapper]
-      else fmBuilders.map(entries => entries._1 -> entries._2.result())
+      else fmBuilders.map(entries => entries._1 -> entries._2.result())*/
+
+    val dynamicFunctionMappers = dynFunctions.mapValues(new FunctionMapperSpecialImpl(_))
+
+    val fm =
+      if(convertFunctionsToPredicates)  dynamicFunctionMappers
+      else dynamicFunctionMappers ++ fmBuilders.map(entries => entries._1 -> entries._2.result())
 
     Evidence(constants, db, fm)
   }

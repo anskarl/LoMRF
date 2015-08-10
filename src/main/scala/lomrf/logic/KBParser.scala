@@ -169,9 +169,6 @@ final class KBParser(predicateSchema: Map[AtomSignature, Vector[String]],
   private[logic] def normaliseVariableDomains(formula: Formula) {
 
     val (undefinedDomainVars, definedDomainVars) = formula.variables.partition(_.domainName == Variable.UNDEFINED_DOMAIN)
-    /*println("--- > > > " + formula.toText
-      + "\n--- > > > " + undefinedDomainVars
-      + "\n--- > > > " + definedDomainVars)*/
 
     if (undefinedDomainVars.nonEmpty) {
 
@@ -179,7 +176,9 @@ final class KBParser(predicateSchema: Map[AtomSignature, Vector[String]],
       for (currentVar <- undefinedDomainVars) {
         definedDomainVarMap.get(currentVar.symbol) match {
           case Some(domainName) => currentVar.domainName = domainName
-          case None => sys.error("Cannot determine the domain of variable '" + currentVar.toText + "' in (sub)formula '" + formula.toText + "'.")
+          case None =>
+
+            sys.error("Cannot determine the domain of variable '" + currentVar.toText + "' in (sub)formula '" + formula.toText + "'.")
         }
       }
     }
@@ -212,7 +211,7 @@ final class KBParser(predicateSchema: Map[AtomSignature, Vector[String]],
           //the atomicFormula is a common used-defined predicate
           val argTypes: Vector[String] = predicateSchema.get(atomSignature) match {
             case Some(x) => x
-            case _ => sys.error("The predicate: " + atomSignature + " is not defined.")
+            case _ => sys.error(s"The predicate with signature '${atomSignature.toString}' is not defined.")
           }
           val termList: Vector[Term] =
             (for ((element, argType: String) <- arguments.zip(argTypes)) yield element match {
@@ -231,7 +230,7 @@ final class KBParser(predicateSchema: Map[AtomSignature, Vector[String]],
                     result
                   }
                   else if (func.domain == argType) func
-                  else sys.error("The function " + func + " returns: " + func.domain + ", while expecting: " + argType)
+                  else sys.error(s"The function '${func.toText}' returns '${func.domain}', while expecting to return '$argType'.")
 
                 case _ => sys.error("Cannot parse the symbol: " + element)
               }
@@ -529,6 +528,5 @@ final class KBParser(predicateSchema: Map[AtomSignature, Vector[String]],
       case x => fatal("Can't parse the given theory:\n" + x)
     }
   }
-
 
 }
