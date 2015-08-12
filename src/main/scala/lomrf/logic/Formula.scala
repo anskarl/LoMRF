@@ -110,7 +110,17 @@ sealed trait Formula extends MLNExpression {
 
 }
 
-trait DefiniteClauseConstruct extends Formula
+
+sealed trait LogicalConstruct extends Formula {
+  def isUnit: Boolean
+}
+
+sealed trait DefiniteClauseConstruct extends LogicalConstruct
+
+
+sealed trait ConditionalStatement extends LogicalConstruct {
+  override def isUnit = false
+}
 
 
 case class DefiniteClause(head: AtomicFormula, body: DefiniteClauseConstruct) extends Formula {
@@ -242,6 +252,8 @@ case class AtomicFormula(symbol: String, terms: Vector[Term]) extends DefiniteCl
 
   def isGround = variables.isEmpty
 
+  override def isUnit: Boolean = true
+
   override def toText: String = s"$symbol(${terms.map(_.toText).mkString(",")})"
 
   override def toString: String = s"$symbol(${terms.map(_.toString).mkString(",")})"
@@ -273,17 +285,13 @@ case class AtomicFormula(symbol: String, terms: Vector[Term]) extends DefiniteCl
 }
 
 
-trait LogicalConnective extends Formula {
-  def isUnit: Boolean
-}
-
 
 /**
  * Negation of a formula (! { Formula } )
  */
-case class Not(arg: Formula) extends LogicalConnective with DefiniteClauseConstruct {
+case class Not(arg: Formula) extends DefiniteClauseConstruct {
 
-  private lazy val _isUnit: Boolean = arg.isInstanceOf[AtomicFormula]
+  private val _isUnit: Boolean = arg.isInstanceOf[AtomicFormula]
 
   override def subFormulas: Seq[Formula] = Seq(arg)
 
@@ -295,7 +303,7 @@ case class Not(arg: Formula) extends LogicalConnective with DefiniteClauseConstr
 /**
  * Logical AND of two formulas ( { Formula1 } &#094; { Formula2 } ).
  */
-case class And(left: Formula, right: Formula) extends LogicalConnective with DefiniteClauseConstruct {
+case class And(left: Formula, right: Formula) extends DefiniteClauseConstruct {
 
   override def subFormulas: Seq[Formula] = Seq(left, right)
 
@@ -313,7 +321,7 @@ case class And(left: Formula, right: Formula) extends LogicalConnective with Def
 /**
  * Logical OR of two formulas ( { Formula1 } v { Formula2 } ).
  */
-case class Or(left: Formula, right: Formula) extends LogicalConnective {
+case class Or(left: Formula, right: Formula) extends LogicalConstruct {
 
   override def subFormulas: Seq[Formula] = Seq(left, right)
 
@@ -328,9 +336,6 @@ case class Or(left: Formula, right: Formula) extends LogicalConnective {
   def isUnit = false
 }
 
-trait ConditionalStatement extends LogicalConnective {
-  def isUnit = false
-}
 
 
 /**
@@ -355,16 +360,13 @@ case class Equivalence(left: Formula, right: Formula) extends ConditionalStateme
 
 }
 
-sealed abstract class Quantifier(v: Variable, f: Formula) extends Formula {
-
-  val variable = v
-
-  val formula = f
+sealed abstract class Quantifier(val variable: Variable, val formula: Formula) extends LogicalConstruct {
 
   override def subFormulas: Seq[Formula] = Seq(formula)
 
   override def getQuantifiers = this :: formula.getQuantifiers
 
+  override def isUnit: Boolean = false
 }
 
 case class UniversalQuantifier(v: Variable, f: Formula) extends Quantifier(v, f) {
