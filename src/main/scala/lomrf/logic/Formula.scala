@@ -111,19 +111,19 @@ sealed trait Formula extends MLNExpression {
 }
 
 
-sealed trait LogicalConstruct extends Formula {
+sealed trait FormulaConstruct extends Formula {
   def isUnit: Boolean
 }
 
-sealed trait DefiniteClauseConstruct extends LogicalConstruct
+sealed trait DefiniteClauseConstruct extends FormulaConstruct
 
 
-sealed trait ConditionalStatement extends LogicalConstruct {
+sealed trait ConditionalStatement extends FormulaConstruct {
   override def isUnit = false
 }
 
 
-case class DefiniteClause(head: AtomicFormula, body: DefiniteClauseConstruct) extends Formula {
+final case class DefiniteClause(head: AtomicFormula, body: DefiniteClauseConstruct) extends Formula {
 
   override lazy val variables: Set[Variable] = body.subFormulas.foldRight(head.variables)((a: Formula, b) => a.variables ++ b)
 
@@ -149,7 +149,7 @@ case class DefiniteClause(head: AtomicFormula, body: DefiniteClauseConstruct) ex
  * }}}
  * A,B,F and D are FOL atoms and 1.386 is the corresponding weight.
  */
-final class WeightedFormula private(val weight: Double, val formula: Formula) extends Formula {
+final case class WeightedFormula(weight: Double, formula: Formula) extends Formula {
 
   override def subFormulas: Seq[Formula] = Seq(formula)
 
@@ -173,16 +173,10 @@ object WeightedFormula {
 
   def asUnit(formula: Formula) = WeightedFormula(1.0, formula)
 
-  def apply(weight: Double, formula: Formula): WeightedFormula = new WeightedFormula(weight, formula)
-
-
-  def unapply(obj: WeightedFormula): Option[(Double, Formula)] = {
-    if (obj ne null) Some(obj.weight, obj.formula) else None
-  }
 }
 
 
-final class WeightedDefiniteClause private(val weight: Double, val clause: DefiniteClause) extends Formula {
+final case class WeightedDefiniteClause (weight: Double, clause: DefiniteClause) extends Formula {
 
   override def subFormulas: Seq[Formula] = clause.subFormulas
 
@@ -202,16 +196,6 @@ final class WeightedDefiniteClause private(val weight: Double, val clause: Defin
   }
 }
 
-object WeightedDefiniteClause {
-
-  def apply(weight: Double, clause: DefiniteClause): WeightedDefiniteClause = {
-    new WeightedDefiniteClause(weight, clause)
-  }
-
-  def unapply(obj: WeightedDefiniteClause): Option[(Double, DefiniteClause)] = {
-    if (obj ne null) Some(obj.weight, obj.clause) else None
-  }
-}
 
 /**
  * This class represents an atomic-formula (or atom) in FOL, for example:
@@ -285,11 +269,92 @@ case class AtomicFormula(symbol: String, terms: Vector[Term]) extends DefiniteCl
 }
 
 
+/**
+ * This class represents a ground atom (all its terms are constants) and its truth value may be known (given by the input evidence).
+ * Consider, for example, the following atoms:
+ *
+ * <ul>
+ * <li> '!Friends(A,B)' indicates that A and B are not friends, that is Friends(A,B) = False </li>
+ * <li> 'Friends(D,F)'  indicates that D and F are friends, that is Friends(D,F) = True </li>
+ * <li> 'Friends(D,F) 0.76' indicates that D and F are friends with probability 0.76, that is P(Friends(D,F) = True) = 0.76  </li>
+ * <li> '!Friends(D,F) 0.76' indicates that D and F are friends with probability 0.76, that is P(Friends(D,F) = True) = 0.24  </li>
+ * </ul>
+ *
+ * An evidence atom is an atomic formula with a known truth value.
+ */
+final class EvidenceAtom(override val symbol: String, override val terms: Vector[Constant],
+                   val state: TriState, val probability: Double = Double.NaN) extends AtomicFormula(symbol, terms) with EvidenceExpression {
+
+
+  override lazy val variables: Set[Variable] = Set.empty[Variable]
+
+  override lazy val constants: Set[Constant] = terms.toSet[Constant]
+
+  override lazy val functions: Set[TermFunction] = Set.empty[TermFunction]
+
+  override def isGround = true
+
+
+  override def toText: String = {
+    lazy val sentence = s"$symbol(${terms.map(_.toText).mkString(",")})"
+
+    state match {
+      case TRUE => sentence
+      case FALSE => s"!$sentence"
+      case UNKNOWN => s"$sentence $probability"
+    }
+  }
+
+}
+
+object EvidenceAtom {
+
+  def asTrue(predicate: String, args: Vector[Constant]): EvidenceAtom = new EvidenceAtom(predicate, args, TRUE)
+
+  def asFalse(predicate: String, args: Vector[Constant]): EvidenceAtom = new EvidenceAtom(predicate, args, FALSE)
+
+  def asUnknown(predicate: String, args: Vector[Constant]): EvidenceAtom = new EvidenceAtom(predicate, args, UNKNOWN)
+
+  def apply(predicate: String, args: Vector[Constant], state: TriState): EvidenceAtom = new EvidenceAtom(predicate, args, state)
+
+  def apply(predicate: String, args: Vector[Constant], isPositive: Boolean): EvidenceAtom = apply(predicate, args, if (isPositive) TRUE else FALSE)
+
+  def apply(predicate: String, args: Vector[Constant], probability: Double): EvidenceAtom = {
+    require(probability <= 1.0 && probability >= 0, "The specified probability value is not in [0, 1].")
+
+    if (probability == 0.0) apply(predicate, args, FALSE)
+    else if (probability == 1.0) apply(predicate, args, TRUE)
+    else new EvidenceAtom(predicate, args, UNKNOWN, probability)
+  }
+
+  def unapply(obj: EvidenceAtom): Option[(String, Vector[Constant], TriState, Double)] = {
+    if (obj != null) Some((obj.symbol, obj.terms, obj.state, obj.probability)) else None
+  }
+}
+
+final class FunctionMapping(val retValue: String, val functionSymbol: String, val values: Vector[String]) extends EvidenceExpression {
+
+  lazy val signature = AtomSignature(functionSymbol, values.size)
+
+  override def toString = s"$retValue = $functionSymbol(${values.mkString(",")})"
+
+  def toEvidenceAtom: EvidenceAtom ={
+    val symbol = lomrf.AUX_PRED_PREFIX + functionSymbol
+    val terms = values.+:(retValue).map(Constant)
+    EvidenceAtom.asTrue(symbol, terms)
+  }
+
+}
+
+object FunctionMapping {
+  def apply(retValue: String, functionSymbol: String, values: Vector[Constant]) = new FunctionMapping(retValue, functionSymbol, values.map(_.toString))
+}
+
 
 /**
  * Negation of a formula (! { Formula } )
  */
-case class Not(arg: Formula) extends DefiniteClauseConstruct {
+final case class Not(arg: Formula) extends DefiniteClauseConstruct {
 
   private val _isUnit: Boolean = arg.isInstanceOf[AtomicFormula]
 
@@ -303,7 +368,7 @@ case class Not(arg: Formula) extends DefiniteClauseConstruct {
 /**
  * Logical AND of two formulas ( { Formula1 } &#094; { Formula2 } ).
  */
-case class And(left: Formula, right: Formula) extends DefiniteClauseConstruct {
+final case class And(left: Formula, right: Formula) extends DefiniteClauseConstruct {
 
   override def subFormulas: Seq[Formula] = Seq(left, right)
 
@@ -321,7 +386,7 @@ case class And(left: Formula, right: Formula) extends DefiniteClauseConstruct {
 /**
  * Logical OR of two formulas ( { Formula1 } v { Formula2 } ).
  */
-case class Or(left: Formula, right: Formula) extends LogicalConstruct {
+final case class Or(left: Formula, right: Formula) extends FormulaConstruct {
 
   override def subFormulas: Seq[Formula] = Seq(left, right)
 
@@ -341,7 +406,7 @@ case class Or(left: Formula, right: Formula) extends LogicalConstruct {
 /**
  * An implication between two formulas ( { Formula1 } => { Formula2 } ).
  */
-case class Implies(left: Formula, right: Formula) extends ConditionalStatement {
+final case class Implies(left: Formula, right: Formula) extends ConditionalStatement {
   override def subFormulas: Seq[Formula] = Seq(left, right)
 
   override def toText = left.toText + " => " + right.toText
@@ -352,7 +417,7 @@ case class Implies(left: Formula, right: Formula) extends ConditionalStatement {
 /**
  * An equivalence between two formulas ( { Formula1 } <=> { Formula2 } ).
  */
-case class Equivalence(left: Formula, right: Formula) extends ConditionalStatement {
+final case class Equivalence(left: Formula, right: Formula) extends ConditionalStatement {
 
   override def subFormulas: Seq[Formula] = Seq(left, right)
 
@@ -360,7 +425,7 @@ case class Equivalence(left: Formula, right: Formula) extends ConditionalStateme
 
 }
 
-sealed abstract class Quantifier(val variable: Variable, val formula: Formula) extends LogicalConstruct {
+sealed abstract class Quantifier(val variable: Variable, val formula: Formula) extends FormulaConstruct {
 
   override def subFormulas: Seq[Formula] = Seq(formula)
 
@@ -369,13 +434,13 @@ sealed abstract class Quantifier(val variable: Variable, val formula: Formula) e
   override def isUnit: Boolean = false
 }
 
-case class UniversalQuantifier(v: Variable, f: Formula) extends Quantifier(v, f) {
+final case class UniversalQuantifier(v: Variable, f: Formula) extends Quantifier(v, f) {
 
   override def toText: String = "(Forall " + v.toText + " " + formula.toText + ")"
 
 }
 
-case class ExistentialQuantifier(v: Variable, f: Formula) extends Quantifier(v, f) {
+final case class ExistentialQuantifier(v: Variable, f: Formula) extends Quantifier(v, f) {
 
   override def toText: String = "(Exist " + v.toText + " " + formula.toText + ")"
 
