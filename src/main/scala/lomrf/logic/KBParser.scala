@@ -166,7 +166,7 @@ final class KBParser(predicateSchema: Map[AtomSignature, Vector[String]],
    *
    * @param formula the formula to fix
    */
-  private[logic] def normaliseVariableDomains(formula: Formula) {
+  private[logic] def normaliseVariableDomains(formula: FormulaLike) {
 
     val (undefinedDomainVars, definedDomainVars) = formula.variables.partition(_.domainName == Variable.UNDEFINED_DOMAIN)
 
@@ -474,8 +474,8 @@ final class KBParser(predicateSchema: Map[AtomSignature, Vector[String]],
    * @param src string representation of the formula
    * @return the resulting formula
    */
-  def parseFormula(src: String): Formula = parse(sentence, src) match {
-    case Success(expr, _) if expr.isInstanceOf[Formula] => expr.asInstanceOf[Formula]
+  def parseFormula(src: String): FormulaLike = parse(sentence, src) match {
+    case Success(expr, _) if expr.isInstanceOf[FormulaLike] => expr.asInstanceOf[FormulaLike]
     case x => fatal("Can't parse the following expression: " + x)
   }
 

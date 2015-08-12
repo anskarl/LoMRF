@@ -90,8 +90,9 @@ object NormalForm {
     )
   )
 
-  def compileCNF(formulas: Iterable[Formula])(implicit constants: Map[String, ConstantsSet] = Map.empty): Set[Clause] ={
-    formulas.par.foldLeft(Set[Clause]())((clauses, formula) => clauses ++ toCNF(formula))
+  def compileCNF(formulas: Iterable[WeightedFormula])(implicit constants: Map[String, ConstantsSet] = Map.empty): Set[Clause] ={
+    ???
+    //formulas.par.foldLeft(Set[Clause]())((clauses, formula) => clauses ++ toCNF(formula))
   }
 
   /**
@@ -121,7 +122,7 @@ object NormalForm {
     //@tailrec cannot be applied
     def collect(src: Formula): Formula = src match {
       case f: AtomicFormula => f
-      case f: WeightedFormula => WeightedFormula(f.weight, collect(f.formula))
+      //case f: WeightedFormula => WeightedFormula(f.weight, collect(f.formula))
       case q: Quantifier =>
         quantifiers.enqueue(q)
         collect(q.formula)
@@ -152,7 +153,7 @@ object NormalForm {
   def removeImplications(source: Formula): Formula = {
     source match {
       case f: AtomicFormula => f
-      case f: WeightedFormula => WeightedFormula(f.weight, removeImplications(f.formula))
+      //case f: WeightedFormula => WeightedFormula(f.weight, removeImplications(f.formula))
       case f: Not => Not(removeImplications(f.arg))
       case f: And => And(removeImplications(f.left), removeImplications(f.right))
       case f: Or => Or(removeImplications(f.left), removeImplications(f.right))
@@ -176,7 +177,7 @@ object NormalForm {
     //println("Internal step for: "+source)
     source match {
       case f: AtomicFormula => f
-      case WeightedFormula(weight, formula) => WeightedFormula(weight, negationsIn(formula))
+      //case WeightedFormula(weight, formula) => WeightedFormula(weight, negationsIn(formula))
       case Not(arg) => //Move negation inward
         arg match {
           case And(left, right) => negationsIn(Or(Not(left), Not(right))) //!(PvQ) -> !P ^ !Q
@@ -235,7 +236,7 @@ object NormalForm {
         case x: UniversalQuantifier =>
           val newVar = nextVar(x.variable)
           UniversalQuantifier(newVar, stdVar(Substitute(Map(x.variable -> newVar), x.formula)))
-        case x: WeightedFormula => WeightedFormula(x.weight, stdVar(x.formula))
+        //case x: WeightedFormula => WeightedFormula(x.weight, stdVar(x.formula))
         case _ => throw new IllegalStateException("Failed to standardize variables, illegal formula: " + f.toText)
       }
     }
@@ -264,7 +265,7 @@ object NormalForm {
 
     source match {
       case x: AtomicFormula => x
-      case WeightedFormula(w, f) => WeightedFormula(w, removeExistentialQuantifiers(constants, f))
+      //case WeightedFormula(w, f) => WeightedFormula(w, removeExistentialQuantifiers(constants, f))
       case And(left, right) => And(removeExistentialQuantifiers(constants, left), removeExistentialQuantifiers(constants, right))
       case Or(left, right) => Or(removeExistentialQuantifiers(constants, left), removeExistentialQuantifiers(constants, right))
       case Not(f) => Not(removeExistentialQuantifiers(constants, f))
@@ -300,7 +301,7 @@ object NormalForm {
   def removeUniversalQuantifiers(source: Formula): Formula = {
     source match {
       case x: AtomicFormula => x
-      case WeightedFormula(w, f) => WeightedFormula(w, removeUniversalQuantifiers(f))
+      //case WeightedFormula(w, f) => WeightedFormula(w, removeUniversalQuantifiers(f))
       case And(left, right) => And(removeUniversalQuantifiers(left), removeUniversalQuantifiers(right))
       case Or(left, right) => Or(removeUniversalQuantifiers(left), removeUniversalQuantifiers(right))
       case Not(f) => Not(removeUniversalQuantifiers(f))
@@ -317,7 +318,7 @@ object NormalForm {
 
     def dist(source: Formula): Formula = {
       source match {
-        case w: WeightedFormula => WeightedFormula(w.weight, dist(w.formula))
+        //case w: WeightedFormula => WeightedFormula(w.weight, dist(w.formula))
         case f: Not if f.arg.isInstanceOf[AtomicFormula] => f
         case f: AtomicFormula => f
         //(a ^ b) v (c ^ d) -> (a v c) ^ (a v d) ^ (b v c) ^ (b v d)
@@ -382,7 +383,7 @@ object NormalForm {
       //@tailrec cannot be applied
       def collectLiterals(source: Formula) {
         source match {
-          case f: WeightedFormula => collectLiterals(f.formula)
+          //case f: WeightedFormula => collectLiterals(f.formula)
           /*case f: AtomicFormula => units += NegativeLiteral(f)
           case Not(f: AtomicFormula) => units += PositiveLiteral(f)*/
           case f: AtomicFormula => units += PositiveLiteral(f)
@@ -435,7 +436,7 @@ object NormalForm {
       cs.foldRight(Set[Clause]())((a, b) => Set(new Clause(weightVal, a)) ++ b)
 
     formula match {
-      case WeightedFormula(weight, f) =>
+      /*case WeightedFormula(weight, f) =>
         val (unit, nonUnit) = extractLiterals(f)
         assert((unit.size + nonUnit.size) > 0)
 
@@ -452,7 +453,7 @@ object NormalForm {
           val mergedUnitsClauses = Clause(unit.map(_.negate), -clauseWeight)
           Set(mergedUnitsClauses) ++ createWeightedClauses(clauseWeight, nonUnit)
         }
-        else createWeightedClauses(clauseWeight, nonUnit) //no unit clauses.
+        else createWeightedClauses(clauseWeight, nonUnit) //no unit clauses.*/
       case _ => throw new IllegalStateException("Failed to extract clauses, illegal formula: " + formula.toText)
     }
   }

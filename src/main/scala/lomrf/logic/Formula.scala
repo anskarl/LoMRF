@@ -38,7 +38,7 @@ package lomrf.logic
 import lomrf.mln.model.ConstantsSet
 
 
-sealed trait Formula extends MLNExpression {
+sealed trait FormulaLike extends MLNExpression {
 
   // The collection of variables that appear inside this formula
   lazy val variables: Set[Variable] = subFormulas.foldRight(Set[Variable]())((f: Formula, rest) => f.variables ++ rest)
@@ -96,7 +96,7 @@ sealed trait Formula extends MLNExpression {
    * @param constants the domain of constants, required for existentially quantified variables
    * @return a set of clauses
    */
-  def toCNF(implicit constants: Map[String, ConstantsSet]): Set[Clause] = NormalForm.toCNF(this)(constants)
+  def toCNF(implicit constants: Map[String, ConstantsSet]): Set[Clause] = ??? //NormalForm.toCNF(this)(constants)
 
   /**
    * The textual representation of this formula
@@ -111,19 +111,19 @@ sealed trait Formula extends MLNExpression {
 }
 
 
-sealed trait FormulaConstruct extends Formula {
+sealed trait Formula extends FormulaLike {
   def isUnit: Boolean
 }
 
-sealed trait DefiniteClauseConstruct extends FormulaConstruct
+sealed trait DefiniteClauseConstruct extends Formula
 
 
-sealed trait ConditionalStatement extends FormulaConstruct {
+sealed trait ConditionalStatement extends Formula {
   override def isUnit = false
 }
 
 
-final case class DefiniteClause(head: AtomicFormula, body: DefiniteClauseConstruct) extends Formula {
+final case class DefiniteClause(head: AtomicFormula, body: DefiniteClauseConstruct) extends FormulaLike {
 
   override lazy val variables: Set[Variable] = body.subFormulas.foldRight(head.variables)((a: Formula, b) => a.variables ++ b)
 
@@ -149,7 +149,7 @@ final case class DefiniteClause(head: AtomicFormula, body: DefiniteClauseConstru
  * }}}
  * A,B,F and D are FOL atoms and 1.386 is the corresponding weight.
  */
-final case class WeightedFormula(weight: Double, formula: Formula) extends Formula {
+final case class WeightedFormula(weight: Double, formula: Formula) extends FormulaLike {
 
   override def subFormulas: Seq[Formula] = Seq(formula)
 
@@ -176,7 +176,7 @@ object WeightedFormula {
 }
 
 
-final case class WeightedDefiniteClause (weight: Double, clause: DefiniteClause) extends Formula {
+final case class WeightedDefiniteClause (weight: Double, clause: DefiniteClause) extends FormulaLike {
 
   override def subFormulas: Seq[Formula] = clause.subFormulas
 
@@ -386,7 +386,7 @@ final case class And(left: Formula, right: Formula) extends DefiniteClauseConstr
 /**
  * Logical OR of two formulas ( { Formula1 } v { Formula2 } ).
  */
-final case class Or(left: Formula, right: Formula) extends FormulaConstruct {
+final case class Or(left: Formula, right: Formula) extends Formula {
 
   override def subFormulas: Seq[Formula] = Seq(left, right)
 
@@ -425,7 +425,7 @@ final case class Equivalence(left: Formula, right: Formula) extends ConditionalS
 
 }
 
-sealed abstract class Quantifier(val variable: Variable, val formula: Formula) extends FormulaConstruct {
+sealed abstract class Quantifier(val variable: Variable, val formula: Formula) extends Formula {
 
   override def subFormulas: Seq[Formula] = Seq(formula)
 

@@ -228,7 +228,7 @@ object KBCompilerCLI extends Logging {
    *
    * @return the formatted formula
    */
-  private def formulaFormatter(formula: Formula, weightsMode: WeightsMode): String = {
+  private def formulaFormatter(formula: FormulaLike, weightsMode: WeightsMode): String = {
     formula match {
       case WeightedFormula(w, f) =>
         weightsMode match {

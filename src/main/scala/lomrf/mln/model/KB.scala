@@ -61,7 +61,7 @@ import scala.util.{Failure, Success, Try}
  */
 class KB(val predicateSchema: PredicateSchema,
          val functionSchema: FunctionSchema,
-         val formulas: Set[Formula],
+         val formulas: Set[WeightedFormula],
          val dynamicPredicates: DynamicPredicates,
          val dynamicFunctions: DynamicFunctions) { self =>
 
@@ -101,7 +101,7 @@ object KB {
 
   def apply(predicateSchema: PredicateSchema,
             functionSchema: FunctionSchema,
-            formulas: Set[Formula],
+            formulas: Set[WeightedFormula],
             dynamicPredicates: DynamicPredicates,
             dynamicFunctions: DynamicFunctions) = {
 
@@ -159,7 +159,7 @@ object KB {
      *
      * @param formula source formula
      */
-    def storeUndefinedConstants(formula: Formula): Unit= {
+    def storeUndefinedConstants(formula: FormulaLike): Unit= {
       debug(s"Looking for constants in formula: '${formula.toText}'")
 
       def parseTerm(term: Term, key: String): Unit = term match {
@@ -181,7 +181,7 @@ object KB {
 
             for ((term, idx) <- atom.terms.zipWithIndex) parseTerm(term, predicateArgsSchema(idx))
           }
-        case otherFormula: Formula => otherFormula.subFormulas.foreach(storeUndefinedConstants)
+        case otherFormula: FormulaLike => otherFormula.subFormulas.foreach(storeUndefinedConstants)
       }
     }
 
@@ -237,7 +237,7 @@ object KB {
     fileReader.reset()
     val kbParser = new KBParser(kbBuilder.predicateSchema(), kbBuilder.functionSchema(), dynamicAtomBuilders, dynamicFunctionBuilders)
 
-    var formulas = Set[Formula]()
+    var formulas = Set[WeightedFormula]()
     var definiteClauses = Set[WeightedDefiniteClause]()
     val queue = mutable.Queue[IncludeFile]()
 

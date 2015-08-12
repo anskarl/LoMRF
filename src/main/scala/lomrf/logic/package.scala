@@ -119,7 +119,7 @@ package object logic {
       case f: AtomicFormula =>
         if (f.signature == targetAtom.signature) withFormula
         else f
-      case f: WeightedFormula => WeightedFormula(f.weight, _replaceAtom(targetAtom, f.formula, withFormula))
+      //case f: WeightedFormula => WeightedFormula(f.weight, _replaceAtom(targetAtom, f.formula, withFormula))
       case f: Not => Not(_replaceAtom(targetAtom, f.arg, withFormula))
       case f: And => And(_replaceAtom(targetAtom, f.left, withFormula), _replaceAtom(targetAtom, f.right, withFormula))
       case f: Or => Or(_replaceAtom(targetAtom, f.left, withFormula), _replaceAtom(targetAtom, f.right, withFormula))

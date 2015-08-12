@@ -116,7 +116,7 @@ object LogicOps {
         inFormula match {
           case f: AtomicFormula => if (f.signature == targetAtom.signature) withFormula else f
 
-          case f: WeightedFormula => WeightedFormula(f.weight, doReplace(f.formula, withFormula))
+          //case f: WeightedFormula => WeightedFormula(f.weight, doReplace(f.formula, withFormula))
 
           case f: Not => Not(doReplace(f.arg, withFormula))
 

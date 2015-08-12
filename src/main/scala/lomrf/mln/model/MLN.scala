@@ -180,7 +180,7 @@ object MLN {
             functionSchema: FunctionSchema,
             dynamicPredicates: DynamicPredicates,
             dynamicFunctions: DynamicFunctions,
-            formulas: Set[Formula],
+            formulas: Set[WeightedFormula],
             constants: ConstantsDomain,
             evidenceDB: EvidenceDB,
             functionMappers: FunctionMappers,

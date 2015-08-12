@@ -84,7 +84,7 @@ object Substitute {
   //@inline
   private def substFormula(theta: Theta, alpha: Formula): Formula = {
     alpha match {
-      case x: WeightedFormula => WeightedFormula(x.weight, substFormula(theta, x.subFormulas.head))
+      //case x: WeightedFormula => WeightedFormula(x.weight, substFormula(theta, x.subFormulas.head))
       case x: AtomicFormula => substAtomicFormula(theta, x)
       case x: Not => Not(substFormula(theta, x.arg))
       case x: And => And(substFormula(theta, x.left), substFormula(theta, x.right))

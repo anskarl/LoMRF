@@ -101,8 +101,11 @@ object PredicateCompletion extends Logging {
    * @param functionSchema function schema [[lomrf.mln.model.MLN]]
    * @return a logically stronger knowledge base (set of formulas)
    */
-  def apply(formulas: Set[Formula], definiteClauses: Set[WeightedDefiniteClause])
-           (implicit predicateSchema: Map[AtomSignature, Vector[String]], functionSchema: Map[AtomSignature, (String, Vector[String])]): Set[Formula] = apply(formulas, definiteClauses, PredicateCompletionMode.Simplification)
+  def apply(formulas: Set[WeightedFormula], definiteClauses: Set[WeightedDefiniteClause])
+           (implicit predicateSchema: Map[AtomSignature, Vector[String]],
+            functionSchema: Map[AtomSignature, (String, Vector[String])]): Set[WeightedFormula] = {
+    apply(formulas, definiteClauses, PredicateCompletionMode.Simplification)
+  }
 
   /**
    * Creates a logically stronger knowledge base from the given formulas, by performing predicate completion.
@@ -182,8 +185,8 @@ object PredicateCompletion extends Logging {
 
    * @return  a logically stronger knowledge base (set of formulas)
    */
-  def apply(formulas: Set[Formula], definiteClauses: Set[WeightedDefiniteClause], mode: PredicateCompletionMode)
-           (implicit predicateSchema: Map[AtomSignature, Vector[String]], functionSchema: Map[AtomSignature, (String, Vector[String])]): Set[Formula] = {
+  def apply(formulas: Set[WeightedFormula], definiteClauses: Set[WeightedDefiniteClause], mode: PredicateCompletionMode)
+           (implicit predicateSchema: Map[AtomSignature, Vector[String]], functionSchema: Map[AtomSignature, (String, Vector[String])]): Set[WeightedFormula] = {
 
     if (definiteClauses.isEmpty) {
       info("No definite clauses found in the given MLN.")
@@ -252,7 +255,8 @@ object PredicateCompletion extends Logging {
 
 
   private def collectAndMerge(definiteClauses: Set[WeightedDefiniteClause])
-                             (implicit predicateSchema: Map[AtomSignature, Vector[String]], functionSchema: Map[AtomSignature, (String, Vector[String])]): (Boolean, DefiniteClausesDB) = {
+                             (implicit predicateSchema: Map[AtomSignature, Vector[String]],
+                              functionSchema: Map[AtomSignature, (String, Vector[String])]): (Boolean, DefiniteClausesDB) = {
 
 
     val dcDB = mutable.HashMap[AtomSignature, mutable.HashMap[AtomicFormula, mutable.HashSet[DefiniteClauseConstruct]]]()
@@ -359,13 +363,13 @@ object PredicateCompletion extends Logging {
    * @param dcDB database of collected/merged definite clauses
    * @return the resulting KB
    */
-  private def applyPCSimplification(formulas: Set[Formula], dcDB: DefiniteClausesDB): Set[Formula] = {
+  private def applyPCSimplification(formulas: Set[WeightedFormula], dcDB: DefiniteClausesDB): Set[WeightedFormula] = ??? /*{
     val targetSignatures = dcDB.keySet
-    var pcResultingKB =  Set[Formula]()
+    var pcResultingKB =  Set[WeightedFormula]()
     pcResultingKB ++= formulas
 
     for (signature <- targetSignatures) {
-      var lambdaPrime = Set[Formula]()
+      var lambdaPrime = Set[WeightedFormula]()
       for (formula <- pcResultingKB) {
         if (containsSignature(signature, formula)) {
           for ((headPredicate, bodies) <- dcDB(signature)) {
@@ -385,7 +389,7 @@ object PredicateCompletion extends Logging {
       pcResultingKB = lambdaPrime
     }
     pcResultingKB
-  }
+  }*/
 
   /**
    * Standard predicate completion (see [[lomrf.logic.PredicateCompletion]])
@@ -394,7 +398,7 @@ object PredicateCompletion extends Logging {
    * @param dcDB database of collected/merged definite clauses
    * @return the resulting KB
    */
-  private def applyPC(formulas: Set[Formula], dcDB: DefiniteClausesDB): Set[Formula] = {
+  private def applyPC(formulas: Set[WeightedFormula], dcDB: DefiniteClausesDB): Set[WeightedFormula] = ??? /*{
 
     var pcResultingKB = Set[Formula]()
     pcResultingKB ++= formulas
@@ -404,7 +408,7 @@ object PredicateCompletion extends Logging {
       pcResultingKB += pcFormula
     }
     pcResultingKB
-  }
+  }*/
 
   /**
    * Predicate completion with decomposed equivalences (see [[lomrf.logic.PredicateCompletion]]).<br/>
@@ -414,7 +418,7 @@ object PredicateCompletion extends Logging {
    * @param dcDB database of collected/merged definite clauses
    * @return the resulting KB
    */
-  private def applyPCDecomposed(formulas: Set[Formula], definiteClauses: Set[WeightedDefiniteClause], dcDB: DefiniteClausesDB): Set[Formula] = {
+  private def applyPCDecomposed(formulas: Set[WeightedFormula], definiteClauses: Set[WeightedDefiniteClause], dcDB: DefiniteClausesDB): Set[WeightedFormula] = ??? /*{
 
     var pcResultingKB = Set[Formula]()
     pcResultingKB ++= formulas
@@ -428,7 +432,7 @@ object PredicateCompletion extends Logging {
       pcResultingKB += WeightedFormula(Double.PositiveInfinity, Implies(head, bodies.map(body => normalise(head, body)).reduceLeft((left, right) => Or(left, right))))
 
     pcResultingKB
-  }
+  }*/
 }
 
 /**

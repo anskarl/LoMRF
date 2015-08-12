@@ -35,7 +35,7 @@
 
 package lomrf.mln.model
 
-import lomrf.logic.{Formula, AtomSignature}
+import lomrf.logic.{WeightedFormula, AtomSignature}
 
 /**
  * Knowledge base builder (fluent interface)
@@ -46,7 +46,7 @@ final class KBBuilder(convertFunctions: Boolean = false) { self =>
 
   private var _functionSchema = Map.empty[AtomSignature, (String, Vector[String])]
 
-  private var _formulas = Set.empty[Formula]
+  private var _formulas = Set.empty[WeightedFormula]
 
   private var _dynamicPredicates = Map.empty[AtomSignature, Vector[String] => Boolean]
 
@@ -62,7 +62,7 @@ final class KBBuilder(convertFunctions: Boolean = false) { self =>
     self
   }
 
-  def withFormulas(input: Set[Formula]): self.type ={
+  def withFormulas(input: Set[WeightedFormula]): self.type ={
     _formulas = input
     self
   }
@@ -142,12 +142,12 @@ final class KBBuilder(convertFunctions: Boolean = false) { self =>
 
     def apply() = _formulas
 
-    def += ( value: Formula): self.type ={
+    def += ( value: WeightedFormula): self.type ={
       _formulas += value
       self
     }
 
-    def ++= (values: Iterable[Formula]): self.type ={
+    def ++= (values: Iterable[WeightedFormula]): self.type ={
       _formulas ++= values
       self
     }

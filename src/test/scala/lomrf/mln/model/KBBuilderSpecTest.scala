@@ -440,8 +440,9 @@ class KBBuilderSpecTest extends FunSpec with Matchers {
   // --- KB Builder (insertion of formulas)
   // --------------------------------------------------------
   describe("KBBuilder insertion of formulas") {
+    fail("unimplemented")
 
-    describe("Incremental addition of formulas") {
+    /*describe("Incremental addition of formulas") {
       val builder = KBBuilder()
 
       for (formula <- sampleFormulas)
@@ -467,9 +468,9 @@ class KBBuilderSpecTest extends FunSpec with Matchers {
         assert(sampleFormulas.forall(formulas.contains))
       }
 
-    }
+    }*/
 
-    describe("Batch addition of formulas") {
+    /*describe("Batch addition of formulas") {
       val builder = KBBuilder()
 
       builder.formulas ++= sampleFormulas
@@ -493,15 +494,16 @@ class KBBuilderSpecTest extends FunSpec with Matchers {
         assert(sampleFormulas.forall(formulas.contains))
       }
 
-    }
+    }*/
   }
 
   // --------------------------------------------------------
   // --- KB Builder: creation of KB
   // --------------------------------------------------------
   describe("The KB from a KBBuilder") {
+    fail("unimplemented")
 
-    val builder = KBBuilder()
+    /*val builder = KBBuilder()
 
     val kb =
       builder
@@ -531,7 +533,7 @@ class KBBuilderSpecTest extends FunSpec with Matchers {
     it("contains all specified dynamic predicates") {
       assert(dynAtoms == kb.dynamicPredicates)
     }
-
+   */
   }
 
 
