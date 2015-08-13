@@ -78,11 +78,11 @@ final class KBParser(predicateSchema: Map[AtomSignature, Vector[String]],
   /**
    * A parenthesis may hold a FOL formula
    */
-  def parenthesis: Parser[Formula] = "(" ~> formula <~ ")"
+  def parenthesis: Parser[FormulaConstruct] = "(" ~> formula <~ ")"
 
-  def formula: Parser[Formula] = binary(minPrecedenceLevel) | formulaNoOp
+  def formula: Parser[FormulaConstruct] = binary(minPrecedenceLevel) | formulaNoOp
 
-  def formulaNoOp: Parser[Formula] = parenthesis | quantifier | atomicFormula | negatedFormula
+  def formulaNoOp: Parser[FormulaConstruct] = parenthesis | quantifier | atomicFormula | negatedFormula
 
   def definiteClause: Parser[DefiniteClause] = {
     atomicFormula ~ ":-" ~ definiteClauseBody ^^ {
@@ -166,7 +166,7 @@ final class KBParser(predicateSchema: Map[AtomSignature, Vector[String]],
    *
    * @param formula the formula to fix
    */
-  private[logic] def normaliseVariableDomains(formula: FormulaLike) {
+  private[logic] def normaliseVariableDomains(formula: Formula) {
 
     val (undefinedDomainVars, definedDomainVars) = formula.variables.partition(_.domainName == Variable.UNDEFINED_DOMAIN)
 
@@ -430,7 +430,7 @@ final class KBParser(predicateSchema: Map[AtomSignature, Vector[String]],
       case q1 ~ filePath ~ q2 => IncludeFile(filePath)
     }
 
-  private def makeVars(listVarNames: List[String], f: Formula) = for {
+  private def makeVars(listVarNames: List[String], f: FormulaConstruct) = for {
     v <- listVarNames
     result = f.variables.find(_.symbol == v) match {
       case Some(x) => Variable(x.symbol, x.domain)
@@ -440,23 +440,23 @@ final class KBParser(predicateSchema: Map[AtomSignature, Vector[String]],
 
   // Operators
   // http://jim-mcbeath.blogspot.com/2008/09/scala-parser-combinators.html
-  private def binary(level: Int): Parser[Formula] =
+  private def binary(level: Int): Parser[FormulaConstruct] =
     if (level > maxPrecedenceLevel) formulaNoOp
     else binary(level + 1) * logicalOperator(level)
 
-  private def logicalOperator(level: Int): Parser[(Formula, Formula) => Formula] = level match {
+  private def logicalOperator(level: Int): Parser[(FormulaConstruct, FormulaConstruct) => FormulaConstruct] = level match {
     case 1 =>
       "=>" ^^^ {
-        (a: Formula, b: Formula) => Implies(a, b)
+        (a: FormulaConstruct, b: FormulaConstruct) => Implies(a, b)
       } |
         "<=>" ^^^ {
-          (a: Formula, b: Formula) => Equivalence(a, b)
+          (a: FormulaConstruct, b: FormulaConstruct) => Equivalence(a, b)
         }
     case 2 => "v" ^^^ {
-      (a: Formula, b: Formula) => Or(a, b)
+      (a: FormulaConstruct, b: FormulaConstruct) => Or(a, b)
     }
     case 3 => "^" ^^^ {
-      (a: Formula, b: Formula) => And(a, b)
+      (a: FormulaConstruct, b: FormulaConstruct) => And(a, b)
     }
     case _ => sys.error("logicalOperator: wrong precedence level: " + level)
   }
@@ -474,8 +474,8 @@ final class KBParser(predicateSchema: Map[AtomSignature, Vector[String]],
    * @param src string representation of the formula
    * @return the resulting formula
    */
-  def parseFormula(src: String): FormulaLike = parse(sentence, src) match {
-    case Success(expr, _) if expr.isInstanceOf[FormulaLike] => expr.asInstanceOf[FormulaLike]
+  def parseFormula(src: String): Formula = parse(sentence, src) match {
+    case Success(expr, _) if expr.isInstanceOf[Formula] => expr.asInstanceOf[Formula]
     case x => fatal("Can't parse the following expression: " + x)
   }
 

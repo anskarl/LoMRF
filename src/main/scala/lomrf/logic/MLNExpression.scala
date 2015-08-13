@@ -42,7 +42,7 @@ package lomrf.logic
  *   <li>A pointer to another MLN file (see [[lomrf.logic.IncludeFile]]), e.g. {{{#include "file.mln"}}}</li>
  *   <li>Predicate definition, with syntax: Predicate_Name(arg_type1, arg_type2, arg_type3), e.g. {{{HoldsAt(fluent, time)}}}</li>
  *   <li>Function definition, with syntax: return_type Function_Name(arg_type1, arg_type2), e.g. {{{event walking(person)}}}</li>
- *   <li>MLN formula (see [[lomrf.logic.Formula]]), e.g. {{{ 1.386 Happens(A,t) ^ Happens(B,t) => InitiatedAt(F, t) }}}</li>
+ *   <li>MLN formula (see [[lomrf.logic.FormulaConstruct]]), e.g. {{{ 1.386 Happens(A,t) ^ Happens(B,t) => InitiatedAt(F, t) }}}</li>
  *   <li>Evidence atom, that is a ground atom with possibly known state (see [[lomrf.logic.EvidenceAtom]] ), e.g. {{{Happens(Some_Event, 10)}}}</li>
  * </ul>
  *
@@ -102,7 +102,7 @@ case class AtomicType(predicateName: String, argTypes: Vector[String]) extends M
 case class FunctionType(returnType: String, name: String, argTypes: Vector[String]) extends MLNDomainExpression
 
 /**
- * MLN formula (see [[lomrf.logic.Formula]]), for example:
+ * MLN formula (see [[lomrf.logic.FormulaConstruct]]), for example:
  * {{{
  * 1.386 Happens(A,t) ^ Happens(B,t) => InitiatedAt(F, t) // soft-constrained formula
  * Happens(Exit, t) => TerminatedAt(F,t). // hard-constrained formula

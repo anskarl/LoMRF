@@ -78,21 +78,37 @@ object NormalForm {
    * @see Standford course CS157: Computational Logic, topic: Resolution Preliminaries  (lecture 9) [[http://logic.stanford.edu/classes/cs157/2008/lectures/lecture09.pdf]]
    * @see Russell, S.J. and Norvig, P. and Canny, J.F. and Malik, J. and Edwards, D.D. Artificial Intelligence: A Modern Approach, chapter 9.5.1 Conjunctive normal form for first-order logic [[http://aima.cs.berkeley.edu/]]
    */
-  def toCNF(source: Formula)(implicit constants: Map[String, ConstantsSet] = Map.empty): Set[Clause] = extractClauses(
-    distribute(
-      removeUniversalQuantifiers(
-        removeExistentialQuantifiers(constants,
-          standardizeVariables(
-            negationsIn(removeImplications(source))
-          )
+  def toCNF(source: Formula)(implicit constants: Map[String, ConstantsSet] = Map.empty): Set[Clause] ={
+
+    def normaliseConstruct(f: FormulaConstruct) = {
+      distribute(
+        removeUniversalQuantifiers(
+          removeExistentialQuantifiers(constants,
+            standardizeVariables(negationsIn(removeImplications(f))))
         )
       )
-    )
-  )
+    }
 
-  def compileCNF(formulas: Iterable[WeightedFormula])(implicit constants: Map[String, ConstantsSet] = Map.empty): Set[Clause] ={
-    ???
-    //formulas.par.foldLeft(Set[Clause]())((clauses, formula) => clauses ++ toCNF(formula))
+    val normalized = source match {
+      case wf:WeightedFormula =>
+        WeightedFormula(wf.weight, normaliseConstruct(wf.formula))
+
+      case DefiniteClause(head, body) =>
+        WeightedFormula.asHard(normaliseConstruct(Implies(body,head)))
+
+      case WeightedDefiniteClause(weight, clause) =>
+        WeightedFormula(weight, normaliseConstruct(Implies(clause.body, clause.head)))
+
+      case c: FormulaConstruct =>
+        WeightedFormula.asHard(normaliseConstruct(c))
+    }
+
+    extractClauses(normalized)
+
+  }
+
+  def compileCNF(formulas: Iterable[Formula])(implicit constants: Map[String, ConstantsSet] = Map.empty): Set[Clause] ={
+    formulas.par.foldLeft(Set[Clause]())((clauses, formula) => clauses ++ toCNF(formula))
   }
 
   /**
@@ -103,7 +119,23 @@ object NormalForm {
    * <li> '''N:''' Move inwards all negations </li>
    * </ul>
    */
-  def toNNF(source: Formula): Formula = negationsIn(removeImplications(source))
+  def toNNF[F <: Formula](source: F): Formula = {
+    def normaliseConstruct(f: FormulaConstruct) = negationsIn(removeImplications(f))
+
+    source match {
+      case WeightedFormula(weight, formula) =>
+        WeightedFormula(weight, normaliseConstruct(formula))
+
+      case DefiniteClause(head, body) =>
+        normaliseConstruct(Implies(body, head))
+
+      case WeightedDefiniteClause(weight, clause) =>
+        WeightedFormula(weight, normaliseConstruct(Implies(clause.body, clause.head)))
+
+      case c: FormulaConstruct =>
+        normaliseConstruct(c)
+    }
+  }
 
   /**
    * Converts the given formula into Prenex Normal Form (PNF).
@@ -114,13 +146,30 @@ object NormalForm {
    * <li> '''M:''' Move all quantifiers outwards</li>
    * </ul>
    */
-  def toPNF(source: Formula): Formula = moveQuantifiersOutside(toNNF(source))
+  def toPNF[F <: Formula](source: F): Formula = {
 
-  private def moveQuantifiersOutside(source: Formula): Formula = {
+    def normaliseConstruct(f: FormulaConstruct) = moveQuantifiersOutside(negationsIn(removeImplications(f)))
+
+    source match {
+      case WeightedFormula(weight, formula) =>
+        WeightedFormula(weight, normaliseConstruct(formula))
+
+      case DefiniteClause(head, body) =>
+        normaliseConstruct(Implies(body, head))
+
+      case WeightedDefiniteClause(weight, clause) =>
+        WeightedFormula(weight, normaliseConstruct(Implies(clause.body, clause.head)))
+
+      case c: FormulaConstruct =>
+        normaliseConstruct(c)
+    }
+  }
+
+  private def moveQuantifiersOutside(source: FormulaConstruct): FormulaConstruct = {
     val quantifiers = mutable.Queue[Quantifier]()
 
     //@tailrec cannot be applied
-    def collect(src: Formula): Formula = src match {
+    def collect(src: FormulaConstruct): FormulaConstruct = src match {
       case f: AtomicFormula => f
       //case f: WeightedFormula => WeightedFormula(f.weight, collect(f.formula))
       case q: Quantifier =>
@@ -133,7 +182,7 @@ object NormalForm {
     }
 
     @tailrec
-    def construct(insideFormula: Formula): Formula = {
+    def construct(insideFormula: FormulaConstruct): FormulaConstruct = {
       if (quantifiers.nonEmpty)
         quantifiers.dequeue() match {
           case f: ExistentialQuantifier => construct(ExistentialQuantifier(f.variable, insideFormula))
@@ -150,7 +199,7 @@ object NormalForm {
   /**
    * Eliminates all implications (=>) and (<=>) from the given formula.
    */
-  def removeImplications(source: Formula): Formula = {
+  def removeImplications(source: FormulaConstruct): FormulaConstruct = {
     source match {
       case f: AtomicFormula => f
       //case f: WeightedFormula => WeightedFormula(f.weight, removeImplications(f.formula))
@@ -173,7 +222,7 @@ object NormalForm {
    * will result to:
    * {{{!P(x) v Q(x)}}}
    */
-  def negationsIn(source: Formula): Formula = {
+  def negationsIn(source: FormulaConstruct): FormulaConstruct = {
     //println("Internal step for: "+source)
     source match {
       case f: AtomicFormula => f
@@ -202,7 +251,7 @@ object NormalForm {
    * {{{ Forall x P(x) ^ Exists x0 R(x0)}}}
    *
    */
-  def standardizeVariables(source: Formula): Formula = {
+  def standardizeVariables(source: FormulaConstruct): FormulaConstruct = {
     val vars = mutable.Map[Variable, Variable]()
 
     /**
@@ -224,7 +273,7 @@ object NormalForm {
     }
 
 
-    def stdVar(f: Formula): Formula = {
+    def stdVar(f: FormulaConstruct): FormulaConstruct = {
       f match {
         case x: AtomicFormula => x
         case x: And => And(stdVar(x.left), stdVar(x.right))
@@ -260,7 +309,7 @@ object NormalForm {
    *
    * @return the equivalent formula in which all existential quantifiers are eliminated.
    */
-  def removeExistentialQuantifiers(constants: Map[String, ConstantsSet], source: Formula): Formula = {
+  def removeExistentialQuantifiers(constants: Map[String, ConstantsSet], source: FormulaConstruct): FormulaConstruct = {
     //TODO: re-implement this function into a non-recursive version, in order to avoid "out of memory" errors in large domains
 
     source match {
@@ -298,7 +347,7 @@ object NormalForm {
   /**
    * Removes all universal quantifiers from the specified formula
    */
-  def removeUniversalQuantifiers(source: Formula): Formula = {
+  def removeUniversalQuantifiers(source: FormulaConstruct): FormulaConstruct = {
     source match {
       case x: AtomicFormula => x
       //case WeightedFormula(w, f) => WeightedFormula(w, removeUniversalQuantifiers(f))
@@ -313,10 +362,10 @@ object NormalForm {
   /**
    * Distribute all disjunctions inside all conjunctions in order to create the final clausal form.
    */
-  def distribute(source: Formula): Formula = {
+  def distribute(source: FormulaConstruct): FormulaConstruct = {
     var isDone = true
 
-    def dist(source: Formula): Formula = {
+    def dist(source: FormulaConstruct): FormulaConstruct = {
       source match {
         //case w: WeightedFormula => WeightedFormula(w.weight, dist(w.formula))
         case f: Not if f.arg.isInstanceOf[AtomicFormula] => f
@@ -363,7 +412,7 @@ object NormalForm {
    * </p>
    * {{{2 P(x) ^ Q(x) ^ (R(x) v S(x)) }}}
    *
-   * will be extracted into the followin clauses:
+   * will be extracted into the following clauses:
    * {{{
    * -1 !P(x) v !Q(x)
    *
@@ -374,7 +423,9 @@ object NormalForm {
    *
    * @return the extracted clauses
    */
+  @tailrec
   def extractClauses(formula: Formula): Set[Clause] = {
+
     def extractLiterals(source: Formula): (Set[Literal], Set[Set[Literal]]) = {
 
       var units = Set[Literal]()
@@ -383,9 +434,7 @@ object NormalForm {
       //@tailrec cannot be applied
       def collectLiterals(source: Formula) {
         source match {
-          //case f: WeightedFormula => collectLiterals(f.formula)
-          /*case f: AtomicFormula => units += NegativeLiteral(f)
-          case Not(f: AtomicFormula) => units += PositiveLiteral(f)*/
+          case f: WeightedFormula => collectLiterals(f.formula)
           case f: AtomicFormula => units += PositiveLiteral(f)
           case Not(f: AtomicFormula) => units += NegativeLiteral(f)
           case And(left, right) =>
@@ -397,7 +446,7 @@ object NormalForm {
             var isTautology = false
 
             //@tailrec cannot be applied
-            def walkInsideDisjunction(src: Formula) {
+            def walkInsideDisjunction(src: FormulaConstruct) {
               src match {
                 case Not(s: AtomicFormula) =>
                   // check for tautology
@@ -436,7 +485,13 @@ object NormalForm {
       cs.foldRight(Set[Clause]())((a, b) => Set(new Clause(weightVal, a)) ++ b)
 
     formula match {
-      /*case WeightedFormula(weight, f) =>
+      case wdc: WeightedDefiniteClause =>
+        extractClauses(wdc.toWeightedFormula)
+
+      case dc: DefiniteClause =>
+        extractClauses(dc.toWeightedFormula)
+
+      case WeightedFormula(weight, f) =>
         val (unit, nonUnit) = extractLiterals(f)
         assert((unit.size + nonUnit.size) > 0)
 
@@ -453,7 +508,8 @@ object NormalForm {
           val mergedUnitsClauses = Clause(unit.map(_.negate), -clauseWeight)
           Set(mergedUnitsClauses) ++ createWeightedClauses(clauseWeight, nonUnit)
         }
-        else createWeightedClauses(clauseWeight, nonUnit) //no unit clauses.*/
+        else createWeightedClauses(clauseWeight, nonUnit) //no unit clauses.
+
       case _ => throw new IllegalStateException("Failed to extract clauses, illegal formula: " + formula.toText)
     }
   }

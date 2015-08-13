@@ -48,10 +48,10 @@ package object logic {
 
 
   @deprecated(message = "Use import LogicOps._")
-  def containsSignature(signature: AtomSignature, formula: Formula): Boolean = formula match {
+  def containsSignature(signature: AtomSignature, formula: FormulaConstruct): Boolean = formula match {
     case atom: AtomicFormula => atom.signature == signature
     case _ =>
-      val queue = mutable.Queue[Formula]()
+      val queue = mutable.Queue[FormulaConstruct]()
       formula.subFormulas.foreach(queue.enqueue(_))
       while (queue.nonEmpty) {
         val currentFormula = queue.dequeue()
@@ -64,10 +64,10 @@ package object logic {
   }
 
   @deprecated(message = "Use import LogicOps._")
-  def fetchAtom(signature: AtomSignature, formula: Formula): Option[AtomicFormula] = formula match {
+  def fetchAtom(signature: AtomSignature, formula: FormulaConstruct): Option[AtomicFormula] = formula match {
     case atom: AtomicFormula => if (atom.signature == signature) Some(atom) else None
     case _ =>
-      val queue = mutable.Queue[Formula]()
+      val queue = mutable.Queue[FormulaConstruct]()
       formula.subFormulas.foreach(queue.enqueue(_))
       while (queue.nonEmpty) {
         val currentFormula = queue.dequeue()
@@ -82,10 +82,10 @@ package object logic {
   }
 
   @deprecated(message = "Use import LogicOps._")
-  def extractSignatures(formula: Formula): Set[AtomSignature] = formula match {
+  def extractSignatures(formula: FormulaConstruct): Set[AtomSignature] = formula match {
     case atom: AtomicFormula => Set(atom.signature)
     case _ =>
-      val queue = mutable.Queue[Formula]()
+      val queue = mutable.Queue[FormulaConstruct]()
       formula.subFormulas.foreach(queue.enqueue(_))
       var result = Set[AtomSignature]()
 
@@ -101,7 +101,7 @@ package object logic {
   }
 
   @deprecated(message = "Use import LogicOps._")
-  def replaceAtom(targetAtom: AtomicFormula, inFormula: Formula, replacement: Formula): Option[Formula] = {
+  def replaceAtom(targetAtom: AtomicFormula, inFormula: FormulaConstruct, replacement: FormulaConstruct): Option[FormulaConstruct] = {
     Unify(targetAtom, inFormula) match {
       case Some(theta) if theta.nonEmpty =>
         val replacementPrime = Substitute(theta, replacement)
@@ -114,7 +114,7 @@ package object logic {
     }
   }
 
-  private def _replaceAtom(targetAtom: AtomicFormula, inFormula: Formula, withFormula: Formula): Formula = {
+  private def _replaceAtom(targetAtom: AtomicFormula, inFormula: FormulaConstruct, withFormula: FormulaConstruct): FormulaConstruct = {
     inFormula match {
       case f: AtomicFormula =>
         if (f.signature == targetAtom.signature) withFormula

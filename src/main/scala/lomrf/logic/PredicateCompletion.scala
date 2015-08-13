@@ -95,7 +95,7 @@ object PredicateCompletion extends Logging {
   /**
    * Performs predicate completion with simplification (see [[lomrf.logic.PredicateCompletion]]).
    *
-   * @param formulas the input set of formulas [[lomrf.logic.Formula]]
+   * @param formulas the input set of formulas [[lomrf.logic.FormulaConstruct]]
    * @param definiteClauses the input set of definite clauses [[lomrf.logic.DefiniteClause]]
    * @param predicateSchema predicate schema [[lomrf.mln.model.MLN]]
    * @param functionSchema function schema [[lomrf.mln.model.MLN]]
@@ -177,7 +177,7 @@ object PredicateCompletion extends Logging {
    *  (Exist t' Happens(Event3(x),t) ^ !HoldsAt(moving(y),t') ^ t' < t )
    * }}}
    *
-   * @param formulas  the input set of formulas [[lomrf.logic.Formula]]
+   * @param formulas  the input set of formulas [[lomrf.logic.FormulaConstruct]]
    * @param definiteClauses   the input set of definite clauses [[lomrf.logic.DefiniteClause]]
    * @param mode  predicate completion mode to use
    * @param predicateSchema   MLN predicate schema [[lomrf.mln.model.MLN]]
@@ -240,7 +240,7 @@ object PredicateCompletion extends Logging {
    * @param body atoms
    * @return the resulting body, which may be existentially quantified over some variables
    */
-  private def normalise(head: AtomicFormula, body: Formula): Formula = {
+  private def normalise(head: AtomicFormula, body: FormulaConstruct): FormulaConstruct = {
     //A set of existentially quantified variables in the body
     val exQVars = body.getQuantifiers.filter(_.isInstanceOf[ExistentialQuantifier]).map(_.variable).toSet
 
@@ -363,7 +363,7 @@ object PredicateCompletion extends Logging {
    * @param dcDB database of collected/merged definite clauses
    * @return the resulting KB
    */
-  private def applyPCSimplification(formulas: Set[WeightedFormula], dcDB: DefiniteClausesDB): Set[WeightedFormula] = ??? /*{
+  private def applyPCSimplification(formulas: Set[WeightedFormula], dcDB: DefiniteClausesDB): Set[WeightedFormula] = ???/*{
     val targetSignatures = dcDB.keySet
     var pcResultingKB =  Set[WeightedFormula]()
     pcResultingKB ++= formulas
@@ -418,7 +418,7 @@ object PredicateCompletion extends Logging {
    * @param dcDB database of collected/merged definite clauses
    * @return the resulting KB
    */
-  private def applyPCDecomposed(formulas: Set[WeightedFormula], definiteClauses: Set[WeightedDefiniteClause], dcDB: DefiniteClausesDB): Set[WeightedFormula] = ??? /*{
+  private def applyPCDecomposed(formulas: Set[WeightedFormula], definiteClauses: Set[WeightedDefiniteClause], dcDB: DefiniteClausesDB): Set[WeightedFormula] = ???/*{
 
     var pcResultingKB = Set[Formula]()
     pcResultingKB ++= formulas

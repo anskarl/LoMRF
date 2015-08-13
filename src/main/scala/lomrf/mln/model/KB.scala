@@ -159,7 +159,7 @@ object KB {
      *
      * @param formula source formula
      */
-    def storeUndefinedConstants(formula: FormulaLike): Unit= {
+    def storeUndefinedConstants(formula: Formula): Unit= {
       debug(s"Looking for constants in formula: '${formula.toText}'")
 
       def parseTerm(term: Term, key: String): Unit = term match {
@@ -181,7 +181,7 @@ object KB {
 
             for ((term, idx) <- atom.terms.zipWithIndex) parseTerm(term, predicateArgsSchema(idx))
           }
-        case otherFormula: FormulaLike => otherFormula.subFormulas.foreach(storeUndefinedConstants)
+        case otherFormula: Formula => otherFormula.subFormulas.foreach(storeUndefinedConstants)
       }
     }
 

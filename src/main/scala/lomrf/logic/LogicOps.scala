@@ -39,12 +39,12 @@ import scala.collection.mutable
 
 object LogicOps {
 
-  implicit class FormulaOps(val formula: Formula) extends AnyVal {
+  implicit class FormulaOps[F <: Formula](val formula: F) extends AnyVal {
 
     def contains(signature: AtomSignature): Boolean = formula match {
       case atom: AtomicFormula => atom.signature == signature
       case _ =>
-        val queue = mutable.Queue[Formula]()
+        val queue = mutable.Queue[FormulaConstruct]()
         formula.subFormulas.foreach(queue.enqueue(_))
         while (queue.nonEmpty) {
           val currentFormula = queue.dequeue()
@@ -60,7 +60,7 @@ object LogicOps {
     def first(signature: AtomSignature): Option[AtomicFormula] = formula match {
       case atom: AtomicFormula => if (atom.signature == signature) Some(atom) else None
       case _ =>
-        val queue = mutable.Queue[Formula]()
+        val queue = mutable.Queue[FormulaConstruct]()
         formula.subFormulas.foreach(queue.enqueue(_))
         while (queue.nonEmpty) {
           val currentFormula = queue.dequeue()
@@ -75,7 +75,7 @@ object LogicOps {
     def all(signature: AtomSignature): Seq[AtomicFormula] = formula match {
       case atom: AtomicFormula => if (atom.signature == signature) Seq(atom) else Seq()
       case _ =>
-        val queue = mutable.Queue[Formula]()
+        val queue = mutable.Queue[FormulaConstruct]()
         formula.subFormulas.foreach(queue.enqueue(_))
         var result = Vector[AtomicFormula]()
 
@@ -94,7 +94,7 @@ object LogicOps {
     def signatures: Set[AtomSignature] = formula match {
       case atom: AtomicFormula => Set(atom.signature)
       case _ =>
-        val queue = mutable.Queue[Formula]()
+        val queue = mutable.Queue[FormulaConstruct]()
         formula.subFormulas.foreach(queue.enqueue(_))
         var result = Set[AtomSignature]()
 
@@ -110,13 +110,11 @@ object LogicOps {
     }
 
 
-    def replace(targetAtom: AtomicFormula, replacement: Formula): Option[Formula] = {
+    def replace(targetAtom: AtomicFormula, replacement: FormulaConstruct): Option[F] = ??? /*{
 
-      def doReplace(inFormula: Formula, withFormula: Formula): Formula ={
+      def doReplace(inFormula: FormulaConstruct, withFormula: FormulaConstruct): FormulaConstruct ={
         inFormula match {
           case f: AtomicFormula => if (f.signature == targetAtom.signature) withFormula else f
-
-          //case f: WeightedFormula => WeightedFormula(f.weight, doReplace(f.formula, withFormula))
 
           case f: Not => Not(doReplace(f.arg, withFormula))
 
@@ -136,6 +134,23 @@ object LogicOps {
         }
       }
 
+
+
+
+      formula match {
+        case WeightedFormula(w,f) =>
+
+
+
+        case WeightedDefiniteClause(w, c) =>
+        case DefiniteClause(h, b) =>
+        case c: FormulaConstruct =>
+
+      }
+
+
+
+
       Unify(targetAtom, formula) match {
         case Some(theta) if theta.nonEmpty =>
 
@@ -146,7 +161,7 @@ object LogicOps {
           Some(result)
         case _ => None // nothing to unify
       }
-    }
+    }*/
 
 
   }

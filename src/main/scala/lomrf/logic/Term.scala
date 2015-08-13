@@ -43,7 +43,7 @@ package lomrf.logic
  *
  *
  */
-sealed trait Term extends MLNExpression {
+sealed trait Term extends MLNExpression with Substitutable[Term]{
 
   val symbol: String
 
@@ -80,6 +80,8 @@ sealed trait Term extends MLNExpression {
    */
   def toText: String
 
+  def substitute(theta: Theta): Term = theta.getOrElse(this, this)
+
 }
 
 /**
@@ -92,6 +94,8 @@ sealed trait Term extends MLNExpression {
 sealed case class Variable(override val symbol: String,
                            private[logic] var domainName: String = Variable.UNDEFINED_DOMAIN,
                            index: Int = Variable.DEFAULT_INDEX) extends Term {
+
+
 
 
   override def isGround = false
@@ -217,6 +221,14 @@ sealed case class TermFunction(override val symbol: String, terms: Vector[_ <: T
     case _ => false
   }
 
+  override def substitute(theta: Theta): TermFunction = {
+    val resultingTerms = terms map{
+      case tf: TermFunction => tf.substitute(theta)
+      case other => other
+    }
+
+    TermFunction(symbol, resultingTerms, domain)
+  }
 }
 
 object TermFunction {

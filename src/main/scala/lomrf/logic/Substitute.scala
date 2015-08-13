@@ -44,31 +44,41 @@ package lomrf.logic
  * }}}
  *
  * @see Wikipedia article [[http://en.wikipedia.org/wiki/First-order_logic]]
- * @see Russell, S.J. and Norvig, P. and Canny, J.F. and Malik, J. and Edwards, D.D. Artificial Intelligence: A Modern Approach, chapter 8.3 Using First-Order Logic [[http://aima.cs.berkeley.edu/]]
+ * @see Russell, S.J. and Norvig, P. and Canny, J.F. and Malik, J. and Edwards, D.D. Artificial Intelligence:
+ *      A Modern Approach, chapter 8.3 Using First-Order Logic [[http://aima.cs.berkeley.edu/]]
  *
  *
  */
 object Substitute {
 
+  def apply[T](theta: Theta, alpha: T): T = ???
 
+  /*def apply[F <: Formula ](theta: Theta, alpha: F) = substFormula(theta, alpha)
+
+  def apply[T <: Term](theta: Theta, alpha: T) = substTerm(theta, alpha).asInstanceOf[T]
+
+  def apply(theta: Theta, alpha: Clause) = substClause(theta, alpha)*/
+
+  /*
   def apply[T](theta: Theta, alpha: T): T = {
     alpha match {
       case x: Term => substTerm(theta, x).asInstanceOf[T]
       case x: AtomicFormula => substAtomicFormula(theta, x).asInstanceOf[T]
-      case x: Formula => substFormula(theta, x).asInstanceOf[T]
+      case x: FormulaConstruct => substFormula(theta, x).asInstanceOf[T]
       case x: Clause => substClause(theta, x).asInstanceOf[T]
       case x: Literal => substLiteral(theta, x).asInstanceOf[T]
       case x: Set[_] => x.map(apply(theta, _)).asInstanceOf[T]
+      case _ =>
+        throw new UnsupportedOperationException(s"Cannot apply theta-substitution to an instance of '${alpha.getClass.getName}'")
     }
   }
+   */
 
   /**
    * Theta substitution for a Term
    */
-  @inline
-  private def substTerm(theta: Theta, alpha: Term): Term = {
-    if(theta.contains(alpha))
-      theta(alpha)
+  def substTerm(theta: Theta, alpha: Term): Term = {
+    if(theta.contains(alpha)) theta(alpha)
     else alpha match {
       case x: TermFunction => TermFunction(x.symbol, x.terms.map(substTerm(theta, _)), x.domain)
       case _ => alpha
@@ -78,25 +88,50 @@ object Substitute {
   /**
    * Theta substitution for an Atomic Formula
    */
-  @inline
   private def substAtomicFormula(theta: Theta, alpha: AtomicFormula) = AtomicFormula(alpha.symbol, alpha.terms.map(substTerm(theta, _)))
 
-  //@inline
-  private def substFormula(theta: Theta, alpha: Formula): Formula = {
+  def substFormula[F <: Formula](theta: Theta, alpha: F): F = {
     alpha match {
-      //case x: WeightedFormula => WeightedFormula(x.weight, substFormula(theta, x.subFormulas.head))
-      case x: AtomicFormula => substAtomicFormula(theta, x)
-      case x: Not => Not(substFormula(theta, x.arg))
-      case x: And => And(substFormula(theta, x.left), substFormula(theta, x.right))
-      case x: Or => Or(substFormula(theta, x.left), substFormula(theta, x.right))
-      case x: Implies => Implies(substFormula(theta, x.left), substFormula(theta, x.right))
-      case x: Equivalence => Equivalence(substFormula(theta, x.left), substFormula(theta, x.right))
+      case wf: WeightedFormula =>
+        WeightedFormula(wf.weight, substFormulaConstruct(theta, wf.formula)).asInstanceOf[F]
+
+      case WeightedDefiniteClause(weight, clause) =>
+        val substHead = substAtomicFormula(theta, clause.head)
+        val substBody = substDefiniteClauseConstruct(theta, clause.body)
+        WeightedDefiniteClause(weight, DefiniteClause(substHead, substBody)).asInstanceOf[F]
+
+      case DefiniteClause(head, body) =>
+        val substHead = substAtomicFormula(theta, head)
+        val substBody = substDefiniteClauseConstruct(theta, body)
+        DefiniteClause(substHead, substBody).asInstanceOf[F]
+
+      case construct: FormulaConstruct => substFormulaConstruct(theta, construct).asInstanceOf[F]
+    }
+  }
+
+  private def substFormulaConstruct(theta: Theta, alpha: FormulaConstruct): FormulaConstruct ={
+    alpha match {
       case x: Quantifier => substQuantifier(theta, x)
+      case x: Or => Or(substFormulaConstruct(theta, x.left), substFormulaConstruct(theta, x.right))
+      case x: And => And(substFormulaConstruct(theta, x.left), substFormulaConstruct(theta, x.right))
+      case x: Not => Not(substFormulaConstruct(theta, x.arg))
+      case x: Implies => Implies(substFormulaConstruct(theta, x.left), substFormulaConstruct(theta, x.right))
+      case x: Equivalence => Equivalence(substFormulaConstruct(theta, x.left), substFormulaConstruct(theta, x.right))
+      case x: AtomicFormula => substAtomicFormula(theta, x)
       case _ => throw new IllegalStateException("Illegal formula type.")
     }
   }
 
-  @inline
+  private def substDefiniteClauseConstruct(theta: Theta, alpha: DefiniteClauseConstruct): DefiniteClauseConstruct ={
+    alpha match {
+      case x: And => And(substFormulaConstruct(theta, x.left), substFormulaConstruct(theta, x.right))
+      case x: Not => Not(substFormulaConstruct(theta, x.arg))
+      case x: AtomicFormula => substAtomicFormula(theta, x)
+      case _ => throw new IllegalStateException("Illegal formula type.")
+    }
+  }
+
+
   private def substQuantifier(theta: Theta, alpha: Quantifier): Quantifier = {
 
     val newVar = theta.get(alpha.variable) match {
@@ -105,8 +140,8 @@ object Substitute {
     }
 
     alpha match {
-      case q: ExistentialQuantifier => ExistentialQuantifier(newVar, substFormula(theta, q.formula))
-      case q: UniversalQuantifier => UniversalQuantifier(newVar, substFormula(theta, q.formula))
+      case q: ExistentialQuantifier => ExistentialQuantifier(newVar, substFormulaConstruct(theta, q.formula))
+      case q: UniversalQuantifier => UniversalQuantifier(newVar, substFormulaConstruct(theta, q.formula))
     }
   }
 
@@ -123,6 +158,6 @@ object Substitute {
   /**
    * Theta substitution for a clause
    */
-  private def substClause(theta: Theta, alpha: Clause): Clause = new Clause(alpha.weight, alpha.literals.map(substLiteral(theta, _)).toSet)
+  def substClause(theta: Theta, alpha: Clause): Clause = new Clause(alpha.weight, alpha.literals.map(substLiteral(theta, _)))
 
 }

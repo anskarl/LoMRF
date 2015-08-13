@@ -39,7 +39,7 @@ import org.scalatest.{FunSpec, Matchers}
 import lomrf.mln.model.{ConstantsSet, MLN}
 
 /**
- * A series of spec test for the computation of normal forms (e.g., CNF, NNF, etc).
+ * A series of spec tests for the computation of normal forms (e.g., CNF, NNF, etc).
  */
 final class NormalFormSpecTest extends FunSpec with Matchers{
 
@@ -94,9 +94,8 @@ final class NormalFormSpecTest extends FunSpec with Matchers{
 
 
   describe("Formula 'InitiatedAt(Fight,t) => Happens(Abrupt, t).'"){
-    fail("unimplemented")
 
-    /*val formula = kbParser.parseFormula("InitiatedAt(Fight,t) => Happens(Abrupt, t).")
+    val formula = kbParser.parseFormula("InitiatedAt(Fight,t) => Happens(Abrupt, t).")
     val clauses = NormalForm.toCNF(formula)
 
     it("results to a single valid clause"){
@@ -106,21 +105,21 @@ final class NormalFormSpecTest extends FunSpec with Matchers{
 
       assert(literals.contains(kbParser.parseLiteral("!InitiatedAt(Fight,t)")))
       assert(literals.contains(kbParser.parseLiteral("Happens(Abrupt, t)")))
-    }*/
+    }
   }
 
 
 
   describe("Formula 'InitiatedAt(Fight,t) <=> Happens(Abrupt, t).'"){
-    fail("unimplemented")
-    /*val formula = kbParser.parseFormula("InitiatedAt(Fight,t) <=> Happens(Abrupt, t).")
+
+    val formula = kbParser.parseFormula("InitiatedAt(Fight,t) <=> Happens(Abrupt, t).")
     val clauses = NormalForm.toCNF(formula)
 
     it("produces two valid clauses"){
       clauses.size shouldEqual 2
       assertContainsClause(clauses, "{!InitiatedAt(Fight,t) | Happens(Abrupt, t)}")
       assertContainsClause(clauses, "{InitiatedAt(Fight,t) | !Happens(Abrupt, t)}")
-    }*/
+    }
   }
 
 
@@ -301,27 +300,25 @@ final class NormalFormSpecTest extends FunSpec with Matchers{
   }
 
   describe("Formula 'InitiatedAt(f,t) => !(Happens(e, t) ^ Exist x Close(x,t))'"){
-    fail("unimplemented")
 
-    /*val src = "InitiatedAt(f,t) => !(Happens(e, t) ^ Exist x Close(x,t))"
+    val src = "InitiatedAt(f,t) => !(Happens(e, t) ^ Exist x Close(x,t))"
     val formula = kbParser.parseFormula(src)
 
     it("should produce the NNF clause '!InitiatedAt(f,t) v !Happens(e,t) v (Forall x !Close(x,t))'"){
       val nnf = NormalForm.toNNF(formula)
       assert(nnf.toText == "!InitiatedAt(f,t) v !Happens(e,t) v (Forall x !Close(x,t))")
-    }*/
+    }
   }
 
   describe("Formula 'InitiatedAt(f,t) => !(Happens(e, t) ^ Exist x Close(x,t))'"){
-    fail("unimplemented")
-    
-    /*val src = "InitiatedAt(f,t) => !(Happens(e, t) ^ Exist x Close(x,t))"
+
+    val src = "InitiatedAt(f,t) => !(Happens(e, t) ^ Exist x Close(x,t))"
     val formula = kbParser.parseFormula(src)
 
     it("should produce the PNF clause '(Forall x !InitiatedAt(f,t) v !Happens(e,t) v !Close(x,t))'") {
       val pnf = NormalForm.toPNF(formula)
       assert(pnf.toText == "(Forall x !InitiatedAt(f,t) v !Happens(e,t) v !Close(x,t))")
-    }*/
+    }
   }
 
   describe("The formula 'InitiatedAt(f,t) => HoldsAt(f, succ(t)).'"){
