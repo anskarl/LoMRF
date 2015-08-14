@@ -292,10 +292,8 @@ object NormalForm {
         case _ => throw new IllegalStateException("Failed to standardize variables, illegal formula: " + f.toText)
       }
     }
-    val result = stdVar(source)
-    println(s"source = {${source.toText}} ---> result = {${result.toText}}")
 
-    result
+    stdVar(source)
   }
 
 

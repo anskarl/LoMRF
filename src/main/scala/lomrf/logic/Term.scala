@@ -162,7 +162,7 @@ sealed case class Constant(override val symbol: String) extends Term{
 
   override def toString = symbol
 
-  override def substitute(theta: Theta): Term = this
+  override def substitute(theta: Theta): Constant = this
 }
 
 /**
@@ -198,12 +198,12 @@ sealed case class TermFunction(override val symbol: String, terms: Vector[_ <: T
 
   def toText = {
     if (terms.isEmpty) symbol + "()"
-    else symbol + "(" + terms.map((t: Term) => t.toText).reduceLeft(_ + ", " + _) + ")"
+    else s"$symbol(${terms.map(_.toText).mkString(", ")})"
   }
 
   override def toString = {
     if (terms.isEmpty) symbol + "():" + domain
-    else symbol + "(" + terms.map((t: Term) => t.toString).reduceLeft(_ + ", " + _) + "):" + domain
+    else s"$symbol(${terms.map(_.toString).mkString(", ")}):$domain"
   }
 
   override lazy val hashCode = {
@@ -223,12 +223,8 @@ sealed case class TermFunction(override val symbol: String, terms: Vector[_ <: T
   }
 
   override def substitute(theta: Theta): TermFunction = {
-    val resultingTerms = terms map{
-      case tf: TermFunction => tf.substitute(theta)
-      case _ =>  this
-    }
-
-    TermFunction(symbol, resultingTerms, domain)
+    TermFunction(symbol, terms.map(_.substitute(theta)), domain)
+    //theta.getOrElse(this, TermFunction(symbol, terms.map(_.substitute(theta)), domain))
   }
 }
 

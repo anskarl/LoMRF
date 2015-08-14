@@ -165,8 +165,8 @@ final class TermSpecTest extends FunSpec with Matchers {
       resultingTerm should not equal Constant("Foo")
     }
 
-    it("prints as 't-10'") {
-      resultingTerm.toText should be("t-10")
+    it("prints as 't_10'") {
+      resultingTerm.toText should be("t_10")
     }
 
     it("toString returns 'x$10:time'") {
