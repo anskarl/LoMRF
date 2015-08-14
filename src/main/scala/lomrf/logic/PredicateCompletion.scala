@@ -40,6 +40,7 @@ import auxlib.log.Logging
 
 import collection.mutable
 import lomrf.logic.dynamic.DynEqualsBuilder
+import LogicOps._
 
 
 /**
@@ -186,7 +187,8 @@ object PredicateCompletion extends Logging {
    * @return  a logically stronger knowledge base (set of formulas)
    */
   def apply(formulas: Set[WeightedFormula], definiteClauses: Set[WeightedDefiniteClause], mode: PredicateCompletionMode)
-           (implicit predicateSchema: Map[AtomSignature, Vector[String]], functionSchema: Map[AtomSignature, (String, Vector[String])]): Set[WeightedFormula] = {
+           (implicit predicateSchema: Map[AtomSignature, Vector[String]],
+            functionSchema: Map[AtomSignature, (String, Vector[String])]): Set[WeightedFormula] = {
 
     if (definiteClauses.isEmpty) {
       info("No definite clauses found in the given MLN.")
@@ -296,7 +298,9 @@ object PredicateCompletion extends Logging {
                       // cover the differences by renaming its variables and introduce additional atoms (equals) to the body.
                       val currentClauseBody = {
                         if (currentHead != generalisedHead) {
-                          val thetaCurrent = Unify(currentHead, generalisedHead).getOrElse(fatal("Cannot unify " + generalisedHead.toText + " with " + currentHead.toText + " (possible bug?)"))
+                          val thetaCurrent = Unify(currentHead, generalisedHead).getOrElse(
+                            fatal(s"Cannot unify '${generalisedHead.toText}' with '${currentHead.toText}' (possible bug?)"))
+
                           // Rename variables:
                           val thetaVariablesRenaming = collectVariablesToRename(thetaCurrent)
                           val bodyVarRenamed = currentClause.clause.body.substitute(thetaVariablesRenaming)
@@ -304,7 +308,8 @@ object PredicateCompletion extends Logging {
 
                           //Insert the additional atoms to the bodies:
                           val additionalAtomsStored =
-                            for ((v, t) <- thetaWithoutVarRenamed if v.isInstanceOf[Variable]) yield eqBuilder(Vector(v, t)) //yield AtomicFormula("equals", List(v, t))
+                            for ((v, t) <- thetaWithoutVarRenamed if v.isInstanceOf[Variable])
+                              yield eqBuilder(Vector(v, t))
 
                           additionalAtomsStored.foldLeft(bodyVarRenamed)((rest, atom) => And(atom, rest))
                         }
@@ -316,7 +321,8 @@ object PredicateCompletion extends Logging {
                       // cover the differences by renaming its variables and introduce additional atoms (equals) to the bodies.
                       // Otherwise, simply insert the current clause body.
                       if (storedHead != generalisedHead) {
-                        val thetaStored = Unify(storedHead, generalisedHead).getOrElse(fatal("Cannot unify " + generalisedHead.toText + " with " + storedHead.toText + " (possible bug?)"))
+                        val thetaStored = Unify(storedHead, generalisedHead).getOrElse(
+                          fatal(s"Cannot unify '${generalisedHead.toText}' with '${storedHead.toText}' (possible bug?)"))
 
                         // Although storedHead != generalisedHead, they may be similar but with different variable names.
                         val areSimilarPredicates = storedHead =~= generalisedHead
@@ -324,15 +330,21 @@ object PredicateCompletion extends Logging {
 
                         // Rename variables (from all bodies):
                         val thetaVariablesRenaming = collectVariablesToRename(thetaStored)
-                        val bodiesVarRenamed = if (areSimilarPredicates) storedBodies.map(body => body.substitute(thetaVariablesRenaming)) else storedBodies
+
+                        val bodiesVarRenamed =
+                          if (areSimilarPredicates) storedBodies.map(body => body.substitute(thetaVariablesRenaming))
+                          else storedBodies
 
                         // Insert the additional atoms to the bodies:
                         val thetaWithoutVarRenamed = thetaStored -- thetaVariablesRenaming.keys
 
                         val additionalAtomsStored =
-                          for ((v, t) <- thetaWithoutVarRenamed if v.isInstanceOf[Variable]) yield eqBuilder(Vector(v, t)) //yield AtomicFormula("equals", List(v, t))
+                          for ((v, t) <- thetaWithoutVarRenamed if v.isInstanceOf[Variable])
+                            yield eqBuilder(Vector(v, t))
 
-                        val updatedBodies = bodiesVarRenamed.map(body => additionalAtomsStored.foldLeft(body)((rest, atom) => And(atom, rest)))
+                        val updatedBodies = bodiesVarRenamed
+                          .map(body => additionalAtomsStored.foldLeft(body)((rest, atom) => And(atom, rest)))
+
                         updatedBodies += currentClauseBody
 
                         // Replace the previously stored head predicate with the generalised head predicate,
@@ -345,7 +357,8 @@ object PredicateCompletion extends Logging {
                         // thus we simply insert the current clause body
                         dcDB(storedHead.signature)(storedHead) += currentClauseBody
                       }
-                    case None => fatal("Failed to find a generalised predicate from " + storedHead.toText + " and " + currentHead.toText + " (possible bug?).")
+                    case None =>
+                      fatal(s"Failed to find a generalised predicate from '${storedHead.toText}' and '${currentHead.toText}' (possible bug?).")
                   }
               }
           } //end: Some(mapping)
@@ -363,7 +376,7 @@ object PredicateCompletion extends Logging {
    * @param dcDB database of collected/merged definite clauses
    * @return the resulting KB
    */
-  private def applyPCSimplification(formulas: Set[WeightedFormula], dcDB: DefiniteClausesDB): Set[WeightedFormula] = ???/*{
+  private def applyPCSimplification(formulas: Set[WeightedFormula], dcDB: DefiniteClausesDB): Set[WeightedFormula] = {
     val targetSignatures = dcDB.keySet
     var pcResultingKB =  Set[WeightedFormula]()
     pcResultingKB ++= formulas
@@ -371,11 +384,14 @@ object PredicateCompletion extends Logging {
     for (signature <- targetSignatures) {
       var lambdaPrime = Set[WeightedFormula]()
       for (formula <- pcResultingKB) {
-        if (containsSignature(signature, formula)) {
+        if(formula.contains(signature)) {
           for ((headPredicate, bodies) <- dcDB(signature)) {
             val replacement = bodies.map(body => normalise(headPredicate, body)).reduceLeft((left, right) => Or(left, right))
+
             debug("Predicates like " + headPredicate.toText + " will be replaced with following sentence:\n\t" + replacement.toText)
-            val resultOpt = replaceAtom(headPredicate, formula, replacement)
+
+            val resultOpt = formula.replace(headPredicate, replacement)
+
             resultOpt match {
               case Some(result) => lambdaPrime += result
               case None => fatal("Predicate replacement failed (possible bug?)")
@@ -389,7 +405,7 @@ object PredicateCompletion extends Logging {
       pcResultingKB = lambdaPrime
     }
     pcResultingKB
-  }*/
+  }
 
   /**
    * Standard predicate completion (see [[lomrf.logic.PredicateCompletion]])
@@ -398,17 +414,19 @@ object PredicateCompletion extends Logging {
    * @param dcDB database of collected/merged definite clauses
    * @return the resulting KB
    */
-  private def applyPC(formulas: Set[WeightedFormula], dcDB: DefiniteClausesDB): Set[WeightedFormula] = ??? /*{
+  private def applyPC(formulas: Set[WeightedFormula],
+                      dcDB: DefiniteClausesDB): Set[WeightedFormula] = {
 
-    var pcResultingKB = Set[Formula]()
+    var pcResultingKB = Set[WeightedFormula]()
     pcResultingKB ++= formulas
 
     for ((_, entries) <- dcDB; (head, bodies) <- entries) {
-      val pcFormula = WeightedFormula(Double.PositiveInfinity, Equivalence(head, bodies.map(body => normalise(head, body)).reduceLeft((left, right) => Or(left, right))))
+      val pcFormula = WeightedFormula(Double.PositiveInfinity,
+        Equivalence(head, bodies.map(body => normalise(head, body)).reduceLeft((left, right) => Or(left, right))))
       pcResultingKB += pcFormula
     }
     pcResultingKB
-  }*/
+  }
 
   /**
    * Predicate completion with decomposed equivalences (see [[lomrf.logic.PredicateCompletion]]).<br/>
@@ -418,9 +436,11 @@ object PredicateCompletion extends Logging {
    * @param dcDB database of collected/merged definite clauses
    * @return the resulting KB
    */
-  private def applyPCDecomposed(formulas: Set[WeightedFormula], definiteClauses: Set[WeightedDefiniteClause], dcDB: DefiniteClausesDB): Set[WeightedFormula] = ???/*{
+  private def applyPCDecomposed(formulas: Set[WeightedFormula],
+                                definiteClauses: Set[WeightedDefiniteClause],
+                                dcDB: DefiniteClausesDB): Set[WeightedFormula] = {
 
-    var pcResultingKB = Set[Formula]()
+    var pcResultingKB = Set[WeightedFormula]()
     pcResultingKB ++= formulas
 
     // Insert the original definite clauses as weighted formulas:
@@ -429,10 +449,11 @@ object PredicateCompletion extends Logging {
 
     // Insert the additional "completion" formulas:
     for ((_, entries) <- dcDB; (head, bodies) <- entries)
-      pcResultingKB += WeightedFormula(Double.PositiveInfinity, Implies(head, bodies.map(body => normalise(head, body)).reduceLeft((left, right) => Or(left, right))))
+      pcResultingKB += WeightedFormula(Double.PositiveInfinity,
+        Implies(head, bodies.map(body => normalise(head, body)).reduceLeft((left, right) => Or(left, right))))
 
     pcResultingKB
-  }*/
+  }
 }
 
 /**
