@@ -35,7 +35,7 @@
 
 package lomrf.mln.model
 
-import lomrf.logic.{WeightedFormula, AtomSignature}
+import lomrf.logic.{WeightedDefiniteClause, WeightedFormula, AtomSignature}
 
 /**
  * Knowledge base builder (fluent interface)
@@ -47,6 +47,8 @@ final class KBBuilder(convertFunctions: Boolean = false) { self =>
   private var _functionSchema = Map.empty[AtomSignature, (String, Vector[String])]
 
   private var _formulas = Set.empty[WeightedFormula]
+
+  private var _definiteClauses = Set.empty[WeightedDefiniteClause]
 
   private var _dynamicPredicates = Map.empty[AtomSignature, Vector[String] => Boolean]
 
@@ -67,6 +69,11 @@ final class KBBuilder(convertFunctions: Boolean = false) { self =>
     self
   }
 
+  def withDefiniteClauses(input: Set[WeightedDefiniteClause]): self.type ={
+    _definiteClauses = input
+    self
+  }
+
   def withDynamicPredicates(input: Map[AtomSignature, Vector[String] => Boolean]): self.type ={
     _dynamicPredicates = input
     self
@@ -82,7 +89,7 @@ final class KBBuilder(convertFunctions: Boolean = false) { self =>
       if(convertFunctions) _functionSchema.toPredicateSchema ++ _predicateSchema
       else _predicateSchema
 
-    new KB(finalPredicateSchema, _functionSchema, _formulas, _dynamicPredicates, _dynamicFunctions)
+    new KB(finalPredicateSchema, _functionSchema, _dynamicPredicates, _dynamicFunctions, _formulas)
   }
 
   object predicateSchema {
@@ -142,7 +149,7 @@ final class KBBuilder(convertFunctions: Boolean = false) { self =>
 
     def apply() = _formulas
 
-    def += ( value: WeightedFormula): self.type ={
+    def += (value: WeightedFormula): self.type ={
       _formulas += value
       self
     }
@@ -153,6 +160,23 @@ final class KBBuilder(convertFunctions: Boolean = false) { self =>
     }
 
     def clear(): Unit = _formulas = Set.empty
+  }
+
+  object definiteClauses {
+
+    def apply() = _definiteClauses
+
+    def += (value: WeightedDefiniteClause): self.type ={
+      _definiteClauses += value
+      self
+    }
+
+    def ++= (values: Iterable[WeightedDefiniteClause]): self.type ={
+      _definiteClauses ++= values
+      self
+    }
+
+    def clear(): Unit = _definiteClauses = Set.empty
   }
 
   object dynamicPredicates {

@@ -40,7 +40,6 @@ import java.text.DecimalFormat
 
 import auxlib.log.Logger
 import lomrf.logic._
-import lomrf.mln.model.AtomIdentityFunction
 import lomrf.util._
 import scala.collection.breakOut
 
@@ -228,25 +227,23 @@ object MLN {
    * @return an MLN instance
    */
   def fromFile(mlnFileName: String,
-            queryAtoms: Set[AtomSignature],
-            evidenceFileName: String,
-            cwa: Set[AtomSignature] = Set(),
-            owa: Set[AtomSignature] = Set(),
-            pcm: PredicateCompletionMode = Simplification,
-            dynamicDefinitions: Option[ImplFinder.ImplementationsMap] = None,
-            domainPart: Boolean = false): MLN = {
+              queryAtoms: Set[AtomSignature],
+              evidenceFileName: String,
+              cwa: Set[AtomSignature] = Set(),
+              owa: Set[AtomSignature] = Set(),
+              pcm: PredicateCompletionMode = Simplification,
+              dynamicDefinitions: Option[ImplFinder.ImplementationsMap] = None): MLN = {
 
-    fromFile(mlnFileName, List(evidenceFileName), queryAtoms, cwa, owa, pcm, dynamicDefinitions, domainPart)
+    fromFile(mlnFileName, List(evidenceFileName), queryAtoms, cwa, owa, pcm, dynamicDefinitions)
   }
 
   def fromFile(mlnFileName: String,
-            evidenceFileNames: List[String],
-            queryAtoms: Set[AtomSignature],
-            cwa: Set[AtomSignature],
-            owa: Set[AtomSignature],
-            pcm: PredicateCompletionMode,
-            dynamicDefinitions: Option[ImplFinder.ImplementationsMap],
-            domainPart: Boolean): MLN = {
+              evidenceFileNames: List[String],
+              queryAtoms: Set[AtomSignature],
+              cwa: Set[AtomSignature],
+              owa: Set[AtomSignature],
+              pcm: PredicateCompletionMode,
+              dynamicDefinitions: Option[ImplFinder.ImplementationsMap]): MLN = {
 
     val logger = Logger(getClass)
     import logger._
@@ -258,7 +255,7 @@ object MLN {
 
 
     //parse knowledge base (.mln)
-    val (kb, constantsDomainBuilders) = KB.fromFile(mlnFileName, pcm, dynamicDefinitions)
+    val (kb, constantsDomainBuilders) = KB.fromFile(mlnFileName, dynamicDefinitions)
 
     val atomSignatures: Set[AtomSignature] = kb.predicateSchema.keySet
 
@@ -291,13 +288,30 @@ object MLN {
     //parse the evidence database (.db)
     val evidence: Evidence = Evidence.fromFiles(kb, constantsDomainBuilders, queryAtoms, owa, evidenceFileNames.map(new File(_)), convertFunctions = false)
 
-    val clauses = NormalForm.compileCNF(kb.formulas)(evidence.constants).toVector
 
+    val completedFormulas =
+      PredicateCompletion(kb.formulas, kb.definiteClauses, pcm)(kb.predicateSchema, kb.functionSchema)
+
+    // In case that some predicates are eliminated by the predicate completion,
+    // remove them from the final predicate schema.
+    val resultingPredicateSchema = pcm match {
+      case Simplification =>
+        val resultingFormulas = kb.predicateSchema -- kb.definiteClauses.map(_.clause.head.signature)
+        if(resultingFormulas.isEmpty)
+          warn("The given theory is empty (i.e., contains empty set of non-zeroed formulas).")
+
+        resultingFormulas
+      case _ => kb.predicateSchema
+    }
+
+    val mlnSchema = MLNSchema(resultingPredicateSchema, kb.functionSchema, kb.dynamicPredicates, kb.dynamicFunctions)
+
+    val clauses = NormalForm.compileCNF(completedFormulas)(evidence.constants).toVector
 
     val space = PredicateSpace(kb.schema, queryAtoms, owa -- queryAtoms, evidence.constants)
 
     // Give the resulting MLN
-    new MLN(kb.schema, space, evidence, clauses)
+    new MLN(mlnSchema, space, evidence, clauses)
   }
 
 
@@ -316,7 +330,7 @@ object MLN {
         "\n\tInput training file(s): " + (if (trainingFileNames.nonEmpty) trainingFileNames.mkString(", ") else ""))
 
     //parse knowledge base (.mln)
-    val (kb, constantsDomainBuilder) = KB.fromFile(mlnFileName, pcm, dynamicDefinitions)
+    val (kb, constantsDomainBuilder) = KB.fromFile(mlnFileName, dynamicDefinitions)
 
     val atomSignatures: Set[AtomSignature] = kb.predicateSchema.keySet
 
@@ -331,11 +345,11 @@ object MLN {
     val evidenceAtoms = atomSignatures -- nonEvidenceAtoms
 
     //parse the training evidence database (contains the annotation, i.e., the truth values of all query/hidden atoms)
-    val trainingEvidence = Evidence.fromFiles(kb, constantsDomainBuilder, nonEvidenceAtoms, trainingFileNames.map(new File(_)), convertFunctions = false)
+    val trainingEvidence = Evidence.fromFiles(
+      kb, constantsDomainBuilder, nonEvidenceAtoms, trainingFileNames.map(new File(_)), convertFunctions = false
+    )
 
     val domainSpace = PredicateSpace(kb.schema, nonEvidenceAtoms, trainingEvidence.constants)
-
-   // val domainSpace = trainingEvidence.predicateSpace
 
     var (annotationDB, atomStateDB) = trainingEvidence.db.partition(e => nonEvidenceAtoms.contains(e._1))
 
@@ -352,10 +366,28 @@ object MLN {
         atomStateDB += (signature -> AtomEvidenceDB.allFalse(domainSpace.identities(signature)))
     }
 
+
+    val completedFormulas =
+      PredicateCompletion(kb.formulas, kb.definiteClauses, pcm)(kb.predicateSchema, kb.functionSchema)
+
+    // In case that some predicates are eliminated by the predicate completion,
+    // remove them from the final predicate schema.
+    val resultingPredicateSchema = pcm match {
+      case Simplification =>
+        val resultingFormulas = kb.predicateSchema -- kb.definiteClauses.map(_.clause.head.signature)
+        if(resultingFormulas.isEmpty)
+          warn("The given theory is empty (i.e., contains empty set of non-zeroed formulas).")
+
+        resultingFormulas
+      case _ => kb.predicateSchema
+    }
+
+
+
     // In case we want to learn weights for unit clauses
     val formulas =
       if (addUnitClauses) {
-        kb.formulas ++ kb.predicateSchema.map {
+        completedFormulas ++ resultingPredicateSchema.map {
           case (signature, termTypes) =>
             // Find variables for the current predicate
             val variables: Vector[Variable] = termTypes.zipWithIndex.map{
@@ -364,14 +396,16 @@ object MLN {
 
             WeightedFormula.asUnit(AtomicFormula(signature.symbol, variables))
         }
-      } else kb.formulas
+      } else completedFormulas
 
+
+    val mlnSchema = MLNSchema(resultingPredicateSchema, kb.functionSchema, kb.dynamicPredicates, kb.dynamicFunctions)
 
     val clauses = NormalForm.compileCNF(formulas)(trainingEvidence.constants).toVector
 
     val evidence = new Evidence(trainingEvidence.constants, atomStateDB, trainingEvidence.functionMappers)
 
-    (new MLN(kb.schema, domainSpace, evidence, clauses), annotationDB)
+    (new MLN(mlnSchema, domainSpace, evidence, clauses), annotationDB)
   }
 
   def export(mln: MLN, out: PrintStream = System.out)(implicit numFormat: DecimalFormat = new DecimalFormat("0.############")): Unit ={

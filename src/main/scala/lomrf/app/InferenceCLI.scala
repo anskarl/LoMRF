@@ -138,7 +138,7 @@ object InferenceCLI extends CLIApp {
 
   private var _implPaths: Option[Array[String]] = None
 
-  private var _domainPartition = false
+  //private var _domainPartition = false
 
 
   private def addQueryAtom(atom: String) {
@@ -278,9 +278,10 @@ object InferenceCLI extends CLIApp {
     path: String => if (!path.isEmpty) _implPaths = Some(path.split(','))
   })
 
-  flagOpt("f:dpart", "flag:domain-partition", "Try to partition the domain and create several smaller MLNs.", {
+  // todo: partition the domain and create several smaller MLNs
+  /*flagOpt("f:dpart", "flag:domain-partition", "Try to partition the domain and create several smaller MLNs.", {
     _domainPartition = true
-  })
+  })*/
 
   flagOpt("v", "version", "Print LoMRF version.", sys.exit(0))
 
@@ -337,8 +338,8 @@ object InferenceCLI extends CLIApp {
         case Some(paths) =>
           val implFinder = ImplFinder(classOf[DynamicAtomBuilder], classOf[DynamicFunctionBuilder])
           implFinder.searchPaths(paths)
-          MLN.fromFile(strMLNFileName, _evidenceFileNames, _queryAtoms, _cwa, _owa, pcm = Decomposed, dynamicDefinitions = Some(implFinder.result), domainPart = _domainPartition)
-        case None => MLN.fromFile(strMLNFileName, _evidenceFileNames, _queryAtoms, _cwa, _owa, pcm = Decomposed, dynamicDefinitions = None, domainPart = _domainPartition)
+          MLN.fromFile(strMLNFileName, _evidenceFileNames, _queryAtoms, _cwa, _owa, pcm = Decomposed, dynamicDefinitions = Some(implFinder.result))
+        case None => MLN.fromFile(strMLNFileName, _evidenceFileNames, _queryAtoms, _cwa, _owa, pcm = Decomposed, dynamicDefinitions = None)
       }
 
     info("Markov Logic:"

@@ -40,14 +40,11 @@ import auxlib.log.Logger
 import scala.collection.mutable
 import java.io.{BufferedReader, File, FileReader}
 import java.util.regex.Pattern
-import lomrf.logic.PredicateCompletionMode._
 import lomrf.logic._
 import lomrf.logic.dynamic.{DynamicAtomBuilder, DynamicFunctionBuilder}
 import lomrf.util.ImplFinder
 
-import scala.concurrent.duration.Duration
 import scala.concurrent._
-import ExecutionContext.Implicits.global
 import scala.util.{Failure, Success, Try}
 
 /**
@@ -55,15 +52,16 @@ import scala.util.{Failure, Success, Try}
  *
  * @param predicateSchema  holds a mapping of 'atom signature' to a sequence of the domain names of its terms.
  * @param functionSchema  holds a mapping of 'function signature' to its return domain name, as well as a sequence of the domain names of its terms.
- * @param formulas contains a collection of (weighted) formulas in first-order logic form.
  * @param dynamicPredicates contains definitions of dynamic predicates
  * @param dynamicFunctions contains definitions of dynamic functions
+ * @param formulas contains a collection of (weighted) formulas in first-order logic form.
  */
 class KB(val predicateSchema: PredicateSchema,
          val functionSchema: FunctionSchema,
-         val formulas: Set[WeightedFormula],
          val dynamicPredicates: DynamicPredicates,
-         val dynamicFunctions: DynamicFunctions) { self =>
+         val dynamicFunctions: DynamicFunctions,
+         val formulas: Set[WeightedFormula],
+         val definiteClauses: Set[WeightedDefiniteClause] = Set.empty) { self =>
 
   lazy val schema = MLNSchema(predicateSchema, functionSchema, dynamicPredicates, dynamicFunctions)
 
@@ -101,15 +99,17 @@ object KB {
 
   def apply(predicateSchema: PredicateSchema,
             functionSchema: FunctionSchema,
-            formulas: Set[WeightedFormula],
             dynamicPredicates: DynamicPredicates,
-            dynamicFunctions: DynamicFunctions) = {
+            dynamicFunctions: DynamicFunctions,
+            formulas: Set[WeightedFormula],
+            definiteClauses: Set[WeightedDefiniteClause] = Set.empty) = {
 
-    new KB(predicateSchema, functionSchema, formulas, dynamicPredicates, dynamicFunctions)
+    new KB(predicateSchema, functionSchema, dynamicPredicates, dynamicFunctions, formulas, definiteClauses)
   }
 
+
+
   def fromFile(filename: String,
-               pcMode: PredicateCompletionMode = Simplification,
                dynamicDefinitions: Option[ImplFinder.ImplementationsMap] = None,
                convertFunctions: Boolean = false): (KB, ConstantsDomainBuilder) = {
     import log._
@@ -299,13 +299,13 @@ object KB {
 
     }
 
-    val resultingFormulas = Future{
+    /*val resultingFormulas = Future{
       PredicateCompletion(formulas, definiteClauses, pcMode)(kbBuilder.predicateSchema(), kbBuilder.functionSchema())
-    }
+    }*/
 
     // In case that some predicates are eliminated by the predicate completion,
     // remove them from the final predicate schema.
-    val resultingPredicateSchema = Future {
+    /*val resultingPredicateSchema = Future {
         pcMode match {
         case Simplification =>
           val resultingFormulas = kbBuilder.predicateSchema() -- definiteClauses.map(_.clause.head.signature)
@@ -315,15 +315,17 @@ object KB {
           resultingFormulas
         case _ => kbBuilder.predicateSchema()
       }
-    }
+    }*/
 
     whenDebug {
       constantsBuilder().foreach(entry => debug(s"|${entry._1}|=${entry._2.size}"))
     }
 
     val kb = kbBuilder
-      .withFormulas(Await.result(resultingFormulas, Duration.Inf))
-      .withPredicateSchema(Await.result(resultingPredicateSchema, Duration.Inf))
+      //.withFormulas(Await.result(resultingFormulas, Duration.Inf))
+      .withFormulas(formulas)
+      .withDefiniteClauses(definiteClauses)
+      //.withPredicateSchema(Await.result(resultingPredicateSchema, Duration.Inf))
       .withDynamicPredicates(kbParser.getDynamicPredicates)
       .withDynamicFunctions(kbParser.getDynamicFunctions)
       .result()

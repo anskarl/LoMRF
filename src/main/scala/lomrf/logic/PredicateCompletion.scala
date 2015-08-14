@@ -37,6 +37,7 @@ package lomrf.logic
 
 
 import auxlib.log.Logging
+import lomrf.mln.model.{FunctionSchema, PredicateSchema}
 
 import collection.mutable
 import lomrf.logic.dynamic.DynEqualsBuilder
@@ -103,8 +104,7 @@ object PredicateCompletion extends Logging {
    * @return a logically stronger knowledge base (set of formulas)
    */
   def apply(formulas: Set[WeightedFormula], definiteClauses: Set[WeightedDefiniteClause])
-           (implicit predicateSchema: Map[AtomSignature, Vector[String]],
-            functionSchema: Map[AtomSignature, (String, Vector[String])]): Set[WeightedFormula] = {
+           (implicit predicateSchema: PredicateSchema, functionSchema: FunctionSchema): Set[WeightedFormula] = {
     apply(formulas, definiteClauses, PredicateCompletionMode.Simplification)
   }
 
@@ -187,8 +187,7 @@ object PredicateCompletion extends Logging {
    * @return  a logically stronger knowledge base (set of formulas)
    */
   def apply(formulas: Set[WeightedFormula], definiteClauses: Set[WeightedDefiniteClause], mode: PredicateCompletionMode)
-           (implicit predicateSchema: Map[AtomSignature, Vector[String]],
-            functionSchema: Map[AtomSignature, (String, Vector[String])]): Set[WeightedFormula] = {
+           (implicit predicateSchema: PredicateSchema, functionSchema: FunctionSchema): Set[WeightedFormula] = {
 
     if (definiteClauses.isEmpty) {
       info("No definite clauses found in the given MLN.")
@@ -258,8 +257,7 @@ object PredicateCompletion extends Logging {
 
 
   private def collectAndMerge(definiteClauses: Set[WeightedDefiniteClause])
-                             (implicit predicateSchema: Map[AtomSignature, Vector[String]],
-                              functionSchema: Map[AtomSignature, (String, Vector[String])]): (Boolean, DefiniteClausesDB) = {
+                             (implicit predicateSchema: PredicateSchema, functionSchema: FunctionSchema): (Boolean, DefiniteClausesDB) = {
 
 
     val dcDB = mutable.HashMap[AtomSignature, mutable.HashMap[AtomicFormula, mutable.HashSet[DefiniteClauseConstruct]]]()
@@ -416,8 +414,7 @@ object PredicateCompletion extends Logging {
    *
    * @return the resulting KB
    */
-  private def applyPC(formulas: Set[WeightedFormula],
-                      dcDB: DefiniteClausesDB): Set[WeightedFormula] = {
+  private def applyPC(formulas: Set[WeightedFormula], dcDB: DefiniteClausesDB): Set[WeightedFormula] = {
 
     var pcResultingKB = Set[WeightedFormula]()
     pcResultingKB ++= formulas

@@ -36,6 +36,8 @@
 package lomrf
 
 
+import lomrf.mln.model.{FunctionSchema, PredicateSchema}
+
 import scala.collection.mutable
 import lomrf.logic.dynamic._
 import scala.annotation.tailrec
@@ -61,7 +63,7 @@ package object logic {
    * @return the generalisation of the given atoms
    */
   def generalisation(atom1: AtomicFormula, atom2: AtomicFormula)
-                    (implicit predicateSchema: Map[AtomSignature, Vector[String]], functionSchema: Map[AtomSignature, (String, Vector[String])]): Option[AtomicFormula] = {
+                    (implicit predicateSchema: PredicateSchema, functionSchema: FunctionSchema): Option[AtomicFormula] = {
 
     if (atom1.signature != atom2.signature) None //the signatures are different, thus MGP cannot be applied.
     else if (atom1 == atom2) Some(atom1) //comparing the same atom
@@ -70,7 +72,7 @@ package object logic {
 
   @inline
   private def generalisationOf(atom1: AtomicFormula, atom2: AtomicFormula)
-                              (implicit predicateSchema: Map[AtomSignature, Vector[String]], functionSchema: Map[AtomSignature, (String, Vector[String])]): Option[AtomicFormula] = {
+                              (implicit predicateSchema: PredicateSchema, functionSchema: FunctionSchema): Option[AtomicFormula] = {
 
     val generalizedArgs: Vector[Term] =
       (for ((pair, idx) <- atom1.terms.zip(atom2.terms).zipWithIndex) yield pair match {
@@ -91,7 +93,7 @@ package object logic {
   }
 
   private def generalisationOf(f1: TermFunction, f2: TermFunction, level: Int = 0)
-                              (implicit functionSchema: Map[AtomSignature, (String, Vector[String])]): Option[TermFunction] = {
+                              (implicit functionSchema: FunctionSchema): Option[TermFunction] = {
     val generalizedArgs: Vector[Term] =
       (for ((pair, idx) <- f1.terms.zip(f2.terms).zipWithIndex) yield pair match {
         case (v: Variable, _) => v
