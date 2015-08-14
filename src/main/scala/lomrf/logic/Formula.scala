@@ -492,7 +492,13 @@ final case class UniversalQuantifier(v: Variable, f: FormulaConstruct) extends Q
   override def toText: String = "(Forall " + v.toText + " " + formula.toText + ")"
 
   override def substitute(theta: Theta): UniversalQuantifier = {
-    UniversalQuantifier(v, f.substitute(theta))
+
+    val newVar = theta.get(v) match {
+      case Some(x) if x.isInstanceOf[Variable] => x.asInstanceOf[Variable]
+      case _ => v
+    }
+
+    UniversalQuantifier(newVar, f.substitute(theta))
   }
 }
 
@@ -503,6 +509,12 @@ final case class ExistentialQuantifier(v: Variable, f: FormulaConstruct) extends
   override def getExistentialQuantifiers = this :: formula.getExistentialQuantifiers
 
   override def substitute(theta: Theta): ExistentialQuantifier = {
-    ExistentialQuantifier(v, f.substitute(theta))
+
+    val newVar = theta.get(v) match {
+      case Some(x) if x.isInstanceOf[Variable] => x.asInstanceOf[Variable]
+      case _ => v
+    }
+
+    ExistentialQuantifier(newVar, f.substitute(theta))
   }
 }

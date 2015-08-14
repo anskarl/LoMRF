@@ -102,7 +102,7 @@ object Unify {
     case Some(m) => x match {
       case a: Variable if m.contains(a) => apply(v, m(a), theta)
       case f: TermFunction =>
-        val groundFunction = Substitute(m, f)
+        val groundFunction = f.substitute(m)
         if(groundFunction.variables.contains(v)) None //failure
         else Some(m + (v -> groundFunction))
       case _ => Some(m + (v -> x))

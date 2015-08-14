@@ -80,7 +80,7 @@ sealed trait Term extends MLNExpression with Substitutable[Term]{
    */
   def toText: String
 
-  def substitute(theta: Theta): Term = theta.getOrElse(this, this)
+  //def substitute(theta: Theta): Term = theta.getOrElse(this, this)
 
 }
 
@@ -96,15 +96,13 @@ sealed case class Variable(override val symbol: String,
                            index: Int = Variable.DEFAULT_INDEX) extends Term {
 
 
-
-
   override def isGround = false
 
   override def isVariable = true
 
   def domain: String = domainName
 
-  def toText = if (index > 0) symbol + "-" + index else symbol
+  def toText = if (index > 0) symbol + "_" + index else symbol
 
   override def toString = symbol + (if (index > 0) "$" + index + ":" else ":") + domain
 
@@ -118,6 +116,8 @@ sealed case class Variable(override val symbol: String,
 
     case _ => false
   }
+
+  override def substitute(theta: Theta): Term = theta.getOrElse(this, this)
 }
 
 object Variable {
@@ -162,6 +162,7 @@ sealed case class Constant(override val symbol: String) extends Term{
 
   override def toString = symbol
 
+  override def substitute(theta: Theta): Term = this
 }
 
 /**
@@ -224,7 +225,7 @@ sealed case class TermFunction(override val symbol: String, terms: Vector[_ <: T
   override def substitute(theta: Theta): TermFunction = {
     val resultingTerms = terms map{
       case tf: TermFunction => tf.substitute(theta)
-      case other => other
+      case _ =>  this
     }
 
     TermFunction(symbol, resultingTerms, domain)

@@ -299,7 +299,7 @@ object PredicateCompletion extends Logging {
                           val thetaCurrent = Unify(currentHead, generalisedHead).getOrElse(fatal("Cannot unify " + generalisedHead.toText + " with " + currentHead.toText + " (possible bug?)"))
                           // Rename variables:
                           val thetaVariablesRenaming = collectVariablesToRename(thetaCurrent)
-                          val bodyVarRenamed = Substitute(thetaVariablesRenaming, currentClause.clause.body)
+                          val bodyVarRenamed = currentClause.clause.body.substitute(thetaVariablesRenaming)
                           val thetaWithoutVarRenamed = thetaCurrent -- thetaVariablesRenaming.keys
 
                           //Insert the additional atoms to the bodies:
@@ -324,7 +324,7 @@ object PredicateCompletion extends Logging {
 
                         // Rename variables (from all bodies):
                         val thetaVariablesRenaming = collectVariablesToRename(thetaStored)
-                        val bodiesVarRenamed = if (areSimilarPredicates) storedBodies.map(body => Substitute(thetaVariablesRenaming, body)) else storedBodies
+                        val bodiesVarRenamed = if (areSimilarPredicates) storedBodies.map(body => body.substitute(thetaVariablesRenaming)) else storedBodies
 
                         // Insert the additional atoms to the bodies:
                         val thetaWithoutVarRenamed = thetaStored -- thetaVariablesRenaming.keys

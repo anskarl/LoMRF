@@ -43,7 +43,7 @@ import java.text.DecimalFormat
  * @param weight the weight of this clause
  * @param literals a set of literals, representing a disjunction of atoms of their negations.
  */
-final class Clause(val weight: Double, val literals: Set[Literal]){
+final class Clause(val weight: Double, val literals: Set[Literal]) extends Substitutable[Clause]{
 
   /**
    * The set of variables that appear inside this clause
@@ -115,6 +115,11 @@ final class Clause(val weight: Double, val literals: Set[Literal]){
     }
   }
 
+
+  override def substitute(theta: Theta): Clause = {
+    Clause(literals.map(_.substitute(theta)), weight)
+  }
+
   override def equals(that: Any) = {
     that match {
       case x: Clause => x.weight == this.weight && this.literals.size == x.literals.size  && x.literals == this.literals
@@ -165,7 +170,7 @@ class ImplicationDefiniteClause(val premise: Set[AtomicFormula],
  * }}}
  * @param sentence an atomic formula (optionally ground)
  */
-sealed abstract class Literal(val sentence: AtomicFormula) {
+sealed abstract class Literal(val sentence: AtomicFormula) extends Substitutable[Literal]{
   /**
    * The number of sentence arguments.
    */
@@ -229,6 +234,7 @@ case class PositiveLiteral(s: AtomicFormula) extends Literal(s){
 
   override def toString = s.toString
 
+  override def substitute(theta: Theta): PositiveLiteral = PositiveLiteral(s.substitute(theta))
 }
 
 /**
@@ -243,6 +249,8 @@ case class NegativeLiteral(s: AtomicFormula) extends Literal(s) {
   def toText = "!" + s.toText
 
   override def toString = "!" + s.toString
+
+  override def substitute(theta: Theta): NegativeLiteral = NegativeLiteral(s.substitute(theta))
 }
 
 final class LiteralArityOrdering extends Ordering[Literal]{

@@ -104,8 +104,8 @@ package object logic {
   def replaceAtom(targetAtom: AtomicFormula, inFormula: FormulaConstruct, replacement: FormulaConstruct): Option[FormulaConstruct] = {
     Unify(targetAtom, inFormula) match {
       case Some(theta) if theta.nonEmpty =>
-        val replacementPrime = Substitute(theta, replacement)
-        val targetPrime = Substitute(theta, inFormula)
+        val replacementPrime = replacement.substitute(theta)
+        val targetPrime = inFormula.substitute(theta)
         //debug("Substituted formula: " + targetPrime.toText)
         val result = _replaceAtom(targetAtom, targetPrime, replacementPrime)
         //debug("Replaced formula: " + result.toText)

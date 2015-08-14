@@ -194,8 +194,11 @@ final class NormalFormSpecTest extends FunSpec with Matchers{
 
   describe("Formula 'Exist x,t Happens(walking(x), t).'"){
     val f = kbParser.parseFormula("Exist x,t Happens(walking(x), t).")
+
     val clauses = f.toCNF(constants)
 
+    println("AAA = "+clauses.map(_.toText()).mkString("\n"))
+sys.exit()
     it("produces a single clause"){
       assert(clauses.size == 1)
     }

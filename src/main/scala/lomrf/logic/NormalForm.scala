@@ -281,16 +281,21 @@ object NormalForm {
         case x: Not => Not(stdVar(x.arg))
         case x: ExistentialQuantifier =>
           val newVar = nextVar(x.variable)
-          ExistentialQuantifier(newVar, stdVar(Substitute(Map(x.variable -> newVar), x.formula)))
+          //x.substitute(Map(x.variable -> newVar))
+          // ExistentialQuantifier(newVar, stdVar(Substitute(Map(x.variable -> newVar), x.formula)))
+
+          ExistentialQuantifier(newVar, stdVar(x.formula.substitute(Map(x.variable -> newVar))))
         case x: UniversalQuantifier =>
           val newVar = nextVar(x.variable)
-          UniversalQuantifier(newVar, stdVar(Substitute(Map(x.variable -> newVar), x.formula)))
+          UniversalQuantifier(newVar, stdVar(x.formula.substitute(Map(x.variable -> newVar))))
         //case x: WeightedFormula => WeightedFormula(x.weight, stdVar(x.formula))
         case _ => throw new IllegalStateException("Failed to standardize variables, illegal formula: " + f.toText)
       }
     }
+    val result = stdVar(source)
+    println(s"source = {${source.toText}} ---> result = {${result.toText}}")
 
-    stdVar(source)
+    result
   }
 
 
@@ -319,7 +324,8 @@ object NormalForm {
       case Or(left, right) => Or(removeExistentialQuantifiers(constants, left), removeExistentialQuantifiers(constants, right))
       case Not(f) => Not(removeExistentialQuantifiers(constants, f))
       case UniversalQuantifier(v, f) => UniversalQuantifier(v, removeExistentialQuantifiers(constants, f))
-      case ExistentialQuantifier(v, f) =>
+      case e @ ExistentialQuantifier(v, f) =>
+        //println("e="+e.toText)
         //Get variable domain
         val constantsSet = constants.get(v.domain) match {
           case Some(x) => x
@@ -330,17 +336,18 @@ object NormalForm {
         if (sliceIdx >= 0) {
           val iter = constantsSet.iterator
           val zeta = Or(
-            Substitute(Map(v -> Constant(iter.next())), f),
-            Substitute(Map(v -> Constant(iter.next())), f)
+            f.substitute(Map(v -> Constant(iter.next()))),
+            f.substitute(Map(v -> Constant(iter.next())))
           )
           val result = iter.foldRight(zeta)((c, other: Or) =>
-            Or(other, Substitute(Map(v -> Constant(c)), f))
+            Or(other, f.substitute(Map(v -> Constant(c))))
           )
           removeExistentialQuantifiers(constants, result)
         } else {
-          removeExistentialQuantifiers(constants, Substitute(Map(v -> Constant(constantsSet.head)), f))
+          removeExistentialQuantifiers(constants, f.substitute(Map(v -> Constant(constantsSet.head))))
         }
-      case _ => throw new IllegalStateException("Failed to remove existential quantifiers, illegal formula:" + source.toText)
+      case _ =>
+        throw new IllegalStateException("Failed to remove existential quantifiers, illegal formula:" + source.toText)
     }
   }
 
