@@ -36,6 +36,7 @@
 package lomrf.logic
 
 import annotation.tailrec
+import LogicOps._
 
 /**
  * A utility object for applying the Unification operator between MLN expressions.
@@ -110,12 +111,14 @@ object Unify {
   }
 
   @inline
-  private def unifyFormula(srcAtom: AtomicFormula, src: FormulaConstruct, theta: ThetaOpt): ThetaOpt = src match {
-    case atom: AtomicFormula => unifyAtomicFormula(srcAtom, atom, theta)
-    case _ => fetchAtom(srcAtom.signature, src) match {
-      case Some(targetAtom) => apply(srcAtom, targetAtom, theta)
-      case _ => None
+  private def unifyFormula(srcAtom: AtomicFormula, src: FormulaConstruct, theta: ThetaOpt): ThetaOpt = {
+
+    src match {
+      case atom: AtomicFormula => unifyAtomicFormula(srcAtom, atom, theta)
+      case _ => src.first(srcAtom.signature) match {
+        case Some(targetAtom) => apply(srcAtom, targetAtom, theta)
+        case _ => None
+      }
     }
   }
-
 }

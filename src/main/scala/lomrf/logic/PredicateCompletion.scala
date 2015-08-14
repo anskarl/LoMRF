@@ -42,7 +42,6 @@ import collection.mutable
 import lomrf.logic.dynamic.DynEqualsBuilder
 import LogicOps._
 
-
 /**
  * Perform circumscription by predicate completion.</br>
  *
@@ -100,6 +99,7 @@ object PredicateCompletion extends Logging {
    * @param definiteClauses the input set of definite clauses [[lomrf.logic.DefiniteClause]]
    * @param predicateSchema predicate schema [[lomrf.mln.model.MLN]]
    * @param functionSchema function schema [[lomrf.mln.model.MLN]]
+   *
    * @return a logically stronger knowledge base (set of formulas)
    */
   def apply(formulas: Set[WeightedFormula], definiteClauses: Set[WeightedDefiniteClause])
@@ -240,6 +240,7 @@ object PredicateCompletion extends Logging {
    *
    * @param head atom
    * @param body atoms
+   *
    * @return the resulting body, which may be existentially quantified over some variables
    */
   private def normalise(head: AtomicFormula, body: FormulaConstruct): FormulaConstruct = {
@@ -388,7 +389,7 @@ object PredicateCompletion extends Logging {
           for ((headPredicate, bodies) <- dcDB(signature)) {
             val replacement = bodies.map(body => normalise(headPredicate, body)).reduceLeft((left, right) => Or(left, right))
 
-            debug("Predicates like " + headPredicate.toText + " will be replaced with following sentence:\n\t" + replacement.toText)
+            debug(s"Predicates like '${headPredicate.toText}' will be replaced with following sentence: '${replacement.toText}'")
 
             val resultOpt = formula.replace(headPredicate, replacement)
 
@@ -412,6 +413,7 @@ object PredicateCompletion extends Logging {
    *
    * @param formulas the set of FOL formulas (non-definite clauses) in the input KB
    * @param dcDB database of collected/merged definite clauses
+   *
    * @return the resulting KB
    */
   private def applyPC(formulas: Set[WeightedFormula],
@@ -434,6 +436,7 @@ object PredicateCompletion extends Logging {
    * @param formulas the set of FOL formulas (non-definite clauses) in the input KB
    * @param definiteClauses the original set of definite clauses
    * @param dcDB database of collected/merged definite clauses
+   *
    * @return the resulting KB
    */
   private def applyPCDecomposed(formulas: Set[WeightedFormula],
