@@ -37,9 +37,13 @@ package lomrf.logic
 
 
 import auxlib.log.Logging
+import lomrf.logic.Unify.ThetaOpt
 import lomrf.mln.model.{ConstantsDomain, FunctionSchema, PredicateSchema}
+import lomrf.util.Cartesian.CartesianIterator
+import lomrf.util.collectByKey
 
 import collection.mutable
+import collection.breakOut
 import lomrf.logic.dynamic.DynEqualsBuilder
 import LogicOps._
 
@@ -447,6 +451,10 @@ object PredicateCompletion extends Logging {
                                (implicit predicateSchema: PredicateSchema,
                                  functionSchema: FunctionSchema): Set[WeightedFormula] = {
 
+    def extractTheta(theta: ThetaOpt) = theta.getOrElse(Map.empty).map{
+      case (k:Variable, v: Constant) => k -> v.symbol
+    }
+
 
     var pcResultingKB = Set[WeightedFormula]()
     pcResultingKB ++= formulas
@@ -455,25 +463,37 @@ object PredicateCompletion extends Logging {
     for (dClause <- definiteClauses)
       pcResultingKB += WeightedFormula(dClause.weight, Implies(dClause.clause.body, dClause.clause.head))
 
-    // Insert the additional "completion" formulas:
-    for ((_, entries) <- dcDB; (head, bodies) <- entries)
-      pcResultingKB += WeightedFormula(Double.PositiveInfinity,
-        Implies(head, bodies.map(body => normalise(head, body)).reduceLeft((left, right) => Or(left, right))))
-
-
-    // Find which partial-grounded heads are missing, in order to introduce them as negated unit clauses to the theory
     for ((signature, entries) <- dcDB){
-      println(s"$signature -> {\n\t${entries.mkString("\n\t")}\n}")
-      val predicateSchema = predicateSchema(signature)
-      val predicate = entries.head._1
-      val varDomainNames = uniqueLeafs[Variable](predicate.terms).map(_.domain)
 
+      // 1. Insert the additional "completion" formulas
+      for((head, bodies) <- entries){
+        val completionBody = bodies.map(body => normalise(head, body)).reduceLeft((left, right) => Or(left, right))
+        pcResultingKB += WeightedFormula.asHard(Implies(head, completionBody))
+      }
+      info(s"\t\tProduced ${entries.size} completion formulas for '$signature'")
+
+      // 2. Find which partial-grounded heads are missing, in order to introduce them as negated unit clauses to the theory (=complementary clauses)
+      val headPred = entries.head._1
+      val varabilizedPred = variabilizeAtom(headPred)
+
+      val what = collectByKey[Variable, String](entries.keys.flatMap(p => extractTheta(Unify(varabilizedPred, p))))
+
+
+      val wtf = what.map{
+        case (v, collectedConstants) =>
+          v -> constants(v.domain).filter(c => !collectedConstants.contains(c))
+      }
+
+      // 3. Add complementary clauses to the resulting knowledge base
+      val complementaryClauses =
+        (for(theta <- CartesianIterator(wtf); mappedTheta: Theta = theta.mapValues(Constant).asInstanceOf[Map[Term, Term]])
+          yield WeightedFormula.asHard(Not(varabilizedPred.substitute(mappedTheta)))).toList
+
+      info(s"\t\tAdded ${complementaryClauses.size} complementary negated unit clause(s) for '$signature'")
+
+      pcResultingKB = pcResultingKB ++ complementaryClauses
 
     }
-
-
-    sys.exit()
-
 
     pcResultingKB
   }

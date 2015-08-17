@@ -42,11 +42,15 @@ import scala.collection.mutable
 import lomrf.logic.dynamic._
 import scala.annotation.tailrec
 import scala.collection.breakOut
+import scala.reflect._
 
 
 package object logic {
 
   type Theta = Map[Term, Term]
+
+  trait TermIterable extends Iterable[Term]
+
 
   /**
    * Gives (if exists) the most general predicate, for example consider the following cases:
@@ -119,7 +123,7 @@ package object logic {
    * @param terms input list of terms
    * @return The resulting set of variables found in the given list of terms, or an empty set if none is found.
    */
-  def uniqueVariablesIn(terms: Iterable[_ <: Term]): Set[Variable] = {
+  def uniqueVariablesIn(terms: TermIterable): Set[Variable] = {
     val queue = mutable.Queue[Term]()
     queue ++= terms
     var result = Set[Variable]()
@@ -132,7 +136,7 @@ package object logic {
     result
   }
 
-  def variablesIn(terms: Iterable[_ <: Term]): Vector[Variable] = {
+  def variablesIn(terms: TermIterable): Vector[Variable] = {
     val stack = mutable.Stack[Term]()
     stack.pushAll(terms)
 
@@ -147,14 +151,15 @@ package object logic {
     result
   }
 
-  def uniqueOrderedVariablesIn(literals: Iterable[Literal]): Vector[Variable] = {
+  def uniqueOrderedVariablesIn(sources: Iterable[TermIterable]): Vector[Variable] = {
     val stack = mutable.Stack[Term]()
 
     var variables = Set[Variable]()
     var result = Vector[Variable]()
 
-    for (literal <- literals) {
-      stack.pushAll(literal.sentence.terms)
+    for (entry <- sources) {
+      //stack.pushAll(literal.sentence.terms)
+      stack.pushAll(entry)
 
       while (stack.nonEmpty) stack.pop() match {
         case v: Variable if !variables.contains(v) =>
@@ -170,13 +175,14 @@ package object logic {
     result
   }
 
-  def uniqueOrderedVariablesIn(atom: AtomicFormula): Vector[Variable] = {
+  def uniqueOrderedVariablesIn(source: TermIterable): Vector[Variable] = {
     val stack = mutable.Stack[Term]()
 
     var variables = Set[Variable]()
     var result = Vector[Variable]()
 
-    stack.pushAll(atom.terms)
+    //stack.pushAll(atom.terms)
+    stack.pushAll(source)
 
     while (stack.nonEmpty) stack.pop() match {
       case v: Variable if !variables.contains(v) =>
@@ -196,9 +202,10 @@ package object logic {
    * Collects all variables from a given list of term lists.
    *
    * @param termLists input list of term list
+   *
    * @return The resulting set of variables found in the given lists of terms, or an empty set if none is found.
    */
-  def uniqueVariablesInLists(termLists: Iterable[Iterable[_ <: Term]]): Set[Variable] = {
+  def uniqueVariables(termLists: Iterable[TermIterable]): Set[Variable] = {
     /**
      * Recursively collect all variables from list of term list
      *
@@ -207,7 +214,7 @@ package object logic {
      * @return the resulting set of variables
      */
     @tailrec
-    def variablesRec(terms: Iterable[Iterable[_ <: Term]], variables: Set[Variable]): Set[Variable] = {
+    def variablesRec(terms: Iterable[TermIterable], variables: Set[Variable]): Set[Variable] = {
       if (terms.nonEmpty)
         variablesRec(terms.tail, uniqueVariablesIn(terms.head) ++ variables)
       else variables
@@ -217,7 +224,7 @@ package object logic {
     variablesRec(termLists, Set.empty)
   }
 
-  def uniqueConstantsIn(terms: Iterable[_ <: Term]): Set[Constant] = {
+  def uniqueConstantsIn(terms: TermIterable): Set[Constant] = {
     val queue = mutable.Queue[Term]()
     queue ++= terms
     var result = Set[Constant]()
@@ -230,9 +237,9 @@ package object logic {
     result
   }
 
-  def uniqueConstantsInLists(termLists: Iterable[Iterable[_ <: Term]]): Set[Constant] = {
+  def uniqueConstants(termLists: Iterable[TermIterable]): Set[Constant] = {
     @tailrec
-    def constantsRec(terms: Iterable[Iterable[_ <: Term]], constants: Set[Constant]): Set[Constant] = {
+    def constantsRec(terms: Iterable[TermIterable], constants: Set[Constant]): Set[Constant] = {
       if (terms.nonEmpty)
         constantsRec(terms.tail, uniqueConstantsIn(terms.head) ++ constants)
       else constants
@@ -242,7 +249,7 @@ package object logic {
     constantsRec(termLists, Set.empty)
   }
 
-  def uniqueFunctionsIn(terms: Iterable[_ <: Term]): Set[TermFunction] = {
+  def uniqueFunctionsIn(terms: TermIterable): Set[TermFunction] = {
     val queue = mutable.Queue[Term]()
     queue ++= terms
     var result = Set[TermFunction]()
@@ -256,9 +263,9 @@ package object logic {
     result
   }
 
-  def uniqueFunctionsInLists(termLists: Iterable[Iterable[_ <: Term]]): Set[TermFunction] = {
+  def uniqueFunctionsInLists(termLists: Iterable[TermIterable]): Set[TermFunction] = {
     @tailrec
-    def functionsRec(terms: Iterable[Iterable[_ <: Term]], functions: Set[TermFunction]): Set[TermFunction] = {
+    def functionsRec(terms: Iterable[TermIterable], functions: Set[TermFunction]): Set[TermFunction] = {
       if (terms.nonEmpty)
         functionsRec(terms.tail, uniqueFunctionsIn(terms.head) ++ functions)
       else functions
@@ -269,13 +276,14 @@ package object logic {
   }
 
 
-  def flatMatchedTerms(literals: Iterable[Literal], matcher: Term => Boolean): Vector[Term] = {
+  def flatMatchedTerms(sources: Iterable[TermIterable], matcher: Term => Boolean): Vector[Term] = {
     val queue = mutable.Queue[Term]()
 
     var result = Vector[Term]()
 
-    for (literal <- literals) {
-      queue ++= literal.sentence.terms
+    for (entry <- sources) {
+      queue ++= entry
+      //queue ++= literal.sentence.terms
 
       while (queue.nonEmpty) {
         val candidate = queue.dequeue()
@@ -292,14 +300,15 @@ package object logic {
   }
 
 
-  def uniqFlatMatchedTerms(literals: Iterable[Literal], matcher: Term => Boolean): Vector[Term] = {
+  def uniqFlatMatchedTerms(sources: Iterable[TermIterable], matcher: Term => Boolean): Vector[Term] = {
     val queue = mutable.Queue[Term]()
 
     var memory = Set[Term]()
     var result = Vector[Term]()
 
-    for (literal <- literals) {
-      queue ++= literal.sentence.terms
+    for (entry <- sources) {
+      queue ++= entry
+      //queue ++= literal.sentence.terms
 
       while (queue.nonEmpty) {
         val candidate = queue.dequeue()
@@ -318,13 +327,15 @@ package object logic {
     result
   }
 
-  def matchedTermsInLiterals(literals: Iterable[Literal], matcher: Term => Boolean): Vector[Vector[Term]] = {
+
+  def matchedTerms(sources: Iterable[TermIterable], matcher: Term => Boolean)(implicit tag: ClassTag[TermIterable]): Vector[Vector[Term]] = {
     val stack = mutable.Stack[Term]()
 
     var result = Vector[Vector[Term]]()
 
-    for (literal <- literals) {
-      stack.pushAll(literal.sentence.terms)
+    for (entry <- sources) {
+      stack.pushAll(entry)
+      //stack.pushAll(literal.sentence.terms)
       var matchedTerms = Vector[Term]()
 
       while (stack.nonEmpty) {
@@ -342,7 +353,7 @@ package object logic {
     result
   }
 
-  def matchedTerms(terms: Iterable[Term], matcher: Term => Boolean): Vector[Term] = {
+  def matchedTerms(terms: TermIterable, matcher: Term => Boolean): Vector[Term] = {
     var matchedTerms = Vector[Term]()
     val stack = mutable.Stack[Term]()
 
@@ -362,32 +373,85 @@ package object logic {
   }
 
 
-  def leafs[T <: Term](terms: Iterable[_ <: Term]): Vector[T] = {
+  def variableLeafs(terms: TermIterable): Vector[Variable] = {
     val stack = mutable.Stack[Term]()
     stack.pushAll(terms)
 
-    var result = Vector[T]()
+    var result = Vector[Variable]()
     while (stack.nonEmpty) stack.pop() match {
       case f: TermFunction => stack.pushAll(f.terms)
-      case t: T => result ++= Vector(t)
+      case t: Variable => result ++= Vector(t)
       case _ => //do nothing
     }
 
     result
   }
 
-  def uniqueLeafs[T <: Term](terms: Iterable[_ <: Term]): Set[T] = {
+  def constantLeafs(terms: TermIterable): Vector[Constant] = {
+    val stack = mutable.Stack[Term]()
+    stack.pushAll(terms)
+
+    var result = Vector[Constant]()
+    while (stack.nonEmpty) stack.pop() match {
+      case f: TermFunction => stack.pushAll(f.terms)
+      case t: Constant => result ++= Vector(t)
+      case _ => //do nothing
+    }
+
+    result
+  }
+
+
+
+  def uniqueVariableLeafs(terms: TermIterable): Set[Variable] = {
     val queue = mutable.Queue[Term]()
     queue ++= terms
-    var result = Set[T]()
+    var result = Set[Variable]()
 
     while (queue.nonEmpty) queue.dequeue() match {
       case f: TermFunction => queue ++= f.terms
-      case v: T => result += v
+      case v: Variable => result += v
       case _ => //do nothing
     }
     result
   }
+
+  def uniqueConstantLeafs(terms: TermIterable): Set[Constant] = {
+    val queue = mutable.Queue[Term]()
+    queue ++= terms
+    var result = Set[Constant]()
+
+    while (queue.nonEmpty) queue.dequeue() match {
+      case f: TermFunction => queue ++= f.terms
+      case v: Constant => result += v
+      case _ => //do nothing
+    }
+    result
+  }
+
+  def variabilizeAtom(atom: AtomicFormula)(implicit predicateSchema: PredicateSchema, functionSchema: FunctionSchema): AtomicFormula ={
+    var anonVarCounter = 0
+
+    def variabilizeTerms(terms: Vector[_ <: Term], currentSchema: Seq[String]): Vector[_ <: Term] = {
+      terms.zip(currentSchema).map {
+        case (v: Variable, t: String) => v
+        case (c: Constant, t: String) =>
+          val symbol = "var_"+anonVarCounter
+          anonVarCounter += 1
+          Variable(symbol, t)
+
+        case (f: TermFunction, t: String) =>
+          val schemaOfTerms = functionSchema(f.signature)._2
+          val fTerms = variabilizeTerms(f.terms, schemaOfTerms)
+          TermFunction(f.symbol, fTerms, f.domain)
+      }
+    }
+
+    val variabilizedTerms = variabilizeTerms(atom.terms, predicateSchema(atom.signature))
+    atom.copy(terms = variabilizedTerms)
+  }
+
+
 
 
   object predef {

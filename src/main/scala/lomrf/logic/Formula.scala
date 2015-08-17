@@ -239,7 +239,10 @@ final case class WeightedDefiniteClause(weight: Double, clause: DefiniteClause) 
  *
  * An atomic formula in its arguments may have either constants or variables.
  */
-case class AtomicFormula(symbol: String, terms: Vector[Term]) extends DefiniteClauseConstruct with FormulaConstruct{
+case class AtomicFormula(symbol: String, terms: Vector[_ <: Term])
+  extends DefiniteClauseConstruct with FormulaConstruct with TermIterable{
+
+  override def iterator: Iterator[_ <: Term] = terms.iterator
 
   val isDynamic = false
 
@@ -252,17 +255,17 @@ case class AtomicFormula(symbol: String, terms: Vector[Term]) extends DefiniteCl
   /**
    * All variables of this atom
    */
-  override lazy val variables: Set[Variable] = uniqueVariablesIn(terms)
+  override lazy val variables: Set[Variable] = uniqueVariablesIn(this)
 
   /**
    * All constants of this atom
    */
-  override lazy val constants: Set[Constant] = uniqueConstantsIn(terms)
+  override lazy val constants: Set[Constant] = uniqueConstantsIn(this)
 
   /**
    * All functions of this atom
    */
-  override lazy val functions: Set[TermFunction] = uniqueFunctionsIn(terms)
+  override lazy val functions: Set[TermFunction] = uniqueFunctionsIn(this)
 
   def isGround = variables.isEmpty
 
@@ -270,7 +273,7 @@ case class AtomicFormula(symbol: String, terms: Vector[Term]) extends DefiniteCl
 
   override def toText: String = s"$symbol(${terms.map(_.toText).mkString(",")})"
 
-  override def toString: String = s"$symbol(${terms.map(_.toString).mkString(",")})"
+  override def toString(): String = s"$symbol(${terms.map(_.toString).mkString(",")})"
 
   /**
    * Two atoms are similar, when:

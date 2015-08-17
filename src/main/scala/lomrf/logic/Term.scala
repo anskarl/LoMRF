@@ -173,17 +173,21 @@ sealed case class Constant(override val symbol: String) extends Term{
  * @param terms function's arguments (Terms, i.e. constants, variables or other functions)
  * @param domain the domain of resulting constant (e.g. persons, object, numbers, etc.)
  */
-sealed case class TermFunction(override val symbol: String, terms: Vector[_ <: Term], domain: String) extends Term {
+sealed case class TermFunction(override val symbol: String,
+                               terms: Vector[_ <: Term],
+                               domain: String) extends Term with TermIterable{
+
+  override def iterator: Iterator[_ <: Term] = terms.iterator
 
   def this(symbol: String, terms: Vector[Term]) = this(symbol, terms, "_?")
 
   lazy val signature = AtomSignature(symbol, terms.size)
 
-  lazy val variables: Set[Variable] = uniqueVariablesIn(terms)
+  lazy val variables: Set[Variable] = uniqueVariablesIn(this)
 
-  lazy val constants: Set[Constant] = uniqueConstantsIn(terms)
+  lazy val constants: Set[Constant] = uniqueConstantsIn(this)
 
-  lazy val functions: Set[TermFunction] = uniqueFunctionsIn(terms)
+  lazy val functions: Set[TermFunction] = uniqueFunctionsIn(this)
 
   /**
    * A function is ground, only when it does not contain any variable
@@ -201,7 +205,7 @@ sealed case class TermFunction(override val symbol: String, terms: Vector[_ <: T
     else s"$symbol(${terms.map(_.toText).mkString(", ")})"
   }
 
-  override def toString = {
+  override def toString() = {
     if (terms.isEmpty) symbol + "():" + domain
     else s"$symbol(${terms.map(_.toString).mkString(", ")}):$domain"
   }

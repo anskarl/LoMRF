@@ -308,7 +308,9 @@ object MLN {
 
     val mlnSchema = MLNSchema(resultingPredicateSchema, kb.functionSchema, kb.dynamicPredicates, kb.dynamicFunctions)
 
-    val clauses = NormalForm.compileCNF(completedFormulas)(evidence.constants).toVector
+    val clauses = NormalForm
+      .compileCNF(completedFormulas)(evidence.constants)
+      .toVector
 
     val space = PredicateSpace(kb.schema, queryAtoms, owa -- queryAtoms, evidence.constants)
 
@@ -385,7 +387,6 @@ object MLN {
     }
 
 
-
     // In case we want to learn weights for unit clauses
     val formulas =
       if (addUnitClauses) {
@@ -403,7 +404,17 @@ object MLN {
 
     val mlnSchema = MLNSchema(resultingPredicateSchema, kb.functionSchema, kb.dynamicPredicates, kb.dynamicFunctions)
 
-    val clauses = NormalForm.compileCNF(formulas)(trainingEvidence.constants).toVector
+    info(s"Initialising weight values in target formulas and computing CNF form")
+
+    def initialiseWeight(formula: WeightedFormula): WeightedFormula ={
+      if(formula.weight.isNaN) formula.copy(weight = 1.0)
+      else formula
+    }
+
+    val clauses = NormalForm
+      .compileCNF(formulas.map(initialiseWeight))(trainingEvidence.constants)
+      .toVector
+
 
     val evidence = new Evidence(trainingEvidence.constants, atomStateDB, trainingEvidence.functionMappers)
 

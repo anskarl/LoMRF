@@ -395,4 +395,14 @@ package object util {
 
   }
 
+
+  def collectByKey[K,V](collection: Traversable[(K, V)]) = {
+    collection
+      .groupBy(_._1)
+      .map {
+      case (group: K, traversable) =>
+        group -> traversable.map(_._2).toSet
+    }
+  }
+
 }

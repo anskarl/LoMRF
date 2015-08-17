@@ -333,15 +333,13 @@ object InferenceCLI extends CLIApp {
       + "\n\t(unitProp) Perform unit-propagation: " + _unitProp
     )
 
-    val mln =
-      _implPaths match {
-        case Some(paths) =>
-          val implFinder = ImplFinder(classOf[DynamicAtomBuilder], classOf[DynamicFunctionBuilder])
-          implFinder.searchPaths(paths)
-          MLN.fromFile(strMLNFileName, _evidenceFileNames, _queryAtoms, _cwa, _owa, pcm = Decomposed, dynamicDefinitions = Some(implFinder.result))
+    val dynamicDefinitionsOpt = _implPaths.map(paths => {
+      val implFinder = ImplFinder(classOf[DynamicAtomBuilder], classOf[DynamicFunctionBuilder])
+      implFinder.searchPaths(paths)
+      implFinder.result
+    })
 
-        case None => MLN.fromFile(strMLNFileName, _evidenceFileNames, _queryAtoms, _cwa, _owa, pcm = Decomposed, dynamicDefinitions = None)
-      }
+    val mln = MLN.fromFile(strMLNFileName, _evidenceFileNames, _queryAtoms, _cwa, _owa, pcm = Decomposed, dynamicDefinitionsOpt)
 
     info("Markov Logic:"
       + "\n\tConstant domains   : " + mln.evidence.constants.size
@@ -352,6 +350,11 @@ object InferenceCLI extends CLIApp {
       debug("List of CNF clauses: ")
       mln.clauses.zipWithIndex.foreach { case (c, idx) => debug(idx + ": " + c) }
     }
+
+    if(mln.clauses.exists(_.weight.isNaN))
+      fatal("Cannot perform inference, soft-constrained clauses with undefined weights found in the specified theory. " +
+        "Please check the given MLN file(s) for soft-constrained formulas with missing weight values.")
+
 
     info("Creating MRF...")
     val mrfBuilder = new MRFBuilder(mln, noNegWeights = _noNeg, eliminateNegatedUnit = _eliminateNegatedUnit)

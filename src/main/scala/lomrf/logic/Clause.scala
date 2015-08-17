@@ -170,7 +170,7 @@ class ImplicationDefiniteClause(val premise: Set[AtomicFormula],
  * }}}
  * @param sentence an atomic formula (optionally ground)
  */
-sealed abstract class Literal(val sentence: AtomicFormula) extends Substitutable[Literal]{
+sealed abstract class Literal(val sentence: AtomicFormula) extends Substitutable[Literal] with TermIterable{
   /**
    * The number of sentence arguments.
    */
@@ -207,6 +207,8 @@ sealed abstract class Literal(val sentence: AtomicFormula) extends Substitutable
   }
 
   def toText: String
+
+  override def iterator: Iterator[Term] = sentence.terms.iterator
 }
 
 object Literal {
@@ -232,9 +234,10 @@ case class PositiveLiteral(s: AtomicFormula) extends Literal(s){
 
   def toText = s.toText
 
-  override def toString = s.toString
+  override def toString() = s.toString
 
   override def substitute(theta: Theta): PositiveLiteral = PositiveLiteral(s.substitute(theta))
+
 }
 
 /**
