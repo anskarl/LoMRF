@@ -231,7 +231,7 @@ object MLN {
               evidenceFileName: String,
               cwa: Set[AtomSignature] = Set(),
               owa: Set[AtomSignature] = Set(),
-              pcm: PredicateCompletionMode = Simplification,
+              pcm: PredicateCompletionMode = Decomposed,
               dynamicDefinitions: Option[ImplFinder.ImplementationsMap] = None): MLN = {
 
     fromFile(mlnFileName, List(evidenceFileName), queryAtoms, cwa, owa, pcm, dynamicDefinitions)
@@ -289,8 +289,10 @@ object MLN {
     val evidence: Evidence = Evidence.fromFiles(kb, constantsDomainBuilders, queryAtoms, owa, evidenceFileNames.map(new File(_)), convertFunctions = false)
 
 
+
     val completedFormulas =
-      PredicateCompletion(kb.formulas, kb.definiteClauses, pcm)(kb.predicateSchema, kb.functionSchema)
+      PredicateCompletion(kb.formulas, kb.definiteClauses, pcm)(kb.predicateSchema, kb.functionSchema, evidence.constants)
+
 
     // In case that some predicates are eliminated by the predicate completion,
     // remove them from the final predicate schema.
@@ -368,7 +370,7 @@ object MLN {
 
 
     val completedFormulas =
-      PredicateCompletion(kb.formulas, kb.definiteClauses, pcm)(kb.predicateSchema, kb.functionSchema)
+      PredicateCompletion(kb.formulas, kb.definiteClauses, pcm)(kb.predicateSchema, kb.functionSchema, trainingEvidence.constants)
 
     // In case that some predicates are eliminated by the predicate completion,
     // remove them from the final predicate schema.

@@ -304,7 +304,7 @@ package object logic {
       while (queue.nonEmpty) {
         val candidate = queue.dequeue()
 
-        if (matcher(candidate) && !memory.contains(candidate)){
+        if (matcher(candidate) && !memory.contains(candidate)) {
           result ++= Vector(candidate)
           memory += candidate
         }
@@ -362,6 +362,34 @@ package object logic {
   }
 
 
+  def leafs[T <: Term](terms: Iterable[_ <: Term]): Vector[T] = {
+    val stack = mutable.Stack[Term]()
+    stack.pushAll(terms)
+
+    var result = Vector[T]()
+    while (stack.nonEmpty) stack.pop() match {
+      case f: TermFunction => stack.pushAll(f.terms)
+      case t: T => result ++= Vector(t)
+      case _ => //do nothing
+    }
+
+    result
+  }
+
+  def uniqueLeafs[T <: Term](terms: Iterable[_ <: Term]): Set[T] = {
+    val queue = mutable.Queue[Term]()
+    queue ++= terms
+    var result = Set[T]()
+
+    while (queue.nonEmpty) queue.dequeue() match {
+      case f: TermFunction => queue ++= f.terms
+      case v: T => result += v
+      case _ => //do nothing
+    }
+    result
+  }
+
+
   object predef {
 
     val dynAtomBuilders: Map[AtomSignature, DynamicAtomBuilder] = List(
@@ -371,7 +399,7 @@ package object logic {
 
 
     val dynAtoms: Map[AtomSignature, Vector[String] => Boolean] =
-      dynAtomBuilders.map { case (signature, builder) => signature -> builder.stateFunction}
+      dynAtomBuilders.map { case (signature, builder) => signature -> builder.stateFunction }
 
 
     val dynFunctionBuilders: Map[AtomSignature, DynamicFunctionBuilder] = List(
@@ -381,7 +409,7 @@ package object logic {
     ).map(builder => builder.signature -> builder).toMap
 
     val dynFunctions: Map[AtomSignature, Vector[String] => String] =
-      dynFunctionBuilders.map { case (signature, builder) => signature -> builder.resultFunction}
+      dynFunctionBuilders.map { case (signature, builder) => signature -> builder.resultFunction }
 
   }
 

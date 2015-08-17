@@ -89,7 +89,7 @@ final class KBBuilder(convertFunctions: Boolean = false) { self =>
       if(convertFunctions) _functionSchema.toPredicateSchema ++ _predicateSchema
       else _predicateSchema
 
-    new KB(finalPredicateSchema, _functionSchema, _dynamicPredicates, _dynamicFunctions, _formulas)
+    new KB(finalPredicateSchema, _functionSchema, _dynamicPredicates, _dynamicFunctions, _formulas, _definiteClauses)
   }
 
   object predicateSchema {

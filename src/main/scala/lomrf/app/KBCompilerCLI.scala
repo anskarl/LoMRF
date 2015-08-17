@@ -138,7 +138,7 @@ object KBCompilerCLI extends Logging {
     }
     val constants = constBuilder.result()
 
-    lazy val completedFormulas = PredicateCompletion(kb.formulas, kb.definiteClauses, pcm)(kb.predicateSchema, kb.functionSchema)
+    lazy val completedFormulas = PredicateCompletion(kb.formulas, kb.definiteClauses, pcm)(kb.predicateSchema, kb.functionSchema, constants)
 
     lazy val resultingPredicateSchema = pcm match {
       case Simplification =>

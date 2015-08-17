@@ -37,7 +37,7 @@ package lomrf.logic
 
 
 import auxlib.log.Logging
-import lomrf.mln.model.{FunctionSchema, PredicateSchema}
+import lomrf.mln.model.{ConstantsDomain, FunctionSchema, PredicateSchema}
 
 import collection.mutable
 import lomrf.logic.dynamic.DynEqualsBuilder
@@ -104,7 +104,10 @@ object PredicateCompletion extends Logging {
    * @return a logically stronger knowledge base (set of formulas)
    */
   def apply(formulas: Set[WeightedFormula], definiteClauses: Set[WeightedDefiniteClause])
-           (implicit predicateSchema: PredicateSchema, functionSchema: FunctionSchema): Set[WeightedFormula] = {
+           (implicit predicateSchema: PredicateSchema,
+            functionSchema: FunctionSchema,
+            constants: ConstantsDomain): Set[WeightedFormula] = {
+
     apply(formulas, definiteClauses, PredicateCompletionMode.Simplification)
   }
 
@@ -187,7 +190,9 @@ object PredicateCompletion extends Logging {
    * @return  a logically stronger knowledge base (set of formulas)
    */
   def apply(formulas: Set[WeightedFormula], definiteClauses: Set[WeightedDefiniteClause], mode: PredicateCompletionMode)
-           (implicit predicateSchema: PredicateSchema, functionSchema: FunctionSchema): Set[WeightedFormula] = {
+           (implicit predicateSchema: PredicateSchema,
+            functionSchema: FunctionSchema,
+            constants: ConstantsDomain): Set[WeightedFormula] = {
 
     if (definiteClauses.isEmpty) {
       info("No definite clauses found in the given MLN.")
@@ -220,11 +225,10 @@ object PredicateCompletion extends Logging {
     val targetPredicates = dcDB.keySet.map("\"" + _.toString + "\"").reduceLeft((a, b) => a + ", " + b)
     info("\tStep 2: Performing predicate completion for predicates: " + targetPredicates)
 
-
     mode match {
       case Simplification => applyPCSimplification(formulas, dcDB)
       case Decomposed =>
-        if (canBeDecomposed) applyPCDecomposed(formulas, definiteClauses, dcDB)
+        if (canBeDecomposed) applyPCDecomposed(formulas, definiteClauses, dcDB, constants)
         else fatal("I'm sorry but the result of the predicate completion cannot be decomposed, " +
           "as the created equivalences appear to be more general from the heads of the given definite clauses. " +
           "Please use standard predicate completion or with simplification.")
@@ -438,7 +442,11 @@ object PredicateCompletion extends Logging {
    */
   private def applyPCDecomposed(formulas: Set[WeightedFormula],
                                 definiteClauses: Set[WeightedDefiniteClause],
-                                dcDB: DefiniteClausesDB): Set[WeightedFormula] = {
+                                dcDB: DefiniteClausesDB,
+                                constants: ConstantsDomain)
+                               (implicit predicateSchema: PredicateSchema,
+                                 functionSchema: FunctionSchema): Set[WeightedFormula] = {
+
 
     var pcResultingKB = Set[WeightedFormula]()
     pcResultingKB ++= formulas
@@ -451,6 +459,21 @@ object PredicateCompletion extends Logging {
     for ((_, entries) <- dcDB; (head, bodies) <- entries)
       pcResultingKB += WeightedFormula(Double.PositiveInfinity,
         Implies(head, bodies.map(body => normalise(head, body)).reduceLeft((left, right) => Or(left, right))))
+
+
+    // Find which partial-grounded heads are missing, in order to introduce them as negated unit clauses to the theory
+    for ((signature, entries) <- dcDB){
+      println(s"$signature -> {\n\t${entries.mkString("\n\t")}\n}")
+      val predicateSchema = predicateSchema(signature)
+      val predicate = entries.head._1
+      val varDomainNames = uniqueLeafs[Variable](predicate.terms).map(_.domain)
+
+
+    }
+
+
+    sys.exit()
+
 
     pcResultingKB
   }

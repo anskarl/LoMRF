@@ -339,6 +339,7 @@ object InferenceCLI extends CLIApp {
           val implFinder = ImplFinder(classOf[DynamicAtomBuilder], classOf[DynamicFunctionBuilder])
           implFinder.searchPaths(paths)
           MLN.fromFile(strMLNFileName, _evidenceFileNames, _queryAtoms, _cwa, _owa, pcm = Decomposed, dynamicDefinitions = Some(implFinder.result))
+
         case None => MLN.fromFile(strMLNFileName, _evidenceFileNames, _queryAtoms, _cwa, _owa, pcm = Decomposed, dynamicDefinitions = None)
       }
 
