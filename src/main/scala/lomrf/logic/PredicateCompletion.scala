@@ -470,23 +470,22 @@ object PredicateCompletion extends Logging {
         val completionBody = bodies.map(body => normalise(head, body)).reduceLeft((left, right) => Or(left, right))
         pcResultingKB += WeightedFormula.asHard(Implies(head, completionBody))
       }
+
       info(s"\t\tProduced ${entries.size} completion formulas for '$signature'")
 
       // 2. Find which partial-grounded heads are missing, in order to introduce them as negated unit clauses to the theory (=complementary clauses)
       val headPred = entries.head._1
       val varabilizedPred = variabilizeAtom(headPred)
 
-      val what = collectByKey[Variable, String](entries.keys.flatMap(p => extractTheta(Unify(varabilizedPred, p))))
-
-
-      val wtf = what.map{
-        case (v, collectedConstants) =>
-          v -> constants(v.domain).filter(c => !collectedConstants.contains(c))
-      }
+      val complementaryDomains = collectByKey[Variable, String](entries.keys.flatMap(p => extractTheta(Unify(varabilizedPred, p))))
+        .map{
+          case (v, collectedConstants) =>
+            v -> constants(v.domain).filter(c => !collectedConstants.contains(c))
+        }
 
       // 3. Add complementary clauses to the resulting knowledge base
       val complementaryClauses =
-        (for(theta <- CartesianIterator(wtf); mappedTheta: Theta = theta.mapValues(Constant).asInstanceOf[Map[Term, Term]])
+        (for(theta <- CartesianIterator(complementaryDomains); mappedTheta: Theta = theta.mapValues(Constant).asInstanceOf[Map[Term, Term]])
           yield WeightedFormula.asHard(Not(varabilizedPred.substitute(mappedTheta)))).toList
 
       info(s"\t\tAdded ${complementaryClauses.size} complementary negated unit clause(s) for '$signature'")
@@ -497,6 +496,8 @@ object PredicateCompletion extends Logging {
 
     pcResultingKB
   }
+
+
 }
 
 /**
