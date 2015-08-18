@@ -355,12 +355,6 @@ final class TuplesDB[@specialized V, @specialized C] extends Logging {
   }
 
   /**
-   * Future work. This method is an expansion of allowOnly method, in order
-   * to allow other mapping to expand the constrainted space.
-   */
-  private def allowMore(tuples: Map[V, Seq[C]]) = ???
-
-  /**
    * @return true if the given constant exists in the domain of the
    *         specified variable, otherwise false
    */
