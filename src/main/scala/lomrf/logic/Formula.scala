@@ -292,7 +292,7 @@ case class AtomicFormula(symbol: String, terms: Vector[_ <: Term])
    * @return true if this atom is similar to the given atom, otherwise false
    */
   def =~= (other: AtomicFormula): Boolean = {
-    if (signature == other.signature) {
+    if (signature == other.signature && variables.size == other.variables.size) {
       Unify(this, other) match {
         case Some(x) if x.forall(_._2.isInstanceOf[Variable]) => true
         case _ => false

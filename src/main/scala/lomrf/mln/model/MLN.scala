@@ -35,9 +35,9 @@
 
 package lomrf.mln.model
 
-import java.io.{File, PrintStream}
-import java.text.DecimalFormat
 
+import java.io.{File,PrintStream}
+import java.text.DecimalFormat
 import auxlib.log.Logger
 import lomrf.logic._
 import lomrf.util._
@@ -54,7 +54,6 @@ final class MLN(val schema: MLNSchema,
                 val space: PredicateSpace,
                 val evidence: Evidence,
                 val clauses: Vector[Clause]) {
-
 
   /**
    * Determine if the given atom signature corresponds to an atom with closed-world assumption.
@@ -254,6 +253,7 @@ object MLN {
         |\tInput evidence file(s): ${evidenceFileNames.mkString(", ")}""".stripMargin)
 
 
+
     //parse knowledge base (.mln)
     val (kb, constantsDomainBuilders) = KB.fromFile(mlnFileName, dynamicDefinitions)
 
@@ -265,7 +265,6 @@ object MLN {
     val missingQuerySignatures = queryAtoms.diff(atomSignatures)
     if(missingQuerySignatures.nonEmpty)
       fatal(s"Missing definitions for the following query predicate(s): ${missingQuerySignatures.mkString(", ")}")
-
 
     // OWA predicates
     val predicatesOWA = pcm match {
@@ -279,16 +278,13 @@ object MLN {
         queryAtoms ++ owa
     }
 
-
-    //Check for predicates that are mistakenly defined as open and closed
+    // Check for predicates that are mistakenly defined as open and closed
     val openClosedSignatures = cwa.intersect(predicatesOWA)
     if(openClosedSignatures.nonEmpty)
       fatal(s"Predicate(s): ${openClosedSignatures.mkString(", ")} defined both as closed and open.")
 
     //parse the evidence database (.db)
     val evidence: Evidence = Evidence.fromFiles(kb, constantsDomainBuilders, queryAtoms, owa, evidenceFileNames.map(new File(_)), convertFunctions = false)
-
-
 
     val completedFormulas =
       PredicateCompletion(kb.formulas, kb.definiteClauses, pcm)(kb.predicateSchema, kb.functionSchema, evidence.constants)
@@ -319,6 +315,18 @@ object MLN {
   }
 
 
+  /**
+   * Constructs a MLN instance and annotation from the specified knowledge base
+   * and training files.
+   *
+   * @param mlnFileName the path to the MLN file (.mln)
+   * @param trainingFileNames the path to the training file(s) (.db)
+   * @param nonEvidenceAtoms the set of non evidence atoms
+   * @param pcm the predicate completion mode to perform [[lomrf.logic.PredicateCompletion]]
+   * @param addUnitClauses add a unit clause for each predicate definition to the mln instance
+   *
+   * @return an MLN instance
+   */
   def forLearning(mlnFileName: String,
                   trainingFileNames: List[String],
                   nonEvidenceAtoms: Set[AtomSignature],
@@ -333,14 +341,14 @@ object MLN {
         "\n\tInput MLN file: " + mlnFileName +
         "\n\tInput training file(s): " + (if (trainingFileNames.nonEmpty) trainingFileNames.mkString(", ") else ""))
 
+
     //parse knowledge base (.mln)
     val (kb, constantsDomainBuilder) = KB.fromFile(mlnFileName, dynamicDefinitions)
 
+    // All atom signatures
     val atomSignatures: Set[AtomSignature] = kb.predicateSchema.keySet
 
-    /**
-     * Check if the schema of all Non-Evidence atoms is defined in the MLN file
-     */
+    // Check if the schema of all Non-Evidence atoms is defined in the MLN file
     nonEvidenceAtoms.find(s => !atomSignatures.contains(s)) match {
       case Some(x) => fatal(s"The predicate '$x' that appears in the query, is not defined in the mln file.")
       case None => // do nothing
@@ -355,11 +363,14 @@ object MLN {
 
     val domainSpace = PredicateSpace(kb.schema, nonEvidenceAtoms, trainingEvidence.constants)
 
+    // Partition the training data into annotation and evidence databases
     var (annotationDB, atomStateDB) = trainingEvidence.db.partition(e => nonEvidenceAtoms.contains(e._1))
 
+    // Define all non evidence atoms as unknown in the evidence database
     for (signature <- annotationDB.keysIterator)
       atomStateDB += (signature -> AtomEvidenceDB.allUnknown(domainSpace.identities(signature)))
 
+    // Define all non evidence atoms for which annotation was not given as false in the annotation database (close world assumption)
     for (signature <- nonEvidenceAtoms; if !annotationDB.contains(signature)) {
       warn(s"Annotation was not given in the training file(s) for predicate '$signature', assuming FALSE state for all its groundings.")
       annotationDB += (signature -> AtomEvidenceDB.allFalse(domainSpace.identities(signature)))
@@ -443,4 +454,93 @@ object MLN {
     mln.clauses.foreach(clause => out.println(clause.toText()))
   }
 
+  /**
+   * Constructs a MLN instance and annotation from a specified mln schema,
+   * a set of clauses and training files.
+   *
+   * @param mlnSchema the mln schema
+   * @param nonEvidenceAtoms the set of non evidence atoms
+   * @param clauses the set of clauses to include in the mln instance
+   * @param trainingFileNames the path to the training file(s) (.db)
+   *
+   * @return an MLN instance
+   */
+  def forLearning(mlnSchema: MLNSchema,
+                  nonEvidenceAtoms: Set[AtomSignature],
+                  clauses: Vector[Clause],
+                  trainingFileNames: List[String]): (MLN, EvidenceDB) = {
+
+    val logger = Logger(getClass)
+    import logger._
+
+    info(
+      "--- Stage 0: Loading an MLN instance from data..." +
+        "\n\tInput training file(s): " + (if (trainingFileNames.nonEmpty) trainingFileNames.mkString(", ") else ""))
+
+    // Create constant builder and append all constants found in the clauses (constants may exist from previous data)
+    val builder = ConstantsDomainBuilder()
+    clauses.foreach { clause =>
+      clause.literals.foreach { literal =>
+        val domain = mlnSchema.predicates(literal.sentence.signature)
+        literal.sentence.terms zip domain foreach(tuple => if (tuple._1.isConstant) builder += (tuple._2, tuple._1.symbol))
+      }
+    }
+
+    // Parse the training evidence database (contains the annotation, i.e., the truth values of all query/hidden atoms)
+    val trainingEvidence = Evidence.fromFiles(mlnSchema.predicates, mlnSchema.functions, builder, mlnSchema.dynamicFunctions,
+                                              nonEvidenceAtoms, Set.empty[AtomSignature], trainingFileNames.map(filename => new File(filename)), convertFunctions = false)
+
+    forLearning(mlnSchema, trainingEvidence, nonEvidenceAtoms, clauses)
+  }
+
+
+  /**
+   * Constructs a MLN instance and annotation from a specified mln schema,
+   * a set of clauses and a training evidence database.
+   *
+   * @param mlnSchema the mln schema
+   * @param trainingEvidence the specified training evidence (including annotation)
+   * @param nonEvidenceAtoms the set of non evidence atoms
+   * @param clauses the set of clauses to include in the mln instance
+   *
+   * @return an MLN instance
+   */
+  def forLearning(mlnSchema: MLNSchema,
+                  trainingEvidence: Evidence,
+                  nonEvidenceAtoms: Set[AtomSignature],
+                  clauses: Vector[Clause]): (MLN, EvidenceDB) = {
+
+    val logger = Logger(getClass)
+    import logger._
+
+    // All atom signatures
+    val atomSignatures: Set[AtomSignature] = mlnSchema.predicates.keySet
+
+    val domainSpace = PredicateSpace(mlnSchema, nonEvidenceAtoms, trainingEvidence.constants)
+
+    // Partition the training data into annotation and evidence databases
+    var (annotationDB, atomStateDB) = trainingEvidence.db.partition(e => nonEvidenceAtoms.contains(e._1))
+
+    // Define all non evidence atoms as unknown in the evidence database
+    for (signature <- annotationDB.keysIterator)
+      atomStateDB += (signature -> AtomEvidenceDB.allUnknown(domainSpace.identities(signature)))
+
+    // Define all non evidence atoms for which annotation was not given as false in the annotation database (close world assumption)
+    for (signature <- nonEvidenceAtoms; if !annotationDB.contains(signature)) {
+      warn(s"Annotation was not given in the training file(s) for predicate '$signature', assuming FALSE state for all its groundings.")
+      annotationDB += (signature -> AtomEvidenceDB.allFalse(domainSpace.identities(signature)))
+    }
+
+    val evidenceAtoms = atomSignatures -- nonEvidenceAtoms
+
+    for (signature <- mlnSchema.predicates.keysIterator; if !atomStateDB.contains(signature)) {
+      if (evidenceAtoms.contains(signature))
+        atomStateDB += (signature -> AtomEvidenceDB.allFalse(domainSpace.identities(signature)))
+    }
+
+    val evidence = new Evidence(trainingEvidence.constants, atomStateDB, trainingEvidence.functionMappers)
+
+    // Give the resulting MLN and the annotation database
+    (new MLN(mlnSchema, domainSpace, evidence, clauses), annotationDB)
+  }
 }

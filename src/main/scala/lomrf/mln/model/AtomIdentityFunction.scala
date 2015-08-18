@@ -216,12 +216,12 @@ final class AtomIdentityFunction private(
     sum
   }
 
-  def decode(id: Int): Try[IndexedSeq[String]] = {
+  def decode(atomID: Int): Try[IndexedSeq[String]] = {
     // check bounds
-    if (id < startID || id >= endID)
-      return Failure(new IndexOutOfBoundsException(s"The given atom id '$id' is out of bounds, thus cannot be decoded."))
+    if (atomID < startID || atomID >= endID)
+      return Failure(new IndexOutOfBoundsException(s"The given id ($atomID) is out of bounds [$startID, $endID]"))
 
-    val baseID = id - startID
+    val baseID = atomID - startID
 
     // Find all id literals
     var currentID = baseID
