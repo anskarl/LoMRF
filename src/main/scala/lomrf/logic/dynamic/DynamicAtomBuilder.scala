@@ -46,6 +46,8 @@ trait DynamicAtomBuilder {
 
   def apply(terms: Vector[Term]): DynamicAtom
 
+  def apply(terms: Term*): DynamicAtom = apply(terms.toVector)
+
 }
 
 private[dynamic] final class DynInfix(prefixSymbol: String, infixSymbol:String, terms: Vector[Term]) extends DynamicAtom(prefixSymbol, terms){

@@ -80,8 +80,6 @@ sealed trait Term extends MLNExpression with Substitutable[Term]{
    */
   def toText: String
 
-  //def substitute(theta: Theta): Term = theta.getOrElse(this, this)
-
 }
 
 /**
@@ -226,10 +224,9 @@ sealed case class TermFunction(override val symbol: String,
     case _ => false
   }
 
-  override def substitute(theta: Theta): TermFunction = {
+  override def substitute(theta: Theta): TermFunction =
     TermFunction(symbol, terms.map(_.substitute(theta)), domain)
-    //theta.getOrElse(this, TermFunction(symbol, terms.map(_.substitute(theta)), domain))
-  }
+
 }
 
 object TermFunction {

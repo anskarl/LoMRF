@@ -488,14 +488,70 @@ object PredicateCompletion extends Logging {
         (for(theta <- CartesianIterator(complementaryDomains); mappedTheta: Theta = theta.mapValues(Constant).asInstanceOf[Map[Term, Term]])
           yield WeightedFormula.asHard(Not(varabilizedPred.substitute(mappedTheta)))).toList
 
-      info(s"\t\tAdded ${complementaryClauses.size} complementary negated unit clause(s) for '$signature'")
 
       pcResultingKB = pcResultingKB ++ complementaryClauses
+
+      info(s"\t\tAdded ${complementaryClauses.size} complementary negated unit clause(s) for '$signature'")
 
     }
 
     pcResultingKB
   }
+
+  /*private def applyPCDecomposed(formulas: Set[WeightedFormula],
+                                definiteClauses: Set[WeightedDefiniteClause],
+                                dcDB: DefiniteClausesDB,
+                                constants: ConstantsDomain)
+                               (implicit predicateSchema: PredicateSchema,
+                                functionSchema: FunctionSchema): Set[WeightedFormula] = {
+
+    def extractTheta(theta: ThetaOpt) = theta.getOrElse(Map.empty).map{
+      case (k:Variable, v: Constant) => k -> v
+    }
+
+    lazy val eqPred = (a: Term, b: Term) => DynEqualsBuilder().apply(a,b)
+
+
+    var pcResultingKB = Set[WeightedFormula]()
+    pcResultingKB ++= formulas
+
+    // Insert the original definite clauses as weighted formulas:
+    for (dClause <- definiteClauses)
+      pcResultingKB += WeightedFormula(dClause.weight, Implies(dClause.clause.body, dClause.clause.head))
+
+    for ((signature, entries) <- dcDB){
+
+      // 1. Insert the additional "completion" formulas
+      for((head, bodies) <- entries){
+        val completionBody = bodies.map(body => normalise(head, body)).reduceLeft((left, right) => Or(left, right))
+        pcResultingKB += WeightedFormula.asHard(Implies(head, completionBody))
+      }
+
+      info(s"\t\tProduced ${entries.size} completion formulas for '$signature'")
+
+      // 2. Parse partial-grounded heads in order to compute the complementary formulas
+      val headPred = entries.head._1
+      val varabilizedPred = variabilizeAtom(headPred)
+
+      val givenDomains = collectByKey[Variable, Constant](entries.keys.flatMap(p => extractTheta(Unify(varabilizedPred, p))))
+
+      // 3. Add a complementary completion formula to the resulting knowledge base
+      val completionConstraints = givenDomains.map {
+          case (v: Variable, constSet) => constSet.map(c => eqPred(v, c)).reduceLeft(Or)
+        }
+        .reduceLeft(And)
+
+      pcResultingKB += WeightedFormula.asHard(Implies(varabilizedPred, completionConstraints))
+
+      info(s"\t\tAdded complementary completion formula for '$signature'")
+
+
+    }
+
+    //pcResultingKB.map(_.toText).foreach(println)
+
+    pcResultingKB
+  }*/
 
 
 }
