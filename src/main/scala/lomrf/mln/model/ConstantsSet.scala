@@ -324,8 +324,6 @@ final class ConstantsSetBuilder(private var constants2Id: TObjectIntHashMap[Stri
    */
   private var dirty = false
 
-  //private var constants2Id = new TObjectIntHashMap[String](TC.DEFAULT_CAPACITY, TC.DEFAULT_LOAD_FACTOR, NO_ENTRY)
-  //private var id2Constants = new mutable.ArrayBuffer[String]()
   private var _size = id2Constants.size
 
   override def iterator: Iterator[String] = id2Constants.iterator

@@ -37,10 +37,15 @@ package lomrf.logic
 
 
 import auxlib.log.Logging
+import lomrf.logic.Unify.ThetaOpt
+import lomrf.mln.model.{ConstantsDomain, FunctionSchema, PredicateSchema}
+import lomrf.util.Cartesian.CartesianIterator
+import lomrf.util.collectByKey
 
 import collection.mutable
+import collection.breakOut
 import lomrf.logic.dynamic.DynEqualsBuilder
-
+import LogicOps._
 
 /**
  * Perform circumscription by predicate completion.</br>
@@ -95,14 +100,20 @@ object PredicateCompletion extends Logging {
   /**
    * Performs predicate completion with simplification (see [[lomrf.logic.PredicateCompletion]]).
    *
-   * @param formulas the input set of formulas [[lomrf.logic.Formula]]
+   * @param formulas the input set of formulas [[lomrf.logic.FormulaConstruct]]
    * @param definiteClauses the input set of definite clauses [[lomrf.logic.DefiniteClause]]
    * @param predicateSchema predicate schema [[lomrf.mln.model.MLN]]
    * @param functionSchema function schema [[lomrf.mln.model.MLN]]
+   *
    * @return a logically stronger knowledge base (set of formulas)
    */
-  def apply(formulas: Set[Formula], definiteClauses: Set[WeightedDefiniteClause])
-           (implicit predicateSchema: Map[AtomSignature, Vector[String]], functionSchema: Map[AtomSignature, (String, Vector[String])]): Set[Formula] = apply(formulas, definiteClauses, PredicateCompletionMode.Simplification)
+  def apply(formulas: Set[WeightedFormula], definiteClauses: Set[WeightedDefiniteClause])
+           (implicit predicateSchema: PredicateSchema,
+            functionSchema: FunctionSchema,
+            constants: ConstantsDomain): Set[WeightedFormula] = {
+
+    apply(formulas, definiteClauses, PredicateCompletionMode.Simplification)
+  }
 
   /**
    * Creates a logically stronger knowledge base from the given formulas, by performing predicate completion.
@@ -174,7 +185,7 @@ object PredicateCompletion extends Logging {
    *  (Exist t' Happens(Event3(x),t) ^ !HoldsAt(moving(y),t') ^ t' < t )
    * }}}
    *
-   * @param formulas  the input set of formulas [[lomrf.logic.Formula]]
+   * @param formulas  the input set of formulas [[lomrf.logic.FormulaConstruct]]
    * @param definiteClauses   the input set of definite clauses [[lomrf.logic.DefiniteClause]]
    * @param mode  predicate completion mode to use
    * @param predicateSchema   MLN predicate schema [[lomrf.mln.model.MLN]]
@@ -182,8 +193,10 @@ object PredicateCompletion extends Logging {
 
    * @return  a logically stronger knowledge base (set of formulas)
    */
-  def apply(formulas: Set[Formula], definiteClauses: Set[WeightedDefiniteClause], mode: PredicateCompletionMode)
-           (implicit predicateSchema: Map[AtomSignature, Vector[String]], functionSchema: Map[AtomSignature, (String, Vector[String])]): Set[Formula] = {
+  def apply(formulas: Set[WeightedFormula], definiteClauses: Set[WeightedDefiniteClause], mode: PredicateCompletionMode)
+           (implicit predicateSchema: PredicateSchema,
+            functionSchema: FunctionSchema,
+            constants: ConstantsDomain): Set[WeightedFormula] = {
 
     if (definiteClauses.isEmpty) {
       info("No definite clauses found in the given MLN.")
@@ -216,11 +229,10 @@ object PredicateCompletion extends Logging {
     val targetPredicates = dcDB.keySet.map("\"" + _.toString + "\"").reduceLeft((a, b) => a + ", " + b)
     info("\tStep 2: Performing predicate completion for predicates: " + targetPredicates)
 
-
     mode match {
       case Simplification => applyPCSimplification(formulas, dcDB)
       case Decomposed =>
-        if (canBeDecomposed) applyPCDecomposed(formulas, definiteClauses, dcDB)
+        if (canBeDecomposed) applyPCDecomposed(formulas, definiteClauses, dcDB, constants)
         else fatal("I'm sorry but the result of the predicate completion cannot be decomposed, " +
           "as the created equivalences appear to be more general from the heads of the given definite clauses. " +
           "Please use standard predicate completion or with simplification.")
@@ -235,9 +247,10 @@ object PredicateCompletion extends Logging {
    *
    * @param head atom
    * @param body atoms
+   *
    * @return the resulting body, which may be existentially quantified over some variables
    */
-  private def normalise(head: AtomicFormula, body: Formula): Formula = {
+  private def normalise(head: AtomicFormula, body: FormulaConstruct): FormulaConstruct = {
     //A set of existentially quantified variables in the body
     val exQVars = body.getQuantifiers.filter(_.isInstanceOf[ExistentialQuantifier]).map(_.variable).toSet
 
@@ -252,7 +265,7 @@ object PredicateCompletion extends Logging {
 
 
   private def collectAndMerge(definiteClauses: Set[WeightedDefiniteClause])
-                             (implicit predicateSchema: Map[AtomSignature, Vector[String]], functionSchema: Map[AtomSignature, (String, Vector[String])]): (Boolean, DefiniteClausesDB) = {
+                             (implicit predicateSchema: PredicateSchema, functionSchema: FunctionSchema): (Boolean, DefiniteClausesDB) = {
 
 
     val dcDB = mutable.HashMap[AtomSignature, mutable.HashMap[AtomicFormula, mutable.HashSet[DefiniteClauseConstruct]]]()
@@ -292,15 +305,18 @@ object PredicateCompletion extends Logging {
                       // cover the differences by renaming its variables and introduce additional atoms (equals) to the body.
                       val currentClauseBody = {
                         if (currentHead != generalisedHead) {
-                          val thetaCurrent = Unify(currentHead, generalisedHead).getOrElse(fatal("Cannot unify " + generalisedHead.toText + " with " + currentHead.toText + " (possible bug?)"))
+                          val thetaCurrent = Unify(currentHead, generalisedHead).getOrElse(
+                            fatal(s"Cannot unify '${generalisedHead.toText}' with '${currentHead.toText}' (possible bug?)"))
+
                           // Rename variables:
                           val thetaVariablesRenaming = collectVariablesToRename(thetaCurrent)
-                          val bodyVarRenamed = Substitute(thetaVariablesRenaming, currentClause.clause.body)
+                          val bodyVarRenamed = currentClause.clause.body.substitute(thetaVariablesRenaming)
                           val thetaWithoutVarRenamed = thetaCurrent -- thetaVariablesRenaming.keys
 
                           //Insert the additional atoms to the bodies:
                           val additionalAtomsStored =
-                            for ((v, t) <- thetaWithoutVarRenamed if v.isInstanceOf[Variable]) yield eqBuilder(Vector(v, t)) //yield AtomicFormula("equals", List(v, t))
+                            for ((v, t) <- thetaWithoutVarRenamed if v.isInstanceOf[Variable])
+                              yield eqBuilder(Vector(v, t))
 
                           additionalAtomsStored.foldLeft(bodyVarRenamed)((rest, atom) => And(atom, rest))
                         }
@@ -312,7 +328,8 @@ object PredicateCompletion extends Logging {
                       // cover the differences by renaming its variables and introduce additional atoms (equals) to the bodies.
                       // Otherwise, simply insert the current clause body.
                       if (storedHead != generalisedHead) {
-                        val thetaStored = Unify(storedHead, generalisedHead).getOrElse(fatal("Cannot unify " + generalisedHead.toText + " with " + storedHead.toText + " (possible bug?)"))
+                        val thetaStored = Unify(storedHead, generalisedHead).getOrElse(
+                          fatal(s"Cannot unify '${generalisedHead.toText}' with '${storedHead.toText}' (possible bug?)"))
 
                         // Although storedHead != generalisedHead, they may be similar but with different variable names.
                         val areSimilarPredicates = storedHead =~= generalisedHead
@@ -320,15 +337,21 @@ object PredicateCompletion extends Logging {
 
                         // Rename variables (from all bodies):
                         val thetaVariablesRenaming = collectVariablesToRename(thetaStored)
-                        val bodiesVarRenamed = if (areSimilarPredicates) storedBodies.map(body => Substitute(thetaVariablesRenaming, body)) else storedBodies
+
+                        val bodiesVarRenamed =
+                          if (areSimilarPredicates) storedBodies.map(body => body.substitute(thetaVariablesRenaming))
+                          else storedBodies
 
                         // Insert the additional atoms to the bodies:
                         val thetaWithoutVarRenamed = thetaStored -- thetaVariablesRenaming.keys
 
                         val additionalAtomsStored =
-                          for ((v, t) <- thetaWithoutVarRenamed if v.isInstanceOf[Variable]) yield eqBuilder(Vector(v, t)) //yield AtomicFormula("equals", List(v, t))
+                          for ((v, t) <- thetaWithoutVarRenamed if v.isInstanceOf[Variable])
+                            yield eqBuilder(Vector(v, t))
 
-                        val updatedBodies = bodiesVarRenamed.map(body => additionalAtomsStored.foldLeft(body)((rest, atom) => And(atom, rest)))
+                        val updatedBodies = bodiesVarRenamed
+                          .map(body => additionalAtomsStored.foldLeft(body)((rest, atom) => And(atom, rest)))
+
                         updatedBodies += currentClauseBody
 
                         // Replace the previously stored head predicate with the generalised head predicate,
@@ -341,7 +364,8 @@ object PredicateCompletion extends Logging {
                         // thus we simply insert the current clause body
                         dcDB(storedHead.signature)(storedHead) += currentClauseBody
                       }
-                    case None => fatal("Failed to find a generalised predicate from " + storedHead.toText + " and " + currentHead.toText + " (possible bug?).")
+                    case None =>
+                      fatal(s"Failed to find a generalised predicate from '${storedHead.toText}' and '${currentHead.toText}' (possible bug?).")
                   }
               }
           } //end: Some(mapping)
@@ -359,19 +383,22 @@ object PredicateCompletion extends Logging {
    * @param dcDB database of collected/merged definite clauses
    * @return the resulting KB
    */
-  private def applyPCSimplification(formulas: Set[Formula], dcDB: DefiniteClausesDB): Set[Formula] = {
+  private def applyPCSimplification(formulas: Set[WeightedFormula], dcDB: DefiniteClausesDB): Set[WeightedFormula] = {
     val targetSignatures = dcDB.keySet
-    var pcResultingKB =  Set[Formula]()
+    var pcResultingKB =  Set[WeightedFormula]()
     pcResultingKB ++= formulas
 
     for (signature <- targetSignatures) {
-      var lambdaPrime = Set[Formula]()
+      var lambdaPrime = Set[WeightedFormula]()
       for (formula <- pcResultingKB) {
-        if (containsSignature(signature, formula)) {
+        if(formula.contains(signature)) {
           for ((headPredicate, bodies) <- dcDB(signature)) {
             val replacement = bodies.map(body => normalise(headPredicate, body)).reduceLeft((left, right) => Or(left, right))
-            debug("Predicates like " + headPredicate.toText + " will be replaced with following sentence:\n\t" + replacement.toText)
-            val resultOpt = replaceAtom(headPredicate, formula, replacement)
+
+            debug(s"Predicates like '${headPredicate.toText}' will be replaced with following sentence: '${replacement.toText}'")
+
+            val resultOpt = formula.replace(headPredicate, replacement)
+
             resultOpt match {
               case Some(result) => lambdaPrime += result
               case None => fatal("Predicate replacement failed (possible bug?)")
@@ -392,15 +419,17 @@ object PredicateCompletion extends Logging {
    *
    * @param formulas the set of FOL formulas (non-definite clauses) in the input KB
    * @param dcDB database of collected/merged definite clauses
+   *
    * @return the resulting KB
    */
-  private def applyPC(formulas: Set[Formula], dcDB: DefiniteClausesDB): Set[Formula] = {
+  private def applyPC(formulas: Set[WeightedFormula], dcDB: DefiniteClausesDB): Set[WeightedFormula] = {
 
-    var pcResultingKB = Set[Formula]()
+    var pcResultingKB = Set[WeightedFormula]()
     pcResultingKB ++= formulas
 
     for ((_, entries) <- dcDB; (head, bodies) <- entries) {
-      val pcFormula = WeightedFormula(Double.PositiveInfinity, Equivalence(head, bodies.map(body => normalise(head, body)).reduceLeft((left, right) => Or(left, right))))
+      val pcFormula = WeightedFormula(Double.PositiveInfinity,
+        Equivalence(head, bodies.map(body => normalise(head, body)).reduceLeft((left, right) => Or(left, right))))
       pcResultingKB += pcFormula
     }
     pcResultingKB
@@ -412,23 +441,119 @@ object PredicateCompletion extends Logging {
    * @param formulas the set of FOL formulas (non-definite clauses) in the input KB
    * @param definiteClauses the original set of definite clauses
    * @param dcDB database of collected/merged definite clauses
+   *
    * @return the resulting KB
    */
-  private def applyPCDecomposed(formulas: Set[Formula], definiteClauses: Set[WeightedDefiniteClause], dcDB: DefiniteClausesDB): Set[Formula] = {
+  private def applyPCDecomposed(formulas: Set[WeightedFormula],
+                                definiteClauses: Set[WeightedDefiniteClause],
+                                dcDB: DefiniteClausesDB,
+                                constants: ConstantsDomain)
+                               (implicit predicateSchema: PredicateSchema,
+                                 functionSchema: FunctionSchema): Set[WeightedFormula] = {
 
-    var pcResultingKB = Set[Formula]()
+    def extractTheta(theta: ThetaOpt) = theta.getOrElse(Map.empty).map{
+      case (k:Variable, v: Constant) => k -> v.symbol
+    }
+
+
+    var pcResultingKB = Set[WeightedFormula]()
     pcResultingKB ++= formulas
 
     // Insert the original definite clauses as weighted formulas:
     for (dClause <- definiteClauses)
       pcResultingKB += WeightedFormula(dClause.weight, Implies(dClause.clause.body, dClause.clause.head))
 
-    // Insert the additional "completion" formulas:
-    for ((_, entries) <- dcDB; (head, bodies) <- entries)
-      pcResultingKB += WeightedFormula(Double.PositiveInfinity, Implies(head, bodies.map(body => normalise(head, body)).reduceLeft((left, right) => Or(left, right))))
+    for ((signature, entries) <- dcDB){
+
+      // 1. Insert the additional "completion" formulas
+      for((head, bodies) <- entries){
+        val completionBody = bodies.map(body => normalise(head, body)).reduceLeft((left, right) => Or(left, right))
+        pcResultingKB += WeightedFormula.asHard(Implies(head, completionBody))
+      }
+
+      info(s"\t\tProduced ${entries.size} completion formulas for '$signature'")
+
+      // 2. Find which partial-grounded heads are missing, in order to introduce them as negated unit clauses to the theory (=complementary clauses)
+      val headPred = entries.head._1
+      val varabilizedPred = variabilizeAtom(headPred)
+
+      val complementaryDomains = collectByKey[Variable, String](entries.keys.flatMap(p => extractTheta(Unify(varabilizedPred, p))))
+        .map{
+          case (v, collectedConstants) =>
+            v -> constants(v.domain).filter(c => !collectedConstants.contains(c))
+        }
+
+      // 3. Add complementary clauses to the resulting knowledge base
+      val complementaryClauses =
+        (for(theta <- CartesianIterator(complementaryDomains); mappedTheta: Theta = theta.mapValues(Constant).asInstanceOf[Map[Term, Term]])
+          yield WeightedFormula.asHard(Not(varabilizedPred.substitute(mappedTheta)))).toList
+
+
+      pcResultingKB = pcResultingKB ++ complementaryClauses
+
+      info(s"\t\tAdded ${complementaryClauses.size} complementary negated unit clause(s) for '$signature'")
+
+    }
 
     pcResultingKB
   }
+
+  /*private def applyPCDecomposed(formulas: Set[WeightedFormula],
+                                definiteClauses: Set[WeightedDefiniteClause],
+                                dcDB: DefiniteClausesDB,
+                                constants: ConstantsDomain)
+                               (implicit predicateSchema: PredicateSchema,
+                                functionSchema: FunctionSchema): Set[WeightedFormula] = {
+
+    def extractTheta(theta: ThetaOpt) = theta.getOrElse(Map.empty).map{
+      case (k:Variable, v: Constant) => k -> v
+    }
+
+    lazy val eqPred = (a: Term, b: Term) => DynEqualsBuilder().apply(a,b)
+
+
+    var pcResultingKB = Set[WeightedFormula]()
+    pcResultingKB ++= formulas
+
+    // Insert the original definite clauses as weighted formulas:
+    for (dClause <- definiteClauses)
+      pcResultingKB += WeightedFormula(dClause.weight, Implies(dClause.clause.body, dClause.clause.head))
+
+    for ((signature, entries) <- dcDB){
+
+      // 1. Insert the additional "completion" formulas
+      for((head, bodies) <- entries){
+        val completionBody = bodies.map(body => normalise(head, body)).reduceLeft((left, right) => Or(left, right))
+        pcResultingKB += WeightedFormula.asHard(Implies(head, completionBody))
+      }
+
+      info(s"\t\tProduced ${entries.size} completion formulas for '$signature'")
+
+      // 2. Parse partial-grounded heads in order to compute the complementary formulas
+      val headPred = entries.head._1
+      val varabilizedPred = variabilizeAtom(headPred)
+
+      val givenDomains = collectByKey[Variable, Constant](entries.keys.flatMap(p => extractTheta(Unify(varabilizedPred, p))))
+
+      // 3. Add a complementary completion formula to the resulting knowledge base
+      val completionConstraints = givenDomains.map {
+          case (v: Variable, constSet) => constSet.map(c => eqPred(v, c)).reduceLeft(Or)
+        }
+        .reduceLeft(And)
+
+      pcResultingKB += WeightedFormula.asHard(Implies(varabilizedPred, completionConstraints))
+
+      info(s"\t\tAdded complementary completion formula for '$signature'")
+
+
+    }
+
+    //pcResultingKB.map(_.toText).foreach(println)
+
+    pcResultingKB
+  }*/
+
+
 }
 
 /**

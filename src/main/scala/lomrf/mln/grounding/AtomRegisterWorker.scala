@@ -35,10 +35,14 @@
 
 package lomrf.mln.grounding
 
+import java.io.{FileWriter, File}
+
 import akka.actor.{Actor, ActorRef}
 import auxlib.log.Logging
 import gnu.trove.map.hash.TIntObjectHashMap
 import gnu.trove.set.hash.TIntHashSet
+import auxlib.trove.TroveImplicits._
+import auxlib.trove.TroveConversions._
 
 /**
  * AtomRegisterWorker collects a partition of ground atoms, represented by integer values, as well as in which ground
@@ -95,7 +99,7 @@ final class AtomRegisterWorker private(val index: Int, master: ActorRef) extends
      * [Master] -> GRND_Iteration_Completed
      * CollectedAtomIDs -> [Master]
      */
-    case GRND_Iteration_Completed =>
+    case ITERATION_COMPLETED =>
       atomIDs.addAll(buffer)
       master ! CollectedAtomIDs(index, atomIDs)
       buffer = new TIntHashSet()
@@ -108,7 +112,7 @@ final class AtomRegisterWorker private(val index: Int, master: ActorRef) extends
      * (2) Collect the relation between a ground atom and a ground clause.
      *
      */
-    case Register(atomID, cliqueID) =>
+    case RegisterAtom(atomID, cliqueID) =>
       assert(atomID != 0, "atomID cannot be equal to zero.")
 
       buffer.add(atomID)

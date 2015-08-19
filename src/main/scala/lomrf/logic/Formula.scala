@@ -38,21 +38,21 @@ package lomrf.logic
 import lomrf.mln.model.ConstantsSet
 
 
-sealed trait Formula extends MLNExpression {
+sealed trait Formula extends MLNExpression with Substitutable[Formula] {
 
   // The collection of variables that appear inside this formula
-  lazy val variables: Set[Variable] = subFormulas.foldRight(Set[Variable]())((f: Formula, rest) => f.variables ++ rest)
+  lazy val variables: Set[Variable] = subFormulas.foldRight(Set[Variable]())((f: FormulaConstruct, rest) => f.variables ++ rest)
 
   // The collection of constants that appear inside this formula
-  lazy val constants: Set[Constant] = subFormulas.foldRight(Set[Constant]())((f: Formula, rest) => f.constants ++ rest)
+  lazy val constants: Set[Constant] = subFormulas.foldRight(Set[Constant]())((f: FormulaConstruct, rest) => f.constants ++ rest)
 
   // The collection of functions that appear inside this formula
-  lazy val functions: Set[TermFunction] = subFormulas.foldRight(Set[TermFunction]())((f: Formula, rest) => f.functions ++ rest)
+  lazy val functions: Set[TermFunction] = subFormulas.foldRight(Set[TermFunction]())((f: FormulaConstruct, rest) => f.functions ++ rest)
 
   /**
    * Gives the sub-formulas that this formula contains
    */
-  def subFormulas: Seq[Formula] = Seq.empty[Formula]
+  def subFormulas: Seq[FormulaConstruct] = Seq.empty[FormulaConstruct]
 
   /**
    * Gives the quantifiers that appear inside this formula
@@ -110,18 +110,38 @@ sealed trait Formula extends MLNExpression {
 
 }
 
-trait DefiniteClauseConstruct extends Formula
+
+sealed trait FormulaConstruct extends Formula {
+  
+  def isUnit: Boolean
+
+  override def substitute(theta: Theta): FormulaConstruct
+}
+
+sealed trait DefiniteClauseConstruct extends FormulaConstruct {
+
+  override def substitute(theta: Theta): DefiniteClauseConstruct
+
+}
 
 
-case class DefiniteClause(head: AtomicFormula, body: DefiniteClauseConstruct) extends Formula {
+sealed trait ConditionalStatement extends FormulaConstruct {
 
-  override lazy val variables: Set[Variable] = body.subFormulas.foldRight(head.variables)((a: Formula, b) => a.variables ++ b)
+  override def isUnit = false
 
-  override lazy val constants: Set[Constant] = body.subFormulas.foldRight(head.constants)((a: Formula, b) => a.constants ++ b)
+  override def substitute(theta: Theta): ConditionalStatement
+}
 
-  override lazy val functions: Set[TermFunction] = body.subFormulas.foldRight(head.functions)((a: Formula, b) => a.functions ++ b)
 
-  override def subFormulas: Seq[Formula] = Seq(head, body)
+final case class DefiniteClause(head: AtomicFormula, body: DefiniteClauseConstruct) extends Formula {
+
+  override lazy val variables: Set[Variable] = body.subFormulas.foldRight(head.variables)((a: FormulaConstruct, b) => a.variables ++ b)
+
+  override lazy val constants: Set[Constant] = body.subFormulas.foldRight(head.constants)((a: FormulaConstruct, b) => a.constants ++ b)
+
+  override lazy val functions: Set[TermFunction] = body.subFormulas.foldRight(head.functions)((a: FormulaConstruct, b) => a.functions ++ b)
+
+  override def subFormulas: Seq[FormulaConstruct] = Seq(head, body)
 
   override def getQuantifiers = List[Quantifier]()
 
@@ -130,6 +150,14 @@ case class DefiniteClause(head: AtomicFormula, body: DefiniteClauseConstruct) ex
   override def toCNF(implicit constants: Map[String, ConstantsSet]): Set[Clause] = NormalForm.toCNF(Or(head, Not(body)))(constants)
 
   def toText = head.toText + " :- " + body.toText
+
+  def toWeightedFormula: WeightedFormula = WeightedFormula(Double.PositiveInfinity, Implies(body, head))
+
+  override def substitute(theta: Theta): DefiniteClause = {
+    val sHead = head.substitute(theta)
+    val sBody = body.substitute(theta)
+    DefiniteClause(sHead, sBody)
+  }
 }
 
 /**
@@ -139,9 +167,9 @@ case class DefiniteClause(head: AtomicFormula, body: DefiniteClauseConstruct) ex
  * }}}
  * A,B,F and D are FOL atoms and 1.386 is the corresponding weight.
  */
-final class WeightedFormula private(val weight: Double, val formula: Formula) extends Formula {
+final case class WeightedFormula(weight: Double, formula: FormulaConstruct) extends Formula {
 
-  override def subFormulas: Seq[Formula] = Seq(formula)
+  override def subFormulas: Seq[FormulaConstruct] = Seq(formula)
 
   override def toText: String = weight match {
     case Double.PositiveInfinity => formula.toText + "."
@@ -157,24 +185,24 @@ final class WeightedFormula private(val weight: Double, val formula: Formula) ex
     case WeightedFormula(w, f) if w == weight && f == formula => true
     case _ => false
   }
+
+  override def substitute(theta: Theta): WeightedFormula = {
+    WeightedFormula(weight, formula.substitute(theta))
+  }
 }
 
 object WeightedFormula {
 
-  def asUnit(formula: Formula) = WeightedFormula(1.0, formula)
+  def asUnit(formula: FormulaConstruct) = WeightedFormula(1.0, formula)
 
-  def apply(weight: Double, formula: Formula): WeightedFormula = new WeightedFormula(weight, formula)
+  def asHard(formula: FormulaConstruct) = WeightedFormula(Double.PositiveInfinity, formula)
 
-
-  def unapply(obj: WeightedFormula): Option[(Double, Formula)] = {
-    if (obj ne null) Some(obj.weight, obj.formula) else None
-  }
 }
 
 
-final class WeightedDefiniteClause private(val weight: Double, val clause: DefiniteClause) extends Formula {
+final case class WeightedDefiniteClause(weight: Double, clause: DefiniteClause) extends Formula {
 
-  override def subFormulas: Seq[Formula] = clause.subFormulas
+  override def subFormulas: Seq[FormulaConstruct] = clause.subFormulas
 
   override def toText: String = weight match {
     case Double.PositiveInfinity => clause.toText + "."
@@ -190,18 +218,14 @@ final class WeightedDefiniteClause private(val weight: Double, val clause: Defin
     case WeightedDefiniteClause(w, c) if w == weight && c == clause => true
     case _ => false
   }
-}
 
-object WeightedDefiniteClause {
+  def toWeightedFormula: WeightedFormula = WeightedFormula(weight, Implies(clause.body, clause.head))
 
-  def apply(weight: Double, clause: DefiniteClause): WeightedDefiniteClause = {
-    new WeightedDefiniteClause(weight, clause)
-  }
-
-  def unapply(obj: WeightedDefiniteClause): Option[(Double, DefiniteClause)] = {
-    if (obj ne null) Some(obj.weight, obj.clause) else None
+  override def substitute(theta: Theta): WeightedDefiniteClause = {
+    WeightedDefiniteClause(weight, clause.substitute(theta))
   }
 }
+
 
 /**
  * This class represents an atomic-formula (or atom) in FOL, for example:
@@ -215,7 +239,10 @@ object WeightedDefiniteClause {
  *
  * An atomic formula in its arguments may have either constants or variables.
  */
-case class AtomicFormula(symbol: String, terms: Vector[Term]) extends DefiniteClauseConstruct {
+case class AtomicFormula(symbol: String, terms: Vector[_ <: Term])
+  extends DefiniteClauseConstruct with FormulaConstruct with TermIterable{
+
+  override def iterator: Iterator[_ <: Term] = terms.iterator
 
   val isDynamic = false
 
@@ -228,23 +255,25 @@ case class AtomicFormula(symbol: String, terms: Vector[Term]) extends DefiniteCl
   /**
    * All variables of this atom
    */
-  override lazy val variables: Set[Variable] = uniqueVariablesIn(terms)
+  override lazy val variables: Set[Variable] = uniqueVariablesIn(this)
 
   /**
    * All constants of this atom
    */
-  override lazy val constants: Set[Constant] = uniqueConstantsIn(terms)
+  override lazy val constants: Set[Constant] = uniqueConstantsIn(this)
 
   /**
    * All functions of this atom
    */
-  override lazy val functions: Set[TermFunction] = uniqueFunctionsIn(terms)
+  override lazy val functions: Set[TermFunction] = uniqueFunctionsIn(this)
 
   def isGround = variables.isEmpty
 
+  override def isUnit: Boolean = true
+
   override def toText: String = s"$symbol(${terms.map(_.toText).mkString(",")})"
 
-  override def toString: String = s"$symbol(${terms.map(_.toString).mkString(",")})"
+  override def toString(): String = s"$symbol(${terms.map(_.toString).mkString(",")})"
 
   /**
    * Two atoms are similar, when:
@@ -263,13 +292,16 @@ case class AtomicFormula(symbol: String, terms: Vector[Term]) extends DefiniteCl
    * @return true if this atom is similar to the given atom, otherwise false
    */
   def =~= (other: AtomicFormula): Boolean = {
-    if (signature == other.signature) {
+    if (signature == other.signature && variables.size == other.variables.size) {
       Unify(this, other) match {
         case Some(x) if x.forall(_._2.isInstanceOf[Variable]) => true
         case _ => false
       }
     } else false
   }
+
+  override def substitute(theta: Theta): AtomicFormula = AtomicFormula(symbol, terms.map(_.substitute(theta)))
+
 }
 
 
@@ -286,7 +318,7 @@ case class AtomicFormula(symbol: String, terms: Vector[Term]) extends DefiniteCl
  *
  * An evidence atom is an atomic formula with a known truth value.
  */
-class EvidenceAtom(override val symbol: String, override val terms: Vector[Constant],
+final class EvidenceAtom(override val symbol: String, override val terms: Vector[Constant],
                    val state: TriState, val probability: Double = Double.NaN) extends AtomicFormula(symbol, terms) with EvidenceExpression {
 
 
@@ -309,6 +341,7 @@ class EvidenceAtom(override val symbol: String, override val terms: Vector[Const
     }
   }
 
+  override def substitute(theta: Theta): EvidenceAtom = this
 }
 
 object EvidenceAtom {
@@ -336,7 +369,7 @@ object EvidenceAtom {
   }
 }
 
-class FunctionMapping(val retValue: String, val functionSymbol: String, val values: Vector[String]) extends EvidenceExpression {
+final class FunctionMapping(val retValue: String, val functionSymbol: String, val values: Vector[String]) extends EvidenceExpression {
 
   lazy val signature = AtomSignature(functionSymbol, values.size)
 
@@ -354,31 +387,30 @@ object FunctionMapping {
   def apply(retValue: String, functionSymbol: String, values: Vector[Constant]) = new FunctionMapping(retValue, functionSymbol, values.map(_.toString))
 }
 
-trait LogicalConnective extends Formula {
-  def isUnit: Boolean
-}
-
 
 /**
  * Negation of a formula (! { Formula } )
  */
-case class Not(arg: Formula) extends LogicalConnective with DefiniteClauseConstruct {
+final case class Not(arg: FormulaConstruct) extends DefiniteClauseConstruct with FormulaConstruct{
 
-  private lazy val _isUnit: Boolean = arg.isInstanceOf[AtomicFormula]
+  private val _isUnit: Boolean = arg.isInstanceOf[AtomicFormula]
 
-  override def subFormulas: Seq[Formula] = Seq(arg)
+  override def subFormulas: Seq[FormulaConstruct] = Seq(arg)
 
   override def toText = if (_isUnit) s"!${arg.toText}" else s"!(${arg.toText})"
 
   def isUnit: Boolean = _isUnit
+
+  override def substitute(theta: Theta): Not = Not(arg.substitute(theta))
+
 }
 
 /**
  * Logical AND of two formulas ( { Formula1 } &#094; { Formula2 } ).
  */
-case class And(left: Formula, right: Formula) extends LogicalConnective with DefiniteClauseConstruct {
+final case class And(left: FormulaConstruct, right: FormulaConstruct) extends DefiniteClauseConstruct with FormulaConstruct {
 
-  override def subFormulas: Seq[Formula] = Seq(left, right)
+  override def subFormulas: Seq[FormulaConstruct] = Seq(left, right)
 
   override def toText: String = {
     subFormulas map {
@@ -389,14 +421,18 @@ case class And(left: Formula, right: Formula) extends LogicalConnective with Def
   }
 
   def isUnit = false
+
+  override def substitute(theta: Theta): And = {
+    And(left.substitute(theta), right.substitute(theta))
+  }
 }
 
 /**
  * Logical OR of two formulas ( { Formula1 } v { Formula2 } ).
  */
-case class Or(left: Formula, right: Formula) extends LogicalConnective {
+final case class Or(left: FormulaConstruct, right: FormulaConstruct) extends FormulaConstruct {
 
-  override def subFormulas: Seq[Formula] = Seq(left, right)
+  override def subFormulas: Seq[FormulaConstruct] = Seq(left, right)
 
   override def toText: String = {
     subFormulas map {
@@ -407,56 +443,81 @@ case class Or(left: Formula, right: Formula) extends LogicalConnective {
   }
 
   def isUnit = false
+
+  override def substitute(theta: Theta): Or = {
+    Or(left.substitute(theta), right.substitute(theta))
+  }
 }
 
-trait ConditionalStatement extends LogicalConnective {
-  def isUnit = false
-}
 
 
 /**
  * An implication between two formulas ( { Formula1 } => { Formula2 } ).
  */
-case class Implies(left: Formula, right: Formula) extends ConditionalStatement {
-  override def subFormulas: Seq[Formula] = Seq(left, right)
+final case class Implies(left: FormulaConstruct, right: FormulaConstruct) extends ConditionalStatement {
+  override def subFormulas: Seq[FormulaConstruct] = Seq(left, right)
 
   override def toText = left.toText + " => " + right.toText
 
   override def toString = "Implies(" + left.toString + "," + right.toString + ")"
+
+  override def substitute(theta: Theta): Implies = {
+    Implies(left.substitute(theta), right.substitute(theta))
+  }
 }
 
 /**
  * An equivalence between two formulas ( { Formula1 } <=> { Formula2 } ).
  */
-case class Equivalence(left: Formula, right: Formula) extends ConditionalStatement {
+final case class Equivalence(left: FormulaConstruct, right: FormulaConstruct) extends ConditionalStatement {
 
-  override def subFormulas: Seq[Formula] = Seq(left, right)
+  override def subFormulas: Seq[FormulaConstruct] = Seq(left, right)
 
   override def toText = left.toText + " <=> " + right.toText
 
+  override def substitute(theta: Theta): Equivalence = {
+    Equivalence(left.substitute(theta), right.substitute(theta))
+  }
+
 }
 
-sealed abstract class Quantifier(v: Variable, f: Formula) extends Formula {
+sealed abstract class Quantifier(val variable: Variable, val formula: FormulaConstruct) extends FormulaConstruct {
 
-  val variable = v
-
-  val formula = f
-
-  override def subFormulas: Seq[Formula] = Seq(formula)
+  override def subFormulas: Seq[FormulaConstruct] = Seq(formula)
 
   override def getQuantifiers = this :: formula.getQuantifiers
 
+  override def isUnit: Boolean = false
 }
 
-case class UniversalQuantifier(v: Variable, f: Formula) extends Quantifier(v, f) {
+final case class UniversalQuantifier(v: Variable, f: FormulaConstruct) extends Quantifier(v, f) {
 
   override def toText: String = "(Forall " + v.toText + " " + formula.toText + ")"
 
+  override def substitute(theta: Theta): UniversalQuantifier = {
+
+    val newVar = theta.get(v) match {
+      case Some(x) if x.isInstanceOf[Variable] => x.asInstanceOf[Variable]
+      case _ => v
+    }
+
+    UniversalQuantifier(newVar, f.substitute(theta))
+  }
 }
 
-case class ExistentialQuantifier(v: Variable, f: Formula) extends Quantifier(v, f) {
+final case class ExistentialQuantifier(v: Variable, f: FormulaConstruct) extends Quantifier(v, f) {
 
   override def toText: String = "(Exist " + v.toText + " " + formula.toText + ")"
 
   override def getExistentialQuantifiers = this :: formula.getExistentialQuantifiers
+
+  override def substitute(theta: Theta): ExistentialQuantifier = {
+
+    val newVar = theta.get(v) match {
+      case Some(x) if x.isInstanceOf[Variable] => x.asInstanceOf[Variable]
+      case _ => v
+    }
+
+    ExistentialQuantifier(newVar, f.substitute(theta))
+  }
 }

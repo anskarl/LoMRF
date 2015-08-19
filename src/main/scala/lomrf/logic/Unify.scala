@@ -36,6 +36,7 @@
 package lomrf.logic
 
 import annotation.tailrec
+import LogicOps._
 
 /**
  * A utility object for applying the Unification operator between MLN expressions.
@@ -61,7 +62,7 @@ object Unify {
       case l: Vector[Term] => unifyTerms(l, y.asInstanceOf[Vector[Term]], theta)
   }
 
-  def apply(x: AtomicFormula, f: Formula): ThetaOpt = unifyFormula(x,f, Some(Map[Term, Term]()))
+  def apply(x: AtomicFormula, f: FormulaConstruct): ThetaOpt = unifyFormula(x,f, Some(Map[Term, Term]()))
 
   //@inline
   private def unifyTerm(x: Term, y: Term, theta: ThetaOpt): ThetaOpt = theta match {
@@ -102,7 +103,7 @@ object Unify {
     case Some(m) => x match {
       case a: Variable if m.contains(a) => apply(v, m(a), theta)
       case f: TermFunction =>
-        val groundFunction = Substitute(m, f)
+        val groundFunction = f.substitute(m)
         if(groundFunction.variables.contains(v)) None //failure
         else Some(m + (v -> groundFunction))
       case _ => Some(m + (v -> x))
@@ -110,12 +111,14 @@ object Unify {
   }
 
   @inline
-  private def unifyFormula(srcAtom: AtomicFormula, src: Formula, theta: ThetaOpt): ThetaOpt = src match {
-    case atom: AtomicFormula => unifyAtomicFormula(srcAtom, atom, theta)
-    case _ => fetchAtom(srcAtom.signature, src) match {
-      case Some(targetAtom) => apply(srcAtom, targetAtom, theta)
-      case _ => None
+  private def unifyFormula(srcAtom: AtomicFormula, src: FormulaConstruct, theta: ThetaOpt): ThetaOpt = {
+
+    src match {
+      case atom: AtomicFormula => unifyAtomicFormula(srcAtom, atom, theta)
+      case _ => src.first(srcAtom.signature) match {
+        case Some(targetAtom) => apply(srcAtom, targetAtom, theta)
+        case _ => None
+      }
     }
   }
-
 }

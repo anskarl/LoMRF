@@ -43,7 +43,7 @@ package lomrf.logic
  *
  *
  */
-sealed trait Term extends MLNExpression {
+sealed trait Term extends MLNExpression with Substitutable[Term]{
 
   val symbol: String
 
@@ -100,7 +100,7 @@ sealed case class Variable(override val symbol: String,
 
   def domain: String = domainName
 
-  def toText = if (index > 0) symbol + "-" + index else symbol
+  def toText = if (index > 0) symbol + "_" + index else symbol
 
   override def toString = symbol + (if (index > 0) "$" + index + ":" else ":") + domain
 
@@ -114,6 +114,8 @@ sealed case class Variable(override val symbol: String,
 
     case _ => false
   }
+
+  override def substitute(theta: Theta): Term = theta.getOrElse(this, this)
 }
 
 object Variable {
@@ -158,6 +160,7 @@ sealed case class Constant(override val symbol: String) extends Term{
 
   override def toString = symbol
 
+  override def substitute(theta: Theta): Constant = this
 }
 
 /**
@@ -168,17 +171,21 @@ sealed case class Constant(override val symbol: String) extends Term{
  * @param terms function's arguments (Terms, i.e. constants, variables or other functions)
  * @param domain the domain of resulting constant (e.g. persons, object, numbers, etc.)
  */
-sealed case class TermFunction(override val symbol: String, terms: Vector[_ <: Term], domain: String) extends Term {
+sealed case class TermFunction(override val symbol: String,
+                               terms: Vector[_ <: Term],
+                               domain: String) extends Term with TermIterable{
+
+  override def iterator: Iterator[_ <: Term] = terms.iterator
 
   def this(symbol: String, terms: Vector[Term]) = this(symbol, terms, "_?")
 
   lazy val signature = AtomSignature(symbol, terms.size)
 
-  lazy val variables: Set[Variable] = uniqueVariablesIn(terms)
+  lazy val variables: Set[Variable] = uniqueVariablesIn(this)
 
-  lazy val constants: Set[Constant] = uniqueConstantsIn(terms)
+  lazy val constants: Set[Constant] = uniqueConstantsIn(this)
 
-  lazy val functions: Set[TermFunction] = uniqueFunctionsIn(terms)
+  lazy val functions: Set[TermFunction] = uniqueFunctionsIn(this)
 
   /**
    * A function is ground, only when it does not contain any variable
@@ -193,12 +200,12 @@ sealed case class TermFunction(override val symbol: String, terms: Vector[_ <: T
 
   def toText = {
     if (terms.isEmpty) symbol + "()"
-    else symbol + "(" + terms.map((t: Term) => t.toText).reduceLeft(_ + ", " + _) + ")"
+    else s"$symbol(${terms.map(_.toText).mkString(", ")})"
   }
 
-  override def toString = {
+  override def toString() = {
     if (terms.isEmpty) symbol + "():" + domain
-    else symbol + "(" + terms.map((t: Term) => t.toString).reduceLeft(_ + ", " + _) + "):" + domain
+    else s"$symbol(${terms.map(_.toString).mkString(", ")}):$domain"
   }
 
   override lazy val hashCode = {
@@ -216,6 +223,9 @@ sealed case class TermFunction(override val symbol: String, terms: Vector[_ <: T
         other.terms == this.terms
     case _ => false
   }
+
+  override def substitute(theta: Theta): TermFunction =
+    TermFunction(symbol, terms.map(_.substitute(theta)), domain)
 
 }
 

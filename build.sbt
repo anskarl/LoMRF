@@ -1,3 +1,7 @@
+name := "LoMRF"
+
+version := "0.4.1"
+
 // Load LoMRF Build settings
 LoMRFBuild.settings
 
@@ -66,6 +70,9 @@ libraryDependencies += {
 
 // lpsolve library for optimization
 libraryDependencies += "com.datumbox" % "lpsolve" % "5.5.2.0"
+
+// jansi
+libraryDependencies += "org.fusesource.jansi" % "jansi" % "1.11"
 
 dependencyOverrides += "org.scala-lang" % "scala-compiler" % scalaVersion.value
 dependencyOverrides += "org.scala-lang" % "scala-library" % scalaVersion.value

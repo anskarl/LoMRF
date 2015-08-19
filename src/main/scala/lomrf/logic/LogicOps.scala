@@ -39,12 +39,12 @@ import scala.collection.mutable
 
 object LogicOps {
 
-  implicit class FormulaOps(val formula: Formula) extends AnyVal {
+  implicit class FormulaOps[F <: Formula](val formula: F) extends AnyVal {
 
     def contains(signature: AtomSignature): Boolean = formula match {
       case atom: AtomicFormula => atom.signature == signature
       case _ =>
-        val queue = mutable.Queue[Formula]()
+        val queue = mutable.Queue[FormulaConstruct]()
         formula.subFormulas.foreach(queue.enqueue(_))
         while (queue.nonEmpty) {
           val currentFormula = queue.dequeue()
@@ -60,7 +60,7 @@ object LogicOps {
     def first(signature: AtomSignature): Option[AtomicFormula] = formula match {
       case atom: AtomicFormula => if (atom.signature == signature) Some(atom) else None
       case _ =>
-        val queue = mutable.Queue[Formula]()
+        val queue = mutable.Queue[FormulaConstruct]()
         formula.subFormulas.foreach(queue.enqueue(_))
         while (queue.nonEmpty) {
           val currentFormula = queue.dequeue()
@@ -75,7 +75,7 @@ object LogicOps {
     def all(signature: AtomSignature): Seq[AtomicFormula] = formula match {
       case atom: AtomicFormula => if (atom.signature == signature) Seq(atom) else Seq()
       case _ =>
-        val queue = mutable.Queue[Formula]()
+        val queue = mutable.Queue[FormulaConstruct]()
         formula.subFormulas.foreach(queue.enqueue(_))
         var result = Vector[AtomicFormula]()
 
@@ -94,7 +94,7 @@ object LogicOps {
     def signatures: Set[AtomSignature] = formula match {
       case atom: AtomicFormula => Set(atom.signature)
       case _ =>
-        val queue = mutable.Queue[Formula]()
+        val queue = mutable.Queue[FormulaConstruct]()
         formula.subFormulas.foreach(queue.enqueue(_))
         var result = Set[AtomSignature]()
 
@@ -110,13 +110,10 @@ object LogicOps {
     }
 
 
-    def replace(targetAtom: AtomicFormula, replacement: Formula): Option[Formula] = {
+    def replace(targetAtom: AtomicFormula, replacement: FormulaConstruct): Option[F] = {
 
-      def doReplace(inFormula: Formula, withFormula: Formula): Formula ={
-        inFormula match {
+      def doReplace(inFormula: FormulaConstruct, withFormula: FormulaConstruct): FormulaConstruct = inFormula match {
           case f: AtomicFormula => if (f.signature == targetAtom.signature) withFormula else f
-
-          case f: WeightedFormula => WeightedFormula(f.weight, doReplace(f.formula, withFormula))
 
           case f: Not => Not(doReplace(f.arg, withFormula))
 
@@ -134,20 +131,51 @@ object LogicOps {
 
           case _ => throw new IllegalStateException("Illegal formula type.")
         }
+
+
+      def mkReplacement(f: FormulaConstruct): Option[FormulaConstruct] ={
+        Unify(targetAtom, f) match{
+          case Some(theta) if theta.nonEmpty =>
+            val replacementPrime = replacement.substitute(theta)
+            val targetPrime = f.substitute(theta)
+            val resultingConstruct = doReplace(targetPrime, replacementPrime)
+
+            Some(resultingConstruct)
+          case _ => None
+        }
       }
 
-      Unify(targetAtom, formula) match {
-        case Some(theta) if theta.nonEmpty =>
+      def processDefiniteClause(clause: DefiniteClause): Option[DefiniteClause] ={
+        if(replacement.isInstanceOf[DefiniteClauseConstruct]){
 
-          val replacementPrime = Substitute(theta, replacement)
-          val targetPrime = Substitute(theta, formula)
-          val result = doReplace(targetPrime, replacementPrime)
+          val bodyOpt = mkReplacement(clause.body).asInstanceOf[Option[DefiniteClauseConstruct]]
 
-          Some(result)
-        case _ => None // nothing to unify
+          val headOpt: Option[AtomicFormula] = replacement match {
+            case a: AtomicFormula => mkReplacement(clause.head).asInstanceOf[Option[AtomicFormula]]
+            case _ => None
+          }
+
+          if(bodyOpt.isDefined || headOpt.isDefined)
+            Some(DefiniteClause(headOpt.getOrElse(clause.head), bodyOpt.getOrElse(clause.body)))
+          else None
+        }
+        else None
+      }
+
+      formula match {
+        case c: FormulaConstruct => mkReplacement(c).asInstanceOf[Option[F]]
+
+        case WeightedFormula(w,f) =>
+          mkReplacement(f).map(resultingConstruct => WeightedFormula(w, resultingConstruct)).asInstanceOf[Option[F]]
+
+        case WeightedDefiniteClause(w, clause) =>
+          processDefiniteClause(clause).map(newClause => WeightedDefiniteClause(w, newClause) ).asInstanceOf[Option[F]]
+
+        case clause: DefiniteClause => processDefiniteClause(clause).asInstanceOf[Option[F]]
+
+        case _ => None
       }
     }
-
 
   }
 

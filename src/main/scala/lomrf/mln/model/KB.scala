@@ -35,33 +35,33 @@
 
 package lomrf.mln.model
 
+
 import auxlib.log.Logger
 import scala.collection.mutable
 import java.io.{BufferedReader, File, FileReader}
 import java.util.regex.Pattern
-import lomrf.logic.PredicateCompletionMode._
 import lomrf.logic._
 import lomrf.logic.dynamic.{DynamicAtomBuilder, DynamicFunctionBuilder}
 import lomrf.util.ImplFinder
 
-import scala.concurrent.duration.Duration
 import scala.concurrent._
-import ExecutionContext.Implicits.global
+import scala.util.{Failure, Success, Try}
 
 /**
  * KB class contains the parsed components of an MLN theory.
  *
  * @param predicateSchema  holds a mapping of 'atom signature' to a sequence of the domain names of its terms.
  * @param functionSchema  holds a mapping of 'function signature' to its return domain name, as well as a sequence of the domain names of its terms.
- * @param formulas contains a collection of (weighted) formulas in first-order logic form.
  * @param dynamicPredicates contains definitions of dynamic predicates
  * @param dynamicFunctions contains definitions of dynamic functions
+ * @param formulas contains a collection of (weighted) formulas in first-order logic form.
  */
 class KB(val predicateSchema: PredicateSchema,
          val functionSchema: FunctionSchema,
-         val formulas: Set[Formula],
          val dynamicPredicates: DynamicPredicates,
-         val dynamicFunctions: DynamicFunctions) { self =>
+         val dynamicFunctions: DynamicFunctions,
+         val formulas: Set[WeightedFormula],
+         val definiteClauses: Set[WeightedDefiniteClause] = Set.empty) { self =>
 
   lazy val schema = MLNSchema(predicateSchema, functionSchema, dynamicPredicates, dynamicFunctions)
 
@@ -99,21 +99,26 @@ object KB {
 
   def apply(predicateSchema: PredicateSchema,
             functionSchema: FunctionSchema,
-            formulas: Set[Formula],
             dynamicPredicates: DynamicPredicates,
-            dynamicFunctions: DynamicFunctions) = {
+            dynamicFunctions: DynamicFunctions,
+            formulas: Set[WeightedFormula],
+            definiteClauses: Set[WeightedDefiniteClause] = Set.empty) = {
 
-    new KB(predicateSchema, functionSchema, formulas, dynamicPredicates, dynamicFunctions)
+    new KB(predicateSchema, functionSchema, dynamicPredicates, dynamicFunctions, formulas, definiteClauses)
   }
 
+
+
   def fromFile(filename: String,
-               pcMode: PredicateCompletionMode = Simplification,
                dynamicDefinitions: Option[ImplFinder.ImplementationsMap] = None,
                convertFunctions: Boolean = false): (KB, ConstantsDomainBuilder) = {
     import log._
 
 
     val kbFile = new File(filename)
+    if(!kbFile.exists() || !kbFile.isFile || !kbFile.canRead)
+      fatal(s"Cannot read input MLN file '${kbFile.getPath}'.")
+
     val fileReader = new BufferedReader(new FileReader(kbFile))
     val formulaMatcher = formulaRegex.matcher("")
     val commentMatcher = ignoreRegex.matcher("")
@@ -232,14 +237,22 @@ object KB {
     fileReader.reset()
     val kbParser = new KBParser(kbBuilder.predicateSchema(), kbBuilder.functionSchema(), dynamicAtomBuilders, dynamicFunctionBuilders)
 
-    var formulas = Set[Formula]()
+    var formulas = Set[WeightedFormula]()
     var definiteClauses = Set[WeightedDefiniteClause]()
     val queue = mutable.Queue[IncludeFile]()
 
-    val kbExpressions: Iterable[MLNExpression] = kbParser.parseAll(kbParser.mln, fileReader) match {
+    val kbExpressions = Try(kbParser.parseAll(kbParser.mln, fileReader)).map {
       case kbParser.Success(exprs, _) => exprs.asInstanceOf[Iterable[MLNExpression]]
       case x => fatal(s"Can't parse the following expression: '$x' in file: '$kbFile'")
+    } match {
+      case Success(expressions) => expressions
+      case Failure(ex) => fatal(ex.getMessage)
     }
+
+    /*val kbExpressions: Iterable[MLNExpression] = kbParser.parseAll(kbParser.mln, fileReader) match {
+      case kbParser.Success(exprs, _) => exprs.asInstanceOf[Iterable[MLNExpression]]
+      case x => fatal(s"Can't parse the following expression: '$x' in file: '$kbFile'")
+    }*/
 
     def processMLNExpression(expr: MLNExpression): Unit = expr match {
       case f: WeightedFormula =>
@@ -286,13 +299,13 @@ object KB {
 
     }
 
-    val resultingFormulas = Future{
+    /*val resultingFormulas = Future{
       PredicateCompletion(formulas, definiteClauses, pcMode)(kbBuilder.predicateSchema(), kbBuilder.functionSchema())
-    }
+    }*/
 
     // In case that some predicates are eliminated by the predicate completion,
     // remove them from the final predicate schema.
-    val resultingPredicateSchema = Future {
+    /*val resultingPredicateSchema = Future {
         pcMode match {
         case Simplification =>
           val resultingFormulas = kbBuilder.predicateSchema() -- definiteClauses.map(_.clause.head.signature)
@@ -302,15 +315,17 @@ object KB {
           resultingFormulas
         case _ => kbBuilder.predicateSchema()
       }
-    }
+    }*/
 
     whenDebug {
       constantsBuilder().foreach(entry => debug(s"|${entry._1}|=${entry._2.size}"))
     }
 
     val kb = kbBuilder
-      .withFormulas(Await.result(resultingFormulas, Duration.Inf))
-      .withPredicateSchema(Await.result(resultingPredicateSchema, Duration.Inf))
+      //.withFormulas(Await.result(resultingFormulas, Duration.Inf))
+      .withFormulas(formulas)
+      .withDefiniteClauses(definiteClauses)
+      //.withPredicateSchema(Await.result(resultingPredicateSchema, Duration.Inf))
       .withDynamicPredicates(kbParser.getDynamicPredicates)
       .withDynamicFunctions(kbParser.getDynamicFunctions)
       .result()

@@ -60,8 +60,7 @@ object LoMRFBuild {
   }
 
   private val commonSettings: Seq[Setting[_]] = Seq(
-    name := "LoMRF",
-    version := "0.4",
+
     organization := "com.github.anskarl",
     scalaVersion := "2.11.7",
     packageDescription in Debian := "LoMRF: Logical Markov Random Fields",

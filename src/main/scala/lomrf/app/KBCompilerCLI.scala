@@ -42,7 +42,7 @@ import auxlib.opt.OptionParser
 import lomrf.logic._
 import lomrf.logic.PredicateCompletionMode._
 import lomrf.logic.dynamic.{DynamicFunctionBuilder, DynamicAtomBuilder}
-import lomrf.mln.model.KB
+import lomrf.mln.model.{MLNSchema, KB}
 import lomrf.util.ImplFinder
 import scala.annotation.tailrec
 
@@ -132,14 +132,30 @@ object KBCompilerCLI extends Logging {
       case Some(paths) =>
         val implFinder = ImplFinder(classOf[DynamicAtomBuilder], classOf[DynamicFunctionBuilder])
         implFinder.searchPaths(paths)
-        KB.fromFile(source,pcm,Some(implFinder.result))
-      case None => KB.fromFile(source, pcm, None)
+        KB.fromFile(source, Some(implFinder.result))
+
+      case None => KB.fromFile(source, None)
     }
     val constants = constBuilder.result()
+
+    lazy val completedFormulas = PredicateCompletion(kb.formulas, kb.definiteClauses, pcm)(kb.predicateSchema, kb.functionSchema, constants)
+
+    lazy val resultingPredicateSchema = pcm match {
+      case Simplification =>
+        val resultingFormulas = kb.predicateSchema -- kb.definiteClauses.map(_.clause.head.signature)
+        if(resultingFormulas.isEmpty)
+          warn("The given theory is empty (i.e., contains empty set of non-zeroed formulas).")
+
+        resultingFormulas
+      case _ => kb.predicateSchema
+    }
+
+    lazy val mlnSchema = MLNSchema(resultingPredicateSchema, kb.functionSchema, kb.dynamicPredicates, kb.dynamicFunctions)
 
     info(
       "\nSource MLN: " + source + "\n" +
         "\tFound " + kb.formulas.size + " formulas.\n" +
+        "\tFound " + kb.definiteClauses.size + " definite clauses.\n" +
         "\tFound " + kb.predicateSchema.size + " predicates.\n" +
         "\tFound " + kb.functionSchema.size + " functions.")
 
@@ -154,7 +170,7 @@ object KBCompilerCLI extends Logging {
     }
 
     // write predicate definitions. In case we introduce functions do not write function predicates (beginning with function prefix)
-    if (!removePredicateDefinitions && kb.predicateSchema.nonEmpty) {
+    if (!removePredicateDefinitions && resultingPredicateSchema.nonEmpty) {
       write("// Predicate definitions\n")
       for ((signature, args) <- kb.predicateSchema ; if !introduceFunctions || !signature.symbol.contains(functionPrefix)) {
         val line = signature.symbol + (
@@ -197,7 +213,7 @@ object KBCompilerCLI extends Logging {
     if (cnf) {
       var clauseCounter = 0
       write("\n\n// Clauses\n")
-      for (formula <- kb.formulas) {
+      for (formula <- completedFormulas) {
         write("\n// Source formula: " + formula.toText + "\n")
         val clauses = formula.toCNF(constants)
         for (c <- clauses) {
@@ -210,7 +226,7 @@ object KBCompilerCLI extends Logging {
     }
     else {
       write("\n\n// Formulas\n")
-      kb.formulas.foreach(f => {
+      completedFormulas.foreach(f => {
         write(formulaFormatter(f, weightsMode)); write("\n\n")
       })
     }

@@ -39,7 +39,7 @@ import org.scalatest.{FunSpec, Matchers}
 import lomrf.mln.model.{ConstantsSet, MLN}
 
 /**
- * A series of spec test for the computation of normal forms (e.g., CNF, NNF, etc).
+ * A series of spec tests for the computation of normal forms (e.g., CNF, NNF, etc).
  */
 final class NormalFormSpecTest extends FunSpec with Matchers{
 
@@ -94,6 +94,7 @@ final class NormalFormSpecTest extends FunSpec with Matchers{
 
 
   describe("Formula 'InitiatedAt(Fight,t) => Happens(Abrupt, t).'"){
+
     val formula = kbParser.parseFormula("InitiatedAt(Fight,t) => Happens(Abrupt, t).")
     val clauses = NormalForm.toCNF(formula)
 
@@ -110,6 +111,7 @@ final class NormalFormSpecTest extends FunSpec with Matchers{
 
 
   describe("Formula 'InitiatedAt(Fight,t) <=> Happens(Abrupt, t).'"){
+
     val formula = kbParser.parseFormula("InitiatedAt(Fight,t) <=> Happens(Abrupt, t).")
     val clauses = NormalForm.toCNF(formula)
 
@@ -298,6 +300,7 @@ final class NormalFormSpecTest extends FunSpec with Matchers{
   }
 
   describe("Formula 'InitiatedAt(f,t) => !(Happens(e, t) ^ Exist x Close(x,t))'"){
+
     val src = "InitiatedAt(f,t) => !(Happens(e, t) ^ Exist x Close(x,t))"
     val formula = kbParser.parseFormula(src)
 
@@ -308,6 +311,7 @@ final class NormalFormSpecTest extends FunSpec with Matchers{
   }
 
   describe("Formula 'InitiatedAt(f,t) => !(Happens(e, t) ^ Exist x Close(x,t))'"){
+
     val src = "InitiatedAt(f,t) => !(Happens(e, t) ^ Exist x Close(x,t))"
     val formula = kbParser.parseFormula(src)
 

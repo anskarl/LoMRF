@@ -48,7 +48,6 @@ import lomrf.util.collection.IndexPartitioned
 import scala.language.postfixOps
 import scalaxy.streams.optimize
 
-
 /**
  * CliqueRegisterWorker stores a partition of ground clauses that result from grounding workers.
  *
@@ -60,11 +59,10 @@ import scalaxy.streams.optimize
  * @param createDependencyMap when it is true the worker stores additional information about the relations between
  *                            FOL clauses and their groundings.
  */
-final class CliqueRegisterWorker private(
-                                          val index: Int,
-                                          master: ActorRef,
-                                          atomRegisters: IndexPartitioned[ActorRef],
-                                          createDependencyMap: Boolean) extends Actor with Logging {
+final class CliqueRegisterWorker private(val index: Int,
+                                         master: ActorRef,
+                                         atomRegisters: IndexPartitioned[ActorRef],
+                                         createDependencyMap: Boolean) extends Actor with Logging {
 
   import messages._
   import context._
@@ -126,11 +124,20 @@ final class CliqueRegisterWorker private(
       else if (ce.weight == 0 && ce.variables.length == 1)
         atomRegisters(ce.variables(0)) ! QueryVariable(ce.variables(0))
 
+    case ITERATION_COMPLETED  =>
+      val iterator = cliques.iterator()
+      while (iterator.hasNext) {
+        iterator.advance()
+        registerAtoms(iterator.value().variables, iterator.key())
+      }
+      //atomRegisters(index) ! GRND_Iteration_Completed
+      master ! REGISTRATION_COMPLETED
+
     /**
      * When the grounding of the MRF is complete, change the actor behaviour to 'results' and sent the total number of
      * collected ground clauses to master.
      */
-    case GRND_Completed =>
+    case GROUNDING_COMPLETED =>
       debug(s"CliqueRegister[$index] collected total ${cliques.size} cliques.")
       become(results) //change the actor logic
       sender ! NumberOfCliques(index, cliques.size())
@@ -148,17 +155,11 @@ final class CliqueRegisterWorker private(
 
       val collectedCliques =
         if (offset == 0) {
-          //do not adjust clique ids
-          // Register (atomID -> cliqueID) mappings
-          val iterator = cliques.iterator()
-          while (iterator.hasNext) {
-            iterator.advance()
-            registerAtoms(iterator.value().variables, iterator.key())
-          }
+          // Do not adjust clique ids
           CollectedCliques(index, cliques, if (createDependencyMap) Some(dependencyMap) else None)
         }
         else {
-          //adjust clique ids
+          // Adjust clique ids
           hashCode2CliqueIDs = null //not needed anymore (allow GC to delete it)
 
           val resultingCliques = new TIntObjectHashMap[CliqueEntry](cliques.size() + 1, DEFAULT_LOAD_FACTOR, NO_ENTRY_KEY)
@@ -183,12 +184,8 @@ final class CliqueRegisterWorker private(
             // Store clique mappings with the new 'final' id as key
             resultingCliques.put(finalID, currentClique)
 
-            //if(createDependencyMap)
+            // When we create a dependency map
             resultingDependencyMap.foreach(_.put(finalID, dependencyMap.get(oldID)))
-
-            // Register (atomID -> cliqueID) mappings
-            registerAtoms(currentClique.variables, finalID)
-
           }
 
           // Not needed anymore (allow GC to delete it)
@@ -197,8 +194,6 @@ final class CliqueRegisterWorker private(
 
           CollectedCliques(index, resultingCliques, resultingDependencyMap)
         }
-
-
 
       debug(s"CliqueRegister[$index] sending to master the CollectedCliques message, " +
             s"containing ${collectedCliques.cliques.size} cliques.")
@@ -219,10 +214,10 @@ final class CliqueRegisterWorker private(
   }
 
 
-  @inline private def registerAtoms(variables: Array[Int], cliqueID: Int): Unit = optimize {
+  private def registerAtoms(variables: Array[Int], cliqueID: Int): Unit = optimize {
     // Register (atomID -> cliqueID) mappings
     for (variable <- variables; atomID = math.abs(variable))
-      atomRegisters(atomID) ! Register(atomID, cliqueID)
+      atomRegisters(atomID) ! RegisterAtom(atomID, cliqueID)
   }
 
   /**

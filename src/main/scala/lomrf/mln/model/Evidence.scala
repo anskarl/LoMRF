@@ -38,7 +38,7 @@ package lomrf.mln.model
 import java.io.{File, BufferedReader, FileReader}
 import auxlib.log.Logger
 import lomrf.logic._
-import scala.util.{Failure, Try, Success}
+import scala.util.Try
 
 class Evidence(val constants: ConstantsDomain,
                val db: EvidenceDB,
@@ -101,7 +101,12 @@ object Evidence {
       if(files.isEmpty) {
         log.warn("Loading from empty evidence")
         List(createTempEmptyDBFile)
-      } else files
+      } else {
+        // check if we can read the specified files
+        files.foreach(f => if(!f.exists() || !f.isFile || !f.canRead) fatal(s"Cannot read input evidence file '${f.getPath}'"))
+
+        files
+      }
 
     def isOWA(signature: AtomSignature) = queryPredicates.contains(signature) || hiddenPredicates.contains(signature)
 
@@ -148,7 +153,7 @@ object Evidence {
                   constantsDomainBuilder += (constantType -> value.symbol)
               }
             }
-          case _ => fatal(s"The type of '$atom' is not defined.")
+          case _ => fatal(s"Unknown predicate '$atom' in the given input evidence file(s).")
         }
       case _ => //ignore
     }
@@ -157,7 +162,7 @@ object Evidence {
 
     info("--- Stage 2: Creating function mappings, and evidence database.")
 
-    val builder = EvidenceBuilder(predicateSchema, functionSchema, queryPredicates, hiddenPredicates, constants, convertFunctions)
+    val builder = EvidenceBuilder(predicateSchema, functionSchema, queryPredicates, hiddenPredicates, constants, convertFunctions).withDynamicFunctions(dynamicFunctions)
 
     for (evidenceExpressions <- evidenceExpressionsDB; expr <- evidenceExpressions) expr match {
       case fm: FunctionMapping => builder.functions += fm
@@ -171,20 +176,14 @@ object Evidence {
     import log._
     val filePrefix = s".mlnc_empty_${System.currentTimeMillis()}"
 
-    Try[File](File.createTempFile(filePrefix, ".db")) match {
-      case Success(tmpFile) =>
+    Try[File](File.createTempFile(filePrefix, ".db")) map {
+      tmpFile =>
         tmpFile.deleteOnExit()
         tmpFile
-
-      case Failure(f) =>
-        sys.props.get("java.io.tmpdir") match {
-          case Some(e) =>
-            fatal("Cannot create temporary file in the default JVM temporary files directory [java.io.tmpdir])")
-          case None =>
-            fatal("Cannot create temporary file (default JVM temporary files directory is not defined [java.io.tmpdir])")
-        }
-
+    } getOrElse{
+      fatal(s"Cannot create temporary file '$filePrefix.db' in the default JVM temporary file directory '${sys.props.get("java.io.tmpdir")}' (see JVM parameter 'java.io.tmpdir').")
     }
+
   }
 
 }

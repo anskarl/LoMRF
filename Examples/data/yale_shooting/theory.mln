@@ -1,40 +1,38 @@
 fluent={Loaded,Dead,Alive}
+time={0,...,13}
 
 HoldsAt(fluent,time)
 InitiatedAt(fluent,time)
 TerminatedAt(fluent,time)
 Happens(event,time)
-Next(time,time)
+Next(time, time)
+
+// Event Calculus
+InitiatedAt(f, t) => HoldsAt(f, t++).
+TerminatedAt(f, t) => !HoldsAt(f, t++).
+
+HoldsAt(f,t) ^ !TerminatedAt(f, t) => HoldsAt(f,t++).
+!HoldsAt(f,t) ^ !InitiatedAt(f, t) => !HoldsAt(f,t++).
 
 
-//DEC7
-Next(t1,t0) ^ InitiatedAt(f, t0) => HoldsAt(f, t1).
-Next(t1,t0) ^ TerminatedAt(f, t0) => !HoldsAt(f, t1).
-
-Next(t1,t0) ^ HoldsAt(f,t0) ^ !TerminatedAt(f, t0) => HoldsAt(f,t1).
-Next(t1,t0) ^ !HoldsAt(f,t0) ^ !InitiatedAt(f, t0) => !HoldsAt(f,t1).
 
 /**
  * Domain Specific Axioms
  */
-2 Happens(Load,t) => InitiatedAt(Loaded,t) 
-InitiatedAt(Loaded,t) => Happens(Load,t).
 
-2 Happens(Shoot,t) ^ HoldsAt(Loaded,t) => TerminatedAt(Loaded,t) 
-TerminatedAt(Loaded,t) => Happens(Shoot,t) ^ HoldsAt(Loaded,t).
+2 InitiatedAt(Loaded,t) :- Happens(Load,t)
 
-2 Happens(Shoot,t) ^ HoldsAt(Loaded,t) => InitiatedAt(Dead,t)
-InitiatedAt(Dead,t) => Happens(Shoot,t) ^ HoldsAt(Loaded,t).
+2 TerminatedAt(Loaded,t) :- Happens(Shoot,t) ^ HoldsAt(Loaded,t)
 
-2 Happens(Shoot,t) ^ HoldsAt(Loaded,t) => TerminatedAt(Alive,t)
-TerminatedAt(Alive,t) => Happens(Shoot,t) ^ HoldsAt(Loaded,t).
+2 InitiatedAt(Dead,t) :- Happens(Shoot,t) ^ HoldsAt(Loaded,t)
 
+2 TerminatedAt(Alive,t) :- Happens(Shoot,t) ^ HoldsAt(Loaded,t)
 
 !TerminatedAt(Dead, t).
 !InitiatedAt(Alive,t).
 
 
-//Initially:
+// Initial state:
 
 HoldsAt(Alive,0).
 !HoldsAt(Dead,0).

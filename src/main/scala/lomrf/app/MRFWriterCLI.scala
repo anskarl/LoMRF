@@ -72,8 +72,8 @@ object MRFWriterCLI extends Logging {
 
       info("Parameters:"
         + "\n\t(q) Query predicate(s): " + opt.query.map(_.toString).reduceLeft((left, right) => left + "," + right)
-        + "\n\t(cwa) Closed-world assumption predicate(s): " + (if (opt.cwa.isEmpty) "empty" else opt.cwa.map(_.toString).reduceLeft((left, right) => left + "," + right))
-        + "\n\t(owa) Open-world assumption predicate(s): " + (if (opt.owa.isEmpty) "empty" else opt.owa.map(_.toString).reduceLeft((left, right) => left + "," + right))
+        + "\n\t(cwa) Closed-world assumption predicate(s): " + (if (opt.cwa.isEmpty) "empty" else opt.cwa.map(_.toString).mkString(","))
+        + "\n\t(owa) Open-world assumption predicate(s): " + (if (opt.owa.isEmpty) "empty" else opt.owa.map(_.toString).mkString(","))
         + "\n\t(noNegWeights) Eliminate negative weights: " + opt._noNeg
         + "\n\t(noNegatedUnit) Eliminate negated ground unit clauses: " + opt._eliminateNegatedUnit
       )

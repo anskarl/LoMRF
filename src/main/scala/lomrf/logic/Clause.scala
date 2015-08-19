@@ -43,7 +43,7 @@ import java.text.DecimalFormat
  * @param weight the weight of this clause
  * @param literals a set of literals, representing a disjunction of atoms of their negations.
  */
-final class Clause(val weight: Double, val literals: Set[Literal]){
+final class Clause(val weight: Double, val literals: Set[Literal]) extends Substitutable[Clause]{
 
   /**
    * The set of variables that appear inside this clause
@@ -115,6 +115,11 @@ final class Clause(val weight: Double, val literals: Set[Literal]){
     }
   }
 
+
+  override def substitute(theta: Theta): Clause = {
+    Clause(literals.map(_.substitute(theta)), weight)
+  }
+
   override def equals(that: Any) = {
     that match {
       case x: Clause => x.weight == this.weight && this.literals.size == x.literals.size  && x.literals == this.literals
@@ -122,9 +127,31 @@ final class Clause(val weight: Double, val literals: Set[Literal]){
     }
   }
 
+  /*def =~= (that: Clause): Boolean = {
+    this.literals.size == that.literals.size &&
+    this.literals.forall { lit1 =>
+      that.literals.exists { lit2 =>
+        lit1.positive == lit2.positive &&
+        lit1.sentence.signature == lit2.sentence.signature &&
+        lit1.sentence.variables == lit2.sentence.variables &&
+        lit1.sentence.constants == lit2.sentence.constants
+      }
+    }
+  }*/
+
+  def =~= (that: Clause): Boolean = {
+    this.literals.size == that.literals.size &&
+      this.literals.forall { lit1 =>
+        that.literals.exists { lit2 =>
+          lit1.positive == lit2.positive &&
+            lit1.sentence =~= lit2.sentence
+        }
+      }
+  }
+
   override def hashCode(): Int = hash
 
-  override def toString: String = weight+" {" + literals.map(_.toString).mkString(" v ") + "}"
+  override def toString: String = weight+" {" + literals.map(_.toString()).mkString(" v ") + "}"
 
   private lazy val hash: Int = {
     var code = weight.hashCode()
@@ -165,7 +192,7 @@ class ImplicationDefiniteClause(val premise: Set[AtomicFormula],
  * }}}
  * @param sentence an atomic formula (optionally ground)
  */
-sealed abstract class Literal(val sentence: AtomicFormula) {
+sealed abstract class Literal(val sentence: AtomicFormula) extends Substitutable[Literal] with TermIterable{
   /**
    * The number of sentence arguments.
    */
@@ -202,6 +229,8 @@ sealed abstract class Literal(val sentence: AtomicFormula) {
   }
 
   def toText: String
+
+  override def iterator: Iterator[Term] = sentence.terms.iterator
 }
 
 object Literal {
@@ -227,7 +256,9 @@ case class PositiveLiteral(s: AtomicFormula) extends Literal(s){
 
   def toText = s.toText
 
-  override def toString = s.toString
+  override def toString() = s.toString
+
+  override def substitute(theta: Theta): PositiveLiteral = PositiveLiteral(s.substitute(theta))
 
 }
 
@@ -243,6 +274,8 @@ case class NegativeLiteral(s: AtomicFormula) extends Literal(s) {
   def toText = "!" + s.toText
 
   override def toString = "!" + s.toString
+
+  override def substitute(theta: Theta): NegativeLiteral = NegativeLiteral(s.substitute(theta))
 }
 
 final class LiteralArityOrdering extends Ordering[Literal]{

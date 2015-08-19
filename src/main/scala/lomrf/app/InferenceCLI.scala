@@ -138,7 +138,7 @@ object InferenceCLI extends CLIApp {
 
   private var _implPaths: Option[Array[String]] = None
 
-  private var _domainPartition = false
+  //private var _domainPartition = false
 
 
   private def addQueryAtom(atom: String) {
@@ -153,9 +153,9 @@ object InferenceCLI extends CLIApp {
     _owa += atom.signature.getOrElse(fatal(s"Cannot parse the arity of OWA atom: $atom"))
   }
 
-  opt("i", "input", "<kb file>", "Markov Logic file", { v: String => _mlnFileName = Some(v)})
+  opt("i", "input", "<kb file>", "Markov Logic file", { v: String => _mlnFileName = Some(v) })
 
-  opt("e", "evidence", "<db file(s)>", "Comma separated evidence database files.", { v: String => _evidenceFileNames = v.split(',').toList})
+  opt("e", "evidence", "<db file(s)>", "Comma separated evidence database files.", { v: String => _evidenceFileNames = v.split(',').toList })
 
   opt("r", "result", "<result file>", "Results file", {
     v: String => _resultsFileName = Some(v)
@@ -278,9 +278,10 @@ object InferenceCLI extends CLIApp {
     path: String => if (!path.isEmpty) _implPaths = Some(path.split(','))
   })
 
-  flagOpt("f:dpart", "flag:domain-partition", "Try to partition the domain and create several smaller MLNs.", {
+  // todo: partition the domain and create several smaller MLNs
+  /*flagOpt("f:dpart", "flag:domain-partition", "Try to partition the domain and create several smaller MLNs.", {
     _domainPartition = true
-  })
+  })*/
 
   flagOpt("v", "version", "Print LoMRF version.", sys.exit(0))
 
@@ -289,11 +290,17 @@ object InferenceCLI extends CLIApp {
     sys.exit(0)
   })
 
-  def infer() {
+  if (args.length == 0) println(usage)
+  else if (parse(args)) {
+
+    // Check for query predicates
+    if (_queryAtoms.isEmpty)
+      fatal("You haven't specified any query predicates (see '-q' parameter).")
 
     // First load the KB and the evidence files
     val strMLNFileName = _mlnFileName.getOrElse(fatal("Please specify an input MLN file."))
-    if(_evidenceFileNames.isEmpty) warn("You haven't specified any evidence file.")
+    if (_evidenceFileNames.isEmpty) warn("You haven't specified any evidence file.")
+
 
     val resultsWriter = _resultsFileName match {
       case Some(fileName) => new PrintStream(new FileOutputStream(fileName), true)
@@ -301,16 +308,16 @@ object InferenceCLI extends CLIApp {
     }
 
     info("Parameters:"
-      + "\n\t(q) Query predicate(s): " + _queryAtoms.map(_.toString).reduceLeft((left, right) => left + "," + right)
-      + "\n\t(cwa) Closed-world assumption predicate(s): " + (if (_cwa.isEmpty) "empty" else _cwa.map(_.toString).reduceLeft((left, right) => left + "," + right))
-      + "\n\t(owa) Open-world assumption predicate(s): " + (if (_owa.isEmpty) "empty" else _owa.map(_.toString).reduceLeft((left, right) => left + "," + right))
+      + "\n\t(q) Query predicate(s): " + _queryAtoms.map(_.toString).mkString(", ")
+      + "\n\t(cwa) Closed-world assumption predicate(s): " + (if (_cwa.isEmpty) "empty" else _cwa.map(_.toString).mkString(", "))
+      + "\n\t(owa) Open-world assumption predicate(s): " + (if (_owa.isEmpty) "empty" else _owa.map(_.toString).mkString(", "))
       + "\n\t(marginal) Perform marginal inference: " + _marginalInference
       + "\n\t(mws) Perform MAP inference using MaxWalkSAT: " + _mws
       + "\n\t(all) Show 0/1 results for all query atoms: " + _mapOutputAll
       + "\n\t(satHardUnit) Trivially satisfy hard constrained unit clauses: " + _satHardUnit
       + "\n\t(satHardPriority) Satisfiability priority to hard constrained clauses: " + _satHardPriority
-      + "\n\t(ilpRounding) Rounding algorithm used in ILP map inference: " + ( if(_ilpRounding == RoundingScheme.ROUNDUP) "RoundUp" else "MaxWalkSAT")
-      + "\n\t(ilpSolver) Solver used by ILP map inference: " + ( if(_ilpSolver == Solver.GUROBI) "Gurobi" else "LPSolve")
+      + "\n\t(ilpRounding) Rounding algorithm used in ILP map inference: " + (if (_ilpRounding == RoundingScheme.ROUNDUP) "RoundUp" else "MaxWalkSAT")
+      + "\n\t(ilpSolver) Solver used by ILP map inference: " + (if (_ilpSolver == Solver.GUROBI) "Gurobi" else "LPSolve")
       + "\n\t(samples) Number of samples to take: " + _samples
       + "\n\t(pSA) Probability to perform simulated annealing: " + _pSA
       + "\n\t(pBest) Probability to perform a greedy search: " + _pBest
@@ -326,30 +333,35 @@ object InferenceCLI extends CLIApp {
       + "\n\t(unitProp) Perform unit-propagation: " + _unitProp
     )
 
-    val mln =
-      _implPaths match {
-        case Some(paths) =>
-          val implFinder = ImplFinder(classOf[DynamicAtomBuilder], classOf[DynamicFunctionBuilder])
-          implFinder.searchPaths(paths)
-          MLN.fromFile(strMLNFileName, _evidenceFileNames, _queryAtoms, _cwa, _owa, pcm = Decomposed, dynamicDefinitions = Some(implFinder.result), domainPart =_domainPartition)
-        case None => MLN.fromFile(strMLNFileName, _evidenceFileNames, _queryAtoms, _cwa, _owa, pcm = Decomposed, dynamicDefinitions = None, domainPart =_domainPartition)
-      }
+    val dynamicDefinitionsOpt = _implPaths.map(paths => {
+      val implFinder = ImplFinder(classOf[DynamicAtomBuilder], classOf[DynamicFunctionBuilder])
+      implFinder.searchPaths(paths)
+      implFinder.result
+    })
+
+    val mln = MLN.fromFile(strMLNFileName, _evidenceFileNames, _queryAtoms, _cwa, _owa, pcm = Decomposed, dynamicDefinitionsOpt)
 
     info("Markov Logic:"
       + "\n\tConstant domains   : " + mln.evidence.constants.size
       + "\n\tSchema definitions : " + mln.schema.predicates.size
       + "\n\tClauses            : " + mln.clauses.size)
 
-    whenDebug{
+    whenDebug {
       debug("List of CNF clauses: ")
-      mln.clauses.zipWithIndex.foreach{case (c, idx) => debug(idx+": "+c)}
+      mln.clauses.zipWithIndex.foreach { case (c, idx) => debug(idx + ": " + c) }
     }
+
+    if(mln.clauses.exists(_.weight.isNaN))
+      fatal("Cannot perform inference, soft-constrained clauses with undefined weights found in the specified theory. " +
+        "Please check the given MLN file(s) for soft-constrained formulas with missing weight values.")
+
 
     info("Creating MRF...")
     val mrfBuilder = new MRFBuilder(mln, noNegWeights = _noNeg, eliminateNegatedUnit = _eliminateNegatedUnit)
     val mrf = mrfBuilder.buildNetwork
 
-    if (_marginalInference) { // Marginal inference methods
+    if (_marginalInference) {
+      // Marginal inference methods
       val solver = new MCSAT(
         mrf, pBest = _pBest, pSA = _pSA, maxFlips = _maxFlips, maxTries = _maxTries, targetCost = _targetCost, numSolutions = _numSolutions,
         saTemperature = _saTemperature, samples = _samples, lateSA = _lateSA, unitPropagation = _unitProp, satHardPriority = _satHardPriority, tabuLength = _tabuLength
@@ -357,10 +369,11 @@ object InferenceCLI extends CLIApp {
       solver.infer()
       solver.writeResults(resultsWriter)
     }
-    else { // MAP inference methods
-      if(_mws) {
+    else {
+      // MAP inference methods
+      if (_mws) {
         val solver = new MaxWalkSAT(mrf, pBest = _pBest, maxFlips = _maxFlips, maxTries = _maxTries, targetCost = _targetCost,
-                                    outputAll = _mapOutputAll, satHardUnit = _satHardUnit, satHardPriority = _satHardPriority, tabuLength = _tabuLength)
+          outputAll = _mapOutputAll, satHardUnit = _satHardUnit, satHardPriority = _satHardPriority, tabuLength = _tabuLength)
         solver.infer()
         solver.writeResults(resultsWriter)
       }
@@ -371,10 +384,6 @@ object InferenceCLI extends CLIApp {
       }
     }
   }
-
-  // Main:
-  if (args.length == 0) println(usage)
-  else if (parse(args)) infer()
 }
 
 

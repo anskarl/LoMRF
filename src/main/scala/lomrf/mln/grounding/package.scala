@@ -62,8 +62,21 @@ package object grounding {
      * Message for requesting the final ground MRF from the Master actor.
      */
     case object REQUEST_RESULTS
-    case object GRND_Iteration_Completed
-    case object GRND_Completed
+
+    /**
+     * Notification for the completion of a grounding iteration
+     */
+    case object ITERATION_COMPLETED
+
+    /**
+     * Notification for the completion of the grounding procedure
+     */
+    case object GROUNDING_COMPLETED
+
+    /**
+     * Notification that a Clique Register have send all Atom IDs to AtomRegister workers
+     */
+    case object REGISTRATION_COMPLETED
 
     case class Result(
                        cliques: IndexPartitioned[TIntObjectMap[CliqueEntry]],
@@ -100,7 +113,7 @@ package object grounding {
     case class AtomsBatch(index: Int, registry: TIntObjectHashMap[TIntHashSet], queryAtomIDs: TIntSet)
 
     // CliqueRegister -> AtomRegister
-    case class Register(atomID: Int, cliqueID: Int)
+    case class RegisterAtom(atomID: Int, cliqueID: Int)
 
     // CliqueRegister -> Master
     case class CollectedCliques(index: Int, cliques: TIntObjectMap[CliqueEntry], dependencyMap: Option[DependencyMap] = None)
