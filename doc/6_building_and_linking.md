@@ -41,6 +41,11 @@ scripts from terminal (see next Section). The distribution contains all library 
 into the `./target/scala-2.11/` directory. The resulting documentation is located inside the `./target/site/scaladocs` 
 directory.
 
+## Only for Microsoft Windows XP users
+
+LoMRF depends on the JANSI library, in order to print coloured log messages in the console. JANSI depends on a JNI library
+that is available from "Microsoft Visual C++ 2008 SP1 Redistributable". You can get a free copy from Microsoft at the 
+following link: http://www.microsoft.com/en-us/download/details.aspx?displaylang=en&id=5582
 
 ## Add LoMRF executables in your default PATH
 
@@ -57,13 +62,69 @@ lomrf-0.4/
 |-- etc
 `-- lib
 ```
-The `bin` sub-directory contains all LoMRF executable tools. In order to add this sub-directory in your default `PATH` 
-add the following line in you profile file (e.g., inside `.profile`, `.bashrc` or `.bash_profile` in your home directory):
+### Linux, Unix and MacOS X
 
+The `bin` sub-directory contains all LoMRF executable tools. In order to add this sub-directory in your default `PATH` 
+add the following line in you profile file.
+ 
+
+**BASH** e.g., inside `.profile`, `.bashrc` or `.bash_profile` file in your home directory:
 ```bash
 export PATH=$PATH:$HOME/lomrf-0.4/bin
 ```
 
+**CSH/TCSH** e.g., inside `~/.login` file in your home directory:
+```csh
+set path = ($path $HOME/lomrf-0.4/bin .)
+```
+or in `~/.cshrc` file in your home directory:
+```csh
+setenv PATH $PATH:$HOME/lomrf-0.4/bin:.
+```
+
+
+### Microsoft Windows Operating Systems
+
+For MS Windows OS add the location of LoMRF sub-folder (e.g., `C:\path\to\lomrf-0.4\bin`) your PATH environmental variable. 
+
+**Windows 8:**
+  1. Drag the Mouse pointer to the Right bottom corner of the screen
+  2. Click on the Search icon and type: Control Panel
+  3. Click on -> Control Panel -> System -> Advanced
+  4. Click on Environment Variables, under System Variables, find PATH, and click on it.
+  5. In the Edit windows, modify PATH by adding the location of the LoMRF bin sub-folder (e.g., `C:\path\to\lomrf-0.4\bin`) 
+  to the value for PATH. If you do not have the item PATH, you may select to add a new variable and add PATH as the name 
+  and the location of LoMRF bin sub-folder (i.e., `C:\path\to\lomrf-0.4\bin`) as the value.
+  6. Close the window.
+  7. Reopen Command prompt window, and run your LoMRF experiments.
+
+**Windows 7:**
+  1. Select Computer from the Start menu
+  2. Choose System Properties from the context menu
+  3. Click Advanced system settings -> Advanced tab
+  4. Click on Environment Variables, under System Variables, find PATH, and click on it.
+  5. In the Edit windows, modify PATH by adding the location of LoMRF bin sub-folder (i.e., `C:\path\to\lomrf-0.4\bin`) 
+  to the value for PATH. If you do not have the item PATH, you may select to add a new variable and add PATH as the name 
+  and the location of LoMRF bin sub-folder (i.e., `C:\path\to\lomrf-0.4\bin`) as the value.
+  6. Reopen Command prompt window, and run your LoMRF experiments.
+
+**Windows Vista:**
+  1. Right click My Computer icon
+  2. Choose Properties from the context menu
+  3. Click Advanced tab (Advanced system settings link in Vista)
+  4. In the Edit windows, modify PATH by adding the location of LoMRF bin sub-folder (i.e., `C:\path\to\lomrf-0.4\bin`) 
+     to the value for PATH. If you do not have the item PATH, you may select to add a new variable and add PATH as the name 
+     and the location of LoMRF bin sub-folder (i.e., `C:\path\to\lomrf-0.4\bin`) as the value.
+  5. Reopen Command prompt window, and run your LoMRF experiments.
+      
+**Windows XP:**
+  1. Start -> Control Panel -> System -> Advanced
+  2. Click on Environment Variables, under System Variables, find PATH, and click on it.
+  3. In the Edit windows, modify PATH by adding the location of LoMRF bin sub-folder (i.e., `C:\path\to\lomrf-0.4\bin`) 
+     to the value for PATH. If you do not have the item PATH, you may select to add a new variable and add PATH as the name 
+     and the location of LoMRF bin sub-folder (i.e., `C:\path\to\lomrf-0.4\bin`) as the value.
+  4. Close the window.
+  5. Reopen Command prompt window, and run your LoMRF experiments.
 
 ## Using LoMRF as a library
 

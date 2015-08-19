@@ -26,13 +26,14 @@ See [Building and Linking](doc/5_building_and_linking.md).
 
 ## Documentation
   - [Quick-start guide](doc/0_quick_start.md)
-  - [Inference](doc/1_inference.md)
-  - [Weight Learning](doc/2_weight_learning.md)
-  - [Structure Learning](doc/3_structure_learning.md)
-  - [CLI Tools](doc/4_tools.md)
-  - [Building and Linking](doc/5_building_and_linking.md)
-  - [Configuration](doc/5_building_and_linking.md)
-  - [References](doc/7_references.md)
+  - [Syntax](doc/1_syntax.md)
+  - [Inference](doc/2_inference.md)
+  - [Weight Learning](doc/3_weight_learning.md)
+  - [Structure Learning](doc/4_structure_learning.md)
+  - [CLI Tools](doc/5_tools.md)
+  - [Building and Linking](doc/6_building_and_linking.md)
+  - [Configuration](doc/7_building_and_linking.md)
+  - [References](doc/8_references.md)
 
 ## The development of LoMRF is powered by:
 
