@@ -71,17 +71,18 @@ object Evidence {
                 files: Iterable[File],
                 convertFunctions: Boolean): Evidence = {
 
-    fromFiles(kb.predicateSchema, kb.functionSchema, constantsDomainBuilders, kb.dynamicFunctions, queryPredicates, Set.empty[AtomSignature], files, convertFunctions)
+    fromFiles(kb.predicateSchema, kb.functionSchema, constantsDomainBuilders, kb.dynamicFunctions, queryPredicates, Set.empty[AtomSignature], Set.empty[AtomSignature], files, convertFunctions)
   }
 
   def fromFiles(kb: KB,
-                constantsDomainBuilders: ConstantsDomainBuilder,
+                constantsDomainBuilder: ConstantsDomainBuilder,
                 queryPredicates: Set[AtomSignature],
-                hiddenPredicates: Set[AtomSignature],
+                owaPredicates: Set[AtomSignature],
+                cwaPredicates: Set[AtomSignature],
                 files: Iterable[File],
                 convertFunctions: Boolean): Evidence = {
 
-    fromFiles(kb.predicateSchema, kb.functionSchema, constantsDomainBuilders, kb.dynamicFunctions, queryPredicates, hiddenPredicates, files, convertFunctions)
+    fromFiles(kb.predicateSchema, kb.functionSchema, constantsDomainBuilder, kb.dynamicFunctions, queryPredicates, owaPredicates, cwaPredicates, files, convertFunctions)
   }
 
   def fromFiles(predicateSchema: PredicateSchema,
@@ -89,7 +90,20 @@ object Evidence {
                 constantsDomainBuilder: ConstantsDomainBuilder,
                 dynamicFunctions: DynamicFunctions,
                 queryPredicates: Set[AtomSignature],
-                hiddenPredicates: Set[AtomSignature],
+                owaPredicates: Set[AtomSignature],
+                files: Iterable[File],
+                convertFunctions: Boolean): Evidence ={
+
+    fromFiles(predicateSchema, functionSchema, constantsDomainBuilder, dynamicFunctions, queryPredicates, owaPredicates, Set.empty, files, convertFunctions)
+  }
+
+  def fromFiles(predicateSchema: PredicateSchema,
+                functionSchema: FunctionSchema,
+                constantsDomainBuilder: ConstantsDomainBuilder,
+                dynamicFunctions: DynamicFunctions,
+                queryPredicates: Set[AtomSignature],
+                owaPredicates: Set[AtomSignature],
+                cwaPredicates: Set[AtomSignature],
                 files: Iterable[File],
                 convertFunctions: Boolean): Evidence = {
 
@@ -119,6 +133,8 @@ object Evidence {
         }
 
     info("--- Stage 1: Parsing constants")
+    var evidenceSignatures = cwaPredicates
+
     for (evidenceExpressions <- evidenceExpressionsDB; expr <- evidenceExpressions) expr match {
       case f: FunctionMapping =>
         //Collect information for functionMappings
@@ -141,28 +157,43 @@ object Evidence {
         }
 
       case atom: EvidenceAtom =>
-        predicateSchema.get(atom.signature) match {
-          case Some(argTypes) =>
-            //append its constants into constantsMap
-            for ((value, index) <- atom.terms.view.zipWithIndex) {
-              val constantType = argTypes(index)
+        val argTypes = predicateSchema.getOrElse(atom.signature, fatal(s"Unknown predicate '$atom' in the given input evidence file(s)."))
 
-              constantsDomainBuilder.get(constantType) match {
-                case Some(x) => x += value.symbol
-                case None =>
-                  constantsDomainBuilder += (constantType -> value.symbol)
-              }
-            }
-          case _ => fatal(s"Unknown predicate '$atom' in the given input evidence file(s).")
+        evidenceSignatures += atom.signature
+
+        //append its constants into constantsMap
+        for ((value, index) <- atom.terms.view.zipWithIndex) {
+          val constantType = argTypes(index)
+
+          constantsDomainBuilder.get(constantType) match {
+            case Some(x) => x += value.symbol
+            case None =>
+              constantsDomainBuilder += (constantType -> value.symbol)
+          }
         }
       case _ => //ignore
     }
 
     val constants: Map[String, ConstantsSet] = constantsDomainBuilder.result()
 
-    info("--- Stage 2: Creating function mappings, and evidence database.")
+    info("--- Stage 2: Inferring predicate open/closed-world assumptions.")
+    val allSignatures = predicateSchema.keySet
+    val userDefinedOWA = queryPredicates ++ owaPredicates
 
-    val builder = EvidenceBuilder(predicateSchema, functionSchema, queryPredicates, hiddenPredicates, constants, convertFunctions).withDynamicFunctions(dynamicFunctions)
+    val inferredCWASignatures = evidenceSignatures -- userDefinedOWA
+    val inferredOWASignatures = allSignatures -- inferredCWASignatures
+
+    info(
+      s"""
+        |\t\tOWA predicate signatures: ${inferredOWASignatures.mkString(", ")}
+        |\t\tCWA predicate signatures: ${inferredCWASignatures.mkString(", ")}
+      """.stripMargin)
+    
+    info("--- Stage 3: Creating function mappings, and evidence database.")
+
+    val builder =
+      EvidenceBuilder(predicateSchema, functionSchema, queryPredicates, inferredOWASignatures, constants, convertFunctions)
+        .withDynamicFunctions(dynamicFunctions)
 
     for (evidenceExpressions <- evidenceExpressionsDB; expr <- evidenceExpressions) expr match {
       case fm: FunctionMapping => builder.functions += fm
