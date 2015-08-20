@@ -284,7 +284,8 @@ object MLN {
       fatal(s"Predicate(s): ${openClosedSignatures.mkString(", ")} defined both as closed and open.")
 
     //parse the evidence database (.db)
-    val evidence: Evidence = Evidence.fromFiles(kb, constantsDomainBuilders, queryAtoms, owa, evidenceFileNames.map(new File(_)), convertFunctions = false)
+    val evidence: Evidence = Evidence
+      .fromFiles(kb, constantsDomainBuilders, queryAtoms, owa, cwa, evidenceFileNames.map(new File(_)), convertFunctions = false)
 
     val completedFormulas =
       PredicateCompletion(kb.formulas, kb.definiteClauses, pcm)(kb.predicateSchema, kb.functionSchema, evidence.constants)
@@ -354,11 +355,13 @@ object MLN {
       case None => // do nothing
     }
 
+    // Very important for supervised learning: Explicitly define that all atoms except the non-evidence ones will have Closed-world assumption
+    // For example, when an evidence atom is missing from the evidence db, we have to make sure that it will remain with Closed-world assumption
     val evidenceAtoms = atomSignatures -- nonEvidenceAtoms
 
     //parse the training evidence database (contains the annotation, i.e., the truth values of all query/hidden atoms)
     val trainingEvidence = Evidence.fromFiles(
-      kb, constantsDomainBuilder, nonEvidenceAtoms, trainingFileNames.map(new File(_)), convertFunctions = false
+      kb, constantsDomainBuilder, nonEvidenceAtoms, Set.empty, evidenceAtoms, trainingFileNames.map(new File(_)), convertFunctions = false
     )
 
     val domainSpace = PredicateSpace(kb.schema, nonEvidenceAtoms, trainingEvidence.constants)
@@ -486,9 +489,14 @@ object MLN {
       }
     }
 
+    // Very important for supervised learning: Explicitly define that all atoms except the non-evidence ones will have Closed-world assumption
+    // For example, when an evidence atom is missing from the evidence db, we have to make sure that it will remain with Closed-world assumption
+    val evidenceAtoms = mlnSchema.predicates.keySet -- nonEvidenceAtoms
+
     // Parse the training evidence database (contains the annotation, i.e., the truth values of all query/hidden atoms)
-    val trainingEvidence = Evidence.fromFiles(mlnSchema.predicates, mlnSchema.functions, builder, mlnSchema.dynamicFunctions,
-                                              nonEvidenceAtoms, Set.empty[AtomSignature], trainingFileNames.map(filename => new File(filename)), convertFunctions = false)
+    val trainingEvidence = Evidence
+      .fromFiles(mlnSchema.predicates, mlnSchema.functions, builder, mlnSchema.dynamicFunctions,
+        nonEvidenceAtoms, Set.empty[AtomSignature], evidenceAtoms, trainingFileNames.map(filename => new File(filename)), convertFunctions = false)
 
     forLearning(mlnSchema, trainingEvidence, nonEvidenceAtoms, clauses)
   }

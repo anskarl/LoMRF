@@ -127,26 +127,22 @@ final class Clause(val weight: Double, val literals: Set[Literal]) extends Subst
     }
   }
 
-  /*def =~= (that: Clause): Boolean = {
-    this.literals.size == that.literals.size &&
-    this.literals.forall { lit1 =>
-      that.literals.exists { lit2 =>
-        lit1.positive == lit2.positive &&
-        lit1.sentence.signature == lit2.sentence.signature &&
-        lit1.sentence.variables == lit2.sentence.variables &&
-        lit1.sentence.constants == lit2.sentence.constants
-      }
-    }
-  }*/
 
   def =~= (that: Clause): Boolean = {
-    this.literals.size == that.literals.size &&
+    if(this.literals.size == that.literals.size){
+      var otherLiterals = that.literals
       this.literals.forall { lit1 =>
-        that.literals.exists { lit2 =>
-          lit1.positive == lit2.positive &&
-            lit1.sentence =~= lit2.sentence
+
+        otherLiterals.find(lit2 => lit1.positive == lit2.positive && lit1.sentence =~= lit2.sentence) match {
+          case Some(matchedLiteral) =>
+            otherLiterals -= matchedLiteral
+            true
+          case _ => false
         }
       }
+    }
+    else false
+
   }
 
   override def hashCode(): Int = hash
