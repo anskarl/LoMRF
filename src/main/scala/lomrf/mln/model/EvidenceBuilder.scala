@@ -45,8 +45,8 @@ import lomrf.util._
 final class EvidenceBuilder private(predicateSpace: PredicateSpace,
                                     constants: ConstantsDomain,
                                     predicateSchema: PredicateSchema,
-                                    functionSchema: FunctionSchema = Map.empty,
-                                    convertFunctionsToPredicates: Boolean = false) { self =>
+                                    functionSchema: FunctionSchema,
+                                    convertFunctionsToPredicates: Boolean) { self =>
 
   private var edbBuilders = Map.empty[AtomSignature, AtomEvidenceDBBuilder]
 
@@ -66,7 +66,7 @@ final class EvidenceBuilder private(predicateSpace: PredicateSpace,
         "Cannot have atom evidence builders for predicates with unspecified schema. " +
           s"The following atom signatures are missing from the predicate schema: '${missingSignatures.mkString(", ")}'")
 
-    val result = new EvidenceBuilder(predicateSpace, constants, predicateSchema, functionSchema)
+    val result = new EvidenceBuilder(predicateSpace, constants, predicateSchema, functionSchema, convertFunctionsToPredicates)
     result.edbBuilders = evBuilders
     result
   }
@@ -82,7 +82,7 @@ final class EvidenceBuilder private(predicateSpace: PredicateSpace,
         "Cannot have function mapping builders for functions with unspecified schema. " +
         s"The following function signatures are missing from the function schema: '${missingSignatures.mkString(", ")}'")
 
-    val result = new EvidenceBuilder(predicateSpace, constants, predicateSchema, functionSchema)
+    val result = new EvidenceBuilder(predicateSpace, constants, predicateSchema, functionSchema, convertFunctionsToPredicates)
     if(convertFunctionsToPredicates) {
       fmBuilders.values foreach {
         builder => self.functions ++= builder.decoded
@@ -96,7 +96,7 @@ final class EvidenceBuilder private(predicateSpace: PredicateSpace,
   }
 
   def withDynamicFunctions(df: DynamicFunctions): EvidenceBuilder ={
-    val result = new EvidenceBuilder(predicateSpace, constants, predicateSchema, functionSchema)
+    val result = new EvidenceBuilder(predicateSpace, constants, predicateSchema, functionSchema, convertFunctionsToPredicates)
     result.dynFunctions = df
     result
   }
@@ -123,10 +123,6 @@ final class EvidenceBuilder private(predicateSpace: PredicateSpace,
 
 
     val db: EvidenceDB = (for(signature <- predicateSchema.keys) yield signature -> mkEvidenceDB(signature))(breakOut)
-
-    /*val fm =
-      if(convertFunctionsToPredicates) Map.empty[AtomSignature, FunctionMapper]
-      else fmBuilders.map(entries => entries._1 -> entries._2.result())*/
 
     val dynamicFunctionMappers = dynFunctions.mapValues(new FunctionMapperSpecialImpl(_))
 
@@ -309,7 +305,7 @@ object EvidenceBuilder {
 
     val domainSpace = PredicateSpace(predicateSchema, queryPredicates, hiddenPredicates, constants)
 
-    new EvidenceBuilder(domainSpace, constants, predicateSchema)
+    new EvidenceBuilder(domainSpace, constants, predicateSchema, functionSchema = Map.empty, convertFunctionsToPredicates = false)
   }
 
   /**

@@ -108,7 +108,7 @@ object Evidence {
         files
       }
 
-    def isOWA(signature: AtomSignature) = queryPredicates.contains(signature) || hiddenPredicates.contains(signature)
+    //def isOWA(signature: AtomSignature) = queryPredicates.contains(signature) || hiddenPredicates.contains(signature)
 
     val evidenceParser = new EvidenceParser
     val evidenceExpressionsDB =
