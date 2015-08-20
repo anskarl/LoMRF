@@ -1,3 +1,5 @@
+<script type="text/javascript" src="http://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"> </script>
+
 # Quick Start
 
 Assuming that you have successfully build a LoMRF distribution and added LoMRF executables in your default `PATH` (see 
@@ -87,7 +89,7 @@ The domain types that we use in our example are belong to the domains of *time*,
 each one domain takes are constant symbols and are finite. Their possible finite symbols can be explicitly defined in our
 `theory.mln` file. For example, the domain of fluents is represented below:
 
-```
+```lang-none
 fluent = {Loaded, Alive, Dead}
 ```
 The name of the domain is `fluent` and is starting with a lower-case letter. In the brackets we add the possible values
@@ -95,7 +97,7 @@ that the domain `fluent` can take. Each value is a constant symbol, therefore is
 
 For integer-valued domains like the domain of time, we can use the following notation:
 
-```
+```lang-none
 time = {1,...,100}
 ```
 
@@ -106,9 +108,9 @@ The resulting domain of time will contain the range of 1 to 100 as constant symb
 We have to define the schema of each predicate that we will use in our example. Each predicate has some symbol name which 
 is followed by a parenthesis containing its arguments. Furthermore, the symbol with the number of its arguments (called 
 arity) defines the unique atomic signature of the predicate. For example, the schema of the predicate with symbol 'Foo' 
-and the two arguments 'event' and 'time' has atomic signature `Foo/2` (i.e., <symbol>/<arity>) and is defined as follows:
+and the two arguments 'event' and 'time' has atomic signature `Foo/2` (i.e., symbol/arity) and is defined as follows:
  
-```
+```lang-none
 Foo(event, time)
 ```
 
@@ -123,7 +125,7 @@ Since we are employing the Event Calculus formalism, we use the Event Calculus p
 
 The schema of our predicates are given below:
 
-```
+```lang-none
 HoldsAt(fluent, time)
 InitiatedAt(fluent, time)
 TerminatedAt(fluent, time)
@@ -138,7 +140,7 @@ lower-case letters.
 First of all we have to express the Event Calculus core axioms that are domain-independent. That axioms are not express
 knowledge specific for our running example, but express the conditions under which a fluent value changes or persists.
 
-```
+```lang-none
 InitiatedAt(f, t) => HoldsAt(f, t++).
 
 TerminatedAt(f, t) => !HoldsAt(f, t++).
@@ -171,7 +173,8 @@ knowledge for our running example. For simplicity we will use the definite claus
 clauses are composed of a *head* predicate and declaration of *body* predicates (might be negated) that are connected 
 with conjunctions (logical and). The basic definite clause syntax is given below, where the head predicate is separated 
 by the predicates in the body with a the declaration symbol `:-`:
-```
+
+```lang-none
 head :- body
 ```
 
@@ -182,7 +185,7 @@ end with a dot symbol, while soft-constrained are prepended with a weight value.
 We would like to express the rule that the gun becomes loaded if and only if the hunter loads the gun. This rule is
 expressed with the following formula:
 
-```
+```lang-none
 InitiatedAt(Loaded, t) :- Happens(Load, t) 
 ```
 
@@ -191,14 +194,14 @@ weight learning algorithm (see [Weight Learning](doc/3_weight_learning.md)), the
 to be equal with 2.0. On the other hand, we restrict the second rule to remain hard-constrained. Therefore, the final
 form of these two formulas is given below:
 
-```
+```lang-none
 2 InitiatedAt(Loaded, t) :- Happens(Load, t) 
 ```
 
 By following the same formulation the rest set of domain-dependent axioms is given below. For simplicity we are using
 the same weight value for all soft-constrained definite clauses.
 
-```
+```lang-none
 // The gun becomes loaded if and only if the hunter loads the gun.
 2 InitiatedAt(Loaded,t) :- Happens(Load,t)
 
@@ -208,13 +211,13 @@ the same weight value for all soft-constrained definite clauses.
 // When the gun shoots and it is loaded, then the prey is being killed.
 2 InitiatedAt(Dead,t) :- Happens(Shoot,t) ^ HoldsAt(Loaded,t)
 
-// When the gun shoots and it is loaded, then the pread is stops from being alive.
-2 TerminatedAt(Alive,t) => Happens(Shoot,t) ^ HoldsAt(Loaded,t)
+// When the gun shoots and it is loaded, then the prey stops from being alive.
+2 TerminatedAt(Alive,t) :- Happens(Shoot,t) ^ HoldsAt(Loaded,t)
 ```
 
 Finally we can express the initial state (i.e., at time-point 0) of our running example with the following formulas:
 
-```
+```lang-none
 // Initially the prey is alive
 HoldsAt(Alive, 0).
 
@@ -235,7 +238,7 @@ HoldsAt(Alive, 0).
 
 The final form of our knowledge base (`theory.mln`) is given below:
 
-```
+```lang-none
 fluent = {Loaded, Alive, Dead}
 time = {0,...,13}
 
@@ -249,11 +252,13 @@ Happens(event, time)
  * Event Calculus domain-independent axioms
  */
 
-Next(t1,t0) ^ InitiatedAt(f, t0) => HoldsAt(f, t1).
-Next(t1,t0) ^ TerminatedAt(f, t0) => !HoldsAt(f, t1).
+InitiatedAt(f, t) => HoldsAt(f, t++).
 
-Next(t1,t0) ^ HoldsAt(f,t0) ^ !TerminatedAt(f, t0) => HoldsAt(f,t1).
-Next(t1,t0) ^ !HoldsAt(f,t0) ^ !InitiatedAt(f, t0) => !HoldsAt(f,t1).
+TerminatedAt(f, t) => !HoldsAt(f, t++).
+
+HoldsAt(f, t) ^ !TerminatedAt(f, t) => HoldsAt(f, t++).
+
+!HoldsAt(f, t) ^ !InitiatedAt(f, t) => !HoldsAt(f, t++).
 
 /**
  * Domain-dependent rules
@@ -269,7 +274,7 @@ Next(t1,t0) ^ !HoldsAt(f,t0) ^ !InitiatedAt(f, t0) => !HoldsAt(f,t1).
 2 InitiatedAt(Dead,t) :- Happens(Shoot,t) ^ HoldsAt(Loaded,t)
 
 // When the gun shoots and it is loaded, then the prey stops from being alive.
-2 TerminatedAt(Alive,t) => Happens(Shoot,t) ^ HoldsAt(Loaded,t)
+2 TerminatedAt(Alive,t) :- Happens(Shoot,t) ^ HoldsAt(Loaded,t)
 
 /**
  * Initial state
@@ -307,7 +312,7 @@ Specifically, we will represent the following scenario:
 Furthermore the time sequence (0 to 13) is represented ground `Next` predicates. This scenario is represented by the
 following ground predicates:
 
-```
+```lang-none
 Happens(Shoot, 2)
 Happens(Load, 3)
 Happens(Shoot, 5)
@@ -338,13 +343,13 @@ In order to perform inference, we have to define the following:
 
 Marginal inference computes the conditional probability of query predicates (e.g., HoldsAt), given the evidence (e.g., Happens).
 
-```bash
+```lang-none
 lomrf -infer marginal -i theory.mln -e evidence.db -r marginal-out.result -q HoldsAt/2 -owa InitiatedAt/2,TerminatedAt/2 -cwa Happens/2
 ```
 
 The following results are stored in the `marginal-out.result` file:
 
-```
+```lang-none
 HoldsAt(Alive,0) 1.0
 HoldsAt(Alive,1) 1.0
 HoldsAt(Alive,2) 1.0
@@ -402,13 +407,13 @@ are consistent with the given evidence. This task reduces to finding the truth a
 instantiations that maximises the sum of weights of satisfied ground clauses. This is equivalent to the weighted maximum 
 satisfiability problem. 
 
-```bash
+```lang-none
 lomrf -infer map -i theory.mln -e evidence.db -r map-out.result -q HoldsAt/2 -owa InitiatedAt/2,TerminatedAt/2 -cwa Happens/2
 ```
 
 The following results are stored in the `map-out.result` file:
 
-```
+```lang-none
 HoldsAt(Alive,0) 1
 HoldsAt(Alive,1) 1
 HoldsAt(Alive,2) 1
