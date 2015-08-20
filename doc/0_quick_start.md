@@ -1,9 +1,7 @@
-<script type="text/javascript" src="http://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"> </script>
-
 # Quick Start
 
 Assuming that you have successfully build a LoMRF distribution and added LoMRF executables in your default `PATH` (see 
-[Building and Linking](5_building_and_linking.md)). In the following paragraphs we will write our first LoMRF model and
+[Building and Linking](6_building_and_linking.md)). In the following paragraphs we will write our first LoMRF model and
 perform probabilistic inference.
 
 ## Running Example
@@ -29,8 +27,8 @@ use in the example:
 
 | Event | Description                |
 |:------|:---------------------------|
-| Shoot | Gun shoots                 |
-| Load  | Load the gun               |
+| Shoot | Hunter shoots              |
+| Load  | Hunter loads the gun       |
 
 | Fluent | Description               |
 |:-------|:--------------------------|
@@ -61,7 +59,7 @@ The contents of the `theory.mln` file is can be the following:
   as `bar` with a single argument that takes constants from the domain of time and returns constants from the domain
   *month* (i.e., representing the month number), i.e., `month = bar(time)`.
   4. Formulas represented in First-Order logic, expressing the template for producing Markov Networks.
-     * The syntax of logical formulas can be found [here]()
+     * The syntax of logical formulas can be found [here](1_syntax.md)
      * Each formula imposes a constraint.
      * Each formula can be associated with some *weight* value, that is a positive or negative real number. The higher
     the value of weight, the stronger the constraint represented by the formula.
@@ -303,14 +301,13 @@ file (`evidence.db`) and contains ground predicates (i.e., predicates that conta
 
 Specifically, we will represent the following scenario:
 
-1. At time-point 2, the hunter shoots.
+1. At time-point 2, the hunter shoots with empty gun.
 2. At time-point 3, the hunter loads the gun.
-3. At time-point 5, the hunter shoots.
-4. At time-point 9, the hunter loads the gun.
-5. Finally at time-point 11, the hunter the hunter shoots again.
+3. At time-point 5, the hunter shoots with loaded gun.
+4. At time-point 9, the hunter reloads the gun.
+5. Finally at time-point 11, the hunter shoots again.
 
-Furthermore the time sequence (0 to 13) is represented ground `Next` predicates. This scenario is represented by the
-following ground predicates:
+This scenario is represented by the following ground predicates:
 
 ```lang-none
 Happens(Shoot, 2)
@@ -365,7 +362,6 @@ HoldsAt(Alive,11) 0.185
 HoldsAt(Alive,12) 0.02
 HoldsAt(Alive,13) 0.02
 HoldsAt(Alive,14) 0.02
-
 HoldsAt(Dead,0) 0.0
 HoldsAt(Dead,1) 0.0
 HoldsAt(Dead,2) 0.0
@@ -381,7 +377,6 @@ HoldsAt(Dead,11) 0.835
 HoldsAt(Dead,12) 0.963
 HoldsAt(Dead,13) 0.963
 HoldsAt(Dead,14) 0.963
-
 HoldsAt(Loaded,0) 0.0
 HoldsAt(Loaded,1) 0.0
 HoldsAt(Loaded,2) 0.0
@@ -429,7 +424,6 @@ HoldsAt(Alive,11) 0
 HoldsAt(Alive,12) 0
 HoldsAt(Alive,13) 0
 HoldsAt(Alive,14) 0
-
 HoldsAt(Dead,0) 0
 HoldsAt(Dead,1) 0
 HoldsAt(Dead,2) 0
@@ -445,7 +439,6 @@ HoldsAt(Dead,11) 1
 HoldsAt(Dead,12) 1
 HoldsAt(Dead,13) 1
 HoldsAt(Dead,14) 1
-
 HoldsAt(Loaded,0) 0
 HoldsAt(Loaded,1) 0
 HoldsAt(Loaded,2) 0

@@ -22,7 +22,7 @@ LoMRF comes with ABSOLUTELY NO WARRANTY. This is free software, and you are welc
 
 ## Building
 
-See [Building and Linking](doc/5_building_and_linking.md).
+See [Building and Linking](doc/6_building_and_linking.md).
 
 ## Documentation
   - [Quick-start guide](doc/0_quick_start.md)
