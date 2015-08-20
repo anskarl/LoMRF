@@ -16,13 +16,13 @@ final class TuplesDBSpecTest extends FunSpec with Matchers {
 
       val db = new TuplesDB[String, Int]()
 
-      db + ("x", 1)
-      db + ("x", 2)
-      db + ("x", 3)
-      db + ("x", 4)
+      db += ("x", 1)
+      db += ("x", 2)
+      db += ("x", 3)
+      db += ("x", 4)
 
       // duplicates should be ignored
-      db + ("x", 2)
+      db += ("x", 2)
 
       it("should contain 1 variable and 4 tuples") {
         db.contains("x") shouldBe true
@@ -38,8 +38,8 @@ final class TuplesDBSpecTest extends FunSpec with Matchers {
 
       val db = new TuplesDB[String, Int]()
 
-      db + ("x", Set(1, 2, 3, 4))
-      db + ("y", 5)
+      db += ("x", Set(1, 2, 3, 4))
+      db += ("y", 5)
 
       it("should contain 2 variable and and 4 tuples") {
         db.contains("x") shouldBe true
@@ -57,10 +57,10 @@ final class TuplesDBSpecTest extends FunSpec with Matchers {
 
       val db = new TuplesDB[String, Int]()
 
-      db + ("x", Set(1, 2, 3, 4))
-      db + ("y", 5)
-      db + ("z", 4)
-      db + ("z", 9)
+      db += ("x", Set(1, 2, 3, 4))
+      db += ("y", 5)
+      db += ("z", 4)
+      db += ("z", 9)
 
       it("should contain 3 variable and and 8 tuples") {
         db.contains("x") shouldBe true
@@ -80,15 +80,15 @@ final class TuplesDBSpecTest extends FunSpec with Matchers {
 
       val db = new TuplesDB[String, Int]()
 
-      db + ("x", Set(1, 2, 3, 4))
-      db + ("y", 5)
-      db + ("z", 4)
-      db + ("z", 9)
+      db += ("x", Set(1, 2, 3, 4))
+      db += ("y", 5)
+      db += ("z", 4)
+      db += ("z", 9)
 
-      db - ("x", 1)
+      db -= ("x", 1)
 
       // does not exist and should be ignored
-      db - ("x", 9)
+      db -= ("x", 9)
 
       it("should contain 3 variable and and 6 tuples") {
         db.contains("x") shouldBe true
@@ -108,17 +108,17 @@ final class TuplesDBSpecTest extends FunSpec with Matchers {
 
       val db = new TuplesDB[String, Int]()
 
-      db + ("x", Set(1, 2, 3, 4))
-      db + ("y", 5)
-      db + ("z", 4)
-      db + ("z", 9)
+      db += ("x", Set(1, 2, 3, 4))
+      db += ("y", 5)
+      db += ("z", 4)
+      db += ("z", 9)
 
-      db - ("x", 1)
+      db -= ("x", 1)
 
       // does not exist and should be ignored
-      db - ("y", 10)
+      db -= ("y", 10)
 
-      db - ("y", 5)
+      db -= ("y", 5)
 
       it("should contain 2 variable and and 6 tuples") {
         db.contains("x") shouldBe true
@@ -143,9 +143,9 @@ final class TuplesDBSpecTest extends FunSpec with Matchers {
 
       val db = new TuplesDB[String, String]()
 
-      db + ("x", Set("A", "B", "C", "D"))
-      db + ("y", Set("!", "@", "#", "$"))
-      db + ("z", Set("1", "2", "3", "4"))
+      db += ("x", Set("A", "B", "C", "D"))
+      db += ("y", Set("!", "@", "#", "$"))
+      db += ("z", Set("1", "2", "3", "4"))
 
       it("should contain 3 variables and 64 tuples") {
         db.contains("x") shouldBe true
@@ -165,11 +165,11 @@ final class TuplesDBSpecTest extends FunSpec with Matchers {
 
       val db = new TuplesDB[String, String]()
 
-      db + ("x", Set("A", "B", "C", "D"))
-      db + ("y", Set("!", "@", "#", "$"))
-      db + ("z", Set("1", "2", "3", "4"))
+      db += ("x", Set("A", "B", "C", "D"))
+      db += ("y", Set("!", "@", "#", "$"))
+      db += ("z", Set("1", "2", "3", "4"))
 
-      db - ("x", Set("A", "B"))
+      db -= ("x", Set("A", "B"))
 
       it("should contain 3 variables and 32 tuples") {
         db.contains("x") shouldBe true
@@ -189,12 +189,12 @@ final class TuplesDBSpecTest extends FunSpec with Matchers {
 
       val db = new TuplesDB[String, String]()
 
-      db + ("x", Set("A", "B", "C", "D"))
-      db + ("y", Set("!", "@", "#", "$"))
-      db + ("z", Set("1", "2", "3", "4"))
+      db += ("x", Set("A", "B", "C", "D"))
+      db += ("y", Set("!", "@", "#", "$"))
+      db += ("z", Set("1", "2", "3", "4"))
 
-      db - ("x", Set("A", "B"))
-      db - ("z", Set("1", "2", "3"))
+      db -= ("x", Set("A", "B"))
+      db -= ("z", Set("1", "2", "3"))
 
       it("should contain 3 variables and 8 tuples") {
         db.contains("x") shouldBe true
@@ -214,13 +214,13 @@ final class TuplesDBSpecTest extends FunSpec with Matchers {
 
       val db = new TuplesDB[String, String]()
 
-      db + ("x", Set("A", "B", "C", "D"))
-      db + ("y", Set("!", "@", "#", "$"))
-      db + ("z", Set("1", "2", "3", "4"))
+      db += ("x", Set("A", "B", "C", "D"))
+      db += ("y", Set("!", "@", "#", "$"))
+      db += ("z", Set("1", "2", "3", "4"))
 
-      db - ("x", Set("A", "B"))
-      db - ("z", Set("1", "2", "3"))
-      db - ("x", "C")
+      db -= ("x", Set("A", "B"))
+      db -= ("z", Set("1", "2", "3"))
+      db -= ("x", "C")
 
       it("should contain 3 variables and 4 tuples") {
         db.contains("x") shouldBe true
@@ -240,14 +240,14 @@ final class TuplesDBSpecTest extends FunSpec with Matchers {
 
       val db = new TuplesDB[String, String]()
 
-      db + ("x", Set("A", "B", "C", "D"))
-      db + ("y", Set("!", "@", "#", "$"))
-      db + ("z", Set("1", "2", "3", "4"))
+      db += ("x", Set("A", "B", "C", "D"))
+      db += ("y", Set("!", "@", "#", "$"))
+      db += ("z", Set("1", "2", "3", "4"))
 
-      db - ("x", Set("A", "B"))
-      db - ("z", Set("1", "2", "3"))
-      db - ("x", "C")
-      db - ("y", Set("!", "@", "#", "$"))
+      db -= ("x", Set("A", "B"))
+      db -= ("z", Set("1", "2", "3"))
+      db -= ("x", "C")
+      db -= ("y", Set("!", "@", "#", "$"))
 
       it("should contain 3 variables and 4 tuples") {
         db.contains("x") shouldBe true
@@ -266,15 +266,15 @@ final class TuplesDBSpecTest extends FunSpec with Matchers {
 
       val db = new TuplesDB[String, String]()
 
-      db + ("x", Set("A", "B", "C", "D"))
-      db + ("y", Set("!", "@", "#", "$"))
-      db + ("z", Set("1", "2", "3", "4"))
+      db += ("x", Set("A", "B", "C", "D"))
+      db += ("y", Set("!", "@", "#", "$"))
+      db += ("z", Set("1", "2", "3", "4"))
 
-      db - ("x", Set("A", "B"))
-      db - ("z", Set("1", "2", "3"))
-      db - ("x", "C")
-      db - ("y", Set("!", "@", "#", "$"))
-      db - ("z", "4")
+      db -= ("x", Set("A", "B"))
+      db -= ("z", Set("1", "2", "3"))
+      db -= ("x", "C")
+      db -= ("y", Set("!", "@", "#", "$"))
+      db -= ("z", "4")
 
       it("should contain 3 variables and 4 tuples") {
         db.contains("x") shouldBe true
@@ -298,7 +298,7 @@ final class TuplesDBSpecTest extends FunSpec with Matchers {
 
     val domains = variables map (vname => (1 to 10).map(vname + "_" + _).toSet)
 
-    for(i <- variables.indices) db + (variables(i), domains(i))
+    for(i <- variables.indices) db += (variables(i), domains(i))
 
     it("should contain 5 variables and 100000 tuples") {
       db.numberOfVariables shouldBe 5
@@ -319,9 +319,9 @@ final class TuplesDBSpecTest extends FunSpec with Matchers {
     describe("Count tuples having y = A") {
       val db = new TuplesDB[String, String]()
 
-      db + ("x", Set("1", "2", "3", "4", "5"))
-      db + ("y", Set("A", "B", "C"))
-      db + ("z", "something")
+      db += ("x", Set("1", "2", "3", "4", "5"))
+      db += ("y", Set("A", "B", "C"))
+      db += ("z", "something")
 
       val mapping = Map("y" -> "A")
       val count = db.countTuples(mapping)
@@ -334,9 +334,9 @@ final class TuplesDBSpecTest extends FunSpec with Matchers {
     describe("Count tuples having z = something") {
       val db = new TuplesDB[String, String]()
 
-      db + ("x", Set("1", "2", "3", "4", "5"))
-      db + ("y", Set("A", "B", "C"))
-      db + ("z", "something")
+      db += ("x", Set("1", "2", "3", "4", "5"))
+      db += ("y", Set("A", "B", "C"))
+      db += ("z", "something")
 
       val mapping = Map("z" -> "something")
       val count = db.countTuples(mapping)
@@ -349,9 +349,9 @@ final class TuplesDBSpecTest extends FunSpec with Matchers {
     describe("Count tuples having y = B and x = 3") {
       val db = new TuplesDB[String, String]()
 
-      db + ("x", Set("1", "2", "3", "4", "5"))
-      db + ("y", Set("A", "B", "C"))
-      db + ("z", "something")
+      db += ("x", Set("1", "2", "3", "4", "5"))
+      db += ("y", Set("A", "B", "C"))
+      db += ("z", "something")
 
       val mapping = Map("y" -> "B", "x" -> "3")
       val count = db.countTuples(mapping)
@@ -371,9 +371,9 @@ final class TuplesDBSpecTest extends FunSpec with Matchers {
 
       val db = new TuplesDB[String, String]()
 
-      db + ("x", Set("1", "2", "3", "4", "5"))
-      db + ("y", Set("A", "B", "C"))
-      db + ("z", "something")
+      db += ("x", Set("1", "2", "3", "4", "5"))
+      db += ("y", Set("A", "B", "C"))
+      db += ("z", "something")
 
       db deleteMatchedTuples Map("x" -> "1", "y" -> "A")
 
@@ -392,9 +392,9 @@ final class TuplesDBSpecTest extends FunSpec with Matchers {
 
       val db = new TuplesDB[String, String]()
 
-      db + ("x", Set("1", "2", "3", "4", "5"))
-      db + ("y", Set("A", "B", "C"))
-      db + ("z", "something")
+      db += ("x", Set("1", "2", "3", "4", "5"))
+      db += ("y", Set("A", "B", "C"))
+      db += ("z", "something")
 
       db deleteMatchedTuples Map("x" -> "1")
 
@@ -413,9 +413,9 @@ final class TuplesDBSpecTest extends FunSpec with Matchers {
 
       val db = new TuplesDB[String, String]()
 
-      db + ("x", Set("1", "2", "3", "4", "5"))
-      db + ("y", Set("A", "B", "C"))
-      db + ("z", "something")
+      db += ("x", Set("1", "2", "3", "4", "5"))
+      db += ("y", Set("A", "B", "C"))
+      db += ("z", "something")
 
       db deleteMatchedTuples Map("z" -> "something")
 
@@ -431,9 +431,9 @@ final class TuplesDBSpecTest extends FunSpec with Matchers {
 
       val db = new TuplesDB[String, String]()
 
-      db + ("x", Set("1", "2", "3", "4", "5"))
-      db + ("y", Set("A", "B", "C"))
-      db + ("z", "something")
+      db += ("x", Set("1", "2", "3", "4", "5"))
+      db += ("y", Set("A", "B", "C"))
+      db += ("z", "something")
 
       db deleteMatchedTuples Map("z" -> "something", "x" -> "4")
 
@@ -458,9 +458,9 @@ final class TuplesDBSpecTest extends FunSpec with Matchers {
 
       val db = new TuplesDB[String, String]()
 
-      db + ("x", Set("1", "2", "3", "4", "5"))
-      db + ("y", Set("A", "B", "C"))
-      db + ("z", "something")
+      db += ("x", Set("1", "2", "3", "4", "5"))
+      db += ("y", Set("A", "B", "C"))
+      db += ("z", "something")
 
       db deleteNotMatchedTuples Map("x" -> "1", "y" -> "A")
 
@@ -479,9 +479,9 @@ final class TuplesDBSpecTest extends FunSpec with Matchers {
 
       val db = new TuplesDB[String, String]()
 
-      db + ("x", Set("1", "2", "3", "4", "5"))
-      db + ("y", Set("A", "B", "C"))
-      db + ("z", "something")
+      db += ("x", Set("1", "2", "3", "4", "5"))
+      db += ("y", Set("A", "B", "C"))
+      db += ("z", "something")
 
       db deleteNotMatchedTuples Map("x" -> "1")
 
@@ -500,9 +500,9 @@ final class TuplesDBSpecTest extends FunSpec with Matchers {
 
       val db = new TuplesDB[String, String]()
 
-      db + ("x", Set("1", "2", "3", "4", "5"))
-      db + ("y", Set("A", "B", "C"))
-      db + ("z", "something")
+      db += ("x", Set("1", "2", "3", "4", "5"))
+      db += ("y", Set("A", "B", "C"))
+      db += ("z", "something")
 
       db deleteNotMatchedTuples Map("z" -> "something")
 
@@ -521,9 +521,9 @@ final class TuplesDBSpecTest extends FunSpec with Matchers {
 
       val db = new TuplesDB[String, String]()
 
-      db + ("x", Set("1", "2", "3", "4", "5"))
-      db + ("y", Set("A", "B", "C"))
-      db + ("z", "something")
+      db += ("x", Set("1", "2", "3", "4", "5"))
+      db += ("y", Set("A", "B", "C"))
+      db += ("z", "something")
 
       // should delete everything, because there is no tuple having this constant
       db deleteNotMatchedTuples Map("x" -> "6")
@@ -546,9 +546,9 @@ final class TuplesDBSpecTest extends FunSpec with Matchers {
 
       val db = new TuplesDB[String, String]()
 
-      db + ("x", Set("1", "2", "3", "4", "5"))
-      db + ("y", Set("A", "B", "C"))
-      db + ("z", "something")
+      db += ("x", Set("1", "2", "3", "4", "5"))
+      db += ("y", Set("A", "B", "C"))
+      db += ("z", "something")
 
       db allowOnly Map("x" -> Vector("1", "2"), "y" -> Vector("A", "B"))
 
@@ -567,9 +567,9 @@ final class TuplesDBSpecTest extends FunSpec with Matchers {
 
       val db = new TuplesDB[String, String]()
 
-      db + ("x", Set("1", "2", "3", "4", "5"))
-      db + ("y", Set("A", "B", "C"))
-      db + ("z", "something")
+      db += ("x", Set("1", "2", "3", "4", "5"))
+      db += ("y", Set("A", "B", "C"))
+      db += ("z", "something")
 
       db allowOnly Map("x" -> Vector("1"))
 
@@ -588,17 +588,17 @@ final class TuplesDBSpecTest extends FunSpec with Matchers {
 
       val db = new TuplesDB[String, String]()
 
-      db + ("x", Set("1", "2", "3", "4", "5"))
-      db + ("y", Set("A", "B", "C"))
-      db + ("z", "something")
+      db += ("x", Set("1", "2", "3", "4", "5"))
+      db += ("y", Set("A", "B", "C"))
+      db += ("z", "something")
 
       db allowOnly Map("x" -> Vector("6"))
 
       // should not be able to insert this constant, because x is locked to 6
-      db + ("x", "7")
+      db += ("x", "7")
 
       // should be able to insert this constant
-      db + ("y", "F")
+      db += ("y", "F")
 
       it("should contain only 4 tuples") {
         db.numberOfVariables shouldBe 3
@@ -615,22 +615,22 @@ final class TuplesDBSpecTest extends FunSpec with Matchers {
 
       val db = new TuplesDB[String, String]()
 
-      db + ("x", Set("1", "2", "3", "4", "5"))
-      db + ("y", Set("A", "B", "C"))
-      db + ("z", "something")
+      db += ("x", Set("1", "2", "3", "4", "5"))
+      db += ("y", Set("A", "B", "C"))
+      db += ("z", "something")
 
       db allowOnly Map("x" -> Vector("6"), "y" -> Vector("A"))
 
       // should not be able to insert multiple constants, because y is locked
-      db + ("y", Set("K", "L"))
+      db += ("y", Set("K", "L"))
 
       // should be able to insert this set
-      db + ("z", Set("someone", "somebody"))
+      db += ("z", Set("someone", "somebody"))
 
-      db - ("y", "A")
+      db -= ("y", "A")
 
       // here should be possible to insert the set of constants, because y was deleted and therefore unlocked
-      db + ("y", Set("K", "L"))
+      db += ("y", Set("K", "L"))
 
       it("should contain only 6 tuples") {
         db.numberOfVariables shouldBe 3
@@ -649,17 +649,17 @@ final class TuplesDBSpecTest extends FunSpec with Matchers {
 
       val db = new TuplesDB[String, String]()
 
-      db + ("x", Set("1", "2", "3", "4", "5"))
-      db + ("y", Set("A", "B", "C", "D"))
-      db + ("z", Set("!", "@", "#"))
-      db + ("t", Set("+"))
+      db += ("x", Set("1", "2", "3", "4", "5"))
+      db += ("y", Set("A", "B", "C", "D"))
+      db += ("z", Set("!", "@", "#"))
+      db += ("t", Set("+"))
 
       db allowOnly Map("x" -> Vector("1", "2", "6"), "y" -> Vector("A", "D", "F"))
 
       db allowOnly Map("x" -> Vector("2", "1"), "z" -> Vector("!", "!"))
 
       // should be able to insert, because t is not locked
-      db + ("t", "-")
+      db += ("t", "-")
 
       it("should contain only 4 tuples") {
         db.numberOfVariables shouldBe 4
@@ -681,10 +681,10 @@ final class TuplesDBSpecTest extends FunSpec with Matchers {
 
       val db = new TuplesDB[String, String]()
 
-      db + ("x", Set("1", "2", "3", "4", "5"))
-      db + ("y", Set("A", "B", "C", "D"))
-      db + ("z", Set("!", "@"))
-      db + ("t", Set("+"))
+      db += ("x", Set("1", "2", "3", "4", "5"))
+      db += ("y", Set("A", "B", "C", "D"))
+      db += ("z", Set("!", "@"))
+      db += ("t", Set("+"))
 
       db allowOnly Map("x" -> Vector("1", "2", "6"), "y" -> Vector("A", "D", "C"))
 
@@ -706,10 +706,10 @@ final class TuplesDBSpecTest extends FunSpec with Matchers {
 
       val db = new TuplesDB[String, String]()
 
-      db + ("x", Set("1", "2", "3", "4", "5"))
-      db + ("y", Set("A", "B", "C", "D"))
-      db + ("z", Set("!", "@"))
-      db + ("t", Set("+"))
+      db += ("x", Set("1", "2", "3", "4", "5"))
+      db += ("y", Set("A", "B", "C", "D"))
+      db += ("z", Set("!", "@"))
+      db += ("t", Set("+"))
 
       db allowOnly Map("x" -> Vector("1"))
 
@@ -731,10 +731,10 @@ final class TuplesDBSpecTest extends FunSpec with Matchers {
 
       val db = new TuplesDB[String, String]()
 
-      db + ("x", Set("1", "2", "3", "4", "5"))
-      db + ("y", Set("A", "B", "C", "D"))
-      db + ("z", Set("!", "@"))
-      db + ("t", Set("+"))
+      db += ("x", Set("1", "2", "3", "4", "5"))
+      db += ("y", Set("A", "B", "C", "D"))
+      db += ("z", Set("!", "@"))
+      db += ("t", Set("+"))
 
       db allowOnly Map("x" -> Vector("1"))
 
@@ -742,8 +742,8 @@ final class TuplesDBSpecTest extends FunSpec with Matchers {
 
       db allowEverything()
 
-      db + ("y", Set("A", "B", "C"))
-      db + ("x", Set("10", "11"))
+      db += ("y", Set("A", "B", "C"))
+      db += ("x", Set("10", "11"))
 
       it("should contain only 18 tuples") {
         db.numberOfVariables shouldBe 4
