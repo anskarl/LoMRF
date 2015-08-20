@@ -26,8 +26,8 @@ final class TuplesDBSpecTest extends FunSpec with Matchers {
 
       it("should contain 1 variable and 4 tuples") {
         db.contains("x") shouldBe true
-        db.numberOfVariables shouldBe 1
-        db.numberOfConstants("x") shouldBe 4
+        db.numberOfKeys shouldBe 1
+        db.numberOfValues("x") shouldBe 4
         db.size shouldBe 4
       }
 
@@ -44,9 +44,9 @@ final class TuplesDBSpecTest extends FunSpec with Matchers {
       it("should contain 2 variable and and 4 tuples") {
         db.contains("x") shouldBe true
         db.contains("y") shouldBe true
-        db.numberOfVariables shouldBe 2
-        db.numberOfConstants("x") shouldBe 4
-        db.numberOfConstants("y") shouldBe 1
+        db.numberOfKeys shouldBe 2
+        db.numberOfValues("x") shouldBe 4
+        db.numberOfValues("y") shouldBe 1
         db.size shouldBe 4
       }
 
@@ -66,10 +66,10 @@ final class TuplesDBSpecTest extends FunSpec with Matchers {
         db.contains("x") shouldBe true
         db.contains("y") shouldBe true
         db.contains("z") shouldBe true
-        db.numberOfVariables shouldBe 3
-        db.numberOfConstants("x") shouldBe 4
-        db.numberOfConstants("y") shouldBe 1
-        db.numberOfConstants("z") shouldBe 2
+        db.numberOfKeys shouldBe 3
+        db.numberOfValues("x") shouldBe 4
+        db.numberOfValues("y") shouldBe 1
+        db.numberOfValues("z") shouldBe 2
         db.size shouldBe 8
       }
 
@@ -94,10 +94,10 @@ final class TuplesDBSpecTest extends FunSpec with Matchers {
         db.contains("x") shouldBe true
         db.contains("y") shouldBe true
         db.contains("z") shouldBe true
-        db.numberOfVariables shouldBe 3
-        db.numberOfConstants("x") shouldBe 3
-        db.numberOfConstants("y") shouldBe 1
-        db.numberOfConstants("z") shouldBe 2
+        db.numberOfKeys shouldBe 3
+        db.numberOfValues("x") shouldBe 3
+        db.numberOfValues("y") shouldBe 1
+        db.numberOfValues("z") shouldBe 2
         db.size shouldBe 6
       }
 
@@ -124,9 +124,9 @@ final class TuplesDBSpecTest extends FunSpec with Matchers {
         db.contains("x") shouldBe true
         db.contains("y") shouldBe false
         db.contains("z") shouldBe true
-        db.numberOfVariables shouldBe 2
-        db.numberOfConstants("x") shouldBe 3
-        db.numberOfConstants("z") shouldBe 2
+        db.numberOfKeys shouldBe 2
+        db.numberOfValues("x") shouldBe 3
+        db.numberOfValues("z") shouldBe 2
         db.size shouldBe 6
       }
 
@@ -151,10 +151,10 @@ final class TuplesDBSpecTest extends FunSpec with Matchers {
         db.contains("x") shouldBe true
         db.contains("y") shouldBe true
         db.contains("z") shouldBe true
-        db.numberOfVariables shouldBe 3
-        db.numberOfConstants("x") shouldBe 4
-        db.numberOfConstants("y") shouldBe 4
-        db.numberOfConstants("z") shouldBe 4
+        db.numberOfKeys shouldBe 3
+        db.numberOfValues("x") shouldBe 4
+        db.numberOfValues("y") shouldBe 4
+        db.numberOfValues("z") shouldBe 4
         db.size shouldBe 64
       }
 
@@ -175,10 +175,10 @@ final class TuplesDBSpecTest extends FunSpec with Matchers {
         db.contains("x") shouldBe true
         db.contains("y") shouldBe true
         db.contains("z") shouldBe true
-        db.numberOfVariables shouldBe 3
-        db.numberOfConstants("x") shouldBe 2
-        db.numberOfConstants("y") shouldBe 4
-        db.numberOfConstants("z") shouldBe 4
+        db.numberOfKeys shouldBe 3
+        db.numberOfValues("x") shouldBe 2
+        db.numberOfValues("y") shouldBe 4
+        db.numberOfValues("z") shouldBe 4
         db.size shouldBe 32
       }
 
@@ -200,10 +200,10 @@ final class TuplesDBSpecTest extends FunSpec with Matchers {
         db.contains("x") shouldBe true
         db.contains("y") shouldBe true
         db.contains("z") shouldBe true
-        db.numberOfVariables shouldBe 3
-        db.numberOfConstants("x") shouldBe 2
-        db.numberOfConstants("y") shouldBe 4
-        db.numberOfConstants("z") shouldBe 1
+        db.numberOfKeys shouldBe 3
+        db.numberOfValues("x") shouldBe 2
+        db.numberOfValues("y") shouldBe 4
+        db.numberOfValues("z") shouldBe 1
         db.size shouldBe 8
       }
 
@@ -226,10 +226,10 @@ final class TuplesDBSpecTest extends FunSpec with Matchers {
         db.contains("x") shouldBe true
         db.contains("y") shouldBe true
         db.contains("z") shouldBe true
-        db.numberOfVariables shouldBe 3
-        db.numberOfConstants("x") shouldBe 1
-        db.numberOfConstants("y") shouldBe 4
-        db.numberOfConstants("z") shouldBe 1
+        db.numberOfKeys shouldBe 3
+        db.numberOfValues("x") shouldBe 1
+        db.numberOfValues("y") shouldBe 4
+        db.numberOfValues("z") shouldBe 1
         db.size shouldBe 4
       }
 
@@ -253,9 +253,9 @@ final class TuplesDBSpecTest extends FunSpec with Matchers {
         db.contains("x") shouldBe true
         db.contains("y") shouldBe false
         db.contains("z") shouldBe true
-        db.numberOfVariables shouldBe 2
-        db.numberOfConstants("x") shouldBe 1
-        db.numberOfConstants("z") shouldBe 1
+        db.numberOfKeys shouldBe 2
+        db.numberOfValues("x") shouldBe 1
+        db.numberOfValues("z") shouldBe 1
         db.size shouldBe 1
       }
 
@@ -280,8 +280,8 @@ final class TuplesDBSpecTest extends FunSpec with Matchers {
         db.contains("x") shouldBe true
         db.contains("y") shouldBe false
         db.contains("z") shouldBe false
-        db.numberOfVariables shouldBe 1
-        db.numberOfConstants("x") shouldBe 1
+        db.numberOfKeys shouldBe 1
+        db.numberOfValues("x") shouldBe 1
         db.size shouldBe 1
       }
 
@@ -301,7 +301,7 @@ final class TuplesDBSpecTest extends FunSpec with Matchers {
     for(i <- variables.indices) db += (variables(i), domains(i))
 
     it("should contain 5 variables and 100000 tuples") {
-      db.numberOfVariables shouldBe 5
+      db.numberOfKeys shouldBe 5
       db.size shouldBe 100000
     }
 
@@ -378,10 +378,10 @@ final class TuplesDBSpecTest extends FunSpec with Matchers {
       db deleteMatchedTuples Map("x" -> "1", "y" -> "A")
 
       it("should contain 3 variables and 14 tuples") {
-        db.numberOfVariables shouldBe 3
-        db.numberOfConstants("x") shouldBe 5
-        db.numberOfConstants("z") shouldBe 1
-        db.numberOfConstants("y") shouldBe 3
+        db.numberOfKeys shouldBe 3
+        db.numberOfValues("x") shouldBe 5
+        db.numberOfValues("z") shouldBe 1
+        db.numberOfValues("y") shouldBe 3
         db.size shouldBe 14
       }
 
@@ -399,10 +399,10 @@ final class TuplesDBSpecTest extends FunSpec with Matchers {
       db deleteMatchedTuples Map("x" -> "1")
 
       it("should contain 3 variables and 13 tuples") {
-        db.numberOfVariables shouldBe 3
-        db.numberOfConstants("x") shouldBe 4
-        db.numberOfConstants("y") shouldBe 3
-        db.numberOfConstants("z") shouldBe 1
+        db.numberOfKeys shouldBe 3
+        db.numberOfValues("x") shouldBe 4
+        db.numberOfValues("y") shouldBe 3
+        db.numberOfValues("z") shouldBe 1
         db.size shouldBe 12
       }
 
@@ -420,7 +420,7 @@ final class TuplesDBSpecTest extends FunSpec with Matchers {
       db deleteMatchedTuples Map("z" -> "something")
 
       it("should contain 3 variables and 0 tuples") {
-        db.numberOfVariables shouldBe 0
+        db.numberOfKeys shouldBe 0
         db.size shouldBe 0
       }
 
@@ -438,10 +438,10 @@ final class TuplesDBSpecTest extends FunSpec with Matchers {
       db deleteMatchedTuples Map("z" -> "something", "x" -> "4")
 
       it("should contain 3 variables and 12 tuples") {
-        db.numberOfVariables shouldBe 3
-        db.numberOfConstants("x") shouldBe 4
-        db.numberOfConstants("y") shouldBe 3
-        db.numberOfConstants("z") shouldBe 1
+        db.numberOfKeys shouldBe 3
+        db.numberOfValues("x") shouldBe 4
+        db.numberOfValues("y") shouldBe 3
+        db.numberOfValues("z") shouldBe 1
         db.size shouldBe 12
       }
 
@@ -465,10 +465,10 @@ final class TuplesDBSpecTest extends FunSpec with Matchers {
       db deleteNotMatchedTuples Map("x" -> "1", "y" -> "A")
 
       it("should contain 3 variables and 1 tuple") {
-        db.numberOfVariables shouldBe 3
-        db.numberOfConstants("x") shouldBe 1
-        db.numberOfConstants("y") shouldBe 1
-        db.numberOfConstants("z") shouldBe 1
+        db.numberOfKeys shouldBe 3
+        db.numberOfValues("x") shouldBe 1
+        db.numberOfValues("y") shouldBe 1
+        db.numberOfValues("z") shouldBe 1
         db.size shouldBe 1
       }
 
@@ -486,10 +486,10 @@ final class TuplesDBSpecTest extends FunSpec with Matchers {
       db deleteNotMatchedTuples Map("x" -> "1")
 
       it("should contain 3 variables and 3 tuple") {
-        db.numberOfVariables shouldBe 3
-        db.numberOfConstants("x") shouldBe 1
-        db.numberOfConstants("y") shouldBe 3
-        db.numberOfConstants("z") shouldBe 1
+        db.numberOfKeys shouldBe 3
+        db.numberOfValues("x") shouldBe 1
+        db.numberOfValues("y") shouldBe 3
+        db.numberOfValues("z") shouldBe 1
         db.size shouldBe 3
       }
 
@@ -507,10 +507,10 @@ final class TuplesDBSpecTest extends FunSpec with Matchers {
       db deleteNotMatchedTuples Map("z" -> "something")
 
       it("should contain 3 variables and 15 tuple") {
-        db.numberOfVariables shouldBe 3
-        db.numberOfConstants("x") shouldBe 5
-        db.numberOfConstants("y") shouldBe 3
-        db.numberOfConstants("z") shouldBe 1
+        db.numberOfKeys shouldBe 3
+        db.numberOfValues("x") shouldBe 5
+        db.numberOfValues("y") shouldBe 3
+        db.numberOfValues("z") shouldBe 1
         db.size shouldBe 15
       }
 
@@ -529,7 +529,7 @@ final class TuplesDBSpecTest extends FunSpec with Matchers {
       db deleteNotMatchedTuples Map("x" -> "6")
 
       it("should contain 0 variables and 0 tuple") {
-        db.numberOfVariables shouldBe 0
+        db.numberOfKeys shouldBe 0
         db.size shouldBe 0
       }
 
@@ -553,10 +553,10 @@ final class TuplesDBSpecTest extends FunSpec with Matchers {
       db allowOnly Map("x" -> Vector("1", "2"), "y" -> Vector("A", "B"))
 
       it("should contain only 2 tuples") {
-        db.numberOfVariables shouldBe 3
-        db.numberOfConstants("x") shouldBe 2
-        db.numberOfConstants("y") shouldBe 2
-        db.numberOfConstants("z") shouldBe 1
+        db.numberOfKeys shouldBe 3
+        db.numberOfValues("x") shouldBe 2
+        db.numberOfValues("y") shouldBe 2
+        db.numberOfValues("z") shouldBe 1
         db.size shouldBe 2
       }
 
@@ -574,10 +574,10 @@ final class TuplesDBSpecTest extends FunSpec with Matchers {
       db allowOnly Map("x" -> Vector("1"))
 
       it("should contain only 3 tuples") {
-        db.numberOfVariables shouldBe 3
-        db.numberOfConstants("x") shouldBe 1
-        db.numberOfConstants("y") shouldBe 3
-        db.numberOfConstants("z") shouldBe 1
+        db.numberOfKeys shouldBe 3
+        db.numberOfValues("x") shouldBe 1
+        db.numberOfValues("y") shouldBe 3
+        db.numberOfValues("z") shouldBe 1
         db.size shouldBe 3
       }
 
@@ -601,10 +601,10 @@ final class TuplesDBSpecTest extends FunSpec with Matchers {
       db += ("y", "F")
 
       it("should contain only 4 tuples") {
-        db.numberOfVariables shouldBe 3
-        db.numberOfConstants("x") shouldBe 1
-        db.numberOfConstants("y") shouldBe 4
-        db.numberOfConstants("z") shouldBe 1
+        db.numberOfKeys shouldBe 3
+        db.numberOfValues("x") shouldBe 1
+        db.numberOfValues("y") shouldBe 4
+        db.numberOfValues("z") shouldBe 1
         db.size shouldBe 4
       }
 
@@ -633,10 +633,10 @@ final class TuplesDBSpecTest extends FunSpec with Matchers {
       db += ("y", Set("K", "L"))
 
       it("should contain only 6 tuples") {
-        db.numberOfVariables shouldBe 3
-        db.numberOfConstants("x") shouldBe 1
-        db.numberOfConstants("y") shouldBe 2
-        db.numberOfConstants("z") shouldBe 3
+        db.numberOfKeys shouldBe 3
+        db.numberOfValues("x") shouldBe 1
+        db.numberOfValues("y") shouldBe 2
+        db.numberOfValues("z") shouldBe 3
         db.isLocked("y") shouldBe false
         db.isLocked("x") shouldBe true
         db.size shouldBe 6
@@ -662,11 +662,11 @@ final class TuplesDBSpecTest extends FunSpec with Matchers {
       db += ("t", "-")
 
       it("should contain only 4 tuples") {
-        db.numberOfVariables shouldBe 4
-        db.numberOfConstants("x") shouldBe 2
-        db.numberOfConstants("y") shouldBe 2
-        db.numberOfConstants("z") shouldBe 1
-        db.numberOfConstants("t") shouldBe 2
+        db.numberOfKeys shouldBe 4
+        db.numberOfValues("x") shouldBe 2
+        db.numberOfValues("y") shouldBe 2
+        db.numberOfValues("z") shouldBe 1
+        db.numberOfValues("t") shouldBe 2
         db.isLocked("y") shouldBe true
         db.isLocked("x") shouldBe true
         db.isLocked("z") shouldBe true
@@ -691,7 +691,7 @@ final class TuplesDBSpecTest extends FunSpec with Matchers {
       db allowOnly Map("x" -> Vector("3"), "z" -> Vector("!"))
 
       it("should contain only 0 tuples") {
-        db.numberOfVariables shouldBe 0
+        db.numberOfKeys shouldBe 0
         db.isLocked("y") shouldBe false
         db.isLocked("x") shouldBe false
         db.isLocked("z") shouldBe false
@@ -716,7 +716,7 @@ final class TuplesDBSpecTest extends FunSpec with Matchers {
       db allowOnly Map("y" -> Vector("A"))
 
       it("should contain only 2 tuples") {
-        db.numberOfVariables shouldBe 4
+        db.numberOfKeys shouldBe 4
         db.isLocked("y") shouldBe true
         db.isLocked("x") shouldBe true
         db.isLocked("z") shouldBe false
@@ -746,7 +746,7 @@ final class TuplesDBSpecTest extends FunSpec with Matchers {
       db += ("x", Set("10", "11"))
 
       it("should contain only 18 tuples") {
-        db.numberOfVariables shouldBe 4
+        db.numberOfKeys shouldBe 4
         db.isLocked("y") shouldBe false
         db.isLocked("x") shouldBe false
         db.isLocked("z") shouldBe false
