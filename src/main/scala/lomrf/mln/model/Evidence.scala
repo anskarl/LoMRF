@@ -39,6 +39,7 @@ import java.io.{File, BufferedReader, FileReader}
 import auxlib.log.Logger
 import lomrf.logic._
 import scala.util.Try
+import scala.collection.breakOut
 
 class Evidence(val constants: ConstantsDomain,
                val db: EvidenceDB,
@@ -50,9 +51,14 @@ class Evidence(val constants: ConstantsDomain,
   lazy val tristateAtoms: Set[AtomSignature] = db.filter(x => x._2.isTriStateDB).keySet
 
   /**
-   * probabilisticAtoms collection of probabilistic atoms
+   * collection of probabilistic atoms
    */
   lazy val probabilisticAtoms: Set[AtomSignature] = db.filter(x => x._2.isProbabilistic).keySet
+
+  lazy val cwaAtoms: Set[AtomSignature] =
+    (for((signature, edb) <- db; if edb.numberOfKnown == 0) yield signature)(breakOut)
+
+  lazy val owaAtoms = db.keySet -- cwaAtoms
 
 }
 
@@ -122,8 +128,6 @@ object Evidence {
         files
       }
 
-    //def isOWA(signature: AtomSignature) = queryPredicates.contains(signature) || hiddenPredicates.contains(signature)
-
     val evidenceParser = new EvidenceParser
     val evidenceExpressionsDB =
       for (file <- inputFiles; fileReader = new BufferedReader(new FileReader(file)))
@@ -183,6 +187,8 @@ object Evidence {
     val inferredCWASignatures = evidenceSignatures -- userDefinedOWA
     val inferredOWASignatures = allSignatures -- inferredCWASignatures
 
+    val inferredHiddenSignatures = inferredOWASignatures -- queryPredicates
+
     info(
       s"""
         |\t\tOWA predicate signatures: ${inferredOWASignatures.mkString(", ")}
@@ -192,7 +198,7 @@ object Evidence {
     info("--- Stage 3: Creating function mappings, and evidence database.")
 
     val builder =
-      EvidenceBuilder(predicateSchema, functionSchema, queryPredicates, inferredOWASignatures, constants, convertFunctions)
+      EvidenceBuilder(predicateSchema, functionSchema, queryPredicates, inferredHiddenSignatures, constants, convertFunctions)
         .withDynamicFunctions(dynamicFunctions)
 
     for (evidenceExpressions <- evidenceExpressionsDB; expr <- evidenceExpressions) expr match {

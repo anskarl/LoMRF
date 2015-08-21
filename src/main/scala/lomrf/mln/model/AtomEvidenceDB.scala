@@ -238,6 +238,11 @@ abstract class AtomEvidenceDB(val identity: AtomIdentityFunction) {
   protected def fetch(id: Int): TriState
 
   protected final def checkBounds(id: Int) {
+    if(!isBetweenBounds(id)){
+      println(identity.signature)
+      println(identity.decode(id))
+    }
+
     require(isBetweenBounds(id), s"The value of the specified id ($id) is out of bounds!")
   }
 
