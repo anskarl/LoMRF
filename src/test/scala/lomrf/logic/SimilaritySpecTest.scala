@@ -37,25 +37,111 @@ package lomrf.logic
 
 import org.scalatest.{Matchers, FunSpec}
 
+/**
+ * Similarity specification test. It tests the similarity operation between atomic formulas
+ * and between clauses.
+ */
 class SimilaritySpecTest extends FunSpec with Matchers {
 
-  val f1 = AtomicFormula("HoldsAt", Vector(Variable("f", "fluent"), Variable("t0", "time")))
-  val f2 = AtomicFormula("HoldsAt", Vector(Variable("f", "fluent"), Variable("t1", "time")))
+  val atomicFormulasA = Set(AtomicFormula("PredA", Vector(Variable("x"), Variable("y"))),
+                            AtomicFormula("PredA", Vector(Variable("x"), Variable("t"))),
+                            AtomicFormula("PredA", Vector(Variable("z"), Variable("x"))) )
+
+  val atomicFormulasB = Set(AtomicFormula("PredB", Vector(Variable("p"), Constant("A"), Variable("q"))),
+                            AtomicFormula("PredB", Vector(Variable("q"), Constant("A"), Variable("p"))) )
 
 
-  val clause1 = Clause(Set(Literal.asNegative(f1), Literal.asNegative(f2)))
-  val clause2 = Clause(Set(Literal.asNegative(f1), Literal.asPositive(f2)))
+  describe("Similarity check between atomic formulas") {
 
-  val clause3 = Clause(Set(Literal.asNegative(f2), Literal.asPositive(f1)))
+    it("All atomic formulas in set A should be similar to each other") {
+      atomicFormulasA.forall { atom => atomicFormulasA.forall(_ =~= atom) } shouldBe true
+    }
 
+    it("All atomic formulas in set B should be similar to each other") {
+      atomicFormulasB.forall { atom => atomicFormulasB.forall(_ =~= atom) } shouldBe true
+    }
 
-  clause1 =~= clause1 // true
-  clause2 =~= clause2 // true
-  clause3 =~= clause3 // true
+    it("Atomic formulas between sets A and B should NOT be similar to each other") {
+      atomicFormulasA.forall { atom => atomicFormulasB.forall(other => !(other =~= atom)) } shouldBe true
+    }
 
-  clause1 =~= clause2 // false
+  }
 
-  clause2 =~= clause3 // true
+  describe("Similarity check for clauses having only positive or only negated literals") {
 
+    var clausesAllPositiveLiterals = Set[Clause]()
+    var clausesAllNegativeLiterals = Set[Clause]()
+
+    atomicFormulasA.foreach { atomA =>
+      atomicFormulasB.foreach { atomB =>
+        clausesAllPositiveLiterals += Clause(Set(Literal.asPositive(atomA), Literal.asPositive(atomB)))
+        clausesAllNegativeLiterals += Clause(Set(Literal.asNegative(atomA), Literal.asNegative(atomB)))
+      }
+    }
+
+    it("All clauses should be similar to each other") {
+      clausesAllPositiveLiterals.forall { clause => clausesAllPositiveLiterals.forall(_ =~= clause) } shouldBe true
+      clausesAllNegativeLiterals.forall { clause => clausesAllNegativeLiterals.forall(_ =~= clause) } shouldBe true
+    }
+  }
+
+  describe("Similarity check between clauses having atoms from set B, but different sense") {
+
+    val clauseA = Clause(Set(Literal.asNegative(atomicFormulasB.head), Literal.asNegative(atomicFormulasB.last)))
+    val clauseB = Clause(Set(Literal.asNegative(atomicFormulasB.head), Literal.asPositive(atomicFormulasB.last)))
+    val clauseC = Clause(Set(Literal.asNegative(atomicFormulasB.last), Literal.asPositive(atomicFormulasB.head)))
+
+    it("Each clause should be similar to itself") {
+      clauseA =~= clauseA shouldBe true
+      clauseB =~= clauseB shouldBe true
+      clauseC =~= clauseC shouldBe true
+    }
+
+    it("!PredB(p, A, q) v !PredB(q, A, p) should NOT be similar to !PredB(p, A, q) v Pred(q, A, p)") {
+      clauseA =~= clauseB shouldBe false
+    }
+
+    it("!PredB(p, A, q) v PredB(q, A, p) should be similar to PredB(p, A, q) v !PredB(q, A, p)") {
+      clauseB =~= clauseC shouldBe true
+    }
+  }
+
+  describe("Similarity check between clauses having atoms from both sets, but different sense") {
+
+    val clauseA = Clause(Set( Literal.asNegative(atomicFormulasB.head),
+                              Literal.asNegative(atomicFormulasA.head),
+                              Literal.asNegative(atomicFormulasB.last)) )
+
+    val clauseB = Clause(Set( Literal.asNegative(atomicFormulasB.head),
+                              Literal.asNegative(atomicFormulasA.last),
+                              Literal.asPositive(atomicFormulasB.last)) )
+
+    val clauseC = Clause(Set( Literal.asNegative(atomicFormulasB.last),
+                              Literal.asNegative(atomicFormulasA.head),
+                              Literal.asPositive(atomicFormulasB.head)) )
+
+    val clauseD = Clause(Set( Literal.asNegative(atomicFormulasB.last),
+                              Literal.asPositive(atomicFormulasA.head),
+                              Literal.asNegative(atomicFormulasB.head)) )
+
+    it("Each clause should be similar to itself") {
+      clauseA =~= clauseA shouldBe true
+      clauseB =~= clauseB shouldBe true
+      clauseC =~= clauseC shouldBe true
+    }
+
+    it("!PredB(p, A, q) v !PredA(x, y) v !PredB(q, A, p) should NOT be similar to !PredB(p, A, q) v !PredA(z, t) v Pred(q, A, p)") {
+      clauseA =~= clauseB shouldBe false
+    }
+
+    it("!PredB(p, A, q) v PredA(z, t) v PredB(q, A, p) should be similar to PredB(p, A, q) v PredA(x, y) v !PredB(q, A, p)") {
+      clauseB =~= clauseC shouldBe true
+    }
+
+    it("!PredB(p, A, q) v PredA(x, y) v !Pred(q, A, p) should NOT be similar to !PredB(p, A, q) v !PredA(x, y) v !PredB(q, A, p)") {
+      clauseD =~= clauseA shouldBe false
+    }
+
+  }
 
 }
