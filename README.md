@@ -1,8 +1,8 @@
 # LoMRF: Logical Markov Random Fields
 
-LoMRF is an open-source implementation of Markov Logic Networks (MLN) written in [Scala programming language](http://scala-lang.org).
+LoMRF is an open-source implementation of [Markov Logic Networks](https://en.wikipedia.org/wiki/Markov_logic_network) (MLNs) written in [Scala programming language](http://scala-lang.org).
 
-## License 
+## License
 
 LoMRF comes with ABSOLUTELY NO WARRANTY. This is free software, and you are welcome to redistribute it under certain conditions; See the [GNU Lesser General Public License v3 for more details](http://www.gnu.org/licenses/lgpl-3.0.html).
 
@@ -40,5 +40,3 @@ See [Building and Linking](doc/6_building_and_linking.md).
 [![Java profiler](http://www.ej-technologies.com/images/product_banners/jprofiler_large.png)](http://www.ej-technologies.com/products/jprofiler/overview.html)
 
 [![Intellij IDEA](https://www.jetbrains.com/idea/docs/logo_intellij_idea.png)](https://www.jetbrains.com/idea/)
-
-

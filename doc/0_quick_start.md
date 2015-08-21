@@ -70,8 +70,7 @@ The contents of the `theory.mln` file is can be the following:
   5. A special case of formulas are the definite clauses, which can be used to define declarations of rules. The definite
   clauses, are processed by the LoMRF and automatically translated to equivalent formulas. Their syntax is simpler from the syntax of formulas and are ideal for defining domain-specific knowledge.
 
-Please note that variables, domain types and *functions* are starting with a lower-case letter. All variables are assumed to be
-universally quantified unless otherwise indicated. *Predicates* and *constants* start with an upper-case letter.
+Please note that variables, domain types and *functions* are starting with a lower-case letter. All variables are assumed to be universally quantified unless otherwise indicated. *Predicates* and *constants* start with an upper-case letter.
 
 ### Domain types
 
