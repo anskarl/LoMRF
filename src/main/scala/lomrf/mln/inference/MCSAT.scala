@@ -66,7 +66,7 @@ import scala.util.Success
  * @param samples Maximum number of samples to take
  * @param lateSA When its true, simulated annealing step is performed only when MC-SAT reaches a plateau.
  * @param unitPropagation Perform unit-propagation (default is true)
- * @param satHardPriority Satisfiability priority to hard constrained clauses (default is true)
+ * @param satHardPriority Satisfiability priority to hard constrained clauses (default is false)
  * @param tabuLength Minimum number of flips between flipping the same atom (default is 10)
  *
  * @todo merge duplicate code with MaxWalkSAT (= maxWalkSATStep).
