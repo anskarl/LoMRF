@@ -8,7 +8,7 @@ LoMRF comes with ABSOLUTELY NO WARRANTY. This is free software, and you are welc
 
 ## Features overview:
 
-1. Parallel grounding algorithm based on [Akka Actors library](http://akka.io/).
+1. Parallel grounding algorithm based on [Akka Actors library](http://akka.io).
 2. Marginal (MC-SAT) and MAP (MaxWalkSAT and LP-relaxed Integer Linear Programming) inference.
 3. Batch and online weight learning (max-margin and ADAGRAD) (lomrf-wlearn).
 4. MLN knowledge base compilation (mlnc):
@@ -27,8 +27,8 @@ See [Building and Linking](doc/6_building_and_linking.md).
   - [Quick-start guide](doc/0_quick_start.md)
   - [Syntax](doc/1_syntax.md)
   - [Inference](doc/2_inference.md)
+    - [Probabilistic Inference Examples](doc/2_1_inference_examples.md)
   - [Weight Learning](doc/3_weight_learning.md)
-  - [Structure Learning](doc/4_structure_learning.md)
   - [CLI Tools](doc/5_tools.md)
   - [Building and Linking](doc/6_building_and_linking.md)
   - [Configuration](doc/7_configuration.md)
