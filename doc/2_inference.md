@@ -228,15 +228,15 @@ See Sections [Inference Examples](2_1_inference_examples.md) and [Temporal Infer
 
 Bart Selman, Henry Kautz, and Bram Cohen. (1993) Local Search Strategies for Satisfiability Testing.  Final version appears
 in Cliques, Coloring, and Satisfiability: Second DIMACS Implementation Challenge. In David S. Johnson and Michael A. Trick, (Ed.),
-DIMACS Series in Discrete Mathematics and Theoretical Computer Science, vol. 26, AMS.
+DIMACS Series in Discrete Mathematics and Theoretical Computer Science, vol. 26, AMS. ([link](http://www.cs.cornell.edu/selman/papers/pdf/dimacs.pdf))
 
 Henry Kautz, Bart Selman and Yueyen Jiang. (1996) A General Stochastic Approach to Solving Problems with Hard and Soft Constraints.
 In Gu, D., Du, J. and Pardalos, P. (Eds.), The Satisfiability Problem: Theory and Applications, Vol. 35 of DIMACS Series in
-Discrete Mathematics and Theoretical Computer Science, pp. 573–586. AMS
+Discrete Mathematics and Theoretical Computer Science, pp. 573–586. AMS. ([link](https://cs.rochester.edu/u/kautz/papers/maxsatDIMACSfinal.ps))
 
 Tuyen N. Huynh and Raymond J. Mooney. (2011). Max-Margin Weight Learning for Markov Logic Networks. In Proceedings of the
 European Conference on Machine Learning and Principles and Practice of Knowledge Discovery in Databases (ECML-PKDD 2011),
-Vol. 2, pp. 81-96.
+Vol. 2, pp. 81-96. ([link](http://www.ai.sri.com/~huynh/papers/huynh_mooney_ecmlpkdd09.pdf))
 
 Poon, Hoifung and Domingos, Pedro (2006). Sound and Efficient Inference with Probabilistic and Deterministic Dependencies.
-In Proceedings of the 21th National Conference on Artificial Intelligence (pp. 458-463), 2006. Boston, MA: AAAI Press.
+In Proceedings of the 21th National Conference on Artificial Intelligence (pp. 458-463), 2006. Boston, MA: AAAI Press. ([link](http://homes.cs.washington.edu/~pedrod/papers/aaai06a.pdf))
