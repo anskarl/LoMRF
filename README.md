@@ -28,6 +28,7 @@ See [Building and Linking](doc/6_building_and_linking.md).
   - [Syntax](doc/1_syntax.md)
   - [Inference](doc/2_inference.md)
     - [Probabilistic Inference Examples](doc/2_1_inference_examples.md)
+    - [Temporal Probabilistic Inference Examples](doc/2_2_temporal_inference_examples.mln)
   - [Weight Learning](doc/3_weight_learning.md)
   - [CLI Tools](doc/5_tools.md)
   - [Building and Linking](doc/6_building_and_linking.md)
