@@ -1,0 +1,29 @@
+// Input events:
+Enter_ID0 = enter(ID0)
+Enter_ID1 = enter(ID1)
+Exit_ID0 = exit(ID0)
+Exit_ID1 = exit(ID1)
+Walking_ID0 = walking(ID0)
+Walking_ID1 = walking(ID1)
+Running_ID0 = running(ID0)
+Running_ID1 = running(ID1)
+Active_ID0 = active(ID0)
+Active_ID1 = active(ID1)
+Inactive_ID0 = inactive(ID0)
+Inactive_ID1 = inactive(ID1)
+
+// Output composite events (fluents):
+Move_ID0_ID0 = move(ID0, ID0)
+Move_ID0_ID1 = move(ID0, ID1)
+Move_ID1_ID0 = move(ID1, ID0)
+Move_ID1_ID1 = move(ID0, ID0)
+
+Meet_ID0_ID0 = meet(ID0, ID0)
+Meet_ID0_ID1 = meet(ID0, ID1)
+Meet_ID1_ID0 = meet(ID1, ID0)
+Meet_ID1_ID1 = meet(ID0, ID0)
+
+// Facts
+StartTime(0)
+
+

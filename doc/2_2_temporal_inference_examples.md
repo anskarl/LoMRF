@@ -66,12 +66,12 @@ term functions (see Function Definitions in [Syntax](1_syntax.md) section).
 In particular, the schema of term functions that represent the input events is given below:
 
 ```lang-none
-event = walking(id)
-event = running(id)
-event = active(id)
-event = inactive(id)
-event = enter(id)
-event = exit(id)
+event walking(id)
+event running(id)
+event active(id)
+event inactive(id)
+event enter(id)
+event exit(id)
 ```
 
 Output composite events are defined over pairs of person/objects that appear in the scene. We represent them in LoMRF as
@@ -87,10 +87,10 @@ term functions (see Function Definitions in [Syntax](1_syntax.md) section).
 The schema of term functions that represent the output composite events is given below:
 
 ```lang-none
-fluent = move(id,id)
-fluent = meet(id,id)
-fluent = fight(id,id)
-fluent = leaving_object(id,id)
+fluent move(id,id)
+fluent meet(id,id)
+fluent fight(id,id)
+fluent leaving_object(id,id)
 ```
 
 ### Predicate schemas
@@ -183,7 +183,7 @@ TerminatedAt(move(p1,p2), t) :- Happens(exit(p1),t).
 TerminatedAt(move(p1,p2), t) :- Happens(exit(p2),t).
 ```
 
-** People meeting **
+** People are meeting **
 
 According to the definitions below, meeting is initiated when the people involved interact with each other,
 i.e., at least one of them is active or inactive, the other is not running, and the measured distance between
@@ -264,8 +264,11 @@ happens(Active_ID2, 200)
 ### Inference
 
 The files of this examples are the following:
-  * Knowledge base file (theory.mln)
-  * Evidence file (narrative.db)
+  * Knowledge base files:
+    * Main MLN file: [theory.mln](/Examples/data/Activity_Recognition/theory.mln)
+    * Definitions of moving activity: [definitions/moving.mln](/Examples/data/Activity_Recognition/definitions/moving.mln)
+    * Definitions of meeting activity: [definitions/meeting.mln](/Examples/data/Activity_Recognition/definitions/meeting.mln)
+  * Evidence file: [narrative.db](/Examples/data/Activity_Recognition/narrative.db)
 
 Parameters:
  * Query predicates: `HoldsAt/2`

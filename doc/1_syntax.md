@@ -51,20 +51,20 @@ Happens(action, event)
 
 Therefore, all predicates have some name (e.g,  `Brothers`, `Happens`, etc) and some specific number of arguments. Each argument has some domain type (e.g., `person`, `action`, `time`, etc).
 
-### Function Definitions [functionDefinitions] ###
+### Function Definitions ###
 
 Function definitions, express the structure of a function. All functions in LoMRF are finite with known domain types. Each function definition has some name, zero or more domain types as arguments and a resulting domain type.
 
 For example, the function that is named as `monthOf` with a single argument that takes constants from the domain of time and returns constants from the domain of *month* (i.e., the month number):
 
  ```lang-none
- month = monthOf(time)
+ month monthOf(time)
  ```
 
  Similarly a function `next` that takes a single argument from the domain of time and returns the next one is defined as follows:
 
  ```lang-none
- time = next(time)
+ time next(time)
  ```
 
 ### First-Order Logic Formulas
@@ -153,7 +153,7 @@ Evidence files in LoMRF are text files having the suffix `.db` (e.g., `file_name
 
 A function mapping defines a possible **true** grounding of a function (see Function Definitions above). Syntactically follows the corresponding function definition in the knowledge base file, but the domain types are replaced with some of their corresponding constant symbols.  
 
-For example, the *true* possible groundings of the function `time = next(time)` (recall [Function Definitions](#function-definitions)) are the following:
+For example, the *true* possible groundings of the function `time = next(time)` (see [Function Definitions](#function-definitions)) are the following:
 
 ```lang-none
 2 = next(1)
