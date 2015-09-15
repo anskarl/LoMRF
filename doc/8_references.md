@@ -2,7 +2,7 @@
 
 Some of algorithms implemented in LoMRF are based on the following publications:
 
-* Domingos, P., & Lowd, D. (2009). Markov Logic: An Interface Layer for Artificial Intelligence. Synthesis Lectures on Artiﬁcial Intelligence and Machine Learning. Morgan & Claypool Publishers. ([link](http://www.morganclaypool.com/doi/abs/10.2200/S00206ED1V01Y200907AIM007))
+* Domingos, P., and Lowd, D. (2009). Markov Logic: An Interface Layer for Artificial Intelligence. Synthesis Lectures on Artiﬁcial Intelligence and Machine Learning. Morgan & Claypool Publishers. ([link](http://www.morganclaypool.com/doi/abs/10.2200/S00206ED1V01Y200907AIM007))
 
 * Duchi, J., Hazan, E., Singer, Y. (2011). Adaptive Subgradient Methods for Online Learning and Stochastic Optimization. The Journal of Machine Learning Research, Vol. 12, pp. 2121--2159. ([link](http://jmlr.org/papers/v12/duchi11a.html))
 
