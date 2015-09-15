@@ -79,7 +79,7 @@ The results from MAP inference are stored in the `map-out.result` (see paramter 
 By executing the ```lomrf -h``` (or ```lomrf --help```) command from the command-line interface, we take the a print of
 multiple parameters. Below we explain all LoMRF inference command-line interface parameters:
 
-*** Basic inference options: ***
+###Basic inference options
 
 * `-i, --input <kb file>` **[Required]** Specify the input knowledge base file, that is the file that contains the
  theory (see [Syntax](1_syntax.md) and [Quick Start](0_quick_start) for further information). You can specify either
@@ -131,7 +131,7 @@ that combines [Simulated-Annealing](https://en.wikipedia.org/wiki/Simulated_anne
 technique.
 
 
-*** Advanced inference options: ***
+### Advanced inference options
 
 * `-mapType, --map-type <mws | ilp>` **[Optional]** When inference is set to MAP (i.e., `-infer map`) we can define
 either [MaxWalkSAT](http://www.cs.rochester.edu/u/kautz/walksat/) ([Selman et. al., 1993; Kautz et. al., 1996](#references)) or relaxed [Integer Linear Programming](https://en.wikipedia.org/wiki/Integer_programming) ([Huynh and Mooney, 2011](#references))

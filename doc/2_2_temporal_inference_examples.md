@@ -1,4 +1,4 @@
-# Temporal Representation and Reasoning with LoMRF
+# Temporal Probabilistic Inference Examples
 
 Below we provide example MLNs that demonstrate some LoMRF advanced inference capabilities in the domain of temporal reasoning.
 
@@ -148,7 +148,7 @@ Below we give the definitions of composite event definitions that express long-t
 We assume that we know the weight values (e.g., expert knowledge or we have performed weight learning). For simplicity
 and compactness, we only present the definitions of *moving* and *meeting*.
 
-** People are moving together **
+**People are moving together**
 
 According to the definitions below, moving composite event is initiated when two persons *p1* and *p2*
 are walking close to each other (their distance is at most 34 pixels) with almost the same orientation.
@@ -183,7 +183,7 @@ TerminatedAt(move(p1,p2), t) :- Happens(exit(p1),t).
 TerminatedAt(move(p1,p2), t) :- Happens(exit(p2),t).
 ```
 
-** People are meeting **
+**People are meeting**
 
 According to the definitions below, meeting is initiated when the people involved interact with each other,
 i.e., at least one of them is active or inactive, the other is not running, and the measured distance between
@@ -274,12 +274,12 @@ Parameters:
  * Query predicates: `HoldsAt/2`
  * Evidence predicates (Closed-world assumtion): `StartTime/1`, `Happens/2`, `Close/4` and `OrientationMove/3`.
 
-*** Marginal inference ***
+***Marginal inference***
 
 ```lang-none
 lomrf -infer marginal -i theory.mln -e narrative.db -r marginal-out.result -q HoldsAt/2 -cwa StartTime/1,Happens/2,Close/4,OrientationMove/3
 ```
-*** MAP inference ***
+***MAP inference***
 
 ```lang-none
 lomrf -infer map -i theory.mln -e narrative.db -r map-out.result -q HoldsAt/2 -cwa StartTime/1,Happens/2,Close/4,OrientationMove/3
@@ -287,7 +287,7 @@ lomrf -infer map -i theory.mln -e narrative.db -r map-out.result -q HoldsAt/2 -c
 
 ## References
 
-Skarlatidis A. Event Recognition Under Uncertainty and Incomplete Data. (2014) PhD Thesis. Department of Digital Systems, University of Piraeus. ([link](http://hdl.handle.net/10442/hedi/35692))
+Skarlatidis A. Event Recognition Under Uncertainty and Incomplete Data. (2014). PhD Thesis. Department of Digital Systems, University of Piraeus. ([link](http://hdl.handle.net/10442/hedi/35692))
 
-Skarlatidis A., Paliouras G., Artikis A. and Vouros G. (2015) Probabilistic Event Calculus for Event Recognition. ACM
+Skarlatidis A., Paliouras G., Artikis A. and Vouros G. (2015). Probabilistic Event Calculus for Event Recognition. ACM
 Transactions on Computational Logic, 16, 2, Article 11, pp. 11:1-11:37. ([link](http://dx.doi.org/10.1145/2699916))

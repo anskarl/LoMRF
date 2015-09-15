@@ -1,4 +1,4 @@
-# Inference Examples
+# Probabilistic Inference Examples
 
 Below we provide some example MLNs, in order to demonstrate the LoMRF inference command-line tool:
 
@@ -241,7 +241,7 @@ Outcome(2,1) 0.151
 Outcome(1,1) 0.147
 ```
 
-## Does Marcus hate Caesar? ##
+## Does Marcus hate Caesar?
 
 Description in natural language:
   1. Marcus is a person.
@@ -253,9 +253,9 @@ Description in natural language:
   7. People only try to assassinate rulers to whom they are not loyal.
   8. Marcus tried to assassinate Caesar.
 
-** Knowledge base (theory.mln) **
+### Knowledge base (theory.mln)
 
-Predicate schema:
+*Predicate schema:*
 ```lang-none
 // Query predicates:
 Hate(person,person)
@@ -270,7 +270,7 @@ Assassinate(person, person)
 Loyal(person, person)
 Roman(person)
 ```
-Formulas:
+*Formulas:*
 
 1. All Pompeians are Roman (hard-constrained):
 ```lang-none
@@ -304,7 +304,7 @@ Roman(x) => Loyal(x, Caesar) v Hate(x, Caesar).
 1 !Hate(x, x)
 ```
 
-Final form of the knowledge base file (theory.mln):
+*Final form of the knowledge base file (theory.mln):*
 ```lang-none
 // Query predicates:
 Hate(person,person)
@@ -335,7 +335,7 @@ Roman(x) => Loyal(x, Caesar) v Hate(x, Caesar).
 1 !Hate(x, x)
 ```
 
-** Evidence (evidence.db) **
+***Evidence (evidence.db)***
 
 ```lang-none
 People(Markus)
@@ -344,13 +344,15 @@ Ruler(Caesar)
 Assassinate(Marcus, Caesar)
 ```
 
-** Inference execution **
+### Inference
+
+***Inference execution***
 
 ```lang-none
 lomrf -infer marginal -i theory.mln -e evidence.db -r output.result -q Hate/2 -owa Loyal/2,Roman/1 -cwa People/1,Ruler/1,Pompeian/1,Assassinate/2
 ```
 
-** Inference result (output.result) **
+***Inference result (output.result)***
 
 ```lang-none
 Hate(Marcus,Marcus) 0.251

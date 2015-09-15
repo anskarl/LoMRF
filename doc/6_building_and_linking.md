@@ -3,10 +3,43 @@
 In order to build LoMRF from source, you need to have Java SE Development Kit (e.g., OpenJDK) version 7 or higher
 (however we strongly recommend use Java SE 8 or higher) and [SBT](http://www.scala-sbt.org/) (v0.13.x) installed in
 your system. Furthermore, LoMRF build depends on the [auxlib](https://github.com/anskarl/auxlib) (v0.1-SNAPSHOT),
-as well as to [Optimus](https://github.com/vagm/Optimus) and (optionally) [Gurobi](http://www.gurobi.com/).
+as well as to [Optimus](https://github.com/vagm/Optimus) and (optionally) [Gurobi](http://www.gurobi.com/) and
+[LPSolve](http://lpsolve.sourceforge.net).
 
 **To enable  optimisations, we strongly recommend use Java SE 8 or higher for the following steps, as well as for the
 use of LoMRF.**
+
+## LPSolve installation instructions
+
+### Linux distributions
+
+For example, on a ***Debian-based*** distribution, write the following command:
+```bash
+$ sudo apt-get install lp-solve
+```
+
+### Apple MacOS X
+
+Either download and install from the [LPSolve website](http://lpsolve.sourceforge.net)
+or from your favorite package manager.
+
+For example, from [macports](https://www.macports.org):
+```bash
+$ sudo port install lp_solve
+```
+
+or from [homebrew](http://brew.sh):
+```bash
+$ brew tap homebrew/science
+$ brew install lp_solve
+```
+
+### Microsoft Windows
+Download LPSolve v5.5.x with java bindings (*lp_solve_5.5.2.0_java.zip*) from the [LPSolve website](http://lpsolve.sourceforge.net)
+and follow the installation instructions that are located inside the zip file (*README.html*)
+
+## Gurobi installation instructions
+Please follow the installation instructions from the [Gurobi website](http://www.gurobi.com).
 
 ## Instructions to build LoMRF from source
 
@@ -60,9 +93,9 @@ the directory structure inside the LoMRF directory is the following:
 lomrf-0.4/
 |-- bin
 |-- etc
-`-- lib
+|-- lib
 ```
-### Linux, Unix and MacOS X
+###Linux, Unix and MacOS X
 
 The `bin` sub-directory contains all LoMRF executable tools. In order to add this sub-directory in your default `PATH`
 add the following line in you profile file.
@@ -83,7 +116,7 @@ setenv PATH $PATH:$HOME/lomrf-0.4/bin:.
 ```
 
 
-### Microsoft Windows Operating Systems
+###Microsoft Windows Operating Systems
 
 For MS Windows OS add the location of LoMRF sub-folder (e.g., `C:\path\to\lomrf-0.4\bin`) in your PATH environmental variable.
 
@@ -126,7 +159,7 @@ For MS Windows OS add the location of LoMRF sub-folder (e.g., `C:\path\to\lomrf-
   4. Close the window.
   5. Reopen Command prompt window, and run your LoMRF experiments.
 
-## Using LoMRF as a library
+##Using LoMRF as a library
 
 Follow the first 2 steps of Section 'Instructions to build LoMRF from source' and then publish locally the LoMRF:
 

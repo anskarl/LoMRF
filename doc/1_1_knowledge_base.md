@@ -53,46 +53,46 @@ Function definitions, express the structure of a function. All functions in LoMR
 
 For example, the function that is named as `monthOf` with a single argument that takes constants from the domain of time and returns constants from the domain of *month* (i.e., the month number):
 
- ```lang-none
- month monthOf(time)
- ```
+```lang-none
+month monthOf(time)
+```
 
  Similarly a function `next` that takes a single argument from the domain of time and returns the next one is defined as follows:
 
- ```lang-none
- time next(time)
- ```
+```lang-none
+time next(time)
+```
 
- ## Build-in functions and predicates
+## Build-in functions and predicates
 
- Build-in functions and predicates are supported internally in the LoMRF and do
- not require any schema definition in the knowledge base file.
+Build-in functions and predicates are supported internally in the LoMRF and do
+not require any schema definition in the knowledge base file.
 
- ### Functions
+### Functions
 
- | Function                  | Description
- |:-------------------------:|:-------------------------------------------|
- | x++                       | Increase the integer number *x* by one
- | x--                       | Degrease the integer number *x* by one
- | x + y                     | Sum *x* with *y*
- | x - y                     | Subtract *y* from *x*
- | x * y                     | Multiply *x* with *y*
- | x / y                     | Divide *y* from *x*
- | x % y                     | The remainder of *x* divided by *y*
- | concat(x, y)              | Concatenate *x* with *y*
+| Function                  | Description                                |
+|:-------------------------:|:-------------------------------------------|
+| x++                       | Increase the integer number *x* by one     |
+| x--                       | Degrease the integer number *x* by one     |
+| x + y                     | Sum *x* with *y*                           |
+| x - y                     | Subtract *y* from *x*                      |
+| x * y                     | Multiply *x* with *y*                      |
+| x / y                     | Divide *y* from *x*                        |
+| x % y                     | The remainder of *x* divided by *y*        |
+| concat(x, y)              | Concatenate *x* with *y*                   |
 
 
 
- ### Predicates
+### Predicates
 
- | Predicate                  | Description
- |:--------------------------:|:-------------------------------------------|
- |  a = b                     | Term *a* is equal with term *b*
- |  a < b                     | Term *a* is less than term *b*
- |  a <= b                    | Term *a* is less than or equal with *b*
- |  a > b                     | Term *a* is greater than term *b*
- |  a >= b                    | Term *a* is greater than or equal with  *b*
- | substr(a, b)               | Term *a* is substring of *b*
+| Predicate                  | Description                                 |
+|:--------------------------:|:--------------------------------------------|
+|  a = b                     | Term *a* is equal with term *b*             |
+|  a < b                     | Term *a* is less than term *b*              |
+|  a <= b                    | Term *a* is less than or equal with *b*     |
+|  a > b                     | Term *a* is greater than term *b*           |
+|  a >= b                    | Term *a* is greater than or equal with  *b* |
+| substr(a, b)               | Term *a* is substring of *b*                |
 
 
 
