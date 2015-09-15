@@ -1,4 +1,4 @@
-time = {0,...,500}
+time = {0,...,551}
 
 // Predicate schema definition
 
@@ -46,13 +46,13 @@ StartTime(t) => !HoldsAt(f, t).
  */
 
 // --- People are moving together
-#include definitions/moving.mln
+#include "definitions/moving.mln"
 
 // avoid recognising moving with himself
-!HoldsAt(move(p,p),t).
+!HoldsAt(move(p, p), t).
 
 // --- People are meeting
-#include definitions/meeting.mln
+#include "definitions/meeting.mln"
 
 // avoid recognising meeting with himself
-!HoldsAt(meet(p,p),t).
+!HoldsAt(meet(p, p), t).
