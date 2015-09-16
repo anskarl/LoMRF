@@ -25,7 +25,7 @@ Below we briefly describe the input of the activity recognition example:
  1. The input is composed of a collection of input events, representing people *walking*, *running*, *staying active*,
  or *inactive*. The first and the last time that a person or an object is tracked are represented by the
  input events *enter* and *exit*. Additionally, the coordinates of tracked persons or objects are also taken into
- consideration, in order to express qualitative spatial relations, *e.g. two persons being relatively close to
+ consideration, in order to express qualitative spatial relations, *e.g., two persons being relatively close to
  each other*.
 
  2. In the following sub-section we give the composite event definitions of *meeting*, *moving*,

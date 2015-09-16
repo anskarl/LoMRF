@@ -244,7 +244,7 @@ In such case, the translated formulas will be the following:
 Head(x,y) => Exist z Foo(x, z) ^ Bar(z, y).
 ```
 *Please note that during grounding existentially quantified formulas are replaced by the disjunction of their groundings
-(see Domingos and Lowd, 2009). This may lead to a large number of disjunctions and a combinatorial explosion of the number
+(see [Domingos and Lowd, 2009](#references)). This may lead to a large number of disjunctions and a combinatorial explosion of the number
 of clauses, producing unmanageably large Markov networks.* ***This type of clauses should be avoided, if it is possible.***
 
 ***Partial definitions***
