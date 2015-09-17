@@ -236,12 +236,12 @@ Inactive_ID1 = inactive(ID1)
 Move_ID0_ID0 = move(ID0, ID0)
 Move_ID0_ID1 = move(ID0, ID1)
 Move_ID1_ID0 = move(ID1, ID0)
-Move_ID1_ID1 = move(ID0, ID0)
+Move_ID1_ID1 = move(ID1, ID1)
 
 Meet_ID0_ID0 = meet(ID0, ID0)
 Meet_ID0_ID1 = meet(ID0, ID1)
 Meet_ID1_ID0 = meet(ID1, ID0)
-Meet_ID1_ID1 = meet(ID0, ID0)
+Meet_ID1_ID1 = meet(ID1, ID1)
 
 // Facts
 StartTime(0)
@@ -255,8 +255,8 @@ Close(ID0, ID1, 34, 100)
 //
 // ... sequence of facts ...
 //
-happens(Active_ID1, 200)
-happens(Active_ID2, 200)
+Happens(Active_ID0, 170)
+Happens(Active_ID1, 170)
 //
 // ... sequence of facts ...
 ```
