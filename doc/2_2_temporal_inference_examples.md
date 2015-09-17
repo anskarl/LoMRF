@@ -13,7 +13,7 @@ In this example we demonstrate how to perform probabilistic activity recognition
 the first set of the [CAVIAR dataset](http://homepages.inf.ed.ac.uk/rbf/CAVIARDATA1/). We use the same
 Probabilistic Event Calculus formalism as presented in the [Quick Start](0_quick_start.md) section.
 
-The aim in activity recognition is to recognise complex activities that take place between multiple persons,
+The aim in activity recognition is to recognize complex activities that take place between multiple persons,
 by exploiting information about simple observed individual activities. The first set [CAVIAR dataset](http://homepages.inf.ed.ac.uk/rbf/CAVIARDATA1/)
 comprises 28 surveillance videos, where each frame is annotated by human experts from the CAVIAR team on two levels.
 The first level contains simple, input events that concern activities of individual persons or the state of objects.
@@ -31,11 +31,11 @@ Below we briefly describe the input of the activity recognition example:
  2. In the following sub-section we give the composite event definitions of *meeting*, *moving*,
  *leaving an object* and *fighting*. These definitions take the form of common sense rules and describe the
  conditions under which a CE starts or ends. For example, when two persons are walking together with the
- same orientation, then moving starts being recognised. Similarly, when the same persons walk away from
- each other, then moving stops being recognised.
+ same orientation, then moving starts being recognized. Similarly, when the same persons walk away from
+ each other, then moving stops being recognized.
 
 Based on a collection of input events and composite event definitions, we would like to perform probabilistic
-inference and recognise instances of the composite events of interest.
+inference and recognize instances of the composite events of interest.
 
 ### Domain types
 
@@ -56,7 +56,7 @@ term functions (see Function Definitions in [Syntax](1_syntax.md) section).
 
 | Input Events  | Description                |
 |:--------------|:---------------------------|
-| walking(x)    | person *x* is walking |             
+| walking(x)    | person *x* is walking |
 | running(x)    | person *x* is running |
 | active(x)     | person *x* is active, e.g., moving her arms, while staying at the same position |
 | inactive(x)   | person *x* is inactive, i.e., standing still |
@@ -144,7 +144,7 @@ StartTime(t) => !HoldsAt(f, t).
 
 ### Domain-dependent definitions
 
-Below we give the definitions of composite event definitions that express long-term behaviour patterns of interest.
+Below we give the definitions of composite event definitions that express long-term behavior patterns of interest.
 We assume that we know the weight values (e.g., expert knowledge or we have performed weight learning). For simplicity
 and compactness, we only present the definitions of *moving* and *meeting*.
 

@@ -76,7 +76,7 @@ directory.
 
 ## Only for Microsoft Windows XP users
 
-LoMRF depends on the JANSI library, in order to print coloured log messages in the console. JANSI depends on a JNI library
+LoMRF depends on the JANSI library, in order to print colored log messages in the console. JANSI depends on a JNI library
 that is available from "Microsoft Visual C++ 2008 SP1 Redistributable". You can get a free copy from Microsoft at the
 following link: http://www.microsoft.com/en-us/download/details.aspx?displaylang=en&id=5582
 

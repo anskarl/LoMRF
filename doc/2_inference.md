@@ -222,7 +222,7 @@ predicates/functions implementations (*.class and *.jar files).
 
 ## Examples
 
-See Sections [Inference Examples](2_1_inference_examples.md) and [Temporal Inference Examples](2_2_temporal_inference_examples.md).
+See Sections [Probabilistic Inference Examples](2_1_inference_examples.md) and [Temporal Probabilistic Inference Examples](2_2_temporal_inference_examples.md).
 
 ## References
 

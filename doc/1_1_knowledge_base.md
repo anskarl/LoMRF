@@ -208,7 +208,7 @@ hard-constraint and states that in order to have *head* satisfied, at least one 
 Any other possibility doesn't affect the state of the head predicate. With that translation LoMRF implicitly introduces
 closed-world assumption to head predicates, using a technique that is  called predicate completion (see [McCarthy, 1980; Lifschitz, 1994](#references)).
 
-LoMRF tries to simplify the resulting knowledge base, by specialising as much as possible the predicate completion for each distinct head predicate.
+LoMRF tries to simplify the resulting knowledge base, by specializing as much as possible the predicate completion for each distinct head predicate.
 Specifically, the original predicate completion will result to a more general form, producing a single formula with an equivalence:
 
 ```lang-none

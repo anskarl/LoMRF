@@ -393,7 +393,7 @@ HoldsAt(Loaded,14) 0.118
 
 MAP inference, on the other hand, identifies the most probable assignment among all query predicate instantiations that
 are consistent with the given evidence. This task reduces to finding the truth assignment of all query predicate
-instantiations that maximises the sum of weights of satisfied ground clauses. This is equivalent to the weighted maximum
+instantiations that maximizes the sum of weights of satisfied ground clauses. This is equivalent to the weighted maximum
 satisfiability problem.
 
 ```lang-none

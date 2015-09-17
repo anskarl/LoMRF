@@ -11,7 +11,7 @@ LoMRF is an open-source implementation of [Markov Logic Networks](https://en.wik
   * Predicate completion.
   * Clausal form transformation.
   * Replacement of functions with utility predicates and vice versa.
-  * Reads and produces Alchemy compatible MLN files.
+  * Reads and produces [Alchemy](http://alchemy.cs.washington.edu/alchemy1.html) compatible MLN files.
 5. Can export ground MRF in various formats (mrfwriter).
 6. Can compare MLN theories (mlndiff).  
 

@@ -37,7 +37,7 @@ VM_ARGS=" -XX:+DoEscapeAnalysis -XX:+UseFastAccessorMethods -XX:+OptimizeStringC
 
 ### Microsoft Windows
 
-In order to adjust the JVM options, you can chane the `VM_ARGS` variable in the `inc.env.bat` file (located inside the `bin`
+In order to adjust the JVM options, you can change the `VM_ARGS` variable in the `inc.env.bat` file (located inside the `bin`
 sub-folder) and add or adjust any JVM parameter (for the available parameters write `java -X` in the command line).
 
 For example, you may adjust the following default options
