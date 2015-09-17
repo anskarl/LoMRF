@@ -28,8 +28,8 @@ HoldsAt(f,t) ^ !TerminatedAt(f, t) => HoldsAt(f,t++).
 
 2 TerminatedAt(Alive,t) :- Happens(Shoot,t) ^ HoldsAt(Loaded,t)
 
-!TerminatedAt(Dead, t).
-!InitiatedAt(Alive,t).
+// !TerminatedAt(Dead, t).
+// !InitiatedAt(Alive,t).
 
 
 // Initial state:
