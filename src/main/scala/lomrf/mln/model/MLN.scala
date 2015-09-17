@@ -309,7 +309,7 @@ object MLN {
       .compileCNF(completedFormulas)(evidence.constants)
       .toVector
 
-    val hiddenAtoms = kb.signatures.predicates -- queryAtoms -- evidence.cwaAtoms
+    val hiddenAtoms = (kb.signatures.predicates -- queryAtoms) -- evidence.cwaAtoms
     val space = PredicateSpace(kb.schema, queryAtoms, hiddenAtoms, evidence.constants)
 
     // Give the resulting MLN
