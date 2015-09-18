@@ -1,49 +1,16 @@
 # Building and Linking LoMRF
 
 In order to build LoMRF from source, you need to have Java SE Development Kit (e.g., OpenJDK) version 7 or higher
-(however we strongly recommend use Java SE 8 or higher) and [SBT](http://www.scala-sbt.org/) (v0.13.x) installed in
+(**we recommend use Java SE 8 or higher**) and [SBT](http://www.scala-sbt.org/) (v0.13.x) installed in
 your system. Furthermore, LoMRF build depends on the [auxlib](https://github.com/anskarl/auxlib) (v0.1-SNAPSHOT),
 as well as to [Optimus](https://github.com/vagm/Optimus) and (optionally) [Gurobi](http://www.gurobi.com/) and
 [LPSolve](http://lpsolve.sourceforge.net).
 
-**To enable  optimisations, we strongly recommend use Java SE 8 or higher for the following steps, as well as for the
-use of LoMRF.**
-
-## LPSolve installation instructions
-
-### Linux distributions
-
-For example, on a ***Debian-based*** distribution, write the following command:
-```bash
-$ sudo apt-get install lp-solve
-```
-
-### Apple MacOS X
-
-Either download and install from the [LPSolve website](http://lpsolve.sourceforge.net)
-or from your favorite package manager.
-
-For example, from [macports](https://www.macports.org):
-```bash
-$ sudo port install lp_solve
-```
-
-or from [homebrew](http://brew.sh):
-```bash
-$ brew tap homebrew/science
-$ brew install lp_solve
-```
-
-### Microsoft Windows
-Download LPSolve v5.5.x with java bindings (*lp_solve_5.5.2.0_java.zip*) from the [LPSolve website](http://lpsolve.sourceforge.net)
-and follow the installation instructions that are located inside the zip file (*README.html*)
-
-## Gurobi installation instructions
-Please follow the installation instructions from the [Gurobi website](http://www.gurobi.com).
+**To enable  optimisations, we recommend use Java SE 8 **
 
 ## Instructions to build LoMRF from source
 
-Step 1. Clone and publish locally the auxlib project:
+**Step 1.** Clone and publish locally the auxlib project:
 
 ```bash
 $ git clone https://github.com/anskarl/auxlib.git
@@ -51,9 +18,9 @@ $ cd auxlib
 $ sbt ++2.11.7 publishLocal
 ```
 
-Step 2. Clone and publish locally the Optimus project (see instructions [here](https://github.com/vagm/Optimus)).
+**Step 2.** Clone and publish locally the Optimus project (see instructions [here](https://github.com/vagm/Optimus)).
 
-Step 3 (optional). Please note that Gurobi is required for running max-margin weight learning and optionally can also be used for MAP inference. In order to enable support for Gurobi, you have to build Optimus with Gurobi support ([see instructions](https://github.com/vagm/Optimus)) and then include Gurobi library dependencies to the `./lib` subdirectory inside the cloned LoMRF directory (create if not already exists), as it is illustrated in the tree below:
+**Step 3 (optional).** Please note that Gurobi is required for running max-margin weight learning and optionally can also be used for MAP inference. In order to enable support for Gurobi, you have to build Optimus with Gurobi support ([see instructions](https://github.com/vagm/Optimus)) and then include Gurobi library dependencies to the `./lib` subdirectory inside the cloned LoMRF directory (create if not already exists), as it is illustrated in the tree below:
 
 ```bash
 LoMRF
@@ -61,7 +28,7 @@ LoMRF
     |-- gurobi.jar
 ```
 
-Step 4. To build the LoMRF distribution, type the following command:
+**Step 4.** To build the LoMRF distribution, type the following command:
 
 ```bash
 $ sbt dist
@@ -115,10 +82,9 @@ or in `~/.cshrc` file in your home directory:
 setenv PATH $PATH:$HOME/lomrf-0.4/bin:.
 ```
 
-
 ###Microsoft Windows Operating Systems
 
-For MS Windows OS add the location of LoMRF sub-folder (e.g., `C:\path\to\lomrf-0.4\bin`) in your PATH environmental variable.
+For MS Windows OS add the location of LoMRF sub-folder (e.g., `C:\path\to\lomrf-0.4\bin`) in your PATH environment variable.
 
 **Windows 8:**
   1. Drag the Mouse pointer to the Right bottom corner of the screen
@@ -158,6 +124,46 @@ For MS Windows OS add the location of LoMRF sub-folder (e.g., `C:\path\to\lomrf-
      and the location of LoMRF bin sub-folder (i.e., `C:\path\to\lomrf-0.4\bin`) as the value.
   4. Close the window.
   5. Reopen Command prompt window, and run your LoMRF experiments.
+
+  ## (optional) LPSolve installation instructions
+
+  ### Linux distributions
+
+  For example, on a ***Debian-based*** distribution, write the following command:
+  ```bash
+  $ sudo apt-get install lp-solve
+  ```
+
+  ### Apple MacOS X
+
+  Either download and install from the [LPSolve website](http://lpsolve.sourceforge.net)
+  or from your favorite package manager.
+
+  For example, from [macports](https://www.macports.org):
+  ```bash
+  $ sudo port install lp_solve
+  ```
+
+  or from [homebrew](http://brew.sh):
+  ```bash
+  $ brew tap homebrew/science
+  $ brew install lp_solve
+  ```
+
+  ### Microsoft Windows
+  To install LPSolve v5.5.x in your system, follow the instructions below:
+  * Download LPSolve dev, 64bit *lp_solve_5.5.2.x_dev_win64.zip* or for 32bit *lp_solve_5.5.2.x_dev_win64.zip*, from [LPSolve official repository](http://sourceforge.net/projects/lpsolve/files/lpsolve/5.5.2.0/).
+    * Extract the file
+    * We only need the `lpsolve55.dll` file.
+  * Download LPSolve java bindings (lp_solve_5.5.2.x_java.zip) from [LPSolve official repository](http://sourceforge.net/projects/lpsolve/files/lpsolve/5.5.2.0/).
+    * Extract the file
+    * We only need the `lpsolve55j.jar` and `lpsolve55j.dll` files
+  * Create a directory containing the `lpsolve55.dll`, `lpsolve55j.jar` and `lpsolve55j.dll` files, e.g., `C:\Program Files\lpsolve55`
+  * Add this directory to the PATH environment variable your systems environment variables (see [instructions](#microsoft-windows-operating-systems))
+
+  ## (optional) Gurobi installation instructions
+  Please follow the installation instructions from the [Gurobi website](http://www.gurobi.com).
+
 
 ##Using LoMRF as a library
 
