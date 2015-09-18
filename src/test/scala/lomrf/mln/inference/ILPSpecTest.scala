@@ -132,6 +132,8 @@ final class ILPSpecTest extends FunSpec with Matchers {
       solver.infer()
       solver.writeResults(resultsWriter)
 
+
+
       info("Inspecting result file: '" + prefix + ".ilp.result'")
       val inferredResults = Source.fromFile(prefix + ".ilp.result").getLines()
 
@@ -142,6 +144,8 @@ final class ILPSpecTest extends FunSpec with Matchers {
         .map(_.split(' '))
         .map(entries => entries(0).trim -> entries(1).trim.toInt)
         .toMap
+
+      val threePercentDiff = math.floor(expectedResultsMap.size * 0.03).toInt
 
       var differences = 0
       var countedResults = 0
@@ -167,12 +171,14 @@ final class ILPSpecTest extends FunSpec with Matchers {
 
       }
 
+      info(s"found $differences differences with the golden standard result file")
+
       it(s"produces MAP results for ${expectedResultsMap.size} ground query predicates."){
         countedResults shouldBe expectedResultsMap.size
       }
 
-      it("has output which has at most 5 differences with the corresponding golden standard result file") {
-        differences should be <= 5
+      it(s"has output which has at most 3% differences (i.e., $threePercentDiff) with the corresponding golden standard result file") {
+        assert(differences <= threePercentDiff)
       }
 
     }

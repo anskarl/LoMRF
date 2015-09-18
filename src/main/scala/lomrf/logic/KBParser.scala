@@ -465,18 +465,22 @@ final class KBParser(predicateSchema: Map[AtomSignature, Vector[String]],
   //--------------------------------------------------------------------------------------------------------------------
   //--- Public API with utility functions for parsing
   //--------------------------------------------------------------------------------------------------------------------
-
-
-
+  
   /**
-   * Parses an individual formula from text
+   * Parses a logical sentence from given string. The sentence can be either a logical weighted formula or
+   * a weighted definite clause.
    *
-   * @param src string representation of the formula
+   * @param src string representation of the logical sentence
    * @return the resulting formula
    */
-  def parseFormula(src: String): Formula = parse(sentence, src) match {
+  def parseLogicalSentence(src: String): Formula = parse(sentence, src) match {
     case Success(expr, _) if expr.isInstanceOf[Formula] => expr.asInstanceOf[Formula]
-    case x => fatal("Can't parse the following expression: " + x)
+    case x => fatal(s"Can't parse the following expression: $x")
+  }
+
+  def parseWeightedFormula(src: String): WeightedFormula = parse(sentence, src) match {
+    case Success(expr, _) if expr.isInstanceOf[WeightedFormula] => expr.asInstanceOf[WeightedFormula]
+    case x => fatal(s"Can't parse the following expression: $x")
   }
 
   /**
@@ -485,9 +489,9 @@ final class KBParser(predicateSchema: Map[AtomSignature, Vector[String]],
    * @param src string representation of the definite clause
    * @return the resulting definite clause
    */
-  def parseDefiniteClause(src: String): WeightedDefiniteClause = parse(sentence, src) match {
+  def parseDefiniteClause(src: String): WeightedDefiniteClause = parse(definiteSentence, src) match {
     case Success(expr, _) if expr.isInstanceOf[WeightedDefiniteClause] => expr.asInstanceOf[WeightedDefiniteClause]
-    case x => fatal("Can't parse the following expression: " + x)
+    case x => fatal(s"Can't parse the following expression: $x")
   }
 
   /**
@@ -498,12 +502,12 @@ final class KBParser(predicateSchema: Map[AtomSignature, Vector[String]],
    */
   def parsePredicate(src: String): AtomicFormula = parse(atomicFormula, src) match {
     case Success(expr, _) if expr.isInstanceOf[AtomicFormula] => expr
-    case x => fatal("Can't parse the following expression as an Atomic Formula: " + x)
+    case x => fatal(s"Can't parse the following expression as an Atomic Formula: $x")
   }
 
   def parseFunction(src: String): TermFunction = parse(functionArg, src) match {
     case Success(expr, _) if expr.isInstanceOf[TermFunction] => expr
-    case x => fatal("Can't parse the following expression as a Function: " + x)
+    case x => fatal(s"Can't parse the following expression as a Function: $x")
   }
 
   /**
@@ -517,15 +521,15 @@ final class KBParser(predicateSchema: Map[AtomSignature, Vector[String]],
       expr match {
         case Not(atom) if atom.isInstanceOf[AtomicFormula] => NegativeLiteral(atom.asInstanceOf[AtomicFormula])
         case atom: AtomicFormula => PositiveLiteral(atom)
-        case _ => fatal("Can't parse the following expression as a literal: " + expr)
+        case _ => fatal(s"Can't parse the following expression as a literal: $expr")
       }
-    case x => fatal("Can't parse the following expression as a literal: " + x)
+    case x => fatal(s"Can't parse the following expression as a literal: $x")
   }
 
   def parseTheory(theory: String): List[MLNExpression] = {
     parse(mln, theory) match {
       case Success(result, _) => result
-      case x => fatal("Can't parse the given theory:\n" + x)
+      case x => fatal(s"Can't parse the given theory:\n $x")
     }
   }
 

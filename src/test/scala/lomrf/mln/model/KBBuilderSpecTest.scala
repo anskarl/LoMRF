@@ -70,7 +70,12 @@ class KBBuilderSpecTest extends FunSpec with Matchers {
     "Happens(walking(person1), t) ^ Happens(walking(person2), t) => InitiatedAt(move(person1,person2),t).",
     "1.27 InitiatedAt(f, t) => HoldsAt(f, t + 1)",
     "InitiatedAt(f, t) => HoldsAt(f, t++)."
-  ).map(parser.parseFormula)
+  ).map(parser.parseWeightedFormula).toSet
+
+  val sampleDefiniteClauses = Seq(
+    "0.32 InitiatedAt(Moving, t) :- Happens(Walking, t)",
+    "InitiatedAt(move(person1,person2),t) :- Happens(walking(person1), t) ^ Happens(walking(person2), t)"
+  ).map(parser.parseDefiniteClause).toSet
 
 
   // --------------------------------------------------------
@@ -440,20 +445,19 @@ class KBBuilderSpecTest extends FunSpec with Matchers {
   // --- KB Builder (insertion of formulas)
   // --------------------------------------------------------
   describe("KBBuilder insertion of formulas") {
-    fail("unimplemented")
 
-    /*describe("Incremental addition of formulas") {
+    describe("Incremental addition of formulas") {
       val builder = KBBuilder()
 
       for (formula <- sampleFormulas)
         builder.formulas += formula
 
 
-      it(s"contains ${sampleFormulas.size} dynamic function schema definitions") {
+      it(s"contains ${sampleFormulas.size} formulas") {
         builder.formulas().size shouldEqual sampleFormulas.size
       }
 
-      it(s"contains ${sampleFormulas.size} dynamic function schema definitions, after re-adding the same schema definitions") {
+      it(s"contains ${sampleFormulas.size} formulas, after re-adding the same formulas") {
         for (formula <- sampleFormulas)
           builder.formulas += formula
 
@@ -466,21 +470,51 @@ class KBBuilderSpecTest extends FunSpec with Matchers {
         val formulas = kb.formulas
 
         assert(sampleFormulas.forall(formulas.contains))
+        formulas.size shouldEqual sampleFormulas.size
       }
 
-    }*/
+    }
 
-    /*describe("Batch addition of formulas") {
+    describe("Incremental addition of definite clauses") {
+      val builder = KBBuilder()
+
+      for (clause <- sampleDefiniteClauses)
+        builder.definiteClauses += clause
+
+
+      it(s"contains ${sampleDefiniteClauses.size} definite clauses") {
+        builder.definiteClauses().size shouldEqual sampleDefiniteClauses.size
+      }
+
+      it(s"contains ${sampleDefiniteClauses.size} definite clauses, after re-adding the same definite clauses") {
+        for (clause <- sampleDefiniteClauses)
+          builder.definiteClauses += clause
+
+        builder.definiteClauses().size shouldEqual sampleDefiniteClauses.size
+      }
+
+      it("contains all the incrementally inserted definite clauses") {
+        val kb = builder.result()
+
+        val clauses = kb.definiteClauses
+
+        assert(sampleDefiniteClauses.forall(clauses.contains))
+        kb.definiteClauses.size shouldEqual clauses.size
+      }
+
+    }
+
+    describe("Batch addition of formulas") {
       val builder = KBBuilder()
 
       builder.formulas ++= sampleFormulas
 
 
-      it(s"contains ${sampleFormulas.size} dynamic function schema definitions") {
+      it(s"contains ${sampleFormulas.size} formulas") {
         builder.formulas().size shouldEqual sampleFormulas.size
       }
 
-      it(s"contains ${sampleFormulas.size} dynamic function schema definitions, after re-adding the same schema definitions") {
+      it(s"contains ${sampleFormulas.size} formulas, after re-adding the same formulas") {
         builder.formulas ++= sampleFormulas
 
         builder.formulas().size shouldEqual sampleFormulas.size
@@ -492,48 +526,80 @@ class KBBuilderSpecTest extends FunSpec with Matchers {
         val formulas = kb.formulas
 
         assert(sampleFormulas.forall(formulas.contains))
+        formulas.size shouldEqual sampleFormulas.size
       }
 
-    }*/
+    }
+
+    describe("Batch addition of definite clauses") {
+      val builder = KBBuilder()
+
+      builder.definiteClauses ++= sampleDefiniteClauses
+
+
+      it(s"contains ${sampleDefiniteClauses.size} definite clauses") {
+        builder.definiteClauses().size shouldEqual sampleDefiniteClauses.size
+      }
+
+      it(s"contains ${sampleDefiniteClauses.size} definite clauses, after re-adding the same definite clauses") {
+        builder.definiteClauses ++= sampleDefiniteClauses
+
+        builder.definiteClauses().size shouldEqual sampleDefiniteClauses.size
+      }
+
+      it("contains all the incrementally inserted definite clauses") {
+        val kb = builder.result()
+
+        val clauses = kb.definiteClauses
+
+        assert(sampleDefiniteClauses.forall(clauses.contains))
+        kb.definiteClauses.size shouldEqual clauses.size
+      }
+    }
   }
 
   // --------------------------------------------------------
   // --- KB Builder: creation of KB
   // --------------------------------------------------------
   describe("The KB from a KBBuilder") {
-    fail("unimplemented")
 
-    /*val builder = KBBuilder()
+    val builder = KBBuilder()
 
     val kb =
       builder
         .withPredicateSchema(samplePredicateSchema)
         .withFunctionSchema(sampleFunctionsSchema)
-        .withFormulas(sampleFormulas.toSet)
+        .withFormulas(sampleFormulas)
+        .withDefiniteClauses(sampleDefiniteClauses)
         .withDynamicFunctions(dynFunctions)
         .withDynamicPredicates(dynAtoms)
         .result()
 
     it("contains all specified predicate schemas") {
-      assert(samplePredicateSchema == kb.predicateSchema)
+      samplePredicateSchema shouldEqual kb.predicateSchema
     }
 
     it("contains all specified function schemas") {
-      assert(sampleFunctionsSchema == kb.functionSchema)
+      sampleFunctionsSchema shouldEqual kb.functionSchema
     }
 
     it("contains all specified formulas") {
       assert(sampleFormulas.forall(kb.formulas.contains))
+      kb.formulas.size shouldEqual  sampleFormulas.size
+    }
+
+    it("contains all specified definite clauses") {
+      assert(sampleDefiniteClauses.forall(kb.definiteClauses.contains))
+      kb.definiteClauses.size shouldEqual sampleDefiniteClauses.size
     }
 
     it("contains all specified dynamic functions") {
-      assert(dynFunctions == kb.dynamicFunctions)
+      dynFunctions shouldEqual kb.dynamicFunctions
     }
 
     it("contains all specified dynamic predicates") {
-      assert(dynAtoms == kb.dynamicPredicates)
+      dynAtoms shouldEqual kb.dynamicPredicates
     }
-   */
   }
 
 

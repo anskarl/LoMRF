@@ -137,7 +137,7 @@ final class KBParserSpecTest extends FunSpec with Matchers {
 
   for( (strFormula, formula, nConst, nVar, nFun) <- formulaList ) describe("Sentence '" + strFormula + "'"){
 
-    val result = parser.parseFormula(strFormula)
+    val result = parser.parseLogicalSentence(strFormula)
 
     it("should be a valid MLN formula"){
       result shouldEqual formula

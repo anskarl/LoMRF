@@ -95,7 +95,7 @@ final class NormalFormSpecTest extends FunSpec with Matchers{
 
   describe("Formula 'InitiatedAt(Fight,t) => Happens(Abrupt, t).'"){
 
-    val formula = kbParser.parseFormula("InitiatedAt(Fight,t) => Happens(Abrupt, t).")
+    val formula = kbParser.parseLogicalSentence("InitiatedAt(Fight,t) => Happens(Abrupt, t).")
     val clauses = NormalForm.toCNF(formula)
 
     it("results to a single valid clause"){
@@ -112,7 +112,7 @@ final class NormalFormSpecTest extends FunSpec with Matchers{
 
   describe("Formula 'InitiatedAt(Fight,t) <=> Happens(Abrupt, t).'"){
 
-    val formula = kbParser.parseFormula("InitiatedAt(Fight,t) <=> Happens(Abrupt, t).")
+    val formula = kbParser.parseLogicalSentence("InitiatedAt(Fight,t) <=> Happens(Abrupt, t).")
     val clauses = NormalForm.toCNF(formula)
 
     it("produces two valid clauses"){
@@ -124,7 +124,7 @@ final class NormalFormSpecTest extends FunSpec with Matchers{
 
 
   describe("Formula 'InitiatedAt(Fight,t) <=> Happens(Abrupt, t) ^ Close(10,t).'"){
-    val f0 = kbParser.parseFormula("InitiatedAt(Fight,t) <=> Happens(Abrupt, t) ^ Close(10,t).")
+    val f0 = kbParser.parseLogicalSentence("InitiatedAt(Fight,t) <=> Happens(Abrupt, t) ^ Close(10,t).")
     val clauses0 = f0.toCNF(constants)
 
     it("produces three valid clauses"){
@@ -136,7 +136,7 @@ final class NormalFormSpecTest extends FunSpec with Matchers{
   }
 
   describe("The formula 'Happens(walking(id1),t) => Initiates(walking(id1), move(id,id2), t).'"){
-    val f = kbParser.parseFormula("Happens(walking(id1),t) => Initiates(walking(id1), move(id,id2), t).")
+    val f = kbParser.parseLogicalSentence("Happens(walking(id1),t) => Initiates(walking(id1), move(id,id2), t).")
     val clauses = f.toCNF(constants)
 
     it("produces a single clause"){
@@ -148,8 +148,8 @@ final class NormalFormSpecTest extends FunSpec with Matchers{
     "\t 'InitiatedAt(Fight,t) => Happens(Abrupt, t) ^ Close(10,t).' and\n" +
     "\t 'Happens(Abrupt, t) ^ Close(10,t) => InitiatedAt(Fight,t).'") {
 
-    val f1 = kbParser.parseFormula("InitiatedAt(Fight,t) => Happens(Abrupt, t) ^ Close(10,t).")
-    val f2 = kbParser.parseFormula("Happens(Abrupt, t) ^ Close(10,t) => InitiatedAt(Fight,t).")
+    val f1 = kbParser.parseLogicalSentence("InitiatedAt(Fight,t) => Happens(Abrupt, t) ^ Close(10,t).")
+    val f2 = kbParser.parseLogicalSentence("Happens(Abrupt, t) ^ Close(10,t) => InitiatedAt(Fight,t).")
     val clauses_1and2 = f1.toCNF(constants) ++ f2.toCNF(constants)
 
     they("produce three valid clauses"){
@@ -162,7 +162,7 @@ final class NormalFormSpecTest extends FunSpec with Matchers{
     }
 
     they("produce the same clauses with the formula 'InitiatedAt(Fight,t) <=> Happens(Abrupt, t) ^ Close(10,t).'"){
-      val f0 = kbParser.parseFormula("InitiatedAt(Fight,t) <=> Happens(Abrupt, t) ^ Close(10,t).")
+      val f0 = kbParser.parseLogicalSentence("InitiatedAt(Fight,t) <=> Happens(Abrupt, t) ^ Close(10,t).")
       val clauses0 = f0.toCNF(constants)
       clauses_1and2.foreach(c => clauses0.contains(c) shouldEqual true)
     }
@@ -172,8 +172,8 @@ final class NormalFormSpecTest extends FunSpec with Matchers{
     "\t '1 Happens(Abrupt, t) ^ Close(24,t) ^ !Happens(Inactive,t ) => InitiatedAt(Fight, t)' and\n" +
     "\t '3 InitiatedAt(Fight,t) => Happens(Abrupt, t) ^ !Happens(Inactive, t) ^ Close(24,t)'"){
 
-    val f0 = kbParser.parseFormula("1 Happens(Abrupt, t) ^ Close(24,t) ^ !Happens(Inactive,t ) => InitiatedAt(Fight, t)")
-    val f1 = kbParser.parseFormula("3 InitiatedAt(Fight,t) => Happens(Abrupt, t) ^ !Happens(Inactive, t) ^ Close(24,t)")
+    val f0 = kbParser.parseLogicalSentence("1 Happens(Abrupt, t) ^ Close(24,t) ^ !Happens(Inactive,t ) => InitiatedAt(Fight, t)")
+    val f1 = kbParser.parseLogicalSentence("3 InitiatedAt(Fight,t) => Happens(Abrupt, t) ^ !Happens(Inactive, t) ^ Close(24,t)")
 
     val clauses01 = f0.toCNF(constants) ++ f1.toCNF(constants)
 
@@ -183,7 +183,7 @@ final class NormalFormSpecTest extends FunSpec with Matchers{
     }
 
     they("produce the same clauses with the weighed formula '4 Happens(Abrupt, t) ^ Close(24,t) ^ !Happens(Inactive,t ) <=> InitiatedAt(Fight, t)'"){
-      val f3 = kbParser.parseFormula("4 Happens(Abrupt, t) ^ Close(24,t) ^ !Happens(Inactive,t ) <=> InitiatedAt(Fight, t)")
+      val f3 = kbParser.parseLogicalSentence("4 Happens(Abrupt, t) ^ Close(24,t) ^ !Happens(Inactive,t ) <=> InitiatedAt(Fight, t)")
       val clauses3 = f3.toCNF(constants)
 
       clauses3.size shouldEqual 4
@@ -193,7 +193,7 @@ final class NormalFormSpecTest extends FunSpec with Matchers{
 
 
   describe("Formula 'Exist x,t Happens(walking(x), t).'"){
-    val f = kbParser.parseFormula("Exist x,t Happens(walking(x), t).")
+    val f = kbParser.parseLogicalSentence("Exist x,t Happens(walking(x), t).")
     val clauses = f.toCNF(constants)
 
     it("produces a single clause"){
@@ -209,8 +209,8 @@ final class NormalFormSpecTest extends FunSpec with Matchers{
     "\t1 Happens(abrupt(p1), t) ^ Close(p1,p2,24,t) ^ !Happens(inactive(p2),t ) => InitiatedAt(fight(p1,p2), t) and" +
     "\t3 InitiatedAt(fight(p1,p2),t) => Happens(abrupt(p1), t) ^ !Happens(inactive(p2), t) ^ Close(p1,p2,24,t)") {
 
-    val f0 = kbParser.parseFormula("1 Happens(abrupt(p1), t) ^ Close(p1,p2,24,t) ^ !Happens(inactive(p2),t ) => InitiatedAt(fight(p1,p2), t)")
-    val f1 = kbParser.parseFormula("3 InitiatedAt(fight(p1,p2),t) => Happens(abrupt(p1), t) ^ !Happens(inactive(p2), t) ^ Close(p1,p2,24,t)")
+    val f0 = kbParser.parseLogicalSentence("1 Happens(abrupt(p1), t) ^ Close(p1,p2,24,t) ^ !Happens(inactive(p2),t ) => InitiatedAt(fight(p1,p2), t)")
+    val f1 = kbParser.parseLogicalSentence("3 InitiatedAt(fight(p1,p2),t) => Happens(abrupt(p1), t) ^ !Happens(inactive(p2), t) ^ Close(p1,p2,24,t)")
     val clauses01 = f0.toCNF(constants) ++ f1.toCNF(constants)
 
     they("produce four clauses") {
@@ -218,7 +218,7 @@ final class NormalFormSpecTest extends FunSpec with Matchers{
     }
 
     they("produce the same clauses with formula '4 Happens(abrupt(p1), t) ^ Close(p1,p2,24,t) ^ !Happens(inactive(p2),t ) <=> InitiatedAt(fight(p1,p2), t)'") {
-      val f3 = kbParser.parseFormula("4 Happens(abrupt(p1), t) ^ Close(p1,p2,24,t) ^ !Happens(inactive(p2),t ) <=> InitiatedAt(fight(p1,p2), t)")
+      val f3 = kbParser.parseLogicalSentence("4 Happens(abrupt(p1), t) ^ Close(p1,p2,24,t) ^ !Happens(inactive(p2),t ) <=> InitiatedAt(fight(p1,p2), t)")
       val clauses3 = f3.toCNF(constants)
       assert(clauses3.size == 4)
       clauses01.foreach(c => assert(clauses3.contains(c)))
@@ -255,7 +255,7 @@ final class NormalFormSpecTest extends FunSpec with Matchers{
     )
 
     for((axiom, numClauses) <- decTests) describe("Axiom '"+axiom+"'"){
-      val dec = kbParser.parseFormula(axiom)
+      val dec = kbParser.parseLogicalSentence(axiom)
       it("produces "+numClauses+" clause(s)"){
         val clauses = dec.toCNF(constants)
         assert(clauses.size == numClauses)
@@ -302,7 +302,7 @@ final class NormalFormSpecTest extends FunSpec with Matchers{
   describe("Formula 'InitiatedAt(f,t) => !(Happens(e, t) ^ Exist x Close(x,t))'"){
 
     val src = "InitiatedAt(f,t) => !(Happens(e, t) ^ Exist x Close(x,t))"
-    val formula = kbParser.parseFormula(src)
+    val formula = kbParser.parseLogicalSentence(src)
 
     it("should produce the NNF clause '!InitiatedAt(f,t) v !Happens(e,t) v (Forall x !Close(x,t))'"){
       val nnf = NormalForm.toNNF(formula)
@@ -313,7 +313,7 @@ final class NormalFormSpecTest extends FunSpec with Matchers{
   describe("Formula 'InitiatedAt(f,t) => !(Happens(e, t) ^ Exist x Close(x,t))'"){
 
     val src = "InitiatedAt(f,t) => !(Happens(e, t) ^ Exist x Close(x,t))"
-    val formula = kbParser.parseFormula(src)
+    val formula = kbParser.parseLogicalSentence(src)
 
     it("should produce the PNF clause '(Forall x !InitiatedAt(f,t) v !Happens(e,t) v !Close(x,t))'") {
       val pnf = NormalForm.toPNF(formula)
@@ -322,7 +322,7 @@ final class NormalFormSpecTest extends FunSpec with Matchers{
   }
 
   describe("The formula 'InitiatedAt(f,t) => HoldsAt(f, succ(t)).'"){
-    val dec1 = kbParser.parseFormula("InitiatedAt(f,t) => HoldsAt(f, succ(t)).")
+    val dec1 = kbParser.parseLogicalSentence("InitiatedAt(f,t) => HoldsAt(f, succ(t)).")
 
     it("contains the dynamic function succ(int):int"){
       assert(dec1.functions.size == 1)
