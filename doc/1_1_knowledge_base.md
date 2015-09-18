@@ -8,7 +8,7 @@ Knowledge base files in LoMRF are text files having the suffix `.mln` (e.g., `fi
 
   3. [Optional] [Function definitions](#function-definitions), representing the structure of a function.
 
-  4. [Optional] [Formulas](#first---order-logic-formulas) represented in [First-order logic](https://en.wikipedia.org/wiki/First-order_logic), expressing the template for producing Markov Networks.
+  4. [Optional] [Formulas](#first---order-logic-formulas) represented in [First-order logic](https://en.wikipedia.org/wiki/First-order_logic), expressing a template for producing Markov Networks.
 
   5. [Optional] [Definite clauses](#definite-clauses), a special case of formulas.
 
@@ -43,14 +43,14 @@ Brothers(person, person)
 Similarly, the predicate `Happens` associates the domain of *action* with *time* is defined as:
 
 ```lang-none
-Happens(action, event)
+Happens(action, time)
 ```
 
-Therefore, all predicates have some name (e.g., `Brothers`, `Happens`, etc) and some specific number of arguments. Each argument has some domain type (e.g., `person`, `action`, `time`, etc).
+Therefore, all predicates have a name (e.g., `Brothers`, `Happens`, etc) and a specific number of arguments. Each argument has some domain type (e.g., `person`, `action`, `time`, etc).
 
 ## Function Definitions
 
-Function definitions, express the structure of a function. All functions in LoMRF are finite with known domain types. Each function definition has some name, zero or more domain types as arguments and a resulting domain type.
+Function definitions, express the structure of a function. All functions in LoMRF are finite with known domain types. Each function definition has a name, zero or more domain types as arguments and a resulting domain type.
 
 For example, the function that is named as `monthOf` with a single argument that takes constants from the domain of time and returns constants from the domain of *month* (i.e., the month number):
 
@@ -102,9 +102,9 @@ not require any schema definition in the knowledge base file.
 **Terms:**
 
 Terms are intuitively represent objects and can be any of the following:
-  * Constants, are starting with upper-case letter or numeric symbols, e.g., Achilles, Agamemnon, 1, 2, etc.
-  * Variables, are starting with lower-case letter symbols, expressing any constant of a specific domain type, e.g., x, y, z, t, id, name, etc.
-  * Functions, are starting with lower-case letter symbols, and may contain zero or more terms as arguments, e.g., motherOf(X), fatherOf(Agamemnon), etc.
+  * Constants, starting with upper-case letter or numeric symbols, e.g., Achilles, Agamemnon, 1, 2, etc.
+  * Variables, starting with lower-case letter symbols, expressing any constant of a specific domain type, e.g., x, y, z, t, id, name, etc.
+  * Functions, starting with lower-case letter symbols, may contain zero or more terms as arguments, e.g., motherOf(X), fatherOf(Agamemnon), etc.
 
 **Predicates:**
 
@@ -136,14 +136,14 @@ The logical connectives and quantifiers in LoMRF are outlined in the following t
 | Forall | Universal quantification                   |
 | Exist  | Existential quantification                 |
 
-*By default all are variables implicitly assumed to be universally quantified unless otherwise indicated.*
+*By default all variables implicitly assumed to be universally quantified unless otherwise indicated.*
 
 A knowledge base may contain both *hard and soft-constrained* formulas. Hard-constrained formulas are associated
 with an infinite weight value and capture the knowledge which is assumed to be certain. Therefore, an acceptable
 world must at least satisfy the hard constraints. Soft constraints, on the other hand, capture imperfect knowledge
-in the domain, allowing for the existence of worlds in which this knowledge is violated.
-  * Hard-constrained formulas, do not have weights (the weight is assumed to be infinite) and capture the knowledge which is assumed to be certain.
-  * Soft-constrained formulas are always associated with weights and capture imperfect knowledge, allowing for the existence of worlds in which this knowledge is violated.
+in the domain, allowing the existence of worlds in which this knowledge is violated.
+  * *Hard-constrained formulas*, do not have weights (the weight is assumed to be infinite) and capture the knowledge which is assumed to be certain.
+  * *Soft-constrained formulas* are always associated with weights and capture imperfect knowledge, allowing the existence of worlds in which this knowledge is violated.
 
 ## Definite Clauses
 
@@ -164,7 +164,7 @@ Example of soft-constrained definite clause in LoMRF, with a single positive lit
 ```
 
 Example of hard-constrained definite clause in LoMRF, in which the body is composed by
-one positive (i.e., `BodyPredicate1(x)`) and one negative (i.e., `!BodyPredicate2(y)`) literals:
+one positive (i.e., `BodyPredicate1(x)`) and one negative (i.e., `!BodyPredicate2(y)`) literal:
 ```lang-none
 HeadPredicate(x, y) :- BodyPredicate1(x) ^ !BodyPredicate2(y).
 ```
@@ -204,7 +204,7 @@ The first two formulas are straightforward translations of the definite clauses 
 Specifically, if the definite clause is hard-constrainted, the corresponding translation will also remain hard-constrainted.
 Otherwise, the resulting translation will keep the same weight value. The last resulting hard-constrained formula
 introduces the opposite direction, that is `head => disjunction of all body parts`. That formula is always
-hard-constraint and states that in order to have *head* satisfied, at least one of the body parts must also be satisfied.
+hard-constraint and states that in order to have the *head* satisfied, at least one of the body parts must also be satisfied.
 Any other possibility doesn't affect the state of the head predicate. With that translation LoMRF implicitly introduces
 closed-world assumption to head predicates, using a technique that is  called predicate completion (see [McCarthy, 1980; Lifschitz, 1994](#references)).
 
@@ -217,7 +217,7 @@ Head(a, t) <=> (a = f(x) ^ FooPredicate(x, t) ^ !BarPredicate(z(t))) v (a = f(x)
 The problem with that translation is that we cannot keep the weight values from the original definite clauses and that increases the
 number variables (i.e., the additional variable `a`).
 
-> In contrast to the original predicate completion approach, LoMRF keeps expresses the completion into a decomposed form, that is one
+> In contrast to the original predicate completion approach, LoMRF expresses the predicate completion in a decomposed form, that is one
 formula per definite clause and one single formula with the disjunctions of body parts. The implementation is based on the
 transformations presented in [Skarlatidis et. al. (2011, 2015)](#references).
 
@@ -264,8 +264,8 @@ Head(Foo, t) :- P(t) ^ Q(t).
 In the given knowledge base, the domain type `values` is composed of two constants, that is `Foo` and `Bar`.
 Furthermore, the knowledge base contains a single definite clause for the head predicate `Head(Foo, t)`.
 LoMRF will compute the decomposed predicate completion for the predicates having `Head/2` as signature.
-However, the definition for the head predicate `Head(Foo, t)` is missing and thus LoMRF will implicitly
-define it as false - i.e., `Head(Foo, t) <=> False`. As a result, the final form of the knowledge base is given below:
+However, the definition for the head predicate `Head(Bar, t)` is missing and thus LoMRF will implicitly
+define it as false - i.e., `Head(Bar, t) <=> False`. As a result, the final form of the knowledge base is given below:
 ```lang-none
 BodyPredicate1(t) ^ BodyPredicate2(t) => Head(Foo, t).
 
@@ -273,20 +273,20 @@ Head(Foo, t) => BodyPredicate1(t) ^ BodyPredicate2(t).
 
 !Head(Bar, t).
 ```
-As we can see from the resulting knowledge base `Head(Foo, t) <=> False` is equivalently expressed
+As we can see from the resulting knowledge base `Head(Bar, t) <=> False` is equivalently expressed
 as single negated unit clause `!Head(Bar, t).`.
 
 
 ***Limitations of the decomposed form***
 
 In some cases we may have a knowledge base with definite clauses of a particular head predicate,
-but the heads are not contain the same level of variables. For example, we may have the following
+but the heads does not contain the same level of variables. For example, we may have the following
 two definite clauses:
 ```lang-none
 Head(Foo, t) :- P(t) ^ Q(t).
 Head(x, t) :- R(x) ^ Q(t).
 ```
-The first term of the head predicate of first clause is a constant (*Foo*), while the in the second one the
+The first term of the head predicate of the first clause is a constant (*Foo*), while the in the second one the
 corresponding term is a variable (*x*). In that case the second clause contains a higher level of variables
 in the head predicate (`Head(x, t)`).
 

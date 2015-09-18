@@ -15,7 +15,7 @@ Probabilistic Event Calculus formalism as presented in the [Quick Start](0_quick
 
 The aim in activity recognition is to recognize complex activities that take place between multiple persons,
 by exploiting information about simple observed individual activities. The first set [CAVIAR dataset](http://homepages.inf.ed.ac.uk/rbf/CAVIARDATA1/)
-comprises 28 surveillance videos, where each frame is annotated by human experts from the CAVIAR team on two levels.
+comprises of 28 surveillance videos, where each frame is annotated by human experts from the CAVIAR team on two levels.
 The first level contains simple, input events that concern activities of individual persons or the state of objects.
 The second level contains composite event annotations, describing the activities between multiple persons and/or
 objects - i.e., people *meeting* and *moving* together, *leaving an object* and *fighting*.
@@ -23,14 +23,14 @@ objects - i.e., people *meeting* and *moving* together, *leaving an object* and 
 Below we briefly describe the input of the activity recognition example:
 
  1. The input is composed of a collection of input events, representing people *walking*, *running*, *staying active*,
- or *inactive*. The first and the last time that a person or an object is tracked are represented by the
+ or *inactive*. The first and the last time that a person or an object was tracked are represented by the
  input events *enter* and *exit*. Additionally, the coordinates of tracked persons or objects are also taken into
  consideration, in order to express qualitative spatial relations, *e.g., two persons being relatively close to
  each other*.
 
  2. In the following sub-section we give the composite event definitions of *meeting*, *moving*,
  *leaving an object* and *fighting*. These definitions take the form of common sense rules and describe the
- conditions under which a CE starts or ends. For example, when two persons are walking together with the
+ conditions under which a composite event starts or ends. For example, when two persons are walking together with the
  same orientation, then moving starts being recognized. Similarly, when the same persons walk away from
  each other, then moving stops being recognized.
 
@@ -43,16 +43,16 @@ In this application we have the following domain types:
 
 | Domain type   | Description                                                                                                                                  |
 |:--------------|:---------------------------------------------------------------------------------------------------------------------------------------------|
-| id            | domain of constants that uniquely identify persons, and possibly objects, that appear in the scene, e.g., constants *ID1*, *ID2*, etc.       |
+| id            | domain of constants that uniquely identify persons, and possibly objects, that appear in the scene, e.g., the constants *ID1*, *ID2*, etc.     |
 | dist          | domain of numeric thresholds, that indicate relative distances between persons and/or objects in the scene.                                  |
 | time          | domain of time, representing the video frame number.                                                                                         |
-| events        | domain of constants that uniquely identify the occurrence of **input events** of persons and objects in the scene.                           |
-| fluents       | domain of constants that uniquely identify the recognition of **output composite events** between pairs of persons and objects in the scene. |
+| events        | domain of constants that uniquely identify the occurrence of **input events** from persons and objects in the scene.                           |
+| fluents       | domain of constants that uniquely identify the recognition of **output composite events** between pairs of persons and/or objects in the scene. |
 
 ### Function schemas
 
 Input events occur over single person/objects that appear in the scene. We represent them in LoMRF as
-term functions (see Function Definitions in [Syntax](1_syntax.md) section).
+term functions (see [Function Definitions](#1_1_knowledge_base.md#function-definition) section).
 
 | Input Events  | Description                |
 |:--------------|:---------------------------|
@@ -144,7 +144,7 @@ StartTime(t) => !HoldsAt(f, t).
 
 ### Domain-dependent definitions
 
-Below we give the definitions of composite event definitions that express long-term behavior patterns of interest.
+Below we give the definitions of composite events that express long-term behavior patterns of interest.
 We assume that we know the weight values (e.g., expert knowledge or we have performed weight learning). For simplicity
 and compactness, we only present the definitions of *moving* and *meeting*.
 
@@ -263,7 +263,7 @@ Happens(Active_ID1, 170)
 
 ### Inference
 
-The files of this examples are the following:
+The files of this example are the following:
   * Knowledge base files:
     * Main MLN file: [theory.mln](/Examples/data/Activity_Recognition/theory.mln)
     * Definitions of moving activity: [definitions/moving.mln](/Examples/data/Activity_Recognition/definitions/moving.mln)

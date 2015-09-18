@@ -5,12 +5,11 @@ are ground predicates (facts) and optionally ground function Mappings.
 
 ## Function Mappings
 
-A function mapping defines a possible **true** grounding of a function (see Function Definitions above).
+A function mapping defines a possible **true** grounding of a function (see [Function Definitions](1_1_knowledge_base.md#function-definitions)).
 Syntactically follows the corresponding function definition in the knowledge base file, but the domain types are
 replaced with some of their corresponding constant symbols.  
 
-For example, the *true* possible groundings of the function `time = next(time)`
-(see [Function Definitions](1_1_knowledge_base.md#function-definitions)) are the following:
+For example, the *true* possible groundings of the function `time = next(time)` are the following:
 
 ```lang-none
 2 = next(1)
@@ -23,6 +22,7 @@ For example, the *true* possible groundings of the function `time = next(time)`
 9 = next(8)
 10 = next(9)
 ```
+
 According to the given true groundings in the example above, `next(1)` results to the constant `2`. Furthermore,
 LoMRF takes a [Closed-world assumption](https://en.wikipedia.org/wiki/Closed-world_assumption) approach for function
 mappings and therefore mappings that are not defined in the evidence are implicitly assumed as **false**. For example,
@@ -34,8 +34,8 @@ Ground predicates in the evidence represent known facts for the LoMRF. Each fact
 only constants from their corresponding domains. Each fact represents a true grounding of a specific predicate, optionally
 facts can be negated and thus represent a false grounding of a predicate.
 
-For example, the following ground predicates are facts that express that Agamemnon and Menelaus are brothers,
-but Achilles is not brother of Agamemnon.
+For example, the following ground predicates are facts that express that *Agamemnon* and Menelaus are brothers,
+but *Achilles* is not brother of *Agamemnon*.
 
 ```lang-none
 Brother(Agamemnon, Menelaus)
@@ -46,6 +46,5 @@ Brother(Menelaus, Agamemnon)
 By default LoMRF takes [Closed-world assumption](https://en.wikipedia.org/wiki/Closed-world_assumption) for all
 instantiations of predicates that have at least one fact in the specified evidence file, unless it is explicitly
 specified to take [Open-world assumption](https://en.wikipedia.org/wiki/Open-world_assumption) in the inference
-options or it is an query predicate (see [Inference](2_inference.md)). Therefore, we can define only the true
-groundings in the evidence and assume false state for all other possible combinations (e.g., `Brother(Achilles, Menelaus)`
-is implicitly assumed as **false**).   
+options or it is a query predicate (see [Inference](2_inference.md)). Therefore, we can define only the true
+groundings in the evidence and assume a *False* state for all other possible combinations (e.g., `Brother(Achilles, Menelaus)` is implicitly assumed as **False**).   

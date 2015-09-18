@@ -270,41 +270,46 @@ Assassinate(person, person)
 Loyal(person, person)
 Roman(person)
 ```
+
 *Formulas:*
 
-1. All Pompeians are Roman (hard-constrained):
+
+* All Pompeians are Roman (hard-constrained):
+
 ```lang-none
 Forall x Pompeian(x) => Roman(x).
 ```
 This formula can also written as following, since by default all variables implicitly assumed to be universally quantified unless otherwise indicated:
+
 ```lang-none
 Pompeian(x) => Roman(x).
 ```
 
-2. All Romans were either loyal to Caesar or hated him or both (hard-constrained):
+* All Romans were either loyal to Caesar or hated him or both (hard-constrained):
 
 ```lang-none
 Roman(x) => Loyal(x, Caesar) v Hate(x, Caesar).
 ```
 
-3. Usually, everyone is loyal to someone (soft-constrained):
+* Usually, everyone is loyal to someone (soft-constrained):
 
 ```lang-none
 1 Forall x Exist y Loyal(x, y)
 ```
 
-4. People may try to assassinate rulers to whom they are not loyal (soft-constrained):
+* People may try to assassinate rulers to whom they are not loyal (soft-constrained):
 
 ```lang-none
 2 Forall x,y People(x) ^ Ruler(y) ^ Assassinate(x,y) => !Loyal(x, y)
 ```
-5. Usually nobody hates himself (soft-constrained):
+* Usually nobody hates himself (soft-constrained):
 
 ```lang-none
 1 !Hate(x, x)
 ```
 
 *Final form of the knowledge base file (theory.mln):*
+
 ```lang-none
 // Query predicates:
 Hate(person,person)

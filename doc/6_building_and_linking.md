@@ -1,10 +1,8 @@
 # Building and Linking LoMRF
 
 In order to build LoMRF from source, you need to have Java SE Development Kit (e.g., OpenJDK) version 7 or higher
-(**it is recommend use Java SE 8 or higher**) and [SBT](http://www.scala-sbt.org/) (v0.13.x) installed in
-your system. Furthermore, LoMRF build depends on the [auxlib](https://github.com/anskarl/auxlib) (v0.1-SNAPSHOT),
-as well as to [Optimus](https://github.com/vagm/Optimus) and (optionally) [Gurobi](http://www.gurobi.com/) and
-[LPSolve](http://lpsolve.sourceforge.net).
+(**it is recommended to use Java SE 8 or higher**) and [SBT](http://www.scala-sbt.org/) (v0.13.x) installed in
+your system. Furthermore, LoMRF build depends on the [auxlib](https://github.com/anskarl/auxlib), [Optimus](https://github.com/vagm/Optimus) and optionally to [Gurobi](http://www.gurobi.com/) and [LPSolve](http://lpsolve.sourceforge.net).
 
 ## Instructions to build LoMRF from source
 
@@ -34,7 +32,7 @@ $ sbt dist
 
 After a successful compilation, the LoMRF distribution is located inside the `./target/universal/lomrf-<version>.zip`
 file. You can extract this file and add the `path/to/lomrf-<version>/bin` in your PATH, in order to execute the LoMRF
-scripts from terminal (see next Section). The distribution contains all library dependencies and requires only a Java 7
+scripts from terminal (see Section [Add LoMRF executables in your default PATH](#Add-LoMRF-executables-in-your-default-PATH)). The distribution contains all library dependencies and requires only Java 7
 (or higher runtime). Sources, documentation and the compiled library (without dependencies) are archived as jar files
 into the `./target/scala-2.11/` directory. The resulting documentation is located inside the `./target/site/scaladocs`
 directory.
@@ -60,7 +58,8 @@ lomrf-0.4.1/
 |-- etc
 |-- lib
 ```
-###Linux, Unix and MacOS X
+
+### Linux, Unix and MacOS X
 
 The `bin` sub-directory contains all LoMRF executable tools. In order to add this sub-directory in your default `PATH`
 add the following line in you profile file.
@@ -80,7 +79,7 @@ or in `~/.cshrc` file in your home directory:
 setenv PATH $PATH:$HOME/lomrf-0.4.1/bin:.
 ```
 
-###Microsoft Windows Operating Systems
+### Microsoft Windows Operating Systems
 
 For MS Windows OS add the location of LoMRF sub-folder (e.g., `C:\path\to\lomrf-0.4.1\bin`) in your PATH environment variable.
 
@@ -123,9 +122,9 @@ For MS Windows OS add the location of LoMRF sub-folder (e.g., `C:\path\to\lomrf-
   4. Close the window.
   5. Reopen Command prompt window, and run your LoMRF experiments.
 
-  ## (optional) LPSolve installation instructions
+## LPSolve installation instructions (optional)
 
-  ### Linux distributions
+### Linux distributions
 
   For example, on a ***Debian-based*** distribution, write the following command:
   ```bash
@@ -159,11 +158,11 @@ To install LPSolve v5.5.x in your system, follow the instructions below:
   * Create a directory containing the `lpsolve55.dll`, `lpsolve55j.jar` and `lpsolve55j.dll` files, e.g., `C:\path\to\lpsolve55`
   * Add this directory to the PATH environment variable in your system environment variables (see [instructions](#microsoft-windows-operating-systems))
 
-## (optional) Gurobi installation instructions
+## Gurobi installation instructions (optional)
 Please follow the installation instructions from the [Gurobi website](http://www.gurobi.com).
 
 
-##Using LoMRF as a library
+## Using LoMRF as a library
 
 Follow the first 2 steps of Section [Instructions to build LoMRF from source](#instructions-to build-lomrf-from-source) and then publish locally the LoMRF:
 
