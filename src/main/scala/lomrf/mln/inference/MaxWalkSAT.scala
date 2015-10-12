@@ -68,7 +68,7 @@ import scala.util.{Failure, Success}
  * @param maxTries The maximum number of attempts taken to find a solution (default is 1).
  * @param targetCost Any possible world having cost below this threshold is considered as a solution (default is 0.0001)
  * @param outputAll Show 0/1 results for all query atoms (default is true)
- * @param satHardUnit Trivially satisfy hard constrained unit clauses (default is true)
+ * @param satHardUnit Trivially satisfy hard constrained unit clauses (default is false)
  * @param satHardPriority Satisfiability priority to hard constrained clauses (default is false)
  * @param tabuLength Minimum number of flips between flipping the same atom (default is 10)
  *

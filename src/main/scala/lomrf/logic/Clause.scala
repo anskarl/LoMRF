@@ -86,7 +86,6 @@ final class Clause(val weight: Double, val literals: Set[Literal]) extends Subst
   def isDefiniteClause = literals.count(_.isPositive) == 1
 
   /**
-   *
    * @return the number of literals
    */
   def size = literals.size
@@ -102,19 +101,13 @@ final class Clause(val weight: Double, val literals: Set[Literal]) extends Subst
     }
   }
 
-
   def toText(weighted: Boolean = true)(implicit numFormat: DecimalFormat = Clause.defaultNumFormat): String = {
     if(weighted) {
-      if(isHard)
-        literals.map(_.toText).mkString(" v ")+"."
-      else
-        numFormat.format(weight)+" "+literals.map(_.toText).mkString(" v ")
+      if(isHard) literals.map(_.toText).mkString(" v ")+"."
+      else numFormat.format(weight)+" "+literals.map(_.toText).mkString(" v ")
     }
-    else {
-      literals.map(_.toText).mkString(" v ")
-    }
+    else literals.map(_.toText).mkString(" v ")
   }
-
 
   override def substitute(theta: Theta): Clause = {
     Clause(literals.map(_.substitute(theta)), weight)
@@ -127,12 +120,25 @@ final class Clause(val weight: Double, val literals: Set[Literal]) extends Subst
     }
   }
 
-
+  /**
+   * A pair of clauses are similar, when:
+   * <ul>
+   * <li> both have the same number of literals, and </li>
+   * <li> for each literal in this clause, another literal exists in the other clause having the
+   * same sense (positive or negated) and similar atomic formulas.
+   * For example the clause !HoldsAt(f,t1) v HoldsAt(f,t2) is similar to HoldsAt(f,t1) v !HoldsAt(f,t2) but
+   * is not similar to !HoldsAt(f,t1) v !HoldsAt(f,t2)
+   * </li>
+   * </ul>
+   *
+   * @param that the other clause for comparison
+   *
+   * @return true if this clause is similar to that one, otherwise false
+   */
   def =~= (that: Clause): Boolean = {
-    if(this.literals.size == that.literals.size){
+    if (this.literals.size == that.literals.size) {
       var otherLiterals = that.literals
       this.literals.forall { lit1 =>
-
         otherLiterals.find(lit2 => lit1.positive == lit2.positive && lit1.sentence =~= lit2.sentence) match {
           case Some(matchedLiteral) =>
             otherLiterals -= matchedLiteral
@@ -142,7 +148,6 @@ final class Clause(val weight: Double, val literals: Set[Literal]) extends Subst
       }
     }
     else false
-
   }
 
   override def hashCode(): Int = hash

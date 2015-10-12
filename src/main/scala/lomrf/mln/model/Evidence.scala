@@ -56,7 +56,7 @@ class Evidence(val constants: ConstantsDomain,
   lazy val probabilisticAtoms: Set[AtomSignature] = db.filter(x => x._2.isProbabilistic).keySet
 
   lazy val cwaAtoms: Set[AtomSignature] =
-    (for((signature, edb) <- db; if edb.numberOfKnown == 0) yield signature)(breakOut)
+    (for((signature, edb) <- db; if edb.numberOfUnknown == 0) yield signature)(breakOut)
 
   lazy val owaAtoms = db.keySet -- cwaAtoms
 

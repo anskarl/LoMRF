@@ -1,0 +1,19 @@
+// When people begin to meet
+
+1.386 InitiatedAt(meet(p1,p2), t) :- Happens(active(p1), t) ^ !Happens(running(p2), t) ^  Close(p1,p2,25,t)
+
+-3.178 InitiatedAt(meet(p1,p2),t) :- Happens(inactive(p1),t) ^ !Happens(running(p2),t)  ^ !Happens(active(p2),t) ^ Close(p1,p2,25,t)
+
+// When people stop meeting
+
+// --- walking
+2 TerminatedAt(meet(p1,p2),t) :- Happens(walking(p1),t)  ^ !Close(p1,p2,34,t)
+2 TerminatedAt(meet(p1,p2),t) :- Happens(walking(p2),t)  ^ !Close(p2,p1,34,t)
+
+// --- start running
+2 TerminatedAt(meet(p1,p2),t)  :- Happens(running(p1),t)
+2 TerminatedAt(meet(p1,p2),t) :- Happens(running(p2),t)
+
+// --- exit (hard-constrained)
+TerminatedAt(meet(p1,p2),t) :- Happens(exit(p1), t).
+TerminatedAt(meet(p1,p2),t) :- Happens(exit(p2), t).

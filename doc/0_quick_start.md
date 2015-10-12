@@ -1,13 +1,13 @@
 # Quick Start
 
 Assuming that you have successfully build a LoMRF distribution and added LoMRF executables in your default `PATH` (see
-[Building and Linking](6_building_and_linking.md)). In the following paragraphs we will present our first LoMRF model and
+[Building and Linking](6_building_and_linking.md)). In the following paragraphs we present our first LoMRF model and
 perform probabilistic inference.
 
 ## Running Example
 
 For our running example we use the [Yale Shooting Problem](https://en.wikipedia.org/wiki/Yale_shooting_problem),
-a well-known AI test case of non-monotonic temporal reasoning which was proposed by Steve Hanks and Drew McDermott[^1].
+a well-known AI test case of non-monotonic temporal reasoning which was proposed by [Steve Hanks and Drew McDermott (1987)](#references).
 In brief, a hunter tries to kill a prey with his gun.  Only when the hunter shoots with a loaded gun the prey is being
 killed.
 
@@ -16,11 +16,11 @@ alive). The series of actions and situations occur in linear time. Furthermore, 
 happen (e.g., the hunter loads the gun), causing related situations to hold or not (e.g., the gun is loaded).
 
 To demonstrate the core features of  LoMRF, we model the Yale Shooting scenario by using the
-[Event Calculus](https://en.wikipedia.org/wiki/Event_calculus) logical action formalism. In the Event Calculus we
-represent *actions* with *events* and *situations* with *fluents*. More formally, a fluent is a property whose value may
-change over time. When an event occurs it may change the value of a fluent. The underlying time  model is linear and we
-represent time-points as integer numbers. The core domain-independent axioms of the Event Calculus define whether a
-fluent holds or not at a specific time-point. Moreover, the axioms incorporate the common sense *law of inertia*,
+[Event Calculus](https://en.wikipedia.org/wiki/Event_calculus) (see [Kowalski and Sergot (1986), Shanahan (1999) and Mueller (2008)](#references))
+logical action formalism. In the Event Calculus we represent *actions* with *events* and *situations* with *fluents*.
+More formally, a fluent is a property whose value may change over time. When an event occurs it may change the value of a fluent.
+The underlying time  model is linear and we represent time-points as integer numbers. The core domain-independent axioms of
+the Event Calculus define whether a fluent holds or not at a specific time-point. Moreover, the axioms incorporate the common sense *law of inertia*,
 according to which fluents persist over time, unless they are affected by the occurrence of some event. For example,
 the gun remains loaded (fluent) until the hunter shoots (event). Below we outline the events and the fluents that we
 use in the example:
@@ -70,14 +70,13 @@ The contents of the `theory.mln` file is can be the following:
   5. A special case of formulas are the definite clauses, which can be used to define declarations of rules. The definite
   clauses, are processed by the LoMRF and automatically translated to equivalent formulas. Their syntax is simpler from the syntax of formulas and are ideal for defining domain-specific knowledge.
 
-Please note that variables, domain types and *functions* are starting with a lower-case letter. All variables are assumed to be
-universally quantified unless otherwise indicated. *Predicates* and *constants* start with an upper-case letter.
+Please note that variables, domain types and *functions* are starting with a lower-case letter. All variables are assumed to be universally quantified unless otherwise indicated. *Predicates* and *constants* start with an upper-case letter.
 
 ### Domain types
 
 That part is optional, since the LoMRF can collect all possible constant symbols for each domain type that appears in
 our formulas, as well as in the specified evidence. Furthermore, if the have constant symbols in both evidence and our
-theory (domain types, as well as in formulas), the LoMRF will automatically compute the union of all constant symbols.
+theory (domain types, as well as in formulas), the LoMRF automatically computes the union of all constant symbols.
 On the other hand, in situations where the evidence might not contain all possible constant symbols, then it is advised
 to define that subset of symbols in the theory.  
 
@@ -97,11 +96,11 @@ For integer-valued domains like the domain of time, we can use the following not
 time = {1,...,100}
 ```
 
-The resulting domain of time will contain the range of 1 to 100 as constant symbols.
+The resulting domain of time contains the range of 1 to 100 as constant symbols.
 
 ### Predicate definitions
 
-We have to define the schema of each predicate that we will use in our example. Each predicate has some symbol name which
+We have to define the schema of each predicate that we use in our example. Each predicate has some symbol name which
 is followed by a parenthesis containing its arguments. Furthermore, the symbol with the number of its arguments (called
 arity) defines the unique atomic signature of the predicate. For example, the schema of the predicate with symbol 'Foo'
 and the two arguments 'event' and 'time' has atomic signature `Foo/2` (i.e., symbol/arity) and is defined as follows:
@@ -159,12 +158,12 @@ time-point.
 
 All four formulas are hard-constrained, thus they do not have any weight value, instead they have a dot at the end. The reason that
 we use hard-constrained formulas to express the core Event Calculus axioms, is that we want to hold with absolute
-certainty. Further details about the probabilistic Event Calculus formalism of our example can be found in [^2].
+certainty. Further details about the probabilistic Event Calculus formalism of our example can be found in [Skarlatidis et. al. (2014, 2015)](#references).
 
 ### Domain-dependent axioms (expressed as definite clauses)
 
 Having formalised the Event Calculus axioms in LoMRF, we continue with the domain-dependent axioms that describe the
-knowledge for our running example. For simplicity we will use the definite clause notation in this part. All definite
+knowledge for our running example. For simplicity we use the definite clause notation in this part. All definite
 clauses are composed of a *head* predicate and a declaration of *body* predicates (might be negated) that are connected
 with conjunctions (logical and). The basic definite clause syntax is given below, where the head predicate is separated
 by the predicates in the body with a the declaration symbol `:-`:
@@ -291,10 +290,10 @@ HoldsAt(Alive,0).
 
 ## Writing your first evidence
 
-We will now define the input evidence, in order to represent our example scenario. The evidence is given in a separate
+We now define the input evidence, in order to represent our example scenario. The evidence is given in a separate
 file (`evidence.db`) and contains ground predicates (i.e., predicates that contain only constants in their arguments).
 
-Specifically, we will represent the following scenario:
+Specifically, we represent the following scenario:
 
 1. At time-point 2, the hunter shoots with empty gun.
 2. At time-point 3, the hunter loads the gun.
@@ -394,7 +393,7 @@ HoldsAt(Loaded,14) 0.118
 
 MAP inference, on the other hand, identifies the most probable assignment among all query predicate instantiations that
 are consistent with the given evidence. This task reduces to finding the truth assignment of all query predicate
-instantiations that maximises the sum of weights of satisfied ground clauses. This is equivalent to the weighted maximum
+instantiations that maximizes the sum of weights of satisfied ground clauses. This is equivalent to the weighted maximum
 satisfiability problem.
 
 ```lang-none
@@ -453,7 +452,15 @@ HoldsAt(Loaded,14) 0
 
 ## References
 
-[^1]: Hanks S. and McDermott D. Nonmonotonic logic and temporal projection. Artificial Intelligence 33.3, 379-412. 1987.
+Hanks S. and McDermott D. Nonmonotonic Logic and Temporal Projection. Artificial Intelligence 33.3, 379-412. 1987. ([link](http://www.sciencedirect.com/science/article/pii/0004370287900439))
 
-[^2]: Skarlatidis A., Paliouras G., Artikis A. and Vouros G. Probabilistic Event Calculus for Event Recognition. ACM
-Transactions on Computational Logic, 16, 2, Article 11, pp. 11:1-11:37, 2015.
+Kowalski, R. and Sergot, M. (1986). A Logic-based Calculus of Events. New Generation Computing, 4(1):67–95. ([link](http://dx.doi.org/10.1007/BF03037383))
+
+Mueller, E. T. (2008). Event Calculus. In Handbook of Knowledge Representation, volume 3 of Foundations of Artificial Intelligence, pages 671–708. Elsevier. ([link](http://dx.doi.org/10.1016/S1574-6526%2807%2903017-9))
+
+Shanahan, M. (1999). The Event Calculus Explained. In Wooldridge, M. and Veloso, M., editors, Artificial Intelligence Today, volume 1600 of Lecture Notes in Computer Science, pages 409–430. Springer. ([link](http://www.doc.ic.ac.uk/~mpsha/ECExplained.pdf))
+
+Skarlatidis A. (2014). Event Recognition Under Uncertainty and Incomplete Data. PhD Thesis. Department of Digital Systems, University of Piraeus. ([link](http://hdl.handle.net/10442/hedi/35692))
+
+Skarlatidis A., Paliouras G., Artikis A. and Vouros G. (2015). Probabilistic Event Calculus for Event Recognition. ACM
+Transactions on Computational Logic, 16, 2, Article 11, pp. 11:1-11:37. ([link](http://dx.doi.org/10.1145/2699916))

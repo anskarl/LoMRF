@@ -153,11 +153,11 @@ object InferenceCLI extends CLIApp {
     _owa += atom.signature.getOrElse(fatal(s"Cannot parse the arity of OWA atom: $atom"))
   }
 
-  opt("i", "input", "<kb file>", "Markov Logic file", { v: String => _mlnFileName = Some(v) })
+  opt("i", "input", "<path to mln file>", "Specify the path to the input knowledge base file", { v: String => _mlnFileName = Some(v) })
 
-  opt("e", "evidence", "<db file(s)>", "Comma separated evidence database files.", { v: String => _evidenceFileNames = v.split(',').toList })
+  opt("e", "evidence", "<path(s) to db file(s)>", "Specify the the paths of the evidence database files(comma separated, without spaces).", { v: String => _evidenceFileNames = v.split(',').toList })
 
-  opt("r", "result", "<result file>", "Results file", {
+  opt("r", "result", "<path to results file>", "Specify the path to the output results file", {
     v: String => _resultsFileName = Some(v)
   })
 
@@ -206,7 +206,8 @@ object InferenceCLI extends CLIApp {
     _satHardPriority = true
   })
 
-  opt("ilpRounding", "ilp-rounding", "<roundup | mws>", "Rounding algorithm for ILP (default is RoundUp).", {
+  opt("ilpRounding", "ilp-rounding", "<roundup | mws>", "Specify either RoundUp (roundup) or MaxWalkSAT (mws) as " +
+    "rounding algorithm to use for non-integral parts of the ILP solutions (default is RoundUp).", {
     v: String => v.trim.toLowerCase match {
       case "roundup" => _ilpRounding = RoundingScheme.ROUNDUP
       case "mws" => _ilpRounding = RoundingScheme.MWS
@@ -214,7 +215,7 @@ object InferenceCLI extends CLIApp {
     }
   })
 
-  opt("ilpSolver", "ilp-solver", "<lpsolve | ojalgo | gurobi>", "Solver used by ILP (default is LPSolve).", {
+  opt("ilpSolver", "ilp-solver", "<lpsolve | ojalgo | gurobi>", "Specify which ILP solver use (default is LPSolve).", {
     v: String => v.trim.toLowerCase match {
       case "gurobi" => _ilpSolver = Solver.GUROBI
       case "lpsolve" => _ilpSolver = Solver.LPSOLVE
@@ -223,31 +224,35 @@ object InferenceCLI extends CLIApp {
     }
   })
 
-  intOpt("samples", "num-samples", "Number of samples to take (default is " + _samples + ").", _samples = _)
+  intOpt("samples", "num-samples", "Specify the number of samples to take in MC-SAT (default is " + _samples + ").", _samples = _)
 
   doubleOpt("pSA", "probability-simulated-annealing", "Specify the probability to perform a simulated annealing step (default is " + _pSA + "), " +
     "when using MC-SAT for marginal inference.", {
     v: Double => if (v >= 1.0 || v <= 0.0) fatal("The pLocalSearch value must be between [0,1], but you gave: " + v) else _pSA = v
   })
 
-  doubleOpt("pBest", "probability-best-search", "The probability to perform a greedy search (default is " + _pBest + ").", {
+  doubleOpt("pBest", "probability-best-search", "The probability to perform a greedy search (default is " + _pBest + "), " +
+    "when using  MaxWalkSAT or MC-SAT.", {
     v: Double => if (v >= 1.0 || v <= 0.0) fatal("The pBest value must be between [0,1], but you gave: " + v) else _pBest = v
   })
 
-  doubleOpt("saTemperature", "simulated-annealing-temperature", "Temperature (take values in [0,1]) for the simulated annealing step in MC-SAT (default is " + _saTemperature + ").", {
+  doubleOpt("saTemperature", "simulated-annealing-temperature", "Temperature (take values in (0,1]) for the simulated " +
+    "annealing step in MC-SAT (default is " + _saTemperature + ").", {
     v: Double => if (v >= 1.0 || v <= 0.0) fatal("The saTemperature value must be between [0,1], but you gave: " + v) else _saTemperature = v
   })
 
-  intOpt("maxFlips", "maximum-flips", "The maximum number of flips taken to reach a solution (default is " + _maxFlips + ").", {
+  intOpt("maxFlips", "maximum-flips", "The maximum number of flips taken to reach a solution in MaxWalkSAT or MC-SAT (default is " + _maxFlips + ").", {
     v: Int => if (v < 0) fatal("The maxFlips value must be any integer above zero, but you gave: " + v) else _maxFlips = v
   })
 
-  doubleOpt("targetCost", "target-cost", "Any possible world having cost below this threshold is considered as a solution (default is " + _targetCost + ").", {
+  doubleOpt("targetCost", "target-cost", "In MaxWalkSAT and MC-SAT, any possible world having cost below this threshold " +
+    "is considered as a solution (default is " + _targetCost + ").", {
     v: Double => if (v < 0) fatal("The targetCost value cannot be negative, you gave: " + v) else _targetCost = v
   })
 
 
-  intOpt("maxTries", "maximum-tries", "The maximum number of attempts, in order to find a solution (default is " + _maxTries + ")", {
+  intOpt("maxTries", "maximum-tries", "The maximum number of attempts, in order to find a solution in MaxWalkSAT and " +
+    "MC-SAT (default is " + _maxTries + ")", {
     v: Int => if (v < 0) fatal("The maxTries value must be any integer above zero, but you gave: " + v) else _maxTries = v
   })
 
@@ -255,11 +260,14 @@ object InferenceCLI extends CLIApp {
     v: Int => if (v <= 0) fatal("The numSolutions value must be an integer above zero, but you gave: " + v) else _numSolutions = v
   })
 
-  intOpt("tabuLength", "tabu-length", "Minimum number of flips between flipping the same ground atom in successive MaxWalkSAT steps (default is " + _tabuLength + ").", {
+  intOpt("tabuLength", "tabu-length", "Minimum number of flips between flipping the same ground atom in successive steps " +
+    "in MaxWalkSAT and MC-SAT (default is " + _tabuLength + ").", {
     v: Int => if (v <= 0) fatal("The tabuLength value must be an integer above zero, but you gave: " + v) else _tabuLength = v
   })
 
-  booleanOpt("unitProp", "use-unit-propagation", "Enable/disable unit propagation (default is " + _unitProp + ") in MC-SAT.", _unitProp = _)
+  booleanOpt("unitProp", "use-unit-propagation", "Enable/disable unit propagation (default is " + _unitProp + ") in MC-SAT. " +
+    "Performs unit propagation across the constraints in order to trivially satisfy as many as possible. When enabled, " +
+    "the search space in MC-SAT is minimized, increases sampling performance and accuracy.", _unitProp = _)
 
   booleanOpt("lateSA", "late-simulated-annealing",
     "When enabled (= true), simulated annealing is performed only when MC-SAT reaches a plateau (i.e. a world with cost <= 'targetCost'). " +
