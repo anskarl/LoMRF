@@ -38,16 +38,16 @@ package lomrf.logic
 import lomrf.mln.model.ConstantsSet
 
 
-sealed trait Formula extends MLNExpression with Substitutable[Formula] {
+sealed trait Formula extends MLNExpression with Substitutable[Formula] with Serializable{
 
   // The collection of variables that appear inside this formula
-  lazy val variables: Set[Variable] = subFormulas.foldRight(Set[Variable]())((f: FormulaConstruct, rest) => f.variables ++ rest)
+  @transient lazy val variables: Set[Variable] = subFormulas.foldRight(Set[Variable]())((f: FormulaConstruct, rest) => f.variables ++ rest)
 
   // The collection of constants that appear inside this formula
-  lazy val constants: Set[Constant] = subFormulas.foldRight(Set[Constant]())((f: FormulaConstruct, rest) => f.constants ++ rest)
+  @transient lazy val constants: Set[Constant] = subFormulas.foldRight(Set[Constant]())((f: FormulaConstruct, rest) => f.constants ++ rest)
 
   // The collection of functions that appear inside this formula
-  lazy val functions: Set[TermFunction] = subFormulas.foldRight(Set[TermFunction]())((f: FormulaConstruct, rest) => f.functions ++ rest)
+  @transient lazy val functions: Set[TermFunction] = subFormulas.foldRight(Set[TermFunction]())((f: FormulaConstruct, rest) => f.functions ++ rest)
 
   /**
    * Gives the sub-formulas that this formula contains
@@ -135,11 +135,11 @@ sealed trait ConditionalStatement extends FormulaConstruct {
 
 final case class DefiniteClause(head: AtomicFormula, body: DefiniteClauseConstruct) extends Formula {
 
-  override lazy val variables: Set[Variable] = body.subFormulas.foldRight(head.variables)((a: FormulaConstruct, b) => a.variables ++ b)
+  @transient override lazy val variables: Set[Variable] = body.subFormulas.foldRight(head.variables)((a: FormulaConstruct, b) => a.variables ++ b)
 
-  override lazy val constants: Set[Constant] = body.subFormulas.foldRight(head.constants)((a: FormulaConstruct, b) => a.constants ++ b)
+  @transient override lazy val constants: Set[Constant] = body.subFormulas.foldRight(head.constants)((a: FormulaConstruct, b) => a.constants ++ b)
 
-  override lazy val functions: Set[TermFunction] = body.subFormulas.foldRight(head.functions)((a: FormulaConstruct, b) => a.functions ++ b)
+  @transient override lazy val functions: Set[TermFunction] = body.subFormulas.foldRight(head.functions)((a: FormulaConstruct, b) => a.functions ++ b)
 
   override def subFormulas: Seq[FormulaConstruct] = Seq(head, body)
 
@@ -242,30 +242,30 @@ final case class WeightedDefiniteClause(weight: Double, clause: DefiniteClause) 
 case class AtomicFormula(symbol: String, terms: Vector[_ <: Term])
   extends DefiniteClauseConstruct with FormulaConstruct with TermIterable{
 
-  override def iterator: Iterator[_ <: Term] = terms.iterator
-
   val isDynamic = false
 
   val arity = terms.size
 
-  lazy val signature = AtomSignature(symbol, terms.size)
-
-  override def countAtoms = 1
-
   /**
    * All variables of this atom
    */
-  override lazy val variables: Set[Variable] = uniqueVariablesIn(this)
+  @transient override lazy val variables: Set[Variable] = uniqueVariablesIn(this)
 
   /**
    * All constants of this atom
    */
-  override lazy val constants: Set[Constant] = uniqueConstantsIn(this)
+  @transient override lazy val constants: Set[Constant] = uniqueConstantsIn(this)
 
   /**
    * All functions of this atom
    */
-  override lazy val functions: Set[TermFunction] = uniqueFunctionsIn(this)
+  @transient override lazy val functions: Set[TermFunction] = uniqueFunctionsIn(this)
+
+  @transient lazy val signature = AtomSignature(symbol, terms.size)
+
+  override def countAtoms = 1
+
+  override def iterator: Iterator[_ <: Term] = terms.iterator
 
   def isGround = variables.isEmpty
 
@@ -322,14 +322,13 @@ final class EvidenceAtom(override val symbol: String, override val terms: Vector
                    val state: TriState, val probability: Double = Double.NaN) extends AtomicFormula(symbol, terms) with EvidenceExpression {
 
 
-  override lazy val variables: Set[Variable] = Set.empty[Variable]
+  @transient override lazy val variables: Set[Variable] = Set.empty[Variable]
 
-  override lazy val constants: Set[Constant] = terms.toSet[Constant]
+  @transient override lazy val constants: Set[Constant] = terms.toSet[Constant]
 
-  override lazy val functions: Set[TermFunction] = Set.empty[TermFunction]
+  @transient override lazy val functions: Set[TermFunction] = Set.empty[TermFunction]
 
   override def isGround = true
-
 
   override def toText: String = {
     lazy val sentence = s"$symbol(${terms.map(_.toText).mkString(",")})"
@@ -369,9 +368,9 @@ object EvidenceAtom {
   }
 }
 
-final class FunctionMapping(val retValue: String, val functionSymbol: String, val values: Vector[String]) extends EvidenceExpression {
+final class FunctionMapping(val retValue: String, val functionSymbol: String, val values: Vector[String]) extends EvidenceExpression with Serializable{
 
-  lazy val signature = AtomSignature(functionSymbol, values.size)
+  @transient lazy val signature = AtomSignature(functionSymbol, values.size)
 
   override def toString = s"$retValue = $functionSymbol(${values.mkString(",")})"
 
@@ -391,7 +390,7 @@ object FunctionMapping {
 /**
  * Negation of a formula (! { Formula } )
  */
-final case class Not(arg: FormulaConstruct) extends DefiniteClauseConstruct with FormulaConstruct{
+final case class Not(arg: FormulaConstruct) extends DefiniteClauseConstruct with FormulaConstruct {
 
   private val _isUnit: Boolean = arg.isInstanceOf[AtomicFormula]
 
