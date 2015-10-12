@@ -45,7 +45,7 @@ import scala.collection.breakOut
 
 import scala.util.Try
 
-trait FunctionMapper {
+trait FunctionMapper extends Serializable {
 
   def apply(args: Vector[String]): String
 

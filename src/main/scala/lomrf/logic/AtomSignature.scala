@@ -62,9 +62,9 @@ import scala.util.{Failure, Try}
  *
  *
  */
-final class AtomSignature private(val symbol: String, val arity: Int) {
+final class AtomSignature private(val symbol: String, val arity: Int) extends Serializable {
 
-  val hash = symbol.hashCode ^ arity
+  @transient val hash = symbol.hashCode ^ arity
 
   override def equals(obj: Any): Boolean = obj match {
     case other: AtomSignature => other.arity == this.arity && other.symbol == this.symbol

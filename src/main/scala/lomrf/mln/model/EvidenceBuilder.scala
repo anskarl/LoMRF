@@ -225,6 +225,8 @@ final class EvidenceBuilder private(predicateSpace: PredicateSpace,
 
       fmBuilders = Map.empty[AtomSignature, FunctionMapperBuilder]
     }
+
+    def result(): Map[AtomSignature, FunctionMapper] = fmBuilders.map(entries => entries._1 -> entries._2.result())
   }
 
   private sealed trait FunctionRegister {

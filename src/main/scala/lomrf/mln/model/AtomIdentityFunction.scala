@@ -57,13 +57,13 @@ final class AtomIdentityFunction private(
                                           val startID: Int,
                                           val constantsAndStep: Array[(ConstantsSet, Int, Int, String, Int)],
                                           val length: Int,
-                                          val schema: Seq[String]) {
+                                          val schema: Seq[String]) extends Serializable {
 
   import AtomIdentityFunction.IDENTITY_NOT_EXIST
 
   val endID = startID + length
 
-  lazy val indices = startID until endID
+  @transient lazy val indices = startID until endID
 
   def encode(atom: EvidenceAtom): Int = {
     var sum = startID
