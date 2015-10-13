@@ -51,11 +51,7 @@ libraryDependencies += "com.nativelibs4java" %% "scalaxy-streams" % "0.3.4" % "p
 libraryDependencies += "com.vividsolutions" % "jts" % "1.13"
 
 // Adding auxlib library requires local publishing (for details see https://github.com/anskarl/auxlib)
-libraryDependencies ++= Seq(
-	"com.github.anskarl" %% "auxlib-log" % "0.1-SNAPSHOT",
-	"com.github.anskarl" %% "auxlib-opt" % "0.1-SNAPSHOT",
-	"com.github.anskarl" %% "auxlib-trove" % "0.1-SNAPSHOT"
-)
+libraryDependencies += "com.github.anskarl" %% "auxlib" % "0.1"
 
 // Adding optimus library requires local publishing (for details see https://github.com/vagm/Optimus)
 libraryDependencies += "com.github.vagm" %% "optimus" % "1.2.1"
