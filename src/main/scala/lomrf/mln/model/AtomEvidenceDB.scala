@@ -667,7 +667,7 @@ final class AtomEvidenceDBBuilder private(val signature: AtomSignature,
     val id = identity.encode(atom)
 
     if(id == AtomIdentityFunction.IDENTITY_NOT_EXIST)
-      throw new NoSuchElementException(s"Failed to compute the unit identification number for atom: '${atom.toText}'")
+      throw new NoSuchElementException(s"Failed to compute the unique identification number for atom: '${atom.toText}'")
 
     atom.state match {
       case TRUE =>
