@@ -37,7 +37,6 @@ package lomrf.logic
 
 import lomrf.logic.dynamic.DynEqualsBuilder
 import lomrf.mln.model.{FunctionSchema, PredicateSchema}
-
 import scala.collection.mutable
 import scala.util.Try
 
@@ -169,21 +168,18 @@ object LogicOps {
     }
   }
 
-  implicit class DefiniteClauseOps(val definiteClause: WeightedDefiniteClause) extends AnyVal {
+  implicit class DefiniteClauseOps(val definiteClause: DefiniteClause) extends AnyVal {
 
+    def literals: Set[Literal] = Set(PositiveLiteral(definiteClause.head)) ++ definiteClause.bodyLiterals
 
+    def bodyLiterals: Set[Literal] = extract(definiteClause.body)
 
-    def literals: Set[Literal] ={
-
-      ???
-    }
-
-    def bodyLiterals: Set[Literal] ={
-
-      ???
-    }
-
-
+    private def extract(construct: FormulaConstruct): Set[Literal] =
+      construct.subFormulas.foldRight(Set[Literal]())((current, rest) => current match {
+        case negation: Not => rest + NegativeLiteral(negation.arg.asInstanceOf[AtomicFormula])
+        case atom: AtomicFormula => rest + PositiveLiteral(atom)
+        case _ => rest ++ extract(current)
+      })
   }
 
   implicit class FormulaOps[F <: Formula](val formula: F) extends AnyVal {
@@ -202,7 +198,6 @@ object LogicOps {
         }
         false
     }
-
 
     def first(signature: AtomSignature): Option[AtomicFormula] = formula match {
       case atom: AtomicFormula => if (atom.signature == signature) Some(atom) else None
@@ -256,7 +251,6 @@ object LogicOps {
         result
     }
 
-
     def replace(targetAtom: AtomicFormula, replacement: FormulaConstruct): Option[F] = {
 
       def doReplace(inFormula: FormulaConstruct, withFormula: FormulaConstruct): FormulaConstruct = inFormula match {
@@ -278,7 +272,6 @@ object LogicOps {
 
           case _ => throw new IllegalStateException("Illegal formula type.")
         }
-
 
       def mkReplacement(f: FormulaConstruct): Option[FormulaConstruct] ={
         Unify(targetAtom, f) match{
