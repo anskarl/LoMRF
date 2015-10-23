@@ -48,7 +48,6 @@ import LogicOps._
  * @see Wikipedia article [[http://en.wikipedia.org/wiki/Unification_(computing)#Definition_of_unification_for_first-order_logic]]
  * @see Russell, S.J. and Norvig, P. and Canny, J.F. and Malik, J. and Edwards, D.D. Artificial Intelligence: A Modern Approach, chapter 9.2.2 Unification [[http://aima.cs.berkeley.edu/]]
  *
- *
  */
 object Unify {
 
@@ -62,28 +61,28 @@ object Unify {
       case l: Vector[Term] => unifyTerms(l, y.asInstanceOf[Vector[Term]], theta)
   }
 
-  def apply(x: AtomicFormula, f: FormulaConstruct): ThetaOpt = unifyFormula(x,f, Some(Map[Term, Term]()))
+  def apply(x: AtomicFormula, f: FormulaConstruct): ThetaOpt = unifyFormula(x, f, Some(Map[Term, Term]()))
 
-  //@inline
   private def unifyTerm(x: Term, y: Term, theta: ThetaOpt): ThetaOpt = theta match {
-      case None => None //failure
-      case _ =>
-        if(x == y) theta
-        else (x,y) match{
-          case (v: Variable, _) => unifyVar(v,y,theta)
-          case (_, v: Variable) => unifyVar(v,x,theta)
-          case (a: TermFunction, b:TermFunction) =>
-            if(a.symbol == b.symbol) unifyTerms(a.terms, b.terms, theta)
-            else None
-          case _ => None
-        }
+    case None => None // failure
+    case _ =>
+      println(s"Unify term $x and $y with $theta")
+      if(x == y) theta
+      else (x, y) match {
+        case (v: Variable, _) => unifyVar(v, y, theta)
+        case (_, v: Variable) => unifyVar(v, x, theta)
+        case (a: TermFunction, b:TermFunction) =>
+          if(a.symbol == b.symbol) unifyTerms(a.terms, b.terms, theta)
+          else None
+        case _ => None
+      }
   }
 
   @tailrec
   private def unifyTerms(x: Vector[Term], y: Vector[Term], theta: ThetaOpt): ThetaOpt = theta match {
-    case None => None //failure
+    case None => None // failure
     case Some(m) =>
-      (x,y) match {
+      (x, y) match {
         case (aX +: restX, aY +: restY) => unifyTerms(restX, restY, unifyTerm(aX, aY, theta))
         case (IndexedSeq(), IndexedSeq()) => theta
         case _ => None
@@ -92,15 +91,17 @@ object Unify {
 
   @inline
   private def unifyAtomicFormula(x: AtomicFormula, y: AtomicFormula, theta: ThetaOpt): ThetaOpt ={
-    if(x.signature == y.signature) unifyTerms(x.terms, y.terms, theta)
+    if (x.signature == y.signature) unifyTerms(x.terms, y.terms, theta)
     else None
   }
 
   @inline
   private def unifyVar(v: Variable, x:Term, theta: ThetaOpt): ThetaOpt = theta match {
     case None => None // failure
-    case Some(m) if m.contains(v) => apply(m(v),x, theta)
-    case Some(m) => x match {
+    case Some(m) if m.contains(v) =>
+      println(s"unify var $v using ${m(v)}")
+      apply(m(v), x, theta)
+    case Some(m) => println(s"unify var $x") ; x match {
       case a: Variable if m.contains(a) => apply(v, m(a), theta)
       case f: TermFunction =>
         val groundFunction = f.substitute(m)
@@ -111,14 +112,11 @@ object Unify {
   }
 
   @inline
-  private def unifyFormula(srcAtom: AtomicFormula, src: FormulaConstruct, theta: ThetaOpt): ThetaOpt = {
-
-    src match {
-      case atom: AtomicFormula => unifyAtomicFormula(srcAtom, atom, theta)
-      case _ => src.first(srcAtom.signature) match {
-        case Some(targetAtom) => apply(srcAtom, targetAtom, theta)
-        case _ => None
-      }
+  private def unifyFormula(srcAtom: AtomicFormula, src: FormulaConstruct, theta: ThetaOpt): ThetaOpt = src match {
+    case atom: AtomicFormula => unifyAtomicFormula(srcAtom, atom, theta)
+    case _ => src.first(srcAtom.signature) match {
+      case Some(targetAtom) => apply(srcAtom, targetAtom, theta)
+      case _ => None
     }
   }
 }

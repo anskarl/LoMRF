@@ -35,18 +35,15 @@
 
 package lomrf.logic
 
-
 import auxlib.log.Logging
 import lomrf.logic.Unify.ThetaOpt
 import lomrf.mln.model.{ConstantsDomain, FunctionSchema, PredicateSchema}
 import lomrf.util.Cartesian.CartesianIterator
 import lomrf.util.collectByKey
-
 import collection.mutable
 import collection.breakOut
 import lomrf.logic.dynamic.DynEqualsBuilder
 import LogicOps._
-
 import scala.util.{Failure, Success}
 
 /**
@@ -94,7 +91,6 @@ import scala.util.{Failure, Success}
 object PredicateCompletion extends Logging {
 
   import PredicateCompletionMode._
-
 
   private type DefiniteClausesDB = mutable.HashMap[AtomSignature, mutable.HashMap[AtomicFormula, mutable.HashSet[DefiniteClauseConstruct]]]
 
@@ -203,6 +199,7 @@ object PredicateCompletion extends Logging {
       info("No definite clauses found in the given MLN.")
       return formulas
     }
+
     info("Predicate completion")
     // --- Step 1 --- Grouping definite clauses with similar head predicate
     info("\tStep 1: Grouping definite clauses with similar head predicate.")
@@ -324,7 +321,6 @@ object PredicateCompletion extends Logging {
       case (k:Variable, v: Constant) => k -> v.symbol
     }
 
-
     var pcResultingKB = Set[WeightedFormula]()
     pcResultingKB ++= formulas
 
@@ -352,7 +348,6 @@ object PredicateCompletion extends Logging {
             v -> constants(v.domain).filter(c => !collectedConstants.contains(c))
         }
 
-
       // 3. Add complementary clauses to the resulting knowledge base
       val complementaryClauses = {
         if(complementaryDomains.nonEmpty)
@@ -360,7 +355,6 @@ object PredicateCompletion extends Logging {
           yield WeightedFormula.asHard(Not(variabilizedPred.substitute(mappedTheta)))).toList
         else Nil
       }
-
 
       pcResultingKB = pcResultingKB ++ complementaryClauses
 
@@ -432,7 +426,6 @@ object PredicateCompletion extends Logging {
 
     pcResultingKB
   }*/
-
 
 }
 
