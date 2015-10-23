@@ -35,9 +35,156 @@
 
 package lomrf.logic
 
+import lomrf.logic.dynamic.DynEqualsBuilder
+import lomrf.mln.model.{FunctionSchema, PredicateSchema}
+
 import scala.collection.mutable
+import scala.util.Try
 
 object LogicOps {
+
+  private type DefiniteClausesDB = mutable.HashMap[AtomSignature, mutable.HashMap[AtomicFormula, mutable.HashSet[DefiniteClauseConstruct]]]
+
+  implicit class DefiniteClausesOps(val definiteClauses: Set[WeightedDefiniteClause]) extends AnyVal {
+
+    def collectAndMerge(implicit predicateSchema: PredicateSchema, functionSchema: FunctionSchema): Try[(Boolean, DefiniteClausesDB)] = Try {
+
+      val eqBuilder = new DynEqualsBuilder
+      val dcDB = mutable.HashMap[AtomSignature, mutable.HashMap[AtomicFormula, mutable.HashSet[DefiniteClauseConstruct]]]()
+
+      var canBeDecomposed = true
+
+      // Creating DB
+      for (currentClause <- definiteClauses) {
+        //debug("Processing: " + currentClause.toText)
+        val currentHead = currentClause.clause.head
+        dcDB.get(currentHead.signature) match {
+          // It is the first time that this signature is processed
+          case None => dcDB(currentHead.signature) = mutable.HashMap(currentHead -> mutable.HashSet(currentClause.clause.body))
+          // DB already contains some clause(s) with the same signature in the head
+          case Some(mapping) =>
+            mapping.get(currentHead) match {
+              // It also contains clauses having exactly the same head predicate (same constants and/or variables in the arguments).
+              // Consequently, put the current clause together with the rest clauses.
+              case Some(storedBodies) => storedBodies += currentClause.clause.body
+              case None =>
+                mapping.find(entry => Unify(entry._1, currentHead).isDefined) match {
+                  case None => dcDB(currentHead.signature).put(currentHead, mutable.HashSet(currentClause.clause.body))
+                  case Some(entry) =>
+                    val storedHead = entry._1
+                    val storedBodies = entry._2
+                    generalisation(storedHead, currentHead) match {
+                      case Some(generalisedHead) =>
+
+                        // collect only Variable -> Variable mappings
+                        def collectVariablesToRename(theta: Map[Term, Term]) = theta.filter {
+                          case (v1: Variable, v2: Variable) => true
+                          case _ => false
+                        }
+
+                        // --- 1. Update current clause body ---
+                        // In case where the current "head predicate" is not the same with the "generalised head predicate",
+                        // cover the differences by renaming its variables and introduce additional atoms (equals) to the body.
+                        val currentClauseBody = {
+                          if (currentHead != generalisedHead) {
+                            Unify(currentHead, generalisedHead) match {
+                              case Some(thetaCurrent) =>
+                                // Rename variables:
+                                val thetaVariablesRenaming = collectVariablesToRename(thetaCurrent)
+                                val bodyVarRenamed = currentClause.clause.body.substitute(thetaVariablesRenaming)
+                                val thetaWithoutVarRenamed = thetaCurrent -- thetaVariablesRenaming.keys
+
+                                //Insert the additional atoms to the bodies:
+                                val additionalAtomsStored =
+                                  for ((v, t) <- thetaWithoutVarRenamed if v.isInstanceOf[Variable])
+                                    yield eqBuilder(Vector(v, t))
+
+                                additionalAtomsStored.foldLeft(bodyVarRenamed)((rest, atom) => And(atom, rest))
+                              case _ =>
+                                throw new UnsupportedOperationException(s"Cannot unify '${generalisedHead.toText}' with '${currentHead.toText}' (possible bug?)")
+                            }
+
+                          }
+                          else currentClause.clause.body
+                        }
+
+                        // --- 2. Update previously stored bodies ---
+                        // In case where the previously stored head predicate is not the same with the generalised head predicate,
+                        // cover the differences by renaming its variables and introduce additional atoms (equals) to the bodies.
+                        // Otherwise, simply insert the current clause body.
+                        if (storedHead != generalisedHead) {
+                          Unify(storedHead, generalisedHead) match {
+                            case Some(thetaStored) =>
+                              // Although storedHead != generalisedHead, they may be similar but with different variable names.
+                              val areSimilarPredicates = storedHead =~= generalisedHead
+                              if (!areSimilarPredicates) canBeDecomposed = false
+
+                              // Rename variables (from all bodies):
+                              val thetaVariablesRenaming = collectVariablesToRename(thetaStored)
+
+                              val bodiesVarRenamed =
+                                if (areSimilarPredicates) storedBodies.map(body => body.substitute(thetaVariablesRenaming))
+                                else storedBodies
+
+                              // Insert the additional atoms to the bodies:
+                              val thetaWithoutVarRenamed = thetaStored -- thetaVariablesRenaming.keys
+
+                              val additionalAtomsStored =
+                                for ((v, t) <- thetaWithoutVarRenamed if v.isInstanceOf[Variable])
+                                  yield eqBuilder(Vector(v, t))
+
+                              val updatedBodies = bodiesVarRenamed
+                                .map(body => additionalAtomsStored.foldLeft(body)((rest, atom) => And(atom, rest)))
+
+                              updatedBodies += currentClauseBody
+
+                              // Replace the previously stored head predicate with the generalised head predicate,
+                              // associated with the updated collection of bodies.
+                              dcDB(storedHead.signature).remove(storedHead)
+                              dcDB(generalisedHead.signature).put(generalisedHead, updatedBodies)
+
+                            case None =>
+                              throw new UnsupportedOperationException(s"Cannot unify '${generalisedHead.toText}' with '${storedHead.toText}' (possible bug?)")
+                          }
+
+                          /*val thetaStored = Unify(storedHead, generalisedHead).getOrElse(
+                            fatal(s"Cannot unify '${generalisedHead.toText}' with '${storedHead.toText}' (possible bug?)"))*/
+
+
+                        }
+                        else {
+                          // No need to perform any update to the previously stored bodies,
+                          // thus we simply insert the current clause body
+                          dcDB(storedHead.signature)(storedHead) += currentClauseBody
+                        }
+                      case None =>
+                        throw new UnsupportedOperationException(s"Failed to find a generalised predicate from '${storedHead.toText}' and '${currentHead.toText}' (possible bug?).")
+                    }
+                }
+            } //end: Some(mapping)
+        }
+      } // Done creating DB
+
+      (canBeDecomposed, dcDB)
+    }
+  }
+
+  implicit class DefiniteClauseOps(val definiteClause: WeightedDefiniteClause) extends AnyVal {
+
+
+
+    def literals: Set[Literal] ={
+
+      ???
+    }
+
+    def bodyLiterals: Set[Literal] ={
+
+      ???
+    }
+
+
+  }
 
   implicit class FormulaOps[F <: Formula](val formula: F) extends AnyVal {
 

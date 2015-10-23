@@ -116,6 +116,29 @@ sealed trait FormulaConstruct extends Formula {
   def isUnit: Boolean
 
   override def substitute(theta: Theta): FormulaConstruct
+
+  /**
+   * Free variables in this FormulaConstruct that are not appearing in the target predicate,
+   * will be existentially quantified.
+   *
+   * @param target atom
+   *
+   * @return the resulting FormulaConstruct, which may be existentially quantified over some variables
+   */
+  def boundVarsNotIn(target: AtomicFormula): FormulaConstruct ={
+
+    //A set of existentially quantified variables in the body
+    val exQVars = this.getQuantifiers.filter(_.isInstanceOf[ExistentialQuantifier]).map(_.variable).toSet
+
+    // Find which free variables appear in the body, but not in the head of the clause
+    val diff = this.variables -- exQVars -- target.variables
+
+    // If the variables that appear in the body are the same with the variables in the head,
+    // then keep the body as it is. Otherwise, define them as existentially quantified.
+    if (diff.isEmpty) this
+    else diff.foldRight(this)((v, f) => ExistentialQuantifier(v, f))
+    
+  }
 }
 
 sealed trait DefiniteClauseConstruct extends FormulaConstruct {

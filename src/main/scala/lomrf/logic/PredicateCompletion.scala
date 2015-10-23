@@ -47,6 +47,8 @@ import collection.breakOut
 import lomrf.logic.dynamic.DynEqualsBuilder
 import LogicOps._
 
+import scala.util.{Failure, Success}
+
 /**
  * Perform circumscription by predicate completion.</br>
  *
@@ -95,7 +97,6 @@ object PredicateCompletion extends Logging {
 
 
   private type DefiniteClausesDB = mutable.HashMap[AtomSignature, mutable.HashMap[AtomicFormula, mutable.HashSet[DefiniteClauseConstruct]]]
-  private lazy val eqBuilder = new DynEqualsBuilder
 
   /**
    * Performs predicate completion with simplification (see [[lomrf.logic.PredicateCompletion]]).
@@ -206,175 +207,43 @@ object PredicateCompletion extends Logging {
     // --- Step 1 --- Grouping definite clauses with similar head predicate
     info("\tStep 1: Grouping definite clauses with similar head predicate.")
 
-    val (canBeDecomposed, dcDB) = collectAndMerge(definiteClauses)
+    definiteClauses.collectAndMerge match {
+      case Success((canBeDecomposed, dcDB)) =>
+        if (dcDB.isEmpty)
+          fatal("Failed to parse definite clauses in the given MLN (possible bug?).")
 
-    if (dcDB.isEmpty)
-      fatal("Failed to parse definite clauses in the given MLN (possible bug?).")
-
-    debug {
-      val buffer = new StringBuilder("Collected/merged the following definitions:")
-      for ((signature, entries) <- dcDB) {
-        buffer.append("\nSignature: " + signature)
-        for ((head, bodies) <- entries) {
-          buffer.append("\n\thead: " + head.toText)
-          buffer.append("\n\tbodies:")
-          for (body <- bodies) buffer.append("\n\t\t" + body.toText)
+        debug {
+          val buffer = new StringBuilder("Collected/merged the following definitions:")
+          for ((signature, entries) <- dcDB) {
+            buffer.append("\nSignature: " + signature)
+            for ((head, bodies) <- entries) {
+              buffer.append("\n\thead: " + head.toText)
+              buffer.append("\n\tbodies:")
+              for (body <- bodies) buffer.append("\n\t\t" + body.toText)
+            }
+          }
+          buffer.result()
         }
-      }
-      buffer.result()
+
+        // --- Step 2 --- Predicate completion
+        info(s"\tStep 2: Performing predicate completion for predicates: ${dcDB.keySet.map("\"" + _.toString + "\"").mkString(",")}" )
+
+        mode match {
+          case Simplification => applyPCSimplification(formulas, dcDB)
+          case Decomposed =>
+            if (canBeDecomposed) applyPCDecomposed(formulas, definiteClauses, dcDB, constants)
+            else fatal("I'm sorry but the result of the predicate completion cannot be decomposed, " +
+              "as the created equivalences appear to be more general from the heads of the given definite clauses. " +
+              "Please use standard predicate completion or with simplification.")
+
+          case Standard => applyPC(formulas, dcDB)
+        }
+
+      case Failure(ex) =>
+        fatal("Failed to group definite clauses with similar head predicates.", ex)
     }
 
-
-    // --- Step 2 --- Predicate completion
-    val targetPredicates = dcDB.keySet.map("\"" + _.toString + "\"").reduceLeft((a, b) => a + ", " + b)
-    info("\tStep 2: Performing predicate completion for predicates: " + targetPredicates)
-
-    mode match {
-      case Simplification => applyPCSimplification(formulas, dcDB)
-      case Decomposed =>
-        if (canBeDecomposed) applyPCDecomposed(formulas, definiteClauses, dcDB, constants)
-        else fatal("I'm sorry but the result of the predicate completion cannot be decomposed, " +
-          "as the created equivalences appear to be more general from the heads of the given definite clauses. " +
-          "Please use standard predicate completion or with simplification.")
-      case Standard => applyPC(formulas, dcDB)
-    }
-
-
   }
-
-  /**
-   * Free variables in the body that are not appearing in the head, will set to as existentially quantified.
-   *
-   * @param head atom
-   * @param body atoms
-   *
-   * @return the resulting body, which may be existentially quantified over some variables
-   */
-  private def normalise(head: AtomicFormula, body: FormulaConstruct): FormulaConstruct = {
-    //A set of existentially quantified variables in the body
-    val exQVars = body.getQuantifiers.filter(_.isInstanceOf[ExistentialQuantifier]).map(_.variable).toSet
-
-    // Find which free variables appear in the body, but not in the head of the clause
-    val diff = body.variables -- exQVars -- head.variables
-
-    // If the variables that appear in the body are the same with the variables in the head,
-    // then keep the body as it is. Otherwise, define them as existentially quantified.
-    if (diff.isEmpty) body
-    else diff.foldRight(body)((v, f) => ExistentialQuantifier(v, f))
-  }
-
-
-  private def collectAndMerge(definiteClauses: Set[WeightedDefiniteClause])
-                             (implicit predicateSchema: PredicateSchema, functionSchema: FunctionSchema): (Boolean, DefiniteClausesDB) = {
-
-
-    val dcDB = mutable.HashMap[AtomSignature, mutable.HashMap[AtomicFormula, mutable.HashSet[DefiniteClauseConstruct]]]()
-
-    var canBeDecomposed = true
-
-    // Creating DB
-    for (currentClause <- definiteClauses) {
-      debug("Processing: " + currentClause.toText)
-      val currentHead = currentClause.clause.head
-      dcDB.get(currentHead.signature) match {
-        // It is the first time that this signature is processed
-        case None => dcDB(currentHead.signature) = mutable.HashMap(currentHead -> mutable.HashSet(currentClause.clause.body))
-        // DB already contains some clause(s) with the same signature in the head
-        case Some(mapping) =>
-          mapping.get(currentHead) match {
-            // It also contains clauses having exactly the same head predicate (same constants and/or variables in the arguments).
-            // Consequently, put the current clause together with the rest clauses.
-            case Some(storedBodies) => storedBodies += currentClause.clause.body
-            case None =>
-              mapping.find(entry => Unify(entry._1, currentHead).isDefined) match {
-                case None => dcDB(currentHead.signature).put(currentHead, mutable.HashSet(currentClause.clause.body))
-                case Some(entry) =>
-                  val storedHead = entry._1
-                  val storedBodies = entry._2
-                  generalisation(storedHead, currentHead) match {
-                    case Some(generalisedHead) =>
-
-                      // collect only Variable -> Variable mappings
-                      def collectVariablesToRename(theta: Map[Term, Term]) = theta.filter {
-                        case (v1: Variable, v2: Variable) => true
-                        case _ => false
-                      }
-
-                      // --- 1. Update current clause body ---
-                      // In case where the current "head predicate" is not the same with the "generalised head predicate",
-                      // cover the differences by renaming its variables and introduce additional atoms (equals) to the body.
-                      val currentClauseBody = {
-                        if (currentHead != generalisedHead) {
-                          val thetaCurrent = Unify(currentHead, generalisedHead).getOrElse(
-                            fatal(s"Cannot unify '${generalisedHead.toText}' with '${currentHead.toText}' (possible bug?)"))
-
-                          // Rename variables:
-                          val thetaVariablesRenaming = collectVariablesToRename(thetaCurrent)
-                          val bodyVarRenamed = currentClause.clause.body.substitute(thetaVariablesRenaming)
-                          val thetaWithoutVarRenamed = thetaCurrent -- thetaVariablesRenaming.keys
-
-                          //Insert the additional atoms to the bodies:
-                          val additionalAtomsStored =
-                            for ((v, t) <- thetaWithoutVarRenamed if v.isInstanceOf[Variable])
-                              yield eqBuilder(Vector(v, t))
-
-                          additionalAtomsStored.foldLeft(bodyVarRenamed)((rest, atom) => And(atom, rest))
-                        }
-                        else currentClause.clause.body
-                      }
-
-                      // --- 2. Update previously stored bodies ---
-                      // In case where the previously stored head predicate is not the same with the generalised head predicate,
-                      // cover the differences by renaming its variables and introduce additional atoms (equals) to the bodies.
-                      // Otherwise, simply insert the current clause body.
-                      if (storedHead != generalisedHead) {
-                        val thetaStored = Unify(storedHead, generalisedHead).getOrElse(
-                          fatal(s"Cannot unify '${generalisedHead.toText}' with '${storedHead.toText}' (possible bug?)"))
-
-                        // Although storedHead != generalisedHead, they may be similar but with different variable names.
-                        val areSimilarPredicates = storedHead =~= generalisedHead
-                        if (!areSimilarPredicates) canBeDecomposed = false
-
-                        // Rename variables (from all bodies):
-                        val thetaVariablesRenaming = collectVariablesToRename(thetaStored)
-
-                        val bodiesVarRenamed =
-                          if (areSimilarPredicates) storedBodies.map(body => body.substitute(thetaVariablesRenaming))
-                          else storedBodies
-
-                        // Insert the additional atoms to the bodies:
-                        val thetaWithoutVarRenamed = thetaStored -- thetaVariablesRenaming.keys
-
-                        val additionalAtomsStored =
-                          for ((v, t) <- thetaWithoutVarRenamed if v.isInstanceOf[Variable])
-                            yield eqBuilder(Vector(v, t))
-
-                        val updatedBodies = bodiesVarRenamed
-                          .map(body => additionalAtomsStored.foldLeft(body)((rest, atom) => And(atom, rest)))
-
-                        updatedBodies += currentClauseBody
-
-                        // Replace the previously stored head predicate with the generalised head predicate,
-                        // associated with the updated collection of bodies.
-                        dcDB(storedHead.signature).remove(storedHead)
-                        dcDB(generalisedHead.signature).put(generalisedHead, updatedBodies)
-                      }
-                      else {
-                        // No need to perform any update to the previously stored bodies,
-                        // thus we simply insert the current clause body
-                        dcDB(storedHead.signature)(storedHead) += currentClauseBody
-                      }
-                    case None =>
-                      fatal(s"Failed to find a generalised predicate from '${storedHead.toText}' and '${currentHead.toText}' (possible bug?).")
-                  }
-              }
-          } //end: Some(mapping)
-      }
-    } // Done creating DB
-
-    (canBeDecomposed, dcDB)
-  }
-
 
   /**
    * Computes predicate completion with simplification (see [[lomrf.logic.PredicateCompletion]])
@@ -393,7 +262,7 @@ object PredicateCompletion extends Logging {
       for (formula <- pcResultingKB) {
         if(formula.contains(signature)) {
           for ((headPredicate, bodies) <- dcDB(signature)) {
-            val replacement = bodies.map(body => normalise(headPredicate, body)).reduceLeft((left, right) => Or(left, right))
+            val replacement = bodies.map(_.boundVarsNotIn(headPredicate)).reduceLeft((left, right) => Or(left, right))
 
             debug(s"Predicates like '${headPredicate.toText}' will be replaced with following sentence: '${replacement.toText}'")
 
@@ -429,7 +298,7 @@ object PredicateCompletion extends Logging {
 
     for ((_, entries) <- dcDB; (head, bodies) <- entries) {
       val pcFormula = WeightedFormula(Double.PositiveInfinity,
-        Equivalence(head, bodies.map(body => normalise(head, body)).reduceLeft((left, right) => Or(left, right))))
+        Equivalence(head, bodies.map(_.boundVarsNotIn(head)).reduceLeft((left, right) => Or(left, right))))
       pcResultingKB += pcFormula
     }
     pcResultingKB
@@ -467,7 +336,7 @@ object PredicateCompletion extends Logging {
 
       // 1. Insert the additional "completion" formulas
       for((head, bodies) <- entries){
-        val completionBody = bodies.map(body => normalise(head, body)).reduceLeft((left, right) => Or(left, right))
+        val completionBody = bodies.map(_.boundVarsNotIn(head)).reduceLeft((left, right) => Or(left, right))
         pcResultingKB += WeightedFormula.asHard(Implies(head, completionBody))
       }
 
