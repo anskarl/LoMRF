@@ -44,6 +44,9 @@ object LogicOps {
 
   private type DefiniteClausesDB = mutable.HashMap[AtomSignature, mutable.HashMap[AtomicFormula, mutable.HashSet[DefiniteClauseConstruct]]]
 
+  /**
+   * Implicit class for operations over set of definite clauses.
+   */
   implicit class DefiniteClausesOps(val definiteClauses: Set[WeightedDefiniteClause]) extends AnyVal {
 
     def collectAndMerge(implicit predicateSchema: PredicateSchema, functionSchema: FunctionSchema): Try[(Boolean, DefiniteClausesDB)] = Try {
@@ -168,12 +171,27 @@ object LogicOps {
     }
   }
 
+  /**
+   * Implicit class for definite clauses operations.
+   */
   implicit class DefiniteClauseOps(val definiteClause: DefiniteClause) extends AnyVal {
 
+    /**
+     * @return All atomic formulas appearing in this definite class as literals
+     */
     def literals: Set[Literal] = Set(PositiveLiteral(definiteClause.head)) ++ definiteClause.bodyLiterals
 
+    /**
+     * @return All atomic formulas appearing in the body of this definite clause as literals
+     */
     def bodyLiterals: Set[Literal] = extract(definiteClause.body)
 
+    /**
+     * Extracts all atomic formula appearing in the given formula construct as literals.
+     *
+     * @param construct a formula construct to extract literals
+     * @return a set of literals appearing in the formula construct
+     */
     private def extract(construct: FormulaConstruct): Set[Literal] =
       construct.subFormulas.foldRight(Set[Literal]())((current, rest) => current match {
         case negation: Not => rest + NegativeLiteral(negation.arg.asInstanceOf[AtomicFormula])
@@ -182,8 +200,17 @@ object LogicOps {
       })
   }
 
+  /**
+   * Implicit class for formula operations.
+   */
   implicit class FormulaOps[F <: Formula](val formula: F) extends AnyVal {
 
+    /**
+     * Checks if the given atom signature appears in this formula.
+     *
+     * @param signature the atom signature to search for
+     * @return true if the atom signature exists, false otherwise
+     */
     def contains(signature: AtomSignature): Boolean = formula match {
       case atom: AtomicFormula => atom.signature == signature
       case _ =>
@@ -199,6 +226,12 @@ object LogicOps {
         false
     }
 
+    /**
+     * Searches for an atomic formula having the given atom signature in this formula.
+     *
+     * @param signature the atom signature to search for
+     * @return the first atomic formula having the given atom signature
+     */
     def first(signature: AtomSignature): Option[AtomicFormula] = formula match {
       case atom: AtomicFormula => if (atom.signature == signature) Some(atom) else None
       case _ =>
@@ -214,6 +247,12 @@ object LogicOps {
         None
     }
 
+    /**
+     * Searches for all atomic formulas having the given atom signature in this formula.
+     *
+     * @param signature the atom signature to search for
+     * @return a set of atomic formulas having the given atom signature
+     */
     def all(signature: AtomSignature): Seq[AtomicFormula] = formula match {
       case atom: AtomicFormula => if (atom.signature == signature) Seq(atom) else Seq()
       case _ =>
@@ -233,6 +272,9 @@ object LogicOps {
         result
     }
 
+    /**
+     * @return All atom signatures existing in this formula.
+     */
     def signatures: Set[AtomSignature] = formula match {
       case atom: AtomicFormula => Set(atom.signature)
       case _ =>
@@ -251,6 +293,14 @@ object LogicOps {
         result
     }
 
+    /**
+     * Replace a target atomic formula appearing in this formula with a given replacement
+     * formula construct.
+     *
+     * @param targetAtom the target atomic formula
+     * @param replacement the replacement formula construct
+     * @return the replaced formula or None if the replacement failed
+     */
     def replace(targetAtom: AtomicFormula, replacement: FormulaConstruct): Option[F] = {
 
       def doReplace(inFormula: FormulaConstruct, withFormula: FormulaConstruct): FormulaConstruct = inFormula match {
@@ -273,8 +323,8 @@ object LogicOps {
           case _ => throw new IllegalStateException("Illegal formula type.")
         }
 
-      def mkReplacement(f: FormulaConstruct): Option[FormulaConstruct] ={
-        Unify(targetAtom, f) match{
+      def mkReplacement(f: FormulaConstruct): Option[FormulaConstruct] = {
+        Unify(targetAtom, f) match {
           case Some(theta) if theta.nonEmpty =>
             val replacementPrime = replacement.substitute(theta)
             val targetPrime = f.substitute(theta)
@@ -285,8 +335,8 @@ object LogicOps {
         }
       }
 
-      def processDefiniteClause(clause: DefiniteClause): Option[DefiniteClause] ={
-        if(replacement.isInstanceOf[DefiniteClauseConstruct]){
+      def processDefiniteClause(clause: DefiniteClause): Option[DefiniteClause] = {
+        if (replacement.isInstanceOf[DefiniteClauseConstruct]) {
 
           val bodyOpt = mkReplacement(clause.body).asInstanceOf[Option[DefiniteClauseConstruct]]
 
