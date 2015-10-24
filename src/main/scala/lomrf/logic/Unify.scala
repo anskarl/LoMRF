@@ -39,7 +39,10 @@ import annotation.tailrec
 import LogicOps._
 
 /**
- * A utility object for applying the Unification operator between MLN expressions.
+ * A utility object for applying the Unification operator between MLN expressions. Unification operator
+ * search for a mapping of terms (theta-substitution) in order to transform the former expression into
+ * latter one.
+ *
  * {{{
  *   Unify Happens(x,t) with Happens(Event,t) = Map((x->Event))
  *   Unify Happens(x,10) with Happens(Event,t) =  Map((x->Event), (t->10))
@@ -55,7 +58,7 @@ object Unify {
 
   def apply[T](x: T, y: T): ThetaOpt = apply(x, y, Some(Map[Term, Term]()))
 
-  def apply[T](x: T, y: T, theta: ThetaOpt)(implicit m: Manifest[Term]): ThetaOpt = x match{
+  def apply[T](x: T, y: T, theta: ThetaOpt)(implicit m: Manifest[Term]): ThetaOpt = x match {
       case p: Term => unifyTerm(p, y.asInstanceOf[Term], theta)
       case f: AtomicFormula => unifyAtomicFormula(f, y.asInstanceOf[AtomicFormula], theta)
       case l: Vector[Term] => unifyTerms(l, y.asInstanceOf[Vector[Term]], theta)
@@ -66,7 +69,6 @@ object Unify {
   private def unifyTerm(x: Term, y: Term, theta: ThetaOpt): ThetaOpt = theta match {
     case None => None // failure
     case _ =>
-      println(s"Unify term $x and $y with $theta")
       if(x == y) theta
       else (x, y) match {
         case (v: Variable, _) => unifyVar(v, y, theta)
@@ -90,7 +92,7 @@ object Unify {
   }
 
   @inline
-  private def unifyAtomicFormula(x: AtomicFormula, y: AtomicFormula, theta: ThetaOpt): ThetaOpt ={
+  private def unifyAtomicFormula(x: AtomicFormula, y: AtomicFormula, theta: ThetaOpt): ThetaOpt = {
     if (x.signature == y.signature) unifyTerms(x.terms, y.terms, theta)
     else None
   }
@@ -98,14 +100,12 @@ object Unify {
   @inline
   private def unifyVar(v: Variable, x:Term, theta: ThetaOpt): ThetaOpt = theta match {
     case None => None // failure
-    case Some(m) if m.contains(v) =>
-      println(s"unify var $v using ${m(v)}")
-      apply(m(v), x, theta)
-    case Some(m) => println(s"unify var $x") ; x match {
+    case Some(m) if m.contains(v) => apply(m(v), x, theta)
+    case Some(m) => x match {
       case a: Variable if m.contains(a) => apply(v, m(a), theta)
       case f: TermFunction =>
         val groundFunction = f.substitute(m)
-        if(groundFunction.variables.contains(v)) None //failure
+        if(groundFunction.variables.contains(v)) None // failure
         else Some(m + (v -> groundFunction))
       case _ => Some(m + (v -> x))
     }
