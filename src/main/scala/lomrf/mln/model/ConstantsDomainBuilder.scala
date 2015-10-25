@@ -34,6 +34,8 @@
  */
 package lomrf.mln.model
 
+import lomrf.mln.model._
+
 import scala.collection.mutable
 
 /**
@@ -165,6 +167,17 @@ object ConstantsDomainBuilder{
   def apply(initial: Map[String, ConstantsSetBuilder]): ConstantsDomainBuilder ={
     val builder = new ConstantsDomainBuilder()
     builder() = initial
+    builder
+  }
+
+  def from(initial: ConstantsDomain): ConstantsDomainBuilder ={
+
+    val builder = new ConstantsDomainBuilder()
+
+    for((domainName, constantsDomain) <- initial)
+      builder ++= (domainName, constantsDomain.iterator.toIterable)
+
+
     builder
   }
 }

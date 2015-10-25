@@ -61,19 +61,24 @@ class KB(val predicateSchema: PredicateSchema,
          val dynamicPredicates: DynamicPredicates,
          val dynamicFunctions: DynamicFunctions,
          val formulas: Set[WeightedFormula],
-         val definiteClauses: Set[WeightedDefiniteClause] = Set.empty) { self =>
+         val definiteClauses: Set[WeightedDefiniteClause] = Set.empty) extends Serializable { self =>
 
+  @transient
   lazy val schema = MLNSchema(predicateSchema, functionSchema, dynamicPredicates, dynamicFunctions)
 
 
   object signatures {
 
+    @transient
     lazy val predicates = predicateSchema.keySet
 
+    @transient
     lazy val function = functionSchema.keySet
 
+    @transient
     lazy val dynamicPredicates = self.dynamicPredicates.keySet
 
+    @transient
     lazy val dynamicFunction = self.dynamicFunctions.keySet
   }
 
