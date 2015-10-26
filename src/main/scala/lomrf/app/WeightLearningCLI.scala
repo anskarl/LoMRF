@@ -299,8 +299,10 @@ object WeightLearningCLI extends CLIApp {
           + "\n\tAtoms with annotations: " + annotationDB.keys.mkString(","))
 
         info("Number of CNF clauses = " + mln.clauses.size)
-        info("List of CNF clauses: ")
-        mln.clauses.zipWithIndex.foreach { case (c, idx) => info(idx + ": " + c)}
+        whenDebug{
+          debug("List of CNF clauses: ")
+          mln.clauses.zipWithIndex.foreach { case (c, idx) => debug(idx + ": " + c)}
+        }
 
         info("Creating MRF...")
         val mrfBuilder = new MRFBuilder(mln, noNegWeights = _noNeg, eliminateNegatedUnit = _eliminateNegatedUnit, createDependencyMap = true)

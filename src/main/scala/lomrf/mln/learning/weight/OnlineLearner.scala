@@ -353,8 +353,7 @@ final class OnlineLearner(mln: MLN, algorithm: Algorithm, lossAugmented: Boolean
     }
 
     if (printLearnedWeightsPerIteration) {
-      info("Learned weights on step " + t + ":\n" +
-        "[" + weights.deep.mkString(", ") + "]")
+      info("Learned weights on step " + t + ":\n" + "[" + weights.deep.mkString(", ") + "]")
     }
   }
 
