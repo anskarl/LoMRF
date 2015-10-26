@@ -262,20 +262,22 @@ final class ILP(mrf: MRF, annotationDB: Map[AtomSignature, AtomEvidenceDB] = Map
     var fractionalSolutions = Vector[Int]()
 
     for ( (id, lpVar) <- literalLPVars.iterator() ) {
+      val value = lpVar.value.getOrElse(fatal(s"There is no solution for variable '${lpVar.symbol}'"))
+
       /*
        * Round values very close to 0 and 1 in using this naive approach because they
        * probably arised from rounding error of the solver.
        */
-      val value = if (lpVar.value.get > 0.99) 1.0 else lpVar.value.get
+      val normalisedValue = if (value > 0.99) 1.0 else value
 
-      if (value != 0.0 && value != 1.0) {
+      if (normalisedValue != 0.0 && normalisedValue != 1.0) {
         nonIntegralSolutionsCounter += 1
         fractionalSolutions +:= id
       }
       else {
         val currentAtom = fetchAtom(id)
-        currentAtom.fixedValue = if (value == 0.0) -1 else 1
-        currentAtom.state = if (value == 0.0) false else true
+        currentAtom.fixedValue = if (normalisedValue == 0.0) -1 else 1
+        currentAtom.state = if (normalisedValue == 0.0) false else true
         state.refineState(id)
       }
     }
