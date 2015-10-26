@@ -35,22 +35,18 @@
 
 package lomrf
 
-
 import lomrf.mln.model.{FunctionSchema, PredicateSchema}
-
 import scala.collection.mutable
 import lomrf.logic.dynamic._
 import scala.annotation.tailrec
 import scala.collection.breakOut
 import scala.reflect._
 
-
 package object logic {
 
   type Theta = Map[Term, Term]
 
   trait TermIterable extends Iterable[Term]
-
 
   /**
    * Gives (if exists) the most general predicate, for example consider the following cases:
@@ -69,8 +65,8 @@ package object logic {
   def generalisation(atom1: AtomicFormula, atom2: AtomicFormula)
                     (implicit predicateSchema: PredicateSchema, functionSchema: FunctionSchema): Option[AtomicFormula] = {
 
-    if (atom1.signature != atom2.signature) None //the signatures are different, thus MGP cannot be applied.
-    else if (atom1 == atom2) Some(atom1) //comparing the same atom
+    if (atom1.signature != atom2.signature) None // the signatures are different, thus MGP cannot be applied.
+    else if (atom1 == atom2) Some(atom1) // comparing the same atom
     else generalisationOf(atom1, atom2)
   }
 
@@ -86,18 +82,18 @@ package object logic {
           if (c1 == c2) c1
           else {
             val typeName = predicateSchema(atom1.signature)(idx)
-            Variable("var_" + idx, typeName, idx)
+            Variable(s"var_$idx", typeName, idx)
           }
         case (f1: TermFunction, f2: TermFunction) => generalisationOf(f1, f2).getOrElse(return None)
         case _ => return None
       })(breakOut)
-
 
     Some(AtomicFormula(atom1.symbol, generalizedArgs))
   }
 
   private def generalisationOf(f1: TermFunction, f2: TermFunction, level: Int = 0)
                               (implicit functionSchema: FunctionSchema): Option[TermFunction] = {
+
     val generalizedArgs: Vector[Term] =
       (for ((pair, idx) <- f1.terms.zip(f2.terms).zipWithIndex) yield pair match {
         case (v: Variable, _) => v
@@ -106,22 +102,21 @@ package object logic {
           if (c1 == c2) c1
           else {
             val typeName = functionSchema(f1.signature)._2(idx)
-            Variable("var_" + "l" + level + "i" + idx, typeName, idx)
+            Variable(s"var_l${level}i$idx", typeName, idx)
           }
         case (f1: TermFunction, f2: TermFunction) => generalisationOf(f1, f2, level + 1).getOrElse(return None)
         case _ => return None
       })(breakOut)
 
-
     Some(TermFunction(f1.symbol, generalizedArgs, f1.domain))
   }
 
-
   /**
-   * Collects all variables from a list of terms
+   * Collects all unique variables from a list of terms.
    *
    * @param terms input list of terms
-   * @return The resulting set of variables found in the given list of terms, or an empty set if none is found.
+   * @return the resulting set of variables found in the given list of
+   *         terms, or an empty set if none is found
    */
   def uniqueVariablesIn(terms: TermIterable): Set[Variable] = {
     val queue = mutable.Queue[Term]()
@@ -131,34 +126,45 @@ package object logic {
     while (queue.nonEmpty) queue.dequeue() match {
       case v: Variable => result += v
       case f: TermFunction => queue ++= f.terms
-      case _ => //do nothing
+      case _ => // do nothing
     }
     result
   }
 
+  /**
+   * Collect all variables from a list of terms.
+   *
+   * @param terms input list of terms
+   * @return the resulting vector of variables found in the given list of
+   *         terms, or an empty vector if none is found
+   */
   def variablesIn(terms: TermIterable): Vector[Variable] = {
     val stack = mutable.Stack[Term]()
     stack.pushAll(terms)
-
     var result = Vector[Variable]()
 
     while (stack.nonEmpty) stack.pop() match {
       case v: Variable => result ++= Vector(v)
       case f: TermFunction => stack.pushAll(f.terms)
-      case _ => //do nothing
+      case _ => // do nothing
     }
-
     result
   }
 
+  /**
+   * Collect all unique variables from an iterable over lists of terms in the order
+   * they are seen.
+   *
+   * @param sources input iterable over lists of terms
+   * @return the resulting vector of ordered variables found in the given iterable,
+   *         or an empty vector if none is found
+   */
   def uniqueOrderedVariablesIn(sources: Iterable[TermIterable]): Vector[Variable] = {
     val stack = mutable.Stack[Term]()
-
     var variables = Set[Variable]()
     var result = Vector[Variable]()
 
     for (entry <- sources) {
-      //stack.pushAll(literal.sentence.terms)
       stack.pushAll(entry)
 
       while (stack.nonEmpty) stack.pop() match {
@@ -167,21 +173,25 @@ package object logic {
           result ++= Vector(v)
         case f: TermFunction =>
           stack.pushAll(f.terms)
-        case _ => //do nothing
+        case _ => // do nothing
       }
-
     }
-
     result
   }
 
+  /**
+   * Collect all unique variables from a list of terms in the order
+   * they are seen.
+   *
+   * @param source input list of terms
+   * @return the resulting vector of ordered variables found in the given list
+   *         of terms, or an empty vector if none is found
+   */
   def uniqueOrderedVariablesIn(source: TermIterable): Vector[Variable] = {
     val stack = mutable.Stack[Term]()
-
     var variables = Set[Variable]()
     var result = Vector[Variable]()
 
-    //stack.pushAll(atom.terms)
     stack.pushAll(source)
 
     while (stack.nonEmpty) stack.pop() match {
@@ -189,23 +199,19 @@ package object logic {
         variables += v
         result ++= Vector(v)
       case f: TermFunction => stack.pushAll(f.terms)
-      case _ => //do nothing
+      case _ => // do nothing
     }
-
-
-
     result
   }
-
 
   /**
    * Collects all variables from a given list of term lists.
    *
    * @param termLists input list of term list
-   *
    * @return The resulting set of variables found in the given lists of terms, or an empty set if none is found.
    */
   def uniqueVariables(termLists: Iterable[TermIterable]): Set[Variable] = {
+
     /**
      * Recursively collect all variables from list of term list
      *
@@ -215,8 +221,7 @@ package object logic {
      */
     @tailrec
     def variablesRec(terms: Iterable[TermIterable], variables: Set[Variable]): Set[Variable] = {
-      if (terms.nonEmpty)
-        variablesRec(terms.tail, uniqueVariablesIn(terms.head) ++ variables)
+      if (terms.nonEmpty) variablesRec(terms.tail, uniqueVariablesIn(terms.head) ++ variables)
       else variables
     }
 
@@ -224,6 +229,13 @@ package object logic {
     variablesRec(termLists, Set.empty)
   }
 
+  /**
+   * Collect all unique constants from a list of terms.
+   *
+   * @param terms input list of terms
+   * @return the resulting vector of constants found in the given list
+   *         of terms, or an empty vector if none is found
+   */
   def uniqueConstantsIn(terms: TermIterable): Set[Constant] = {
     val queue = mutable.Queue[Term]()
     queue ++= terms
@@ -232,16 +244,29 @@ package object logic {
     while (queue.nonEmpty) queue.dequeue() match {
       case c: Constant => result += c
       case f: TermFunction => queue ++= f.terms
-      case _ => //do nothing
+      case _ => // do nothing
     }
     result
   }
 
+  /**
+   * Collects all constants from a given list of term lists.
+   *
+   * @param termLists input list of term list
+   * @return The resulting set of constants found in the given lists of terms, or an empty set if none is found.
+   */
   def uniqueConstants(termLists: Iterable[TermIterable]): Set[Constant] = {
+
+    /**
+     * Recursively collect all constants from list of term list
+     *
+     * @param terms list of term list
+     * @param constants the current set of constants found from previous runs
+     * @return the resulting set of constants
+     */
     @tailrec
     def constantsRec(terms: Iterable[TermIterable], constants: Set[Constant]): Set[Constant] = {
-      if (terms.nonEmpty)
-        constantsRec(terms.tail, uniqueConstantsIn(terms.head) ++ constants)
+      if (terms.nonEmpty) constantsRec(terms.tail, uniqueConstantsIn(terms.head) ++ constants)
       else constants
     }
 
@@ -249,6 +274,13 @@ package object logic {
     constantsRec(termLists, Set.empty)
   }
 
+  /**
+   * Collect all unique functions from a list of terms.
+   *
+   * @param terms input list of terms
+   * @return the resulting vector of functions found in the given list
+   *         of terms, or an empty vector if none is found
+   */
   def uniqueFunctionsIn(terms: TermIterable): Set[TermFunction] = {
     val queue = mutable.Queue[Term]()
     queue ++= terms
@@ -258,16 +290,22 @@ package object logic {
       case f: TermFunction =>
         result += f
         queue ++= f.terms
-      case _ => //do nothing
+      case _ => // do nothing
     }
     result
   }
 
+  /**
+   * Collects all functions from a given list of term lists.
+   *
+   * @param termLists input list of term list
+   * @return The resulting set of functions found in the given lists of terms, or an empty set if none is found.
+   */
   def uniqueFunctionsInLists(termLists: Iterable[TermIterable]): Set[TermFunction] = {
+
     @tailrec
     def functionsRec(terms: Iterable[TermIterable], functions: Set[TermFunction]): Set[TermFunction] = {
-      if (terms.nonEmpty)
-        functionsRec(terms.tail, uniqueFunctionsIn(terms.head) ++ functions)
+      if (terms.nonEmpty) functionsRec(terms.tail, uniqueFunctionsIn(terms.head) ++ functions)
       else functions
     }
 
@@ -275,15 +313,20 @@ package object logic {
     functionsRec(termLists, Set.empty)
   }
 
-
+  /**
+   * Collect all terms from a given list of lists of terms matching a given function.
+   *
+   * @param sources input list of lists of terms
+   * @param matcher matcher function
+   * @return the resulting vector of terms found in the given list of lists of terms
+   *         matching the given function, or an empty vector if none is found
+   */
   def flatMatchedTerms(sources: Iterable[TermIterable], matcher: Term => Boolean): Vector[Term] = {
     val queue = mutable.Queue[Term]()
-
     var result = Vector[Term]()
 
     for (entry <- sources) {
       queue ++= entry
-      //queue ++= literal.sentence.terms
 
       while (queue.nonEmpty) {
         val candidate = queue.dequeue()
@@ -291,24 +334,28 @@ package object logic {
           result ++= Vector(candidate)
         else candidate match {
           case f: TermFunction => queue ++= f.terms
-          case _ => //do nothing
+          case _ => // do nothing
         }
       }
     }
-
     result
   }
 
-
-  def uniqFlatMatchedTerms(sources: Iterable[TermIterable], matcher: Term => Boolean): Vector[Term] = {
+  /**
+   * Collect all unique terms from a list of lists of terms matching a given function.
+   *
+   * @param sources input list of lists of terms
+   * @param matcher matcher function
+   * @return the resulting vector of unique terms found in the given list of lists of terms
+   *         matching the given function, or an empty vector if none is found
+   */
+  def uniqueFlatMatchedTerms(sources: Iterable[TermIterable], matcher: Term => Boolean): Vector[Term] = {
     val queue = mutable.Queue[Term]()
-
     var memory = Set[Term]()
     var result = Vector[Term]()
 
     for (entry <- sources) {
       queue ++= entry
-      //queue ++= literal.sentence.terms
 
       while (queue.nonEmpty) {
         val candidate = queue.dequeue()
@@ -319,23 +366,28 @@ package object logic {
         }
         else candidate match {
           case f: TermFunction => queue ++= f.terms
-          case _ => //do nothing
+          case _ => // do nothing
         }
       }
     }
-
     result
   }
 
-
+  /**
+   * Collect all terms per given list of terms matching a given function.
+   *
+   * @param sources input list of lists of terms
+   * @param matcher matcher function
+   * @return a resulting vector of terms matching the given function
+   *         each list of terms, or an empty vector if none is found
+   */
   def matchedTerms(sources: Iterable[TermIterable], matcher: Term => Boolean)(implicit tag: ClassTag[TermIterable]): Vector[Vector[Term]] = {
     val stack = mutable.Stack[Term]()
-
     var result = Vector[Vector[Term]]()
 
     for (entry <- sources) {
       stack.pushAll(entry)
-      //stack.pushAll(literal.sentence.terms)
+
       var matchedTerms = Vector[Term]()
 
       while (stack.nonEmpty) {
@@ -344,15 +396,22 @@ package object logic {
           matchedTerms ++= Vector(candidate)
         else candidate match {
           case f: TermFunction => stack.pushAll(f.terms)
-          case _ => //do nothing
+          case _ => // do nothing
         }
       }
       result ++= Vector(matchedTerms)
     }
-
     result
   }
 
+  /**
+   * Collect all terms from a list of terms matching a given function.
+   *
+   * @param terms input list of terms
+   * @param matcher matcher function
+   * @return the resulting vector of terms found in the given list of terms
+   *         matching the given function, or an empty vector if none is found
+   */
   def matchedTerms(terms: TermIterable, matcher: Term => Boolean): Vector[Term] = {
     var matchedTerms = Vector[Term]()
     val stack = mutable.Stack[Term]()
@@ -365,13 +424,11 @@ package object logic {
         matchedTerms ++= Vector(candidate)
       else candidate match {
         case f: TermFunction => stack.pushAll(f.terms)
-        case _ => //do nothing
+        case _ => // do nothing
       }
     }
-
     matchedTerms
   }
-
 
   def variableLeafs(terms: TermIterable): Vector[Variable] = {
     val stack = mutable.Stack[Term]()
@@ -381,9 +438,8 @@ package object logic {
     while (stack.nonEmpty) stack.pop() match {
       case f: TermFunction => stack.pushAll(f.terms)
       case t: Variable => result ++= Vector(t)
-      case _ => //do nothing
+      case _ => // do nothing
     }
-
     result
   }
 
@@ -395,13 +451,10 @@ package object logic {
     while (stack.nonEmpty) stack.pop() match {
       case f: TermFunction => stack.pushAll(f.terms)
       case t: Constant => result ++= Vector(t)
-      case _ => //do nothing
+      case _ => // do nothing
     }
-
     result
   }
-
-
 
   def uniqueVariableLeafs(terms: TermIterable): Set[Variable] = {
     val queue = mutable.Queue[Term]()
@@ -411,7 +464,7 @@ package object logic {
     while (queue.nonEmpty) queue.dequeue() match {
       case f: TermFunction => queue ++= f.terms
       case v: Variable => result += v
-      case _ => //do nothing
+      case _ => // do nothing
     }
     result
   }
@@ -424,19 +477,26 @@ package object logic {
     while (queue.nonEmpty) queue.dequeue() match {
       case f: TermFunction => queue ++= f.terms
       case v: Constant => result += v
-      case _ => //do nothing
+      case _ => // do nothing
     }
     result
   }
 
-  def variabilizeAtom(atom: AtomicFormula)(implicit predicateSchema: PredicateSchema, functionSchema: FunctionSchema): AtomicFormula ={
+  /**
+   * Variabilize the given atomic formula. Replace all constants appearing in the
+   * formula with variables.
+   *
+   * @param atom the given atomic formula to be variabilized
+   * @return a variabilized atomic formula
+   */
+  def variabilizeAtom(atom: AtomicFormula)(implicit predicateSchema: PredicateSchema, functionSchema: FunctionSchema): AtomicFormula = {
     var anonVarCounter = 0
 
     def variabilizeTerms(terms: Vector[_ <: Term], currentSchema: Seq[String]): Vector[_ <: Term] = {
       terms.zip(currentSchema).map {
         case (v: Variable, t: String) => v
         case (c: Constant, t: String) =>
-          val symbol = "var_"+anonVarCounter
+          val symbol = s"var_$anonVarCounter"
           anonVarCounter += 1
           Variable(symbol, t)
 
@@ -451,9 +511,9 @@ package object logic {
     atom.copy(terms = variabilizedTerms)
   }
 
-
-
-
+  /**
+   * Predefined objects
+   */
   object predef {
 
     val dynAtomBuilders: Map[AtomSignature, DynamicAtomBuilder] = List(
@@ -461,10 +521,8 @@ package object logic {
       DynGreaterThanBuilder(), DynGreaterThanEqBuilder(), DynSubstringBuilder()
     ).map(builder => builder.signature -> builder).toMap
 
-
     val dynAtoms: Map[AtomSignature, Vector[String] => Boolean] =
       dynAtomBuilders.map { case (signature, builder) => signature -> builder.stateFunction }
-
 
     val dynFunctionBuilders: Map[AtomSignature, DynamicFunctionBuilder] = List(
       DynSuccFunctionBuilder(), DynPrecFunctionBuilder(), DynPlusFunctionBuilder(),
@@ -474,8 +532,6 @@ package object logic {
 
     val dynFunctions: Map[AtomSignature, Vector[String] => String] =
       dynFunctionBuilders.map { case (signature, builder) => signature -> builder.resultFunction }
-
   }
-
 
 }
