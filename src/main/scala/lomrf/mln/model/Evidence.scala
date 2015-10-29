@@ -72,40 +72,40 @@ object Evidence {
 
 
   def fromFiles(kb: KB,
-                constantsDomainBuilders: ConstantsDomainBuilder,
+                constantsDomain: ConstantsDomain,
                 queryPredicates: Set[AtomSignature],
                 files: Iterable[File],
                 convertFunctions: Boolean): Evidence = {
 
-    fromFiles(kb.predicateSchema, kb.functionSchema, constantsDomainBuilders, kb.dynamicFunctions, queryPredicates, Set.empty[AtomSignature], Set.empty[AtomSignature], files, convertFunctions)
+    fromFiles(kb.predicateSchema, kb.functionSchema, constantsDomain, kb.dynamicFunctions, queryPredicates, Set.empty[AtomSignature], Set.empty[AtomSignature], files, convertFunctions)
   }
 
   def fromFiles(kb: KB,
-                constantsDomainBuilder: ConstantsDomainBuilder,
+                constantsDomain: ConstantsDomain,
                 queryPredicates: Set[AtomSignature],
                 owaPredicates: Set[AtomSignature],
                 cwaPredicates: Set[AtomSignature],
                 files: Iterable[File],
                 convertFunctions: Boolean): Evidence = {
 
-    fromFiles(kb.predicateSchema, kb.functionSchema, constantsDomainBuilder, kb.dynamicFunctions, queryPredicates, owaPredicates, cwaPredicates, files, convertFunctions)
+    fromFiles(kb.predicateSchema, kb.functionSchema, constantsDomain, kb.dynamicFunctions, queryPredicates, owaPredicates, cwaPredicates, files, convertFunctions)
   }
 
   def fromFiles(predicateSchema: PredicateSchema,
                 functionSchema: FunctionSchema,
-                constantsDomainBuilder: ConstantsDomainBuilder,
+                constantsDomain: ConstantsDomain,
                 dynamicFunctions: DynamicFunctions,
                 queryPredicates: Set[AtomSignature],
                 owaPredicates: Set[AtomSignature],
                 files: Iterable[File],
                 convertFunctions: Boolean): Evidence ={
 
-    fromFiles(predicateSchema, functionSchema, constantsDomainBuilder, dynamicFunctions, queryPredicates, owaPredicates, Set.empty, files, convertFunctions)
+    fromFiles(predicateSchema, functionSchema, constantsDomain, dynamicFunctions, queryPredicates, owaPredicates, Set.empty, files, convertFunctions)
   }
 
   def fromFiles(predicateSchema: PredicateSchema,
                 functionSchema: FunctionSchema,
-                constantsDomainBuilder: ConstantsDomainBuilder,
+                constantsDomain: ConstantsDomain,
                 dynamicFunctions: DynamicFunctions,
                 queryPredicates: Set[AtomSignature],
                 owaPredicates: Set[AtomSignature],
@@ -137,6 +137,8 @@ object Evidence {
         }
 
     info("--- Stage 1: Parsing constants")
+    val constantsDomainBuilder = ConstantsDomainBuilder.from(constantsDomain)
+
     var evidenceSignatures = cwaPredicates
 
     for (evidenceExpressions <- evidenceExpressionsDB; expr <- evidenceExpressions) expr match {

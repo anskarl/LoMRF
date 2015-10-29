@@ -116,7 +116,7 @@ object KB {
 
   def fromFile(filename: String,
                dynamicDefinitions: Option[ImplFinder.ImplementationsMap] = None,
-               convertFunctions: Boolean = false): (KB, ConstantsDomainBuilder) = {
+               convertFunctions: Boolean = false): (KB, ConstantsDomain) = {
     import log._
 
 
@@ -337,7 +337,7 @@ object KB {
 
     info(s"Total formulas: ${kb.formulas.size}")
 
-    (kb, constantsBuilder)
+    (kb, constantsBuilder.result())
   }
 
 

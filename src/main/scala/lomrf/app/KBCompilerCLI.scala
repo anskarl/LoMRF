@@ -128,7 +128,7 @@ object KBCompilerCLI extends Logging {
     if (source == target)
       fatal("Target file cannot be the same with source file.")
 
-    val (kb, constBuilder) = dynamicDefinitionPaths match {
+    val (kb, constants) = dynamicDefinitionPaths match {
       case Some(paths) =>
         val implFinder = ImplFinder(classOf[DynamicAtomBuilder], classOf[DynamicFunctionBuilder])
         implFinder.searchPaths(paths)
@@ -136,7 +136,7 @@ object KBCompilerCLI extends Logging {
 
       case None => KB.fromFile(source, None)
     }
-    val constants = constBuilder.result()
+    //val constants = constBuilder.result()
 
     lazy val completedFormulas = PredicateCompletion(kb.formulas, kb.definiteClauses, pcm)(kb.predicateSchema, kb.functionSchema, constants)
 

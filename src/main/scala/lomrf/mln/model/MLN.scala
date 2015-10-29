@@ -255,7 +255,7 @@ object MLN {
 
 
     //parse knowledge base (.mln)
-    val (kb, constantsDomainBuilders) = KB.fromFile(mlnFileName, dynamicDefinitions)
+    val (kb, constantsDomain) = KB.fromFile(mlnFileName, dynamicDefinitions)
 
     val atomSignatures: Set[AtomSignature] = kb.predicateSchema.keySet
 
@@ -285,7 +285,7 @@ object MLN {
 
     //parse the evidence database (.db)
     val evidence: Evidence = Evidence
-      .fromFiles(kb, constantsDomainBuilders, queryAtoms, owa, cwa, evidenceFileNames.map(new File(_)), convertFunctions = false)
+      .fromFiles(kb, constantsDomain, queryAtoms, owa, cwa, evidenceFileNames.map(new File(_)), convertFunctions = false)
 
     val completedFormulas =
       PredicateCompletion(kb.formulas, kb.definiteClauses, pcm)(kb.predicateSchema, kb.functionSchema, evidence.constants)
@@ -345,7 +345,7 @@ object MLN {
 
 
     //parse knowledge base (.mln)
-    val (kb, constantsDomainBuilder) = KB.fromFile(mlnFileName, dynamicDefinitions)
+    val (kb, constantsDomain) = KB.fromFile(mlnFileName, dynamicDefinitions)
 
     // All atom signatures
     val atomSignatures: Set[AtomSignature] = kb.predicateSchema.keySet
@@ -362,7 +362,7 @@ object MLN {
 
     //parse the training evidence database (contains the annotation, i.e., the truth values of all query/hidden atoms)
     val trainingEvidence = Evidence.fromFiles(
-      kb, constantsDomainBuilder, nonEvidenceAtoms, Set.empty, evidenceAtoms, trainingFileNames.map(new File(_)), convertFunctions = false
+      kb, constantsDomain, nonEvidenceAtoms, Set.empty, evidenceAtoms, trainingFileNames.map(new File(_)), convertFunctions = false
     )
 
     val domainSpace = PredicateSpace(kb.schema, nonEvidenceAtoms, trainingEvidence.constants)
@@ -496,7 +496,7 @@ object MLN {
 
     // Parse the training evidence database (contains the annotation, i.e., the truth values of all query/hidden atoms)
     val trainingEvidence = Evidence
-      .fromFiles(mlnSchema.predicates, mlnSchema.functions, builder, mlnSchema.dynamicFunctions,
+      .fromFiles(mlnSchema.predicates, mlnSchema.functions, builder.result(), mlnSchema.dynamicFunctions,
         nonEvidenceAtoms, Set.empty[AtomSignature], evidenceAtoms, trainingFileNames.map(filename => new File(filename)), convertFunctions = false)
 
     forLearning(mlnSchema, trainingEvidence, nonEvidenceAtoms, clauses)
