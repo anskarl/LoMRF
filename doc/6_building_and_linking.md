@@ -2,7 +2,8 @@
 
 In order to build LoMRF from source, you need to have Java SE Development Kit (e.g., OpenJDK) version 7 or higher
 (**it is recommended to use Java SE 8 or higher**) and [SBT](http://www.scala-sbt.org/) (v0.13.x) installed in
-your system. Furthermore, LoMRF build depends on the [auxlib](https://github.com/anskarl/auxlib), [Optimus](https://github.com/vagm/Optimus) and optionally to [Gurobi](http://www.gurobi.com/) and [LPSolve](http://lpsolve.sourceforge.net).
+your system. Furthermore, LoMRF build depends on the [auxlib](https://github.com/anskarl/auxlib), [Optimus](https://github.com/vagm/Optimus) 
+and optionally to [Gurobi](http://www.gurobi.com/) and [LPSolve](http://lpsolve.sourceforge.net).
 
 ## Instructions to build LoMRF from source
 
@@ -16,7 +17,10 @@ $ sbt ++2.11.7 publishLocal
 
 **Step 2.** Clone and publish locally the Optimus project (see instructions [here](https://github.com/vagm/Optimus)).
 
-**Step 3 (optional).** Please note that Gurobi is required for running max-margin weight learning and optionally can also be used for MAP inference. In order to enable support for Gurobi, you have to build Optimus with Gurobi support ([see instructions](https://github.com/vagm/Optimus)) and then include Gurobi library dependencies to the `./lib` subdirectory inside the cloned LoMRF directory (create if not already exists), as it is illustrated in the tree below:
+**Step 3 (optional).** Please note that Gurobi is required for running max-margin weight learning and optionally can also 
+be used for MAP inference. In order to enable support for Gurobi, you have to build Optimus with Gurobi support 
+([see instructions](https://github.com/vagm/Optimus)) and then include Gurobi library dependencies to the `./lib` subdirectory 
+inside the cloned LoMRF directory (create if not already exists), as it is illustrated in the tree below:
 
 ```bash
 LoMRF
@@ -32,7 +36,8 @@ $ sbt dist
 
 After a successful compilation, the LoMRF distribution is located inside the `./target/universal/lomrf-<version>.zip`
 file. You can extract this file and add the `path/to/lomrf-<version>/bin` in your PATH, in order to execute the LoMRF
-scripts from terminal (see Section [Add LoMRF executables in your default PATH](#Add-LoMRF-executables-in-your-default-PATH)). The distribution contains all library dependencies and requires only Java 7
+scripts from terminal (see Section [Add LoMRF executables in your default PATH](#Add-LoMRF-executables-in-your-default-PATH)). 
+The distribution contains all library dependencies and requires only Java 7
 (or higher runtime). Sources, documentation and the compiled library (without dependencies) are archived as jar files
 into the `./target/scala-2.11/` directory. The resulting documentation is located inside the `./target/site/scaladocs`
 directory.
@@ -124,12 +129,38 @@ For MS Windows OS add the location of LoMRF sub-folder (e.g., `C:\path\to\lomrf-
 
 ## LPSolve installation instructions (optional)
 
-### Linux distributions
+### Linux distributions 
 
-  For example, on a ***Debian-based*** distribution, write the following command:
-  ```bash
-  $ sudo apt-get install lp-solve
-  ```
+For example, on a ***Debian-based*** distribution, write the following command:
+```bash
+$ sudo apt-get install lp-solve
+```
+  
+To install Java Native Interface support for LPSolve v5.5.x you need follow the  instructions below:
+* Download LPSolve dev, 64bit *lp_solve_5.5.2.x_dev_ux64.zip* or for 32bit *lp_solve_5.5.2.x_dev_ux32.zip*, from [LPSolve official repository](http://sourceforge.net/projects/lpsolve/files/lpsolve/5.5.2.0/).
+  * Extract the file
+  * We only need the `lpsolve55.so` file.
+* Download LPSolve java bindings (lp_solve_5.5.2.x_java.zip) from [LPSolve official repository](http://sourceforge.net/projects/lpsolve/files/lpsolve/5.5.2.0/).
+    * Extract the file
+    * We only need the `lpsolve55j.so` files
+* Create a directory containing the `lpsolve55.so` and `lpsolve55j.so` files, e.g., `$HOME/lib/lpsolve55`    
+* Add this directory to `LD_LIBRARY_PATH` in your profile file:
+
+**BASH** e.g., inside `.profile`, `.bashrc` or `.bash_profile` file in your home directory:
+```bash
+export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$HOME/lib/lpsolve55
+```
+
+**CSH/TCSH** e.g., inside `~/.login` file in your home directory:
+```csh
+set LD_LIBRARY_PATH = ($LD_LIBRARY_PATH $HOME/lib/lpsolve55 .)
+```
+or in `~/.cshrc` file in your home directory:
+```csh
+setenv LD_LIBRARY_PATH $LD_LIBRARY_PATH:$HOME/lib/lpsolve55:.
+```
+
+ 
 
 ### Apple MacOS X
 
@@ -146,6 +177,21 @@ or from [homebrew](http://brew.sh):
 $ brew tap homebrew/science
 $ brew install lp_solve
 ```
+
+To install the Java Native Interface support for LPSolve v5.5.x you need follow the  instructions below:
+* Download LPSolve dev, 64bit *lp_solve_5.5.2.x_dev_ux64.zip* or for 32bit *lp_solve_5.5.2.x_dev_ux32.zip*, from [LPSolve official repository](http://sourceforge.net/projects/lpsolve/files/lpsolve/5.5.2.0/).
+  * Extract the file
+  * We only need the `lpsolve55.dylib` file.
+* Download LPSolve java bindings (lp_solve_5.5.2.x_java.zip) from [LPSolve official repository](http://sourceforge.net/projects/lpsolve/files/lpsolve/5.5.2.0/).
+    * Extract the file
+    * We only need the `lpsolve55j.jnilib` files
+* Create a directory containing the `lpsolve55.dylib` and `lpsolve55j.jnilib` files, e.g., `$HOME/lib/lpsolve55`    
+* Add this directory to `LD_LIBRARY_PATH` inside `.profile` file in your home directory:
+
+```bash
+export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$HOME/lib/lpsolve55
+```
+
 
 ### Microsoft Windows
 To install LPSolve v5.5.x in your system, follow the instructions below:
