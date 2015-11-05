@@ -209,6 +209,65 @@ object LogicOps {
   }
 
   /**
+   * Implicit class for clauses operations
+   */
+  implicit class ClauseOps(val clause: Clause) extends AnyVal {
+
+    /**
+     * Checks theta subsumption.
+     *
+     * @param other the other clause to check subsumption
+     *
+     * @return true if this clause subsumes the other clause, otherwise returns false
+     */
+    def subsumes(other: Clause): Boolean = {
+
+      val thisLiterals = clause.literals
+
+      // Skolemize (replace all variables with constants) the other clause in order to perform unification
+      val theta: Theta = other.literals
+        .flatMap(_.sentence.variables)
+        .map(v => v -> Constant("$"+v.symbol)).toMap
+      val otherLiterals = other.literals.map(_.substitute(theta))
+
+      def isUnifiable(thisLiterals: Set[Literal], otherLiterals: Set[Literal]): Boolean = {
+
+        // If there are no more literals to unify for this clause, return true
+        if (thisLiterals.isEmpty)
+          return true
+
+        // Get the next literal
+        val current = thisLiterals.head
+
+        // Literals having identical signature and sense are candidates for unification
+        val matchingLiterals = otherLiterals.filter(l => current.positive == l.positive &&
+          current.sentence.signature == l.sentence.signature)
+
+        // If there are no other matching literals to try unification return false
+        if (matchingLiterals.isEmpty)
+          return false
+
+        matchingLiterals.foreach { l =>
+          Unify(current.sentence, l.sentence) match {
+            case Some(x) if current.substitute(x) == l =>
+              isUnifiable((thisLiterals - current).map(_.substitute(x)), otherLiterals) match {
+                case true => return true
+                case false => // do nothing, proceed to the next matching literal (backtracking)
+              }
+            case Some(x) if x.size < l.sentence.variables.size => return false // avoid bidirectional cycles of unification
+            case None => // do nothing, proceed to the next matching literal (backtracking)
+          }
+        }
+
+        false
+      }
+
+      isUnifiable(thisLiterals, otherLiterals)
+    }
+
+  }
+
+  /**
    * Implicit class for definite clauses operations.
    */
   implicit class DefiniteClauseOps(val definiteClause: DefiniteClause) extends AnyVal {
