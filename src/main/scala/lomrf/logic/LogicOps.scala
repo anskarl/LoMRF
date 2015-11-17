@@ -214,7 +214,12 @@ object LogicOps {
   implicit class ClauseOps(val clause: Clause) extends AnyVal {
 
     /**
-     * Checks theta subsumption.
+     * Checks theta subsumption using backtracking. For each literal of the first clause
+     * it trys to find a theta substitution in order for the literal to be equal to another
+     * literal of the second clause. If the procedure is stuck, it backtracks to a point
+     * where another substitution can be performed giving better results, otherwise it fails.
+     * Details about the algorithm as well as plenty of examples can be found in:
+     * De Raedt, Luc. Logical and Relational Learning, 2008.
      *
      * @param other the other clause to check subsumption
      *
@@ -224,12 +229,20 @@ object LogicOps {
 
       val thisLiterals = clause.literals
 
-      // Skolemize (replace all variables with constants) the other clause in order to perform unification
+      // Replace all variables with constants of the other clause in order to perform unification
       val theta: Theta = other.literals
         .flatMap(_.sentence.variables)
         .map(v => v -> Constant("$"+v.symbol)).toMap
       val otherLiterals = other.literals.map(_.substitute(theta))
 
+      /**
+       * It searches for a valid theta substitution between two sets of literals and returns
+       * true if one exists, otherwise false. The search procedure begins by picking the head
+       * literal of the first set, find all matching literals (literals with identical signature)
+       * in the other set and then try a theta substitution in order to be equal. Then proceed recursively
+       * for the other literals and check if the substitutions result in a valid solution. Otherwise,
+       * backtrack into the previous state and pick another substitution.
+       */
       def isUnifiable(thisLiterals: Set[Literal], otherLiterals: Set[Literal]): Boolean = {
 
         // If there are no more literals to unify for this clause, return true
@@ -240,8 +253,9 @@ object LogicOps {
         val current = thisLiterals.head
 
         // Literals having identical signature and sense are candidates for unification
-        val matchingLiterals = otherLiterals.filter(l => current.positive == l.positive &&
-          current.sentence.signature == l.sentence.signature)
+        val matchingLiterals = otherLiterals
+                                .filter(l => current.positive == l.positive &&
+                                             current.sentence.signature == l.sentence.signature)
 
         // If there are no other matching literals to try unification return false
         if (matchingLiterals.isEmpty)
