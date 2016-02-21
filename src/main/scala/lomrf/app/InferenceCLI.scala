@@ -44,7 +44,6 @@ import lomrf.mln.grounding.MRFBuilder
 import lomrf.mln.inference._
 import lomrf.mln.model.MLN
 import lomrf.util.ImplFinder
-import lomrf.mln.model.ModelOps._
 
 /**
  * Command line tool for inference.
@@ -350,7 +349,7 @@ object InferenceCLI extends CLIApp {
 
     val mln = MLN.fromFile(strMLNFileName, _evidenceFileNames, _queryAtoms, _cwa, _owa, pcm = Decomposed, dynamicDefinitionsOpt)
 
-    mln.info()
+    info(mln.toString)
 
     whenDebug {
       debug("List of CNF clauses: ")

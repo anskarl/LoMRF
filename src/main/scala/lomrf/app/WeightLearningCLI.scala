@@ -42,7 +42,6 @@ import lomrf.mln.grounding.MRFBuilder
 import lomrf.mln.inference.Solver
 import lomrf.mln.learning.weight.{OnlineLearner, LossFunction, MaxMarginLearner}
 import lomrf.mln.model.MLN
-import lomrf.mln.model.ModelOps._
 import lomrf.util.time._
 
 /**
@@ -266,7 +265,7 @@ object WeightLearningCLI extends CLIApp {
       info("AnnotationDB: "
         + "\n\tAtoms with annotations: " + annotationDB.keys.map(_.toString).reduceLeft((left, right) => left + "," + right)
       )
-      mln.info()
+      info(mln.toString)
 
       info("Number of CNF clauses = " + mln.clauses.size)
       info("List of CNF clauses: ")
@@ -295,7 +294,7 @@ object WeightLearningCLI extends CLIApp {
 
         info("AnnotationDB: "
           + "\n\tAtoms with annotations: " + annotationDB.keys.mkString(","))
-        mln.info()
+        info(mln.toString)
 
         info("Number of CNF clauses = " + mln.clauses.size)
         whenDebug{
