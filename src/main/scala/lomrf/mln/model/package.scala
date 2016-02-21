@@ -36,7 +36,7 @@
 package lomrf.mln
 
 import lomrf.logic.AtomSignature
-import lomrf.mln.model.AtomIdentityFunction
+import lomrf.mln.learning.structure.ModeDeclaration
 
 package object model {
 
@@ -56,6 +56,7 @@ package object model {
 
   type Identities = Map[AtomSignature, AtomIdentityFunction]
 
+  type ModeDeclarations = Map[AtomSignature, ModeDeclaration]
 
   implicit class FunctionSchemaWrapped(val fs: FunctionSchema) extends AnyVal {
 

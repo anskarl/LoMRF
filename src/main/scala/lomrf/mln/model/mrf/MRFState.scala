@@ -41,11 +41,13 @@ import java.util.concurrent.atomic.AtomicBoolean
 import auxlib.log.Logging
 import gnu.trove.list.array.TIntArrayList
 import gnu.trove.map.hash.TIntIntHashMap
-import lomrf.mln.model.AtomIdentityFunction
+import lomrf.logic.TRUE
+import lomrf.mln.model._
 import scala.collection.mutable.ArrayBuffer
 import scala.collection.mutable
 import scala.collection.parallel.mutable.ParArray
 import scala.util.{Failure, Success}
+import lomrf.logic.AtomSignatureOps._
 import scalaxy.streams.optimize
 
 /**
@@ -82,6 +84,107 @@ final class MRFState private(val mrf: MRF,
   @inline private def isTrueLiteral(lit: Int): Boolean = (lit > 0) == state(lit)
 
   def apply(aid: Int): Boolean = state(aid)
+
+  /**
+   * Set a given annotated state as the current MRF state. Fetch annotated values
+   * from database for each atom id and replace the existing ones in the MRF. Annotation
+   * should exist only for non evidence atoms.
+   *
+   * @param annotationDB the evidence db containing the query atom annotation
+   */
+  def setAnnotatedState(annotationDB: EvidenceDB) = {
+    require(annotationDB.keySet == mrf.mln.queryAtoms, "Annotation should exist only for non evidence atoms")
+    val atomsIterator = atoms.iterator()
+
+    while(atomsIterator.hasNext) {
+      atomsIterator.advance()
+      val atom = atomsIterator.value()
+      if (annotationDB(atom.id.signature(mrf.mln))(atom.id) == TRUE)
+        atom.state = true
+      else atom.state = false
+    }
+  }
+
+  /**
+   * Count the true groundings of the clauses produced the constraints of
+   * this state.
+   *
+   * @return the number of true groundings for each clause of this state.
+   */
+  def countTrueGroundings: Array[Int] = countGroundings()
+
+  /**
+   * Count the true groundings of the clauses produced the constraints of
+   * this state with respect to the truth values of another state (probably previous).
+   *
+   * @param previousState another state
+   * @return the number of true groundings for each clause of this state
+   */
+  def countTrueGroundings(previousState: Option[MRFState]): Array[Int] = countGroundings(usePreviousState = true, previousState)
+
+  /**
+   * Count the number of true groundings of each clause in the data. In order to do this, we compute the
+   * satisfied literals of each ground clause given an MRF state (annotation or inferred). Then if the number
+   * of satisfied literals are greater than zero and the weight of the clause that produced it has not been
+   * flipped we can count it as true ground clause. On the other hand if the weight has been flipped then in
+   * order to count it the number of satisfied literals should be zero.
+   *
+   * Note: If another state is given we count the true groundings with respect to that state using
+   *       the constraints (ground clauses) of this state.
+   *
+   * @return count of true groundings of the clauses
+   */
+  private def countGroundings(usePreviousState: Boolean = false, previousState: Option[MRFState] = None): Array[Int] = {
+
+    val dependencyMap = mrf.dependencyMap.getOrElse(sys.error("Dependency map does not exists."))
+
+    val counts = Array.fill[Int](mrf.mln.clauses.length)(0)
+
+    val constraintIterator = mrf.constraints.iterator()
+
+    // Keeps the count of literals satisfying the current constraint
+    var nsat = 0
+
+    // literal index of the current constraint
+    var idx = 0
+
+    while (constraintIterator.hasNext) {
+      constraintIterator.advance()
+      val currentConstraint = constraintIterator.value()
+
+      // --- Compute the number of literals that satisfy the current constraint
+      nsat = 0 // Reset
+      idx = 0 // Reset
+      while (idx < currentConstraint.literals.length) {
+        val lit = currentConstraint.literals(idx)
+        val state = if (usePreviousState) previousState match {
+                        case Some(otherState) => otherState.mrf.fetchAtom(lit).state
+                        case None => false
+                    }
+                    else mrf.fetchAtom(lit).state
+
+        if ( (lit > 0) == state ) nsat += 1
+        idx += 1
+      }
+
+      val iterator = dependencyMap.get(currentConstraint.id).iterator()
+
+      while(iterator.hasNext) {
+        iterator.advance()
+        val clauseIdx = iterator.key()
+        val frequency = iterator.value()
+
+        // If weight is flipped then we want to count the opposite type of grounding
+        // Use math abs because frequency may be negative to indicate a weight is flipped
+        if( (frequency < 0 && nsat == 0) || (frequency > 0 && nsat > 0) )
+          counts(clauseIdx) += math.abs(frequency.toInt) // Clauses cannot have float frequencies at this point!
+      }
+
+      // --- --- --- --- --- --- --- --- --- ---
+    }
+
+    counts
+  }
 
   /**
    * Set inference mode (MaxWalkSAT or SampleSAT). Used for inference in order

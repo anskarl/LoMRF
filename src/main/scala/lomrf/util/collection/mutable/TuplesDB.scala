@@ -495,7 +495,26 @@ final class TuplesDB[@specialized K, @specialized V] extends Logging {
       var tuple = Vector[V]()
       keys.foreach { key =>
         index(key).foreach { case (value, ids) =>
-          if(ids.contains(tid)) tuple :+= value
+          if (ids.contains(tid)) tuple :+= value
+        }
+      }
+      tuples :+= tuple
+    }
+
+    tuples
+  }
+
+  /**
+   * @return all tuples ordered by the given keys ordering
+   */
+  def getOrderedTuples(keys: Iterable[K]): Vector[Vector[V]] = {
+    var tuples = Vector[Vector[V]]()
+
+    tupleIDs.foreach { tid =>
+      var tuple = Vector[V]()
+      keys.foreach { key =>
+        index(key).foreach { case (value, ids) =>
+          if (ids.contains(tid)) tuple :+= value
         }
       }
       tuples :+= tuple

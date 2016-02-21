@@ -48,7 +48,7 @@ class Evidence(val constants: ConstantsDomain,
   /**
    * collection of atoms with tri-state, i.e., open-world assumption (unknown state) with some evidence (true/false state)
    */
-  lazy val tristateAtoms: Set[AtomSignature] = db.filter(x => x._2.isTriStateDB).keySet
+  lazy val triStateAtoms: Set[AtomSignature] = db.filter(x => x._2.isTriStateDB).keySet
 
   /**
    * collection of probabilistic atoms

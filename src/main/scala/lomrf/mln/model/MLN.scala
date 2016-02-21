@@ -82,7 +82,7 @@ final class MLN(val schema: MLNSchema,
    *
    * @return true is the given atom signature corresponds to an atom that its groundings may have three states.
    */
-  def isTriState(signature: AtomSignature): Boolean = evidence.tristateAtoms.contains(signature)
+  def isTriState(signature: AtomSignature): Boolean = evidence.triStateAtoms.contains(signature)
 
   /**
    * Determine if the given atom signature corresponds to a query atom
@@ -149,7 +149,7 @@ final class MLN(val schema: MLNSchema,
 
   def probabilisticAtoms: Set[AtomSignature] = evidence.probabilisticAtoms
 
-  def tristateAtoms: Set[AtomSignature] = evidence.tristateAtoms
+  def triStateAtoms: Set[AtomSignature] = evidence.triStateAtoms
 
   override def toString: String = {
     s"""
@@ -169,10 +169,8 @@ object MLN {
 
   import PredicateCompletionMode._
 
-  def apply(schema: MLNSchema, evidence: Evidence, space: PredicateSpace, clauses: Vector[Clause]): MLN = {
-
+  def apply(schema: MLNSchema, evidence: Evidence, space: PredicateSpace, clauses: Vector[Clause]): MLN =
     new MLN(schema, space, evidence, clauses)
-  }
 
   def apply(predicateSchema: PredicateSchema,
             functionSchema: FunctionSchema,
@@ -199,6 +197,15 @@ object MLN {
     new MLN(schema, space, evidence, clauses)
   }
 
+  def apply(schema: MLNSchema,
+            evidence: Evidence,
+            queryAtoms: Set[AtomSignature],
+            clauses: Vector[Clause]) = {
+
+    val space = PredicateSpace(schema, queryAtoms, evidence.constants)
+
+    new MLN(schema, space, evidence, clauses)
+  }
 
   def apply(schema: MLNSchema,
             clauses: Vector[Clause],
@@ -211,7 +218,6 @@ object MLN {
 
     new MLN(schema, space, evidence, clauses)
   }
-
 
   /**
    * Constructs a MLN instance from the specified knowledge base and evidence files.
@@ -226,23 +232,23 @@ object MLN {
    * @return an MLN instance
    */
   def fromFile(mlnFileName: String,
-              queryAtoms: Set[AtomSignature],
-              evidenceFileName: String,
-              cwa: Set[AtomSignature] = Set(),
-              owa: Set[AtomSignature] = Set(),
-              pcm: PredicateCompletionMode = Decomposed,
-              dynamicDefinitions: Option[ImplFinder.ImplementationsMap] = None): MLN = {
+               queryAtoms: Set[AtomSignature],
+               evidenceFileName: String,
+               cwa: Set[AtomSignature] = Set(),
+               owa: Set[AtomSignature] = Set(),
+               pcm: PredicateCompletionMode = Decomposed,
+               dynamicDefinitions: Option[ImplFinder.ImplementationsMap] = None): MLN = {
 
     fromFile(mlnFileName, List(evidenceFileName), queryAtoms, cwa, owa, pcm, dynamicDefinitions)
   }
 
   def fromFile(mlnFileName: String,
-              evidenceFileNames: List[String],
-              queryAtoms: Set[AtomSignature],
-              cwa: Set[AtomSignature],
-              owa: Set[AtomSignature],
-              pcm: PredicateCompletionMode,
-              dynamicDefinitions: Option[ImplFinder.ImplementationsMap]): MLN = {
+               evidenceFileNames: List[String],
+               queryAtoms: Set[AtomSignature],
+               cwa: Set[AtomSignature],
+               owa: Set[AtomSignature],
+               pcm: PredicateCompletionMode,
+               dynamicDefinitions: Option[ImplFinder.ImplementationsMap]): MLN = {
 
     val logger = Logger(getClass)
     import logger._
@@ -335,6 +341,7 @@ object MLN {
                   pcm: PredicateCompletionMode = Decomposed,
                   dynamicDefinitions: Option[ImplFinder.ImplementationsMap] = None,
                   addUnitClauses: Boolean = false): (MLN, EvidenceDB) = {
+
     val logger = Logger(getClass)
     import logger._
 
@@ -436,7 +443,8 @@ object MLN {
     (new MLN(mlnSchema, domainSpace, evidence, clauses), annotationDB)
   }
 
-  def export(mln: MLN, out: PrintStream = System.out)(implicit numFormat: DecimalFormat = new DecimalFormat("0.############")): Unit ={
+  def export(mln: MLN, out: PrintStream = System.out)
+            (implicit numFormat: DecimalFormat = new DecimalFormat("0.############")): Unit = {
 
     out.println("// Predicate definitions")
     for ((signature, args) <- mln.schema.predicates) {

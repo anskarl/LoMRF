@@ -144,4 +144,33 @@ class SimilaritySpecTest extends FunSpec with Matchers {
 
   }
 
+  describe("Similarity check between definite clauses having atoms from both sets, but different sense") {
+
+    val definiteClauseA = DefiniteClause(atomicFormulasA.head,
+      And(atomicFormulasA.last, atomicFormulasB.head))
+
+    val definiteClauseB = DefiniteClause(atomicFormulasA.last,
+      And(atomicFormulasA.head, atomicFormulasB.last))
+
+    val definiteClauseC = DefiniteClause(atomicFormulasA.last,
+      And(Not(atomicFormulasA.head), atomicFormulasB.last))
+
+    it("Each definite clause should be similar to itself") {
+      definiteClauseA =~= definiteClauseA shouldBe true
+      definiteClauseB =~= definiteClauseB shouldBe true
+      definiteClauseC =~= definiteClauseC shouldBe true
+    }
+
+    it(s"${definiteClauseA.toText} should be similar to ${definiteClauseB.toText}") {
+      definiteClauseA =~= definiteClauseB shouldBe true
+    }
+
+    it(s"${definiteClauseA.toText} should NOT be similar to ${definiteClauseC.toText}") {
+      definiteClauseA =~= definiteClauseC shouldBe false
+    }
+
+    it(s"${definiteClauseB.toText} should NOT be similar to ${definiteClauseC.toText}") {
+      definiteClauseB =~= definiteClauseC shouldBe false
+    }
+  }
 }

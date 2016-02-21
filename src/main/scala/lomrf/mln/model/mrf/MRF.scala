@@ -38,7 +38,7 @@ package lomrf.mln.model.mrf
 import gnu.trove.map.TIntObjectMap
 import gnu.trove.map.hash.TIntObjectHashMap
 import lomrf.mln.grounding.DependencyMap
-import lomrf.mln.model.MLN
+import lomrf.mln.model._
 
 /**
  * This class represents a ground Markov Random Field.
@@ -71,6 +71,49 @@ class MRF(val mln: MLN,
   def apply(cid: Int) = constraints.get(cid)
 
   def fetchAtom(literal: Int) = atoms.get(math.abs(literal))
+
+  /**
+   * Update constraint weights from the sum of newly found parent weights in
+   * order to reconstruct the ground network faster in order to run inference.
+   *
+   * Basic reconstruction steps:
+   *
+   * For each clause that produced the constraint do:
+   *    If weight has been inverted then:
+   *      multiply the clause weight learned so far and the number of times (frequency)
+   *      this clause produced the corresponding constraint and subtract the result from
+   *      the total weight of the constraint so far.
+   *
+   *    If weight has not been inverted then:
+   *      Do the same but add the result to the total weight instead of subtract it.
+   *
+   * Note: In case the clause is hard then just assign the hard weight to the constraint.
+   */
+  private[mln] def updateConstraintWeights(weights: IndexedSeq[Double]) = {
+
+    val dependencyMap = this.dependencyMap.getOrElse(sys.error("Dependency map does not exists."))
+
+    val constraints = this.constraints.iterator()
+
+    while(constraints.hasNext) {
+      constraints.advance()
+      val constraint = constraints.value()
+      val iterator = dependencyMap.get(constraint.id).iterator()
+
+      constraint.setWeight(0.0)
+      while(iterator.hasNext) {
+        iterator.advance()
+
+        val clauseIdx = iterator.key()
+        val frequency = iterator.value()
+
+        // Frequency would never be negative because we always start using positive unit weights
+        if(mln.clauses(clauseIdx).isHard) constraint.setWeight(weightHard)
+        else constraint.setWeight(constraint.getWeight + weights(clauseIdx) * frequency)
+      }
+    }
+  }
+
 }
 
 object MRF {

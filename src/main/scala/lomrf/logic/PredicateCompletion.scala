@@ -41,8 +41,6 @@ import lomrf.mln.model.{ConstantsDomain, FunctionSchema, PredicateSchema}
 import lomrf.util.Cartesian.CartesianIterator
 import lomrf.util.collectByKey
 import collection.mutable
-import collection.breakOut
-import lomrf.logic.dynamic.DynEqualsBuilder
 import LogicOps._
 import scala.util.{Failure, Success}
 
@@ -85,7 +83,6 @@ import scala.util.{Failure, Success}
  * in the variables, as well as cases where some head predicates contain constant values </li>
  * </ul>
  * </p>
- *
  *
  */
 object PredicateCompletion extends Logging {
@@ -271,9 +268,7 @@ object PredicateCompletion extends Logging {
             }
           }
         }
-        else {
-          lambdaPrime += formula
-        }
+        else lambdaPrime += formula
       }
       pcResultingKB = lambdaPrime
     }
@@ -298,6 +293,7 @@ object PredicateCompletion extends Logging {
         Equivalence(head, bodies.map(_.boundVarsNotIn(head)).reduceLeft((left, right) => Or(left, right))))
       pcResultingKB += pcFormula
     }
+
     pcResultingKB
   }
 

@@ -45,7 +45,7 @@ trait CommonsMLNParser extends JavaTokenParsers with RegexParsers {
   val functionID = """[a-z]([a-zA-Z0-9]|_[a-zA-Z0-9])*\\([\w_\-,]+\\)""".r
 
   val lowerCaseID = """([a-z]([a-zA-Z0-9]|_[a-zA-Z0-9])*)""".r
-  val upperCaseID = """([A-Z0-9]([a-zA-Z0-9]|_[a-zA-Z0-9])*)""".r
+  val upperCaseID = """-?([A-Z0-9]([a-zA-Z0-9]|_[a-zA-Z0-9])*)""".r
   val constOrVar = """[a-zA-Z0-9]([a-zA-Z0-9]|_[a-zA-Z0-9])*""".r
   val numDouble = "-?\\d+(\\.\\d+)?".r
   val numPosInt = "\\d+".r

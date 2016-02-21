@@ -45,6 +45,9 @@ package object lomrf {
   // predicate prefix when functions are converted into auxiliary predicates
   val AUX_PRED_PREFIX = "AUX"
 
+  // function return value prefix
+  val FUNC_RET_VAR_PREFIX = "funcRetVar"
+
   val ASCIILogo =
     """
       |o                        o     o   o         o
@@ -62,8 +65,6 @@ package object lomrf {
     """.stripMargin
 
 
-
-
   val processors = sys.runtime.availableProcessors
 
   object BuildVersion {
@@ -74,7 +75,7 @@ package object lomrf {
       val clazz = lomrf.BuildVersion.getClass
       try {
         val classPath = clazz.getResource("package$" + clazz.getSimpleName + ".class").toString
-        
+
         if (classPath.startsWith("jar")) {
           val manifestPath = classPath.substring(0, classPath.lastIndexOf("!") + 1) + "/META-INF/MANIFEST.MF"
           val manifest0 = new java.util.jar.Manifest(new URL(manifestPath).openStream)

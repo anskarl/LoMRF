@@ -35,8 +35,8 @@
 
 package lomrf.logic
 
+import lomrf.logic.LogicOps._
 import lomrf.mln.model.ConstantsSet
-
 
 sealed trait Formula extends MLNExpression with Substitutable[Formula] with Serializable{
 
@@ -181,6 +181,38 @@ final case class DefiniteClause(head: AtomicFormula, body: DefiniteClauseConstru
     val sBody = body.substitute(theta)
     DefiniteClause(sHead, sBody)
   }
+
+  /**
+   * A pair of definite clauses are similar, when:
+   * <ul>
+   * <li> both have the same head predicate, and </li>
+   * <li> both have the same number of literals in the body, and </li>
+   * <li> for each literal in the body of this definite clause, another literal exists in the other definite
+   * clause having the same sense (positive or negated) and similar atomic formulas.
+   * For example the clause InitiatedAt(f,t1) :- HoldsAt(f,t2) is similar to InitiatedAt(f,t3) :- HoldsAt(f,t4) but
+   * is not similar to InitiatedAt(f,t1) :- !HoldsAt(f,t4)
+   * </li>
+   * </ul>
+   *
+   * @param that the other definite clause for comparison
+   *
+   * @return true if this definite clause is similar to that one, otherwise false
+   */
+  def =~=(that: DefiniteClause): Boolean = {
+    if (head =~= that.head && body.countAtoms == that.body.countAtoms) {
+      var otherLiterals = that.bodyLiterals
+
+      this.bodyLiterals.forall { lit1 =>
+        otherLiterals.find(lit2 => lit1 =~= lit2) match {
+          case Some(matchedLiteral) =>
+            otherLiterals -= matchedLiteral
+            true
+          case _ => false
+        }
+      }
+    }
+    else false
+  }
 }
 
 /**
@@ -241,6 +273,15 @@ final case class WeightedDefiniteClause(weight: Double, clause: DefiniteClause) 
     case WeightedDefiniteClause(w, c) if w == weight && c == clause => true
     case _ => false
   }
+
+  /**
+   * A pair of weighted definite clauses are similar, when their definite clauses are similar.
+   *
+   * @param that the other weighted definite clause for comparison
+   *
+   * @return true if this weighted definite clause is similar to that one, otherwise false
+   */
+  def =~=(that: WeightedDefiniteClause): Boolean = this.clause =~= that.clause
 
   def toWeightedFormula: WeightedFormula = WeightedFormula(weight, Implies(clause.body, clause.head))
 

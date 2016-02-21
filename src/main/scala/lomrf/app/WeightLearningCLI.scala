@@ -42,6 +42,7 @@ import lomrf.mln.grounding.MRFBuilder
 import lomrf.mln.inference.Solver
 import lomrf.mln.learning.weight.{OnlineLearner, LossFunction, MaxMarginLearner}
 import lomrf.mln.model.MLN
+import lomrf.mln.model.ModelOps._
 import lomrf.util.time._
 
 /**
@@ -95,7 +96,7 @@ object WeightLearningCLI extends CLIApp {
   private var _lossScale = 1.0
 
   // Perform loss augmented inference
-  private var _lossAugmented = true
+  private var _lossAugmented = false
 
   // Don't scale the margin by the loss
   private var _nonMarginRescaling = false
@@ -262,11 +263,10 @@ object WeightLearningCLI extends CLIApp {
 
       val (mln, annotationDB) = MLN.forLearning(strMLNFileName, strTrainingFileNames, _nonEvidenceAtoms, addUnitClauses = _addUnitClauses)
 
-      mlnInfo(mln)
-
       info("AnnotationDB: "
         + "\n\tAtoms with annotations: " + annotationDB.keys.map(_.toString).reduceLeft((left, right) => left + "," + right)
       )
+      mln.info()
 
       info("Number of CNF clauses = " + mln.clauses.size)
       info("List of CNF clauses: ")
@@ -293,10 +293,9 @@ object WeightLearningCLI extends CLIApp {
 
         val (mln, annotationDB) = MLN.forLearning(strMLNFileName, List(strTrainingFileNames(step)), _nonEvidenceAtoms, addUnitClauses = _addUnitClauses)
 
-        mlnInfo(mln)
-
         info("AnnotationDB: "
           + "\n\tAtoms with annotations: " + annotationDB.keys.mkString(","))
+        mln.info()
 
         info("Number of CNF clauses = " + mln.clauses.size)
         whenDebug{
@@ -320,15 +319,6 @@ object WeightLearningCLI extends CLIApp {
       learner.writeResults(outputWriter)
     }
 
-  }
-
-  private def mlnInfo(mln: MLN): Unit ={
-    info("Markov Logic:"
-      + "\n\tConstant domains   : " + mln.evidence.constants.size
-      + "\n\tSchema definitions : " + mln.schema.predicates.size
-      + "\n\tClauses            : " + mln.clauses.size
-      + "\n\tEvidence atoms     : " + mln.cwa.mkString(",")
-      + "\n\tNon-evidence atoms : " + mln.owa.mkString(","))
   }
 
   // Main:

@@ -294,7 +294,10 @@ object LogicOps {
     /**
      * @return All atomic formulas appearing in the body of this definite clause as literals
      */
-    def bodyLiterals: Set[Literal] = extract(definiteClause.body)
+    def bodyLiterals: Set[Literal] = definiteClause.subFormulas.last match {
+      case atom: AtomicFormula => Set(PositiveLiteral(atom))
+      case construct: FormulaConstruct => extract(construct)
+    }
 
     /**
      * Extracts all atomic formula appearing in the given formula construct as literals.
