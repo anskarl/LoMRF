@@ -47,22 +47,14 @@ object LoMRFBuild {
   val javaVersion = sys.props("java.specification.version").toDouble
 
   lazy val settings: Seq[Setting[_]] = {
-    if(javaVersion < 1.7)
-      sys.error("Java 7 or higher is required for this project")
-    else if(javaVersion == 1.7){
-      println("[info] Loading settings for Java 7. However it is strongly recommended to use Java 8 or higher.")
-      jdk7Settings
-    }
-    else {
-      println("[info] Loading settings for Java 8 or higher.")
-      jdk8Settings
-    }
+    if(javaVersion < 1.8) sys.error("Java 8 or higher is required for this project")
+    else jdk8Settings
   }
 
   private val commonSettings: Seq[Setting[_]] = Seq(
 
     organization := "com.github.anskarl",
-    scalaVersion := "2.11.7",
+    scalaVersion := "2.11.8",
     packageDescription in Debian := "LoMRF: Logical Markov Random Fields",
     maintainer in Debian := "Anastasios Skarlatidis",
 
@@ -106,17 +98,6 @@ object LoMRFBuild {
 
   )
 
-  private lazy val jdk7Settings: Seq[Setting[_]] = commonSettings ++ Seq(
-    javacOptions ++= Seq("-source", "1.7", "-target", "1.7", "-Xlint:unchecked", "-Xlint:deprecation"),
-    scalacOptions ++= Seq(
-      "-Yclosure-elim",
-      "-Yinline",
-      "-feature",
-      "-target:jvm-1.7",
-      "-language:implicitConversions",
-      "-optimize" // old optimisation level
-      )
-  )
   private lazy val jdk8Settings: Seq[Setting[_]] = commonSettings ++ Seq(
     javacOptions ++= Seq("-source", "1.8", "-target", "1.8", "-Xlint:unchecked", "-Xlint:deprecation"),
     scalacOptions ++= Seq(
