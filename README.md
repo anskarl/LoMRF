@@ -52,4 +52,4 @@ See [Building and Linking](doc/6_building_and_linking.md).
 
 [![Java profiler](http://www.ej-technologies.com/images/product_banners/jprofiler_large.png)](http://www.ej-technologies.com/products/jprofiler/overview.html)
 
-[![Intellij IDEA](https://www.jetbrains.com/img/logos/logo_intellij_idea.png](https://www.jetbrains.com/idea/)
+[![Intellij IDEA](https://www.jetbrains.com/img/logos/logo_intellij_idea.png)](https://www.jetbrains.com/idea/)
