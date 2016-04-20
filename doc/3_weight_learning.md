@@ -12,7 +12,7 @@ In order to perform weight learning in **LoMRF** the following definitions are r
   * Output learned file, e.g., `output.mln`.
   * The atomic signatures (identities) that define the non-evidence predicates ('-ne' option), that is the predicates for which training data contains supervision. Please note that for all non-evidence predicates LoMRF takes [Closed-world assumption](https://en.wikipedia.org/wiki/Open-world_assumption) and therefore the learning procedure assumes fully supervision is present. In case of missing annotations LoMRF would assume their truth values are *False*.
 
-### Weight learning using the `lomrf-wlearn` commmand-line tool
+### Weight learning using the `lomrf-wlearn` command-line tool
 
 To demonstrate the usage of LoMRF from command-line interface for weight learning, assume that we have one knowledge base file, named as `theory.mln`, and one training file, named as `training.db` containing both the evidence and the supervision.
 
