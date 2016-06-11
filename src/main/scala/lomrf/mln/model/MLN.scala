@@ -367,9 +367,9 @@ object MLN {
     // For example, when an evidence atom is missing from the evidence db, we have to make sure that it will remain with Closed-world assumption
     val evidenceAtoms = atomSignatures -- nonEvidenceAtoms
 
-    //parse the training evidence database (contains the annotation, i.e., the truth values of all query/hidden atoms)
+    // Parse the training evidence database (contains the annotation, i.e., the truth values of all query/hidden atoms)
     val trainingEvidence = Evidence.fromFiles(
-      kb, constantsDomain, nonEvidenceAtoms, Set.empty, evidenceAtoms, trainingFileNames.map(new File(_)), convertFunctions = false
+      kb, constantsDomain, Set.empty, Set.empty, atomSignatures, trainingFileNames.map(new File(_)), convertFunctions = false
     )
 
     val domainSpace = PredicateSpace(kb.schema, nonEvidenceAtoms, trainingEvidence.constants)
