@@ -478,6 +478,7 @@ object MLN {
    * @return an MLN instance
    */
   def forLearning(mlnSchema: MLNSchema,
+                  initialConstantsDomain: ConstantsDomain,
                   nonEvidenceAtoms: Set[AtomSignature],
                   clauses: Vector[Clause],
                   trainingFileNames: List[String]): (MLN, EvidenceDB) = {
@@ -490,11 +491,12 @@ object MLN {
         "\n\tInput training file(s): " + (if (trainingFileNames.nonEmpty) trainingFileNames.mkString(", ") else ""))
 
     // Create constant builder and append all constants found in the clauses (constants may exist from previous data)
-    val builder = ConstantsDomainBuilder()
+    val builder = ConstantsDomainBuilder.from(initialConstantsDomain)
+
     clauses.foreach { clause =>
       clause.literals.foreach { literal =>
         val domain = mlnSchema.predicates(literal.sentence.signature)
-        literal.sentence.terms zip domain foreach(tuple => if (tuple._1.isConstant) builder += (tuple._2, tuple._1.symbol))
+        literal.sentence.terms.zip(domain).foreach(tuple => if (tuple._1.isConstant) builder += (tuple._2, tuple._1.symbol))
       }
     }
 
@@ -503,9 +505,18 @@ object MLN {
     val evidenceAtoms = mlnSchema.predicates.keySet -- nonEvidenceAtoms
 
     // Parse the training evidence database (contains the annotation, i.e., the truth values of all query/hidden atoms)
-    val trainingEvidence = Evidence
-      .fromFiles(mlnSchema.predicates, mlnSchema.functions, builder.result(), mlnSchema.dynamicFunctions,
-        nonEvidenceAtoms, Set.empty[AtomSignature], evidenceAtoms, trainingFileNames.map(filename => new File(filename)), convertFunctions = false)
+    val trainingEvidence = Evidence.
+      fromFiles(
+        mlnSchema.predicates,
+        mlnSchema.functions,
+        builder.result(),
+        mlnSchema.dynamicFunctions,
+        Set.empty,
+        Set.empty,
+        evidenceAtoms,
+        trainingFileNames.map(filename => new File(filename)),
+        convertFunctions = false
+      )
 
     forLearning(mlnSchema, trainingEvidence, nonEvidenceAtoms, clauses)
   }

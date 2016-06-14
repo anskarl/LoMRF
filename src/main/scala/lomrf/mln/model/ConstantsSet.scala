@@ -457,7 +457,6 @@ object ConstantsSetBuilder {
     implicit object StringWitness extends ConstantSymbol[String]
     implicit object ConstantWitness extends ConstantSymbol[Constant]
   }
-
   def apply: ConstantsSetBuilder = new ConstantsSetBuilder
 
   def apply(symbols: Iterable[String]): ConstantsSetBuilder = this.apply ++= symbols
