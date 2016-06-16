@@ -290,8 +290,16 @@ object MLN {
       fatal(s"Predicate(s): ${openClosedSignatures.mkString(", ")} defined both as closed and open.")
 
     //parse the evidence database (.db)
-    val evidence: Evidence = Evidence
-      .fromFiles(kb, constantsDomain, queryAtoms, owa, cwa, evidenceFileNames.map(new File(_)), convertFunctions = false)
+    val evidence = Evidence.fromFiles(
+      kb,
+      constantsDomain,
+      queryAtoms,
+      owa,
+      cwa,
+      evidenceFileNames.map(new File(_)),
+      convertFunctions = false,
+      forceCWAForAll = false
+    )
 
     val completedFormulas =
       PredicateCompletion(kb.formulas, kb.definiteClauses, pcm)(kb.predicateSchema, kb.functionSchema, evidence.constants)
@@ -369,7 +377,14 @@ object MLN {
 
     // Parse the training evidence database (contains the annotation, i.e., the truth values of all query/hidden atoms)
     val trainingEvidence = Evidence.fromFiles(
-      kb, constantsDomain, Set.empty, Set.empty, atomSignatures, trainingFileNames.map(new File(_)), convertFunctions = false
+      kb,
+      constantsDomain,
+      nonEvidenceAtoms,
+      Set.empty,
+      atomSignatures,
+      trainingFileNames.map(new File(_)),
+      convertFunctions = false,
+      forceCWAForAll = true
     )
 
     val domainSpace = PredicateSpace(kb.schema, nonEvidenceAtoms, trainingEvidence.constants)
@@ -511,11 +526,12 @@ object MLN {
         mlnSchema.functions,
         builder.result(),
         mlnSchema.dynamicFunctions,
-        Set.empty,
+        nonEvidenceAtoms,
         Set.empty,
         evidenceAtoms,
         trainingFileNames.map(filename => new File(filename)),
-        convertFunctions = false
+        convertFunctions = false,
+        forceCWAForAll = true
       )
 
     forLearning(mlnSchema, trainingEvidence, nonEvidenceAtoms, clauses)

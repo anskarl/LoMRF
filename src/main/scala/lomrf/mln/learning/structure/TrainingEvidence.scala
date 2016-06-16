@@ -144,8 +144,16 @@ object TrainingEvidence {
       if (kb.functionSchema.isEmpty) { // There is no functions in the knowledge base
 
         // Parse the training evidence database (contains the annotation, i.e., the truth values of all query/hidden atoms)
-        val trainingEvidence = Evidence.fromFiles(kb, constantsDomain, nonEvidenceAtoms, Set.empty[AtomSignature],
-                                                  evidenceAtoms, trainingFileNames.map(new File(_)), convertFunctions = false)
+        val trainingEvidence = Evidence.fromFiles(
+          kb,
+          constantsDomain,
+          nonEvidenceAtoms,
+          Set.empty[AtomSignature],
+          evidenceAtoms,
+          trainingFileNames.map(new File(_)),
+          convertFunctions = false,
+          forceCWAForAll = true
+        )
 
         // Extract annotation
         val (evidence, annotation) = extractAnnotation(trainingEvidence, evidenceAtoms)
@@ -160,12 +168,27 @@ object TrainingEvidence {
               .exists(as => as.symbol.contains(lomrf.AUX_PRED_PREFIX + fn))), "KB should be created with the flag 'convertFunctions = true'")
 
         // Parse the training evidence database and keep functions (contains the annotation, i.e., the truth values of all query/hidden atoms)
-        val trainingEvidenceWithFunctions = Evidence.fromFiles(kb, constantsDomain, nonEvidenceAtoms, Set.empty[AtomSignature],
-          evidenceAtoms, trainingFileNames.map(new File(_)), convertFunctions = false)
+        val trainingEvidenceWithFunctions = Evidence.fromFiles(
+          kb,
+          constantsDomain,
+          nonEvidenceAtoms,
+          Set.empty[AtomSignature],
+          evidenceAtoms,
+          trainingFileNames.map(new File(_)),
+          convertFunctions = false,
+          forceCWAForAll = true)
 
         // Parse the training evidence database and convert functions (contains the annotation, i.e., the truth values of all query/hidden atoms)
-        val trainingEvidenceWithoutFunctions = Evidence.fromFiles(kb, constantsDomain, nonEvidenceAtoms, Set.empty[AtomSignature],
-          evidenceAtoms, trainingFileNames.map(new File(_)), convertFunctions = true)
+        val trainingEvidenceWithoutFunctions = Evidence.fromFiles(
+          kb,
+          constantsDomain,
+          nonEvidenceAtoms,
+          Set.empty[AtomSignature],
+          evidenceAtoms,
+          trainingFileNames.map(new File(_)),
+          convertFunctions = true,
+          forceCWAForAll = true
+        )
 
         val (evidence, annotation) = extractAnnotation(trainingEvidenceWithFunctions, evidenceAtoms)
 
