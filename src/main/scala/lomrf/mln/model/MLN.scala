@@ -36,11 +36,13 @@
 package lomrf.mln.model
 
 
-import java.io.{File,PrintStream}
+import java.io.{File, PrintStream}
 import java.text.DecimalFormat
+
 import auxlib.log.Logger
 import lomrf.logic._
 import lomrf.util._
+
 import scala.collection.breakOut
 
 /**
@@ -54,6 +56,13 @@ final class MLN(val schema: MLNSchema,
                 val space: PredicateSpace,
                 val evidence: Evidence,
                 val clauses: Vector[Clause]) {
+
+  /**
+    * Function mappers for both user defined functions from evidence, as well as dynamic functions
+    */
+  val functionMappers = evidence.functionMappers ++ schema.dynamicFunctions.map {
+    case (signature, dynamicFunction) => signature -> FunctionMapper(dynamicFunction)
+  }
 
   /**
    * Determine if the given atom signature corresponds to an atom with closed-world assumption.

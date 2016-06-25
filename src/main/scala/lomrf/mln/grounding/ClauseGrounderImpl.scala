@@ -35,14 +35,13 @@
 
 package lomrf.mln.grounding
 
-import java.io.{FileWriter, File}
 import java.{util => jutil}
 
 import akka.actor.ActorRef
 import auxlib.log.Logging
 import gnu.trove.set.TIntSet
 import lomrf.logic._
-import lomrf.mln.model.{AtomIdentityFunction, MLN}
+import lomrf.mln.model.{AtomIdentityFunction, FunctionMapper, MLN}
 import AtomIdentityFunction.IDENTITY_NOT_EXIST
 import lomrf.util.collection.IndexPartitioned
 import lomrf.util.Cartesian
@@ -50,7 +49,6 @@ import lomrf.util.Cartesian
 import scala.collection._
 import scala.language.postfixOps
 import scalaxy.streams.optimize
-
 import lomrf.mln.model.AtomIdentityFunctionOps._
 
 class ClauseGrounderImpl(val clause: Clause,
@@ -66,7 +64,6 @@ class ClauseGrounderImpl(val clause: Clause,
 
   private val evidence = mln.evidence
   private val constants = evidence.constants
-
 
   private val variableDomains: Map[Variable, Iterable[String]] = {
     if (clause.isGround) Map.empty[Variable, Iterable[String]]
@@ -111,8 +108,8 @@ class ClauseGrounderImpl(val clause: Clause,
     debug("The ordering of literals in clause: " + clause + "\n\t" +
       "changed to: " + orderedLiterals.map(_.toString()).reduceLeft(_ + " v " + _))
 
-
     def performGrounding(theta: Map[Variable, String] = Map.empty[Variable, String]): Int = {
+
       var sat = 0
       var counter = 0
 
@@ -122,6 +119,7 @@ class ClauseGrounderImpl(val clause: Clause,
       // partial function for substituting terms w.r.t the given theta
       val substitution = substituteTerm(theta) _
       var idx = 0 //literal position index in the currentVariables array
+      var position = 0
       var flagDrop = false //utility flag to indicate whether to keep or not the current ground clause
       val literalsIterator = orderedLiterals.iterator // literals iterator, that gives first all evidence literals
 
@@ -130,7 +128,7 @@ class ClauseGrounderImpl(val clause: Clause,
         // When the literal is a dynamic atom, then invoke its truth state dynamically
         if (literal.sentence.isDynamic) {
           //if (literal.isPositive == dynamicAtoms(idx)(literal.sentence.terms.map(substitution))) flagDrop = true
-          flagDrop = literal.isPositive == dynamicAtoms(idx)(literal.sentence.terms.map(substitution))
+          flagDrop = literal.isPositive == dynamicAtoms(position)(literal.sentence.terms.map(substitution))
         }
         else {
           // Otherwise, invoke its state from the evidence
@@ -158,6 +156,7 @@ class ClauseGrounderImpl(val clause: Clause,
             }
           }
         }
+        position += 1
       } //end:  while (literalsIterator.hasNext && !flagDrop)
 
       if (!flagDrop) {
@@ -248,7 +247,7 @@ class ClauseGrounderImpl(val clause: Clause,
     case c: Constant => c.symbol
     case v: Variable => theta(v)
     case f: TermFunction =>
-      evidence.functionMappers.get(f.signature) match {
+      mln.functionMappers.get(f.signature) match {
         case Some(m) => m(f.terms.map(a => substituteTerm(theta)(a)))
 
         case None =>
