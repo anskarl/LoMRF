@@ -86,6 +86,9 @@ object MRFWriterCLI extends Logging {
         case None => MLN.fromFile(strMLNFileName, opt.query, strEvidenceFileName, opt.cwa, opt.owa, pcm = Decomposed)
       }
 
+      info(mln.toString)
+      debug(mln.clauses.map(_.toText(weighted = true)).mkString("\n"))
+
       val outputFilePath = opt.outputFileName.getOrElse(fatal("Please specify an output file"))
       val builder = new MRFBuilder(mln = mln, noNegWeights = opt._noNeg, eliminateNegatedUnit = opt._eliminateNegatedUnit)
       val mrf = builder.buildNetwork
@@ -102,11 +105,11 @@ object MRFWriterCLI extends Logging {
    * Write the MRF into the DIMACS format.
    *
    * @param mrf input ground Markov Network
-   * @param filepath the output path
+   * @param filePath the output path
    */
-  def writeDIMACS(mrf: MRF, filepath: String) {
+  def writeDIMACS(mrf: MRF, filePath: String) {
 
-    val out = new BufferedWriter(new FileWriter(filepath))
+    val out = new BufferedWriter(new FileWriter(filePath))
 
     // comment lines
     out.write("c\n")
@@ -144,12 +147,12 @@ object MRFWriterCLI extends Logging {
    * Write the MRF ground network.
    *
    * @param mrf input ground Markov Network
-   * @param filepath the output path
+   * @param filePath the output path
    */
-  def writeNetwork(mrf: MRF, filepath: String) {
+  def writeNetwork(mrf: MRF, filePath: String) {
 
     implicit val mln = mrf.mln
-    val out = new BufferedWriter(new FileWriter(filepath))
+    val out = new BufferedWriter(new FileWriter(filePath))
     out.write("// weighted ground clauses\n")
     out.newLine()
 
