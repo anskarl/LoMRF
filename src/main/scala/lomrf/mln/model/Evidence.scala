@@ -75,9 +75,10 @@ object Evidence {
                 constantsDomain: ConstantsDomain,
                 queryPredicates: Set[AtomSignature],
                 files: Iterable[File],
-                convertFunctions: Boolean): Evidence = {
+                convertFunctions: Boolean,
+                forceCWAForAll: Boolean): Evidence = {
 
-    fromFiles(kb.predicateSchema, kb.functionSchema, constantsDomain, kb.dynamicFunctions, queryPredicates, Set.empty[AtomSignature], Set.empty[AtomSignature], files, convertFunctions)
+    fromFiles(kb.predicateSchema, kb.functionSchema, constantsDomain, kb.dynamicFunctions, queryPredicates, Set.empty[AtomSignature], Set.empty[AtomSignature], files, convertFunctions, forceCWAForAll)
   }
 
   def fromFiles(kb: KB,
@@ -86,9 +87,10 @@ object Evidence {
                 owaPredicates: Set[AtomSignature],
                 cwaPredicates: Set[AtomSignature],
                 files: Iterable[File],
-                convertFunctions: Boolean): Evidence = {
+                convertFunctions: Boolean,
+                forceCWAForAll: Boolean): Evidence = {
 
-    fromFiles(kb.predicateSchema, kb.functionSchema, constantsDomain, kb.dynamicFunctions, queryPredicates, owaPredicates, cwaPredicates, files, convertFunctions)
+    fromFiles(kb.predicateSchema, kb.functionSchema, constantsDomain, kb.dynamicFunctions, queryPredicates, owaPredicates, cwaPredicates, files, convertFunctions, forceCWAForAll)
   }
 
   def fromFiles(predicateSchema: PredicateSchema,
@@ -98,9 +100,10 @@ object Evidence {
                 queryPredicates: Set[AtomSignature],
                 owaPredicates: Set[AtomSignature],
                 files: Iterable[File],
-                convertFunctions: Boolean): Evidence ={
+                convertFunctions: Boolean,
+                forceCWAForAll: Boolean): Evidence ={
 
-    fromFiles(predicateSchema, functionSchema, constantsDomain, dynamicFunctions, queryPredicates, owaPredicates, Set.empty, files, convertFunctions)
+    fromFiles(predicateSchema, functionSchema, constantsDomain, dynamicFunctions, queryPredicates, owaPredicates, Set.empty, files, convertFunctions, forceCWAForAll)
   }
 
   def fromFiles(predicateSchema: PredicateSchema,
@@ -111,7 +114,8 @@ object Evidence {
                 owaPredicates: Set[AtomSignature],
                 cwaPredicates: Set[AtomSignature],
                 files: Iterable[File],
-                convertFunctions: Boolean): Evidence = {
+                convertFunctions: Boolean,
+                forceCWAForAll: Boolean): Evidence = {
 
 
     import log._
@@ -200,8 +204,9 @@ object Evidence {
     info("--- Stage 3: Creating function mappings, and evidence database.")
 
     val builder =
-      EvidenceBuilder(predicateSchema, functionSchema, queryPredicates, inferredHiddenSignatures, constants, convertFunctions)
-        .withDynamicFunctions(dynamicFunctions)
+      EvidenceBuilder(predicateSchema, functionSchema, queryPredicates, inferredHiddenSignatures, constants, convertFunctions).
+        withDynamicFunctions(dynamicFunctions).
+        withCWAForAll(forceCWAForAll)
 
     for (evidenceExpressions <- evidenceExpressionsDB; expr <- evidenceExpressions) expr match {
       case fm: FunctionMapping => builder.functions += fm

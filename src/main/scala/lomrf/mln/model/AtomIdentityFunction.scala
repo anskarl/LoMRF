@@ -219,7 +219,7 @@ final class AtomIdentityFunction private(
   def decode(atomID: Int): Try[IndexedSeq[String]] = {
     // check bounds
     if (atomID < startID || atomID >= endID)
-      return Failure(new IndexOutOfBoundsException(s"The given id ($atomID) is out of bounds [$startID, $endID]"))
+      return Failure(new IndexOutOfBoundsException(s"The given id '$atomID' for predicate '$signature' is out of bounds [$startID, $endID]"))
 
     val baseID = atomID - startID
 

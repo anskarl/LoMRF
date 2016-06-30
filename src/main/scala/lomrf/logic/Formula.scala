@@ -303,7 +303,7 @@ final case class WeightedDefiniteClause(weight: Double, clause: DefiniteClause) 
  *
  * An atomic formula in its arguments may have either constants or variables.
  */
-case class AtomicFormula(symbol: String, terms: Vector[_ <: Term])
+case class AtomicFormula(symbol: String, terms: Vector[Term])
   extends DefiniteClauseConstruct with FormulaConstruct with TermIterable{
 
   val isDynamic = false

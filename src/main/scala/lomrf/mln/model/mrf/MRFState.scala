@@ -404,12 +404,15 @@ final class MRFState private(val mrf: MRF,
     @inline def updateSatisfiedByFix(atomID: Int) {
 
       val state = mrf.atoms.get(atomID).state
-      val iterator = if(state) mrf.pLit2Constraints.get(atomID).iterator else mrf.nLit2Constraints.get(atomID).iterator
+      val constants = if(state) mrf.pLit2Constraints.get(atomID) else mrf.nLit2Constraints.get(atomID)
 
-      while(iterator.hasNext) {
-        val constraint = iterator.next()
-        if(!constraint.inactive && !constraint.isSatisfiedByFixed)
-          constraint.isSatisfiedByFixed = true
+      if (constants ne null) {
+        val iterator = constants.iterator
+        while(iterator.hasNext) {
+          val constraint = iterator.next()
+          if(!constraint.inactive && !constraint.isSatisfiedByFixed)
+            constraint.isSatisfiedByFixed = true
+        }
       }
     }
 

@@ -35,11 +35,12 @@
 
 package lomrf.mln.learning.weight
 
-import org.scalatest.{PrivateMethodTester, Matchers, FunSpec}
+import org.scalatest.{FunSpec, Ignore, Matchers, PrivateMethodTester}
 import lomrf.logic.AtomSignature
 import lomrf.mln.model.{AtomIdentityFunctionOps, MLN}
 import lomrf.mln.model.mrf.MRF
 import AtomIdentityFunctionOps._
+import lomrf.mln.inference.Solver
 
 /**
  * Specification test for Max-Margin learner
@@ -54,6 +55,34 @@ final class MaxMarginSpecTest extends FunSpec with Matchers with PrivateMethodTe
   private val nonEvidenceAtoms = Set(AtomSignature("Smokes", 1), AtomSignature("Cancer", 1), AtomSignature("TransmitCancer", 2))
 
   val (mln, annotationDB) = MLN.forLearning(mlnFile, List(trainFile), nonEvidenceAtoms)
+
+  val orderedPreds = mln.space.orderedAtomSignatures.map(_.toString)
+  val startIds = mln.space.orderedStartIDs
+
+  /*println("------------------------")
+  println {
+    orderedPreds.
+      zip(startIds).
+      map {
+        case (pred, id) => s"$pred: $id"
+      }.
+      mkString(", ")
+  }
+  println("------------------------")
+
+  println{
+    mln.space.identities.map{
+      case (signature, idf) => s"$signature -- [${idf.startID}, ${idf.endID}]"
+    }.mkString("\n")
+  }
+  println("------------------------B")
+  println{
+    mln.evidence.db.map{
+      case (signature, evDB) => s"$signature -- ${evDB.identity.signature} : [${evDB.identity.startID}, ${evDB.identity.endID}]"
+    }.mkString("\n")
+  }
+
+  println("------------------------")*/
 
   describe(s"The MLN theory in '$mlnFile'"){
 
