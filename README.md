@@ -44,6 +44,7 @@ See [Building and Linking](doc/6_building_and_linking.md).
     - [Temporal Probabilistic Inference Examples](doc/2_2_temporal_inference_examples.md)
   - [Weight Learning](doc/3_weight_learning.md)
     - [Weight Learning Examples](doc/3_1_weight_learning_examples.md)
+    - [Temporal Weight Learning Examples](doc/3_2_temoral_weight_learning_examples.md)
   - [Structure Learning](doc/4_structure_learning.md)
   - [CLI Tools](doc/5_tools.md)
   - [Building and Linking](doc/6_building_and_linking.md)
