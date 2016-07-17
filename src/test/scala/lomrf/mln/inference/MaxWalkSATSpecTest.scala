@@ -39,19 +39,17 @@ import java.io.{File, FileOutputStream, PrintStream}
 import lomrf.logic.AtomSignature
 import lomrf.mln.grounding.MRFBuilder
 import lomrf.mln.model.MLN
-import lomrf.util.io._
 import org.scalatest.{FunSpec, Matchers}
 import scala.io.Source
+import lomrf.tests.TestData
+import lomrf.util.io._
 
 /**
  * Specification test for MaxWalkSAT algorithm used for MAP inference.
  */
 final class MaxWalkSATSpecTest extends FunSpec with Matchers {
 
-  private val sep = System.getProperty("file.separator")
-
-  private val mainPath = System.getProperty("user.dir") + sep +
-    "Examples" + sep + "data" + sep + "tests" + sep + "inference" + sep + "caviar" + sep + "DN"
+  private val mainPath = TestData.TestFilesPath / "inference" / "caviar" / "DN"
 
   val queryAtoms = Set(AtomSignature("HoldsAt", 2))
 
@@ -64,7 +62,7 @@ final class MaxWalkSATSpecTest extends FunSpec with Matchers {
 
     fold <- 0 to 9
 
-    currentPath = new File(mainPath + sep + inertiaConfiguration + sep + "meet" + sep + "fold_" + fold)
+    currentPath = new File(mainPath / inertiaConfiguration / "meet" / "fold_" + fold)
     if currentPath.exists
 
     mlnFile = findFirstFile(currentPath, _.getName.endsWith(".mln"))
@@ -120,7 +118,7 @@ final class MaxWalkSATSpecTest extends FunSpec with Matchers {
 
     describe("The result of MAP inference using MaxWalkSAT") {
 
-      val prefix = mlnFile.getParent.getAbsolutePath + sep + dbFile.getName.split(".db")(0)
+      val prefix = mlnFile.getParent.getAbsolutePath / dbFile.getName.split(".db")(0)
 
       val golden = expectedResultFiles
         .find(f => f.getName.contains(dbFile.getName.split(".db")(0)))

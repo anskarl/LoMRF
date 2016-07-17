@@ -32,7 +32,7 @@ Please use the following BibTex entry when you cite LoMRF in your papers:
 
 ## Building
 
-See [Building and Linking](doc/6_building_and_linking.md).
+See [Build and Link LoMRF](doc/6_1_build_and_link_lomrf.md).
 
 ## Documentation
   - [Quick-start guide](doc/0_quick_start.md)
@@ -43,8 +43,11 @@ See [Building and Linking](doc/6_building_and_linking.md).
     - [Probabilistic Inference Examples](doc/2_1_inference_examples.md)
     - [Temporal Probabilistic Inference Examples](doc/2_2_temporal_inference_examples.md)
   - [Weight Learning](doc/3_weight_learning.md)
+  - [Structure Learning](doc/4_structure_learning.md)
   - [CLI Tools](doc/5_tools.md)
-  - [Building and Linking](doc/6_building_and_linking.md)
+  - [Build and Test LoMRF](doc/6_build_test_lomrf.md)
+    - [Build and Link](doc/6_1_build_and_link.md)
+    - [Download example data](doc/6_2_download_example_data.md)
   - [Configuration](doc/7_configuration.md)
   - [References](doc/8_references.md)
 

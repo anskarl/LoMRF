@@ -37,14 +37,14 @@ package lomrf.logic
 
 import org.scalatest.{FunSpec, Matchers}
 import lomrf.mln.model.{ConstantsSet, MLN}
+import lomrf.tests.TestData
 
 /**
  * A series of spec tests for the computation of normal forms (e.g., CNF, NNF, etc).
  */
 final class NormalFormSpecTest extends FunSpec with Matchers{
 
-  private val sep = System.getProperty("file.separator")
-  private val testFilesPath = System.getProperty("user.dir") + sep + "Examples" + sep + "data" + sep + "tests" + sep
+  private val testFilesPath = TestData.TestFilesPath
 
   private implicit val constants = Map[String, ConstantsSet](
     "time" -> ConstantsSet("1", "2", "3", "4"),

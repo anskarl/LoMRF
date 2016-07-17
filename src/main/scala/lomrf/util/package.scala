@@ -35,10 +35,12 @@
 
 package lomrf
 
-import java.io.{IOException, File}
-import java.nio.file.Path
+import java.io.{File, IOException}
+import java.nio.file.{Path, Paths}
+
 import gnu.trove.map.TIntObjectMap
 import gnu.trove.set.TIntSet
+
 import scala.collection.mutable
 import scala.reflect._
 import scalaxy.streams.optimize
@@ -260,9 +262,30 @@ package object util {
 
   object io {
 
+    import scala.language.postfixOps
+
+    private final val SEP = System.getProperty("file.separator")
+    final val USER_DIR = System.getProperty("user.dir")
+
     implicit def strToFile(str: String): File = new File(str)
 
     implicit def pathToFile(path: Path): File = path.toFile
+
+    implicit class StringPathWrapper(val path: String) extends AnyVal {
+      def /(otherPath:String): String = path + SEP + otherPath
+
+      def / : String = {
+        if(path.endsWith(SEP)) path
+        else path + SEP
+      }
+
+      def toFile: File = new File(path)
+
+      def toPath: Path = Paths.get(path)
+
+
+    }
+
 
     /**
      * Search recursively for files/directories in a directory.

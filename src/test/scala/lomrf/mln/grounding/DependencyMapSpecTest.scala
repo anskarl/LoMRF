@@ -40,6 +40,8 @@ import lomrf.mln.model.{AtomIdentityFunctionOps, MLN}
 import lomrf.mln.model.mrf.MRF
 import AtomIdentityFunctionOps._
 import org.scalatest.{Matchers, FunSpec}
+import lomrf.tests.TestData
+import lomrf.util.io._
 
 /**
  * Specification test for dependency map produced by grounding procedure. It is used by learning algorithms in order to
@@ -54,9 +56,10 @@ class DependencyMapSpecTest extends FunSpec with Matchers {
   }
 
   private val sep = System.getProperty("file.separator")
-  private val prefix = System.getProperty("user.dir") + sep + "Examples" + sep + "data" + sep + "tests" + sep + "DependencyMap" + sep
-  private val mlnFile = prefix + "DependencyMap.mln"
-  private val evidenceFile = prefix + "Empty.db"
+  private val prefix = TestData.TestFilesPath / "DependencyMap"  //System.getProperty("user.dir") + sep + "Examples" + sep + "data" + sep + "tests" + sep + "DependencyMap" + sep
+
+  private val mlnFile = prefix / "DependencyMap.mln"
+  private val evidenceFile = prefix / "Empty.db"
 
 
   implicit val mln = MLN.fromFile(mlnFile, queryAtoms = Set("S/1", "C/1", "K/1", "M/1", "F/2"), evidenceFile)

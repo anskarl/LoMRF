@@ -35,22 +35,22 @@
 
 package lomrf.mln.learning.weight
 
-import org.scalatest.{FunSpec, Ignore, Matchers, PrivateMethodTester}
+import org.scalatest.{FunSpec, Matchers, PrivateMethodTester}
 import lomrf.logic.AtomSignature
 import lomrf.mln.model.{AtomIdentityFunctionOps, MLN}
 import lomrf.mln.model.mrf.MRF
 import AtomIdentityFunctionOps._
-import lomrf.mln.inference.Solver
+import lomrf.tests.TestData
+import lomrf.util.io._
 
 /**
  * Specification test for Max-Margin learner
  */
 final class MaxMarginSpecTest extends FunSpec with Matchers with PrivateMethodTester {
 
-  private val sep = System.getProperty("file.separator")
-  private val prefix = System.getProperty("user.dir") + sep + "Examples" + sep + "data" + sep + "tests" + sep + "learning" + sep
-  private val mlnFile = prefix + "smoking.mln"
-  private val trainFile = prefix + "train.db"
+  private val prefix = TestData.TestFilesPath / "learning"
+  private val mlnFile = prefix / "smoking.mln"
+  private val trainFile = prefix / "train.db"
 
   private val nonEvidenceAtoms = Set(AtomSignature("Smokes", 1), AtomSignature("Cancer", 1), AtomSignature("TransmitCancer", 2))
 

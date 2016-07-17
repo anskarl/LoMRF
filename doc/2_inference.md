@@ -1,4 +1,4 @@
-# Inference #
+# Inference 
 
 ## Types of inference in LoMRF
 
@@ -222,6 +222,9 @@ predicates/functions implementations (*.class and *.jar files).
 ## Examples
 
 See Sections [Probabilistic Inference Examples](2_1_inference_examples.md) and [Temporal Probabilistic Inference Examples](2_2_temporal_inference_examples.md).
+Sources from the examples are located in the LoMRF-data project (follow the instructions in
+[Download Example Data](6_2_download_example_data.md)).
+
 
 ## References
 
