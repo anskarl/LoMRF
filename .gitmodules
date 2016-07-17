@@ -1,0 +1,3 @@
+[submodule "Data"]
+	path = Data
+	url = https://github.com/anskarl/LoMRF-data.git
