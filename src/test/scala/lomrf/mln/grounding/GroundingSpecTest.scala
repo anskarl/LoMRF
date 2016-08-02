@@ -39,9 +39,10 @@ import java.io.File
 
 import lomrf.logic.AtomSignature
 import lomrf.mln.model.MLN
-import lomrf.util.io._
 import lomrf.util.time.{measureTime, msecTimeToText}
 import org.scalatest.{FunSpec, Matchers}
+import lomrf.tests.TestData
+import lomrf.util.io._
 
 import scala.io.Source
 
@@ -50,10 +51,8 @@ import scala.io.Source
  */
 final class GroundingSpecTest extends FunSpec with Matchers {
 
-  private val sep = System.getProperty("file.separator")
 
-  private val mainPath = System.getProperty("user.dir") + sep +
-    "Examples" + sep + "data" + sep + "tests" + sep + "inference" + sep + "caviar" + sep + "DN"
+  private val mainPath = TestData.TestFilesPath / "inference" / "caviar" / "DN"
 
   val queryAtoms = Set(AtomSignature("HoldsAt", 2))
 
@@ -70,7 +69,7 @@ final class GroundingSpecTest extends FunSpec with Matchers {
 
     fold <- 0 to 9
 
-    currentPath = new File(mainPath + sep + inertiaConfiguration + sep + "meet" + sep + "fold_" + fold)
+    currentPath = new File(mainPath / inertiaConfiguration / "meet" / "fold_" + fold)
     if currentPath.exists
 
     mlnFile = findFirstFile(currentPath, _.getName.endsWith(".mln"))

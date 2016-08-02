@@ -12,6 +12,8 @@ Some of algorithms implemented in LoMRF are based on the following publications:
 
 * McCarthy, J. (1980). Circumscription - A Form of Non-Monotonic Reasoning. Artificial Intelligence, 13 (1-2), 27-39. ([link](http://www-formal.stanford.edu/jmc/circumscription.ps))
 
+* Michelioudakis E., Skarlatidis A., Paliouras G. and Artikis A. OSLa: Online Structure Learning using Background Knowledge Axiomatization. In Proceedings of the European Conference on Machine Learning and Principles and Practice of Knowledge Discovery in Databases (ECML-PKDD 2016).
+
 * Nonnengart, A., & Weidenbach, C. (2001). Computing Small Clause Normal Forms. In Robinson, J. A., & Voronkov, A. (Eds.), Handbook of Automated Reasoning, pp. 335-367. Elsevier and MIT Press. ([link](http://people.mpi-inf.mpg.de/~weidenb/publications/handbook99small.ps.gz))
 
 * Poon, H., & Domingos, P. (2006). Sound and Efficient Inference with Probabilistic and Deterministic Dependencies. In Proceedings of the 21st AAAI Conference on Artificial Intelligence, pp. 458-463. AAAI Press. ([link](http://homes.cs.washington.edu/~pedrod/papers/aaai06a.pdf))
@@ -26,4 +28,4 @@ Some of algorithms implemented in LoMRF are based on the following publications:
 
 * Tuyen N. Huynh and Raymond J. Mooney. (2011). Online Max-Margin Weight Learning for Markov Logic Networks. In Proceedings of the Eleventh SIAM International Conference on Data Mining (SDM11). ([link](http://www.ai.sri.com/~huynh/papers/huynh_mooney_sdm11.pdf))
 
-* Tuyen N. Huynh and Raymond J. Mooney. Online Structure Learning for Markov Logic Networks (2011). In Proceedings of the European Conference on Machine Learning and Principles and Practice of Knowledge Discovery in Databases (ECML-PKDD 2011), Vol. 2, pp. 81-96. ([link](http://www.cs.utexas.edu/users/ai-lab/?huynh:ecml11))
+* Tuyen N. Huynh and Raymond J. Mooney. (2011). Online Structure Learning for Markov Logic Networks. In Proceedings of the European Conference on Machine Learning and Principles and Practice of Knowledge Discovery in Databases (ECML-PKDD 2011). ([link](http://www.ai.sri.com/~huynh/papers/huynh_mooney_ecml11.pdf))

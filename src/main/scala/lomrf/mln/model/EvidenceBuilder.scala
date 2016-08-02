@@ -54,6 +54,8 @@ final class EvidenceBuilder private(predicateSpace: PredicateSpace,
 
   private var dynFunctions = Map.empty[AtomSignature, Vector[String] => String]
 
+  private var forceCWA = false
+
   private val functionRegister =
     if(convertFunctionsToPredicates) new FunctionToAUXPredRegister else new DefaultFunctionRegister
 
@@ -101,6 +103,12 @@ final class EvidenceBuilder private(predicateSpace: PredicateSpace,
     result
   }
 
+  def withCWAForAll(v: Boolean = true): EvidenceBuilder = {
+    val result = new EvidenceBuilder(predicateSpace, constants, predicateSchema, functionSchema, convertFunctionsToPredicates)
+    result.forceCWA = v
+    result
+  }
+
 
   def clear(): Unit = {
     edbBuilders =  Map.empty[AtomSignature, AtomEvidenceDBBuilder]
@@ -114,15 +122,22 @@ final class EvidenceBuilder private(predicateSpace: PredicateSpace,
         case Some(builder) => builder.result()
         case None =>
           val idf = predicateSpace.identities(signature)
-          val isCWA = predicateSpace.isCWA(signature)
+          if(forceCWA) AtomEvidenceDB.allFalse(idf)
+          else{
+            val isCWA = predicateSpace.isCWA(signature)
 
-          if(isCWA) AtomEvidenceDB.allFalse(idf)
-          else AtomEvidenceDB.allUnknown(idf)
+            if(isCWA) AtomEvidenceDB.allFalse(idf)
+            else AtomEvidenceDB.allUnknown(idf)
+          }
+
       }
     }
 
 
-    val db: EvidenceDB = (for(signature <- predicateSchema.keys) yield signature -> mkEvidenceDB(signature))(breakOut)
+    val db: EvidenceDB = (
+      for(signature <- predicateSchema.keys)
+        yield signature -> mkEvidenceDB(signature)
+      )(breakOut)
 
     val dynamicFunctionMappers = dynFunctions.mapValues(new FunctionMapperSpecialImpl(_))
 
@@ -189,7 +204,7 @@ final class EvidenceBuilder private(predicateSpace: PredicateSpace,
         case None if predicateSchema.contains(atom.signature) =>
 
           val idf = predicateSpace.identities(atom.signature)
-          val isCWA = predicateSpace.isCWA(atom.signature)
+          val isCWA = if(self.forceCWA) true else predicateSpace.isCWA(atom.signature)
           val builder = AtomEvidenceDBBuilder(idf, isCWA)
           builder += atom
 

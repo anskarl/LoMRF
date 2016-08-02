@@ -42,7 +42,7 @@ final class HPathSpecTest extends FunSpec with Matchers {
   val evidence = builder.result()
 
   // Create MLN
-  val mlnSchema = new MLNSchema(predicateSchema, Map.empty, Map.empty, Map.empty)
+  val mlnSchema = MLNSchema(predicateSchema, Map.empty, Map.empty, Map.empty)
   val predicateSpace = PredicateSpace(mlnSchema, Set.empty, constantsDomain)
 
   // Parse mode declarations

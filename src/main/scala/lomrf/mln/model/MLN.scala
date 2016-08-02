@@ -36,11 +36,13 @@
 package lomrf.mln.model
 
 
-import java.io.{File,PrintStream}
+import java.io.{File, PrintStream}
 import java.text.DecimalFormat
+
 import auxlib.log.Logger
 import lomrf.logic._
 import lomrf.util._
+
 import scala.collection.breakOut
 
 /**
@@ -54,6 +56,13 @@ final class MLN(val schema: MLNSchema,
                 val space: PredicateSpace,
                 val evidence: Evidence,
                 val clauses: Vector[Clause]) {
+
+  /**
+    * Function mappers for both user defined functions from evidence, as well as dynamic functions
+    */
+  val functionMappers = evidence.functionMappers ++ schema.dynamicFunctions.map {
+    case (signature, dynamicFunction) => signature -> FunctionMapper(dynamicFunction)
+  }
 
   /**
    * Determine if the given atom signature corresponds to an atom with closed-world assumption.
@@ -290,8 +299,16 @@ object MLN {
       fatal(s"Predicate(s): ${openClosedSignatures.mkString(", ")} defined both as closed and open.")
 
     //parse the evidence database (.db)
-    val evidence: Evidence = Evidence
-      .fromFiles(kb, constantsDomain, queryAtoms, owa, cwa, evidenceFileNames.map(new File(_)), convertFunctions = false)
+    val evidence = Evidence.fromFiles(
+      kb,
+      constantsDomain,
+      queryAtoms,
+      owa,
+      cwa,
+      evidenceFileNames.map(new File(_)),
+      convertFunctions = false,
+      forceCWAForAll = false
+    )
 
     val completedFormulas =
       PredicateCompletion(kb.formulas, kb.definiteClauses, pcm)(kb.predicateSchema, kb.functionSchema, evidence.constants)
@@ -367,9 +384,16 @@ object MLN {
     // For example, when an evidence atom is missing from the evidence db, we have to make sure that it will remain with Closed-world assumption
     val evidenceAtoms = atomSignatures -- nonEvidenceAtoms
 
-    //parse the training evidence database (contains the annotation, i.e., the truth values of all query/hidden atoms)
+    // Parse the training evidence database (contains the annotation, i.e., the truth values of all query/hidden atoms)
     val trainingEvidence = Evidence.fromFiles(
-      kb, constantsDomain, nonEvidenceAtoms, Set.empty, evidenceAtoms, trainingFileNames.map(new File(_)), convertFunctions = false
+      kb,
+      constantsDomain,
+      nonEvidenceAtoms,
+      Set.empty,
+      atomSignatures,
+      trainingFileNames.map(new File(_)),
+      convertFunctions = false,
+      forceCWAForAll = true
     )
 
     val domainSpace = PredicateSpace(kb.schema, nonEvidenceAtoms, trainingEvidence.constants)
@@ -478,6 +502,7 @@ object MLN {
    * @return an MLN instance
    */
   def forLearning(mlnSchema: MLNSchema,
+                  initialConstantsDomain: ConstantsDomain,
                   nonEvidenceAtoms: Set[AtomSignature],
                   clauses: Vector[Clause],
                   trainingFileNames: List[String]): (MLN, EvidenceDB) = {
@@ -490,11 +515,12 @@ object MLN {
         "\n\tInput training file(s): " + (if (trainingFileNames.nonEmpty) trainingFileNames.mkString(", ") else ""))
 
     // Create constant builder and append all constants found in the clauses (constants may exist from previous data)
-    val builder = ConstantsDomainBuilder()
+    val builder = ConstantsDomainBuilder.from(initialConstantsDomain)
+
     clauses.foreach { clause =>
       clause.literals.foreach { literal =>
         val domain = mlnSchema.predicates(literal.sentence.signature)
-        literal.sentence.terms zip domain foreach(tuple => if (tuple._1.isConstant) builder += (tuple._2, tuple._1.symbol))
+        literal.sentence.terms.zip(domain).foreach(tuple => if (tuple._1.isConstant) builder += (tuple._2, tuple._1.symbol))
       }
     }
 
@@ -503,9 +529,19 @@ object MLN {
     val evidenceAtoms = mlnSchema.predicates.keySet -- nonEvidenceAtoms
 
     // Parse the training evidence database (contains the annotation, i.e., the truth values of all query/hidden atoms)
-    val trainingEvidence = Evidence
-      .fromFiles(mlnSchema.predicates, mlnSchema.functions, builder.result(), mlnSchema.dynamicFunctions,
-        nonEvidenceAtoms, Set.empty[AtomSignature], evidenceAtoms, trainingFileNames.map(filename => new File(filename)), convertFunctions = false)
+    val trainingEvidence = Evidence.
+      fromFiles(
+        mlnSchema.predicates,
+        mlnSchema.functions,
+        builder.result(),
+        mlnSchema.dynamicFunctions,
+        nonEvidenceAtoms,
+        Set.empty,
+        evidenceAtoms,
+        trainingFileNames.map(filename => new File(filename)),
+        convertFunctions = false,
+        forceCWAForAll = true
+      )
 
     forLearning(mlnSchema, trainingEvidence, nonEvidenceAtoms, clauses)
   }

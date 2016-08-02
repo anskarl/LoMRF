@@ -41,14 +41,15 @@ import lomrf.util.Cartesian
 import lomrf.util.collection.GlobalIndexPartitioned
 import lomrf.util.time._
 import org.scalatest.{FunSpec, Matchers}
+import lomrf.tests.TestData
+import lomrf.util.io._
 
 final class AtomIdentityFunctionSpecTest extends FunSpec with Matchers {
 
 
-  private val sep = System.getProperty("file.separator")
-  private val testFilesPath = System.getProperty("user.dir") + sep + "Examples" + sep + "data" + sep + "tests" + sep
-  private val naiveMLN = testFilesPath + "naive.mln"
-  private val emptyEvidence = testFilesPath + "Empty.db"
+  private val testFilesPath = TestData.TestFilesPath
+  private val naiveMLN = testFilesPath / "naive.mln"
+  private val emptyEvidence = testFilesPath / "Empty.db"
 
 
   // Naive example: We have two predicates: Alpha/3 and Beta/2
@@ -312,7 +313,7 @@ final class AtomIdentityFunctionSpecTest extends FunSpec with Matchers {
     val queryAtoms = Set[AtomSignature](AtomSignature("HoldsAt", 2))
     val cwa = Set[AtomSignature](AtomSignature("Happens", 2), AtomSignature("Close", 4), AtomSignature("Next", 2))
     val owa = Set[AtomSignature](AtomSignature("InitiatedAt", 2), AtomSignature("TerminatedAt", 2))
-    val mln = MLN.fromFile(testFilesPath + "DEC_TEST.mln", queryAtoms, testFilesPath + "Empty.db", cwa, owa)
+    val mln = MLN.fromFile(testFilesPath / "DEC_TEST.mln", queryAtoms, testFilesPath / "Empty.db", cwa, owa)
 
     val signature = AtomSignature("Next", 2)
 
@@ -377,7 +378,7 @@ final class AtomIdentityFunctionSpecTest extends FunSpec with Matchers {
     val queryAtoms = Set[AtomSignature](AtomSignature("AdvisedBy", 2))
     val cwa = Set[AtomSignature](AtomSignature("GradStudent", 1), AtomSignature("Prof", 1), AtomSignature("TA", 2), AtomSignature("SameGroup", 2), AtomSignature("SameGroup", 2))
     val owa = Set[AtomSignature]()
-    val mln = MLN.fromFile(testFilesPath + "TestUniversityBIG.mln", queryAtoms, testFilesPath + "Empty.db", cwa, owa)
+    val mln = MLN.fromFile(testFilesPath / "TestUniversityBIG.mln", queryAtoms, testFilesPath / "Empty.db", cwa, owa)
 
     val signature = AtomSignature("AdvisedBy", 2)
 

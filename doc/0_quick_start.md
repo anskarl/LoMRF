@@ -1,7 +1,7 @@
 # Quick Start
 
 Assuming that you have successfully build a LoMRF distribution and added LoMRF executables in your default `PATH` (see
-[Building and Linking](6_building_and_linking.md)). In the following paragraphs we present our first LoMRF model and
+[Build and Test LoMRF](6_build_test_lomrf.md)). In the following paragraphs we present our first LoMRF model and
 perform probabilistic inference.
 
 ## Running Example

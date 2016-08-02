@@ -80,3 +80,6 @@ lib/
 
 # ignore scala worksheet files
 *.sc
+
+# ignore Mac OS files
+.DS_Store

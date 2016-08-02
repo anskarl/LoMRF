@@ -1,9 +1,0 @@
-throw = {1,...,20}
-face = {1,...,6}
-
-Outcome(throw, face)
-
-
-Exist f Outcome(t,f).
-
-Outcome(t,f0) ^ !(f0 = f1) => !Outcome(t,f1).
