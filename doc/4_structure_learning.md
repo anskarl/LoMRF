@@ -50,7 +50,7 @@ By executing the ```lomrf-slearn -h``` (or ```lomrf-slearn --help```) command fr
 
 ### Basic structure learning options
 
-* `-i, --input <kb file>` **[Required]** Specify the input knowledge base file, that is the file that contains the predicate schema and optionally function schema and a set of axioms (see [Syntax](1_syntax.md) and [Quick Start](0_quick_start) for further information). You can specify either full or relative path or only the filename (when the file is in the current working path). For example, (1) full path `-i /full/path/to/theory.mln` in a Unix-based OS or `-i c:\full\path\to\theory.mln` in Windows, (2) relative path `-i path/to/theory.mln` in a Unix-based OS or `-i path\to\theory.mln` in Windows and (3) current working path `-i theory.mln`.
+* `-i, --input <kb file>` **[Required]** Specify the input knowledge base file, that is the file that contains the predicate schema and optionally function schema and a set of axioms (see [Syntax](1_syntax.md) and [Quick Start](0_quick_start.md) for further information). You can specify either full or relative path or only the filename (when the file is in the current working path). For example, (1) full path `-i /full/path/to/theory.mln` in a Unix-based OS or `-i c:\full\path\to\theory.mln` in Windows, (2) relative path `-i path/to/theory.mln` in a Unix-based OS or `-i path\to\theory.mln` in Windows and (3) current working path `-i theory.mln`.
 
 * `-o, --output <output file>` **[Required]** Specify the output file name to write the resulting weighted formulas learned by the structure learning. For example, `-o output.mln`. Similarly with the `-i` option, you can specify either full or relative path or only the filename (when the file is in the current working path).
 
