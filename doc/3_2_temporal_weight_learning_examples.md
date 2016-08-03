@@ -2,7 +2,7 @@
 
 Below we provide examples that demonstrate LoMRF weight learning capabilities in the domain of temporal reasoning.
 
-## Activity Recognition ##
+## Activity Recognition
 
 In this example we demonstrate how to perform weight learning for activity recognition, using a small fragment of the first
 set of the [CAVIAR dataset](http://homepages.inf.ed.ac.uk/rbf/CAVIARDATA1/). We use the same Probabilistic Event Calculus
@@ -60,4 +60,30 @@ Happens(Active_ID0, 170)
 Happens(Active_ID1, 170)
 //
 // ... sequence of facts ...
+```
+
+### Weight Learning
+
+The files of this example are the following:
+  * Knowledge base files:
+    * Main MLN file in CNF: [theory_cnf.mln](/Examples/Weight_Learning/Activity_Recognition/theory.mln)
+    * Definitions of moving activity: [definitions/moving.mln](/Examples/Weight_Learning/Activity_Recognition/definitions/moving.mln)
+    * Definitions of meeting activity: [definitions/meeting.mln](/Examples/Weight_Learning/Activity_Recognition/definitions/meeting.mln)
+  * Training file for batch learning: [training.db](/Examples/Weight_Learning/Activity_Recognition/training/batch/training.db)
+  * Training files for online learning: [micro-batches](/Examples/Weight_Learning/Activity_Recognition/training/online/)
+
+Parameters:
+ * Non-evidence predicates: `HoldsAt/2`
+
+***Max-Margin Learning***
+
+```lang-none
+lomrf-wlearn -i theory_cnf.mln -t training.db -o learned.mln -ne HoldsAt/2 -lossAugmented
+```
+***Online Learning using AdaGrad or CDA***
+
+```lang-none
+lomrf-wlearn -alg ADAGRAD -i theory_cnf.mln -t ./training/online -o learned.mln -ne HoldsAt/2
+
+lomrf-wlearn -alg CDA -i theory_cnf.mln -t ./training/online -o learned.mln -ne HoldsAt/2 -lossAugmented
 ```

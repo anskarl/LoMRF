@@ -29,7 +29,7 @@ Friends(x, y) => (Smokes(x) <=> Smokes(y))
 Of course, this does not hold for all smokers, so in Markov logic we can just tack a weight
 on to the rule, or, as we do here, learn a weight from training data.
 
-***Training data (training.db)***
+### Training data (smoking-train.db)
 
 ```lang-none
 Friends(Anna, Bob)
@@ -125,7 +125,7 @@ Obs(Yellow, t) => State(Drive, t)
 Obs(Yellow, t) => State(Slow, t)
 ```
 
-*Training data (traffic-train.db):*
+### Training data (traffic-train.db)
 
 ```lang-none
 Obs(Red, 0)
