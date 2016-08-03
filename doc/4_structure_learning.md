@@ -95,3 +95,5 @@ literal become unit clauses with positive literal and inverted sign in their cor
 ## References
 
 * Tuyen N. Huynh and Raymond J. Mooney. Online Structure Learning for Markov Logic Networks (2011). In Proceedings of the European Conference on Machine Learning and Principles and Practice of Knowledge Discovery in Databases (ECML-PKDD 2011), Vol. 2, pp. 81-96. ([link](http://www.cs.utexas.edu/users/ai-lab/?huynh:ecml11))
+
+* Michelioudakis E., Skarlatidis A., Paliouras G. and Artikis A. OSLa: Online Structure Learning using Background Knowledge Axiomatization. In Proceedings of the European Conference on Machine Learning and Principles and Practice of Knowledge Discovery in Databases (ECML-PKDD 2016).
