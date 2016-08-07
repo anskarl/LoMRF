@@ -1,6 +1,6 @@
 ## Online Structure Learning Examples
 
-Below we provide online structure learning examples for OSL and OSLa, using the LoMRF structure learning command-line tool:
+Below we provide structure learning examples in LoMRF, using the OSL and OSLa algorithms (for further details see the work of [Huynh and Mooney (2011)](#references) and [Michelioudakis et. al. (2016)](#references)).
 
 ## OSL in Natural Language Processing
 
@@ -103,9 +103,9 @@ Center(B0013,P04)
 ### Structure Learning
 
 The files of this example are the following:
-  * Initially empty MLN file: [empty.mln](/Examples/Structure_Learning/OSL_NLP/empty.mln)
-  * Mode declaration file: [citeceer.mln](/Examples/Structure_Learning/OSL_NLP/citeceer.mln)
-  * Training files for online learning: [micro-batches](/Examples/Structure_Learning/OSL_NLP/training/)
+  * Initially empty MLN file: [empty.mln](https://github.com/anskarl/LoMRF-data/tree/master/Examples/Structure_Learning/OSL_NLP/empty.mln)
+  * Mode declaration file: [citeceer.mln](https://github.com/anskarl/LoMRF-data/tree/master/Examples/Structure_Learning/OSL_NLP/citeceer.mln)
+  * Training files for online learning: [micro-batches](https://github.com/anskarl/LoMRF-data/tree/master/Examples/Structure_Learning/OSL_NLP/training/)
 
 Parameters:
  * Non-evidence predicates: `InField/3`
@@ -275,19 +275,19 @@ Happens(Active_ID1, 170)
 
 The files of this example are the following:
   * Knowledge base files:
-    * Main MLN file in CNF: [theory_cnf.mln](/Examples/Weight_Learning/Activity_Recognition/theory.mln)
-    * Definitions of moving activity: [definitions/moving.mln](/Examples/Weight_Learning/Activity_Recognition/definitions/moving.mln)
-    * Definitions of meeting activity: [definitions/meeting.mln](/Examples/Weight_Learning/Activity_Recognition/definitions/meeting.mln)
-  * Training file for batch learning: [training.db](/Examples/Weight_Learning/Activity_Recognition/training/batch/training.db)
-  * Training files for online learning: [micro-batches](/Examples/Weight_Learning/Activity_Recognition/training/online/)
+    * Main MLN file in CNF: [theory_cnf.mln](https://github.com/anskarl/LoMRF-data/tree/master/Examples/Weight_Learning/Activity_Recognition/theory.mln)
+    * Definitions of moving activity: [definitions/moving.mln](https://github.com/anskarl/LoMRF-data/tree/master/Examples/Weight_Learning/Activity_Recognition/definitions/moving.mln)
+    * Definitions of meeting activity: [definitions/meeting.mln](https://github.com/anskarl/LoMRF-data/tree/master/Examples/Weight_Learning/Activity_Recognition/definitions/meeting.mln)
+  * Training file for batch learning: [training.db](https://github.com/anskarl/LoMRF-data/tree/master/Examples/Weight_Learning/Activity_Recognition/training/batch/training.db)
+  * Training files for online learning: [micro-batches](https://github.com/anskarl/LoMRF-data/tree/master/Examples/Weight_Learning/Activity_Recognition/training/online/)
 
 
 ### Structure Learning
 
 The files of this example are the following:
-  * Initially empty MLN file: [meet.mln](/Examples/Structure_Learning/OSLa_CAVIAR/meet.mln)
-  * Mode declaration file: [meet.modes](/Examples/Structure_Learning/OSLa_CAVIAR/meet.modes)
-  * Training files for online learning: [micro-batches](/Examples/Structure_Learning/OSLa_CAVIAR/training/meet)
+  * Initially empty MLN file: [meet.mln](https://github.com/anskarl/LoMRF-data/tree/master/Examples/Structure_Learning/OSLa_CAVIAR/meet.mln)
+  * Mode declaration file: [meet.modes](https://github.com/anskarl/LoMRF-data/tree/master/Examples/Structure_Learning/OSLa_CAVIAR/meet.modes)
+  * Training files for online learning: [micro-batches](https://github.com/anskarl/LoMRF-data/tree/master/Examples/Structure_Learning/OSLa_CAVIAR/training/meet)
 
 Parameters:
  * Non-evidence predicates: `HoldsAt/2`
@@ -300,3 +300,9 @@ Parameters:
 ```lang-none
 lomrf-slearn -i meet.mln -o learned_meet.mln -t ./training/meet -m meet.modes -ne HoldsAt/2 -template InitiatedAt/2,TerminatedAt/2 -maxLength 8 -threshold 1
 ```
+
+## References
+
+* Tuyen N. Huynh and Raymond J. Mooney. (2011) Online Structure Learning for Markov Logic Networks (2011). In Proceedings of the European Conference on Machine Learning and Principles and Practice of Knowledge Discovery in Databases (ECML-PKDD 2011), Vol. 2, pp. 81-96. ([link](http://www.cs.utexas.edu/users/ai-lab/?huynh:ecml11))
+
+* Michelioudakis E., Skarlatidis A., Paliouras G. and Artikis A. (2016) OSLa: Online Structure Learning using Background Knowledge Axiomatization. In Proceedings of the European Conference on Machine Learning and Principles and Practice of Knowledge Discovery in Databases (ECML-PKDD 2016).

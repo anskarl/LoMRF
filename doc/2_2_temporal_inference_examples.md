@@ -95,7 +95,7 @@ fluent leaving_object(id,id)
 
 ### Predicate schemas
 
-The predicates that we use follow the definition of the Probabilistic Event Calculus ([Skarlatidis et. al. 2014, 2015](#references)) formalism. We additionally
+The predicates that we use follow the definition of the Probabilistic Event Calculus ([Skarlatidis et. al. (2014, 2015)](#references)) formalism. We additionally
 use some utility predicates in order to represent some spacial constraints.
 
 | Predicate                  | Meaning                                                                                                   |
@@ -265,10 +265,10 @@ Happens(Active_ID1, 170)
 
 The files of this example are the following:
   * Knowledge base files:
-    * Main MLN file: [theory.mln](/Examples/data/Activity_Recognition/theory.mln)
-    * Definitions of moving activity: [definitions/moving.mln](/Examples/data/Activity_Recognition/definitions/moving.mln)
-    * Definitions of meeting activity: [definitions/meeting.mln](/Examples/data/Activity_Recognition/definitions/meeting.mln)
-  * Evidence file: [narrative.db](/Examples/data/Activity_Recognition/narrative.db)
+    * Main MLN file: [theory.mln](https://github.com/anskarl/LoMRF-data/tree/master/Examples/Inference/Activity_Recognition/theory.mln)
+    * Definitions of moving activity: [definitions/moving.mln](https://github.com/anskarl/LoMRF-data/tree/master/Examples/Inference/Activity_Recognition/definitions/moving.mln)
+    * Definitions of meeting activity: [definitions/meeting.mln](https://github.com/anskarl/LoMRF-data/tree/master/Examples/Inference/Activity_Recognition/definitions/meeting.mln)
+  * Evidence file: [narrative.db](https://github.com/anskarl/LoMRF-data/tree/master/Examples/Inference/Activity_Recognition/narrative.db)
 
 Parameters:
  * Query predicates: `HoldsAt/2`

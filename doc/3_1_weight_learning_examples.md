@@ -4,7 +4,7 @@ Below we provide simple example models, in order to demonstrate weight learning 
 
 ## Social Network Analysis
 
-We would like to model a simple social network of friends, smoking, and cancer. The network attempts to model friendship ties between people, their smoking habits and the causality of cancer ([see original example](http://alchemy.cs.washington.edu/tutorial/3Social_Network_Analysis.html)).
+We would like to model a simple social network of friends, smoking, and cancer. The network attempts to model friendship ties between people, their smoking habits and the causality of cancer (see [original example](http://alchemy.cs.washington.edu/tutorial/3Social_Network_Analysis.html)).
 
 ### Knowledge base (smoking.mln)
 
@@ -73,7 +73,7 @@ lomrf-wlearn -i smoking.mln -o smoking-learned.mln -t smoking-train.db -ne Smoke
 ```
 Where the parameter '-i smoking.mln' is the input MLN theory, '-o smoking-learned.mln' is the resulting output theory with the estimated weights, '-t smoking-train.db' is the training data and the parameer '-ne Smokes/1,Cancer/1' specifies which predicates are the non-evidence predicates. After the execution of this example, the resulting file smoking-learned.mln is an MLN knowledge base with the learned weights. Using this file along with the test data, we can compute the truth value of each person smoking and getting cancer.
 
-## Car traffic modelling
+## Car Traffic
 
 In the following example we are going to demonstrate weight learning using a naive implementation of [Hidden Markov Model](https://en.wikipedia.org/wiki/Hidden_Markov_model) for modelling car traffic (see [original example](http://alchemy.cs.washington.edu/tutorial/7Hidden_Markov_Models.html)).
 We assume that each day a car may take one of the following actions (1) stopped, (2) driving, (3) or slowing down. Furthermore, we assume that these actions are dependent by the state of the stoplight in front of it, which can be either red, green or yellow.
