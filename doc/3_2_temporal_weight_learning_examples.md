@@ -4,10 +4,7 @@ Below we provide examples that demonstrate LoMRF weight learning capabilities in
 
 ## Activity Recognition
 
-In this example we demonstrate how to perform weight learning for activity recognition, using a small fragment of the first
-set of the [CAVIAR dataset](http://homepages.inf.ed.ac.uk/rbf/CAVIARDATA1/). We use the same Probabilistic Event Calculus
-formalism as presented in the [Quick Start](0_quick_start.md) section and the same knowledge base as the one defined in
-the [Temporal Inference Examples](2_2_temporal_inference_examples.md).
+In this example we demonstrate how to perform weight learning for activity recognition, using a small fragment of the first set of the [CAVIAR dataset](http://homepages.inf.ed.ac.uk/rbf/CAVIARDATA1/). We use the same Probabilistic Event Calculus formalism as presented in the [Quick Start](0_quick_start.md) section and the same knowledge base as the one defined in the [Temporal Inference Examples](2_2_temporal_inference_examples.md).
 
 ###Training data
 
@@ -66,19 +63,25 @@ Happens(Active_ID1, 170)
 
 The files of this example are the following:
   * Knowledge base files:
-    * Main MLN file in CNF: [theory_cnf.mln](/Examples/Weight_Learning/Activity_Recognition/theory.mln)
-    * Definitions of moving activity: [definitions/moving.mln](/Examples/Weight_Learning/Activity_Recognition/definitions/moving.mln)
-    * Definitions of meeting activity: [definitions/meeting.mln](/Examples/Weight_Learning/Activity_Recognition/definitions/meeting.mln)
-  * Training file for batch learning: [training.db](/Examples/Weight_Learning/Activity_Recognition/training/batch/training.db)
-  * Training files for online learning: [micro-batches](/Examples/Weight_Learning/Activity_Recognition/training/online/)
+    * Main MLN file in CNF: [theory_cnf.mln](../Data/Examples/Weight_Learning/Activity_Recognition/theory.mln)
+    * Definitions of moving activity: [definitions/moving.mln](../Data/Examples/Weight_Learning/Activity_Recognition/definitions/moving.mln)
+    * Definitions of meeting activity: [definitions/meeting.mln](../Data/Examples/Weight_Learning/Activity_Recognition/definitions/meeting.mln)
+  * Training file for batch learning: [training.db](../Data/Examples/Weight_Learning/Activity_Recognition/training/batch/training.db)
+  * Training files for online learning: [micro-batches](../Data/Examples/Weight_Learning/Activity_Recognition/training/online/)
+
 
 Parameters:
- * Non-evidence predicates: `HoldsAt/2`
+ * Non-evidence predicates: `-ne HoldsAt/2`
+ * Input MLN theory: `-i theory_cnf.mln`
+ * Input training data: `-t training.db`
+ * Resulting output MLN theory: `-o learned.mln`
+ * Enable loss augmented inference (also known as seperation oracle) using the Hamming loss function by adding to the objective function during inference additional loss terms: `-lossAugmented`
+ * Specify the learning alogirhtm, i.e., Max-Margin (default), Adagrad or CDA: `-alg`
 
 ***Max-Margin Learning***
 
 ```lang-none
-lomrf-wlearn -i theory_cnf.mln -t training.db -o learned.mln -ne HoldsAt/2 -lossAugmented
+lomrf-wlearn -alg MAX_MARGIN -i theory_cnf.mln -t training.db -o learned.mln -ne HoldsAt/2 -lossAugmented
 ```
 ***Online Learning using AdaGrad or CDA***
 

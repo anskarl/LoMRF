@@ -1,6 +1,6 @@
 # Weight Learning Examples
 
-Below we provide some example MLNs, in order to demonstrate the LoMRF weight learning command-line tool:
+Below we provide simple example models, in order to demonstrate weight learning in LoMRF.
 
 ## Social Network Analysis
 
@@ -10,7 +10,10 @@ We would like to model a simple social network of friends, smoking, and cancer. 
 
 *Predicate schema:*
 ```lang-none
+// Input predicates:
 Friends(person, person)
+
+// Query/non-evidence predicates:
 Smokes(person)
 Cancer(person)
 ```
@@ -22,14 +25,17 @@ Cancer(person)
 Smokes(x) => Cancer(x)
 
 // People having friends who smoke, also smoke and those having friends
-// who don't smoke, don't smoke.
+// who don't smoke, they don't smoke.
 Friends(x, y) => (Smokes(x) <=> Smokes(y))
 ```
 
-Of course, this does not hold for all smokers, so in Markov logic we can just tack a weight
-on to the rule, or, as we do here, learn a weight from training data.
+Since this cannot not hold for all smokers with absolute certainty, in Markov Logic we can associate a weight value to each logical formula, or use weight learning in order to estimate the weights from training data.
+
+Please note, that both example formulas are not hard-constrained (i.e., ending with a full-stop character). On the other hand, although they are both soft-constrained, they are not (yet) associated with a weight value. The lack of weight value, indicates that the weight needs to be estimated by the weight learning algorithm.
 
 ### Training data (smoking-train.db)
+
+In the following training data we are giving example relations between friends, e.g., the fact that the persons `Anna` and `Bob` are friends (using the true ground fact `Friends(Anna, Bob)`). Furthermore, we are stating the fact who is a smoker, e.g., `Anna` is a smoker, therefore we are givind the true ground fact `Smokes(Anna)`. Similarly, we are stating which persons have been diagnosed with cancer, e.g., `Canser(Anna)`. Please note that, due to Closed-world assumption we do not nessesary need to give which possible is false, e.g., the fact that `Bob` is not a smoker (i.e., `!Smokes(Bob)`). Below we are giving the full example of our training data: 
 
 ```lang-none
 Friends(Anna, Bob)
@@ -60,16 +66,21 @@ Cancer(Edward)
 
 ***Weight learning execution***
 
+In order to perform weight learning for this example we are giving the following:
+
 ```lang-none
 lomrf-wlearn -i smoking.mln -o smoking-learned.mln -t smoking-train.db -ne Smokes/1,Cancer/1
 ```
+Where the parameter '-i smoking.mln' is the input MLN theory, '-o smoking-learned.mln' is the resulting output theory with the estimated weights, '-t smoking-train.db' is the training data and the parameer '-ne Smokes/1,Cancer/1' specifies which predicates are the non-evidence predicates. After the execution of this example, the resulting file smoking-learned.mln is an MLN knowledge base with the learned weights. Using this file along with the test data, we can compute the truth value of each person smoking and getting cancer.
 
-This produces the file smoking-learned.mln with the learned weights. Using this along with the test data, we can compute the truth value of each person smoking and getting cancer.
+## Car traffic modelling
 
-## Hidden Markov Models
+In the following example we are going to demonstrate weight learning using a naive implementation of [Hidden Markov Model](https://en.wikipedia.org/wiki/Hidden_Markov_model) for modelling car traffic (see [original example](http://alchemy.cs.washington.edu/tutorial/7Hidden_Markov_Models.html)).
+We assume that each day a car may take one of the following actions (1) stopped, (2) driving, (3) or slowing down. Furthermore, we assume that these actions are dependent by the state of the stoplight in front of it, which can be either red, green or yellow.
 
-Suppose, on a given day, we observe a car taking three actions: it is either stopped, driving, or slowing. We assume this is only dependent on the state of the stoplight in front of it: red, green or yellow. In a Markov process we need to model
-`states` and `observations` at certain points in `time`. In LoMRF, we model a `state` and `observation` with a first-order predicate and `time` is a variable in each of these predicates.
+In a Markov process we need to model `states` and `observations` at certain points in `time`. Using first-order logic representation we can model a `state` and `observation` using predicates. On the other hand, time, car actions and traffic light observations are represented as variables in each one of these predicates.
+
+Please find below the example knowledge base and training data:
 
 ### Knowledge base (traffic.mln)
 
@@ -168,4 +179,4 @@ State(Drive, 10)
 lomrf-wlearn -i traffic.mln -o traffic-learned.mln -t traffic-train.db -ne State/2
 ```
 
-This produces the file traffic-learned.mln with the learned weights. Using this along with the test data, we can compute the truth value of each state.
+This produces the file traffic-learned.mln with the learned weights. Using the resulting trained MLN model along with the test data, we can compute the truth value of each state.

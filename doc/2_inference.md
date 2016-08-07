@@ -1,4 +1,6 @@
-# Inference 
+# Inference
+
+In brief, inference in Markov Logic Networks (MLNs), is the process of estimating the marginal probability or the most probable truth state of the groundings of some query atoms, given a MLN theory (i.e., a collection of weighted formulas) and a collection of imput ground evidence atoms (i.e., input ground predicates with known truth state).
 
 ## Types of inference in LoMRF
 
@@ -18,8 +20,7 @@ In order to perform inference, we have to define the following:
 
 ### Inference using the `lomrf` commmand-line tool
 
-To demonstrate the usage of LoMRF from commmand-line interface, assume that we have one knowledge base
-file, named as `theoy.mln`, and one evidence file, named as `evidence.db`.  
+To demonstrate the usage of LoMRF from commmand-line interface, assume that we have one knowledge base file, named as `theoy.mln`, and one evidence file, named as `evidence.db`.
 
 In our example knowledge-base we have the following predicates:
 
@@ -71,6 +72,12 @@ lomrf -infer map -i theory.mln -e evidence.db -r map-out.result -q Query_A/2,Que
 ```
 
 The results from MAP inference are stored in the `map-out.result` (see paramter `-r`)
+
+
+## Probabilistic Inference Examples
+
+See Sections [Probabilistic Inference Examples](2_1_inference_examples.md) and [Temporal Probabilistic Inference Examples](2_2_temporal_inference_examples.md). Sources from the examples are located in the LoMRF-data project (follow the instructions in [Download Example Data](6_2_download_example_data.md)).
+
 
 
 ## Command-line Interface Options ##
@@ -219,26 +226,13 @@ literal become unit clauses with positive literal and inverted sign in their cor
 * `-dynamic, --dynamic-implementations <string>` **[Optional]** Comma separated paths to search recursively for dynamic
 predicates/functions implementations (*.class and *.jar files).
 
-## Examples
-
-See Sections [Probabilistic Inference Examples](2_1_inference_examples.md) and [Temporal Probabilistic Inference Examples](2_2_temporal_inference_examples.md).
-Sources from the examples are located in the LoMRF-data project (follow the instructions in
-[Download Example Data](6_2_download_example_data.md)).
-
 
 ## References
 
-Bart Selman, Henry Kautz, and Bram Cohen. (1993) Local Search Strategies for Satisfiability Testing.  Final version appears
-in Cliques, Coloring, and Satisfiability: Second DIMACS Implementation Challenge. In David S. Johnson and Michael A. Trick, (Ed.),
-DIMACS Series in Discrete Mathematics and Theoretical Computer Science, vol. 26, AMS. ([link](http://www.cs.cornell.edu/selman/papers/pdf/dimacs.pdf))
+* Bart Selman, Henry Kautz, and Bram Cohen. (1993) Local Search Strategies for Satisfiability Testing.  Final version appears in Cliques, Coloring, and Satisfiability: Second DIMACS Implementation Challenge. In David S. Johnson and Michael A. Trick, (Ed.), DIMACS Series in Discrete Mathematics and Theoretical Computer Science, vol. 26, AMS. ([link](http://www.cs.cornell.edu/selman/papers/pdf/dimacs.pdf))
 
-Henry Kautz, Bart Selman and Yueyen Jiang. (1996) A General Stochastic Approach to Solving Problems with Hard and Soft Constraints.
-In Gu, D., Du, J. and Pardalos, P. (Eds.), The Satisfiability Problem: Theory and Applications, Vol. 35 of DIMACS Series in
-Discrete Mathematics and Theoretical Computer Science, pp. 573–586. AMS. ([link](https://cs.rochester.edu/u/kautz/papers/maxsatDIMACSfinal.ps))
+* Henry Kautz, Bart Selman and Yueyen Jiang. (1996) A General Stochastic Approach to Solving Problems with Hard and Soft Constraints. In Gu, D., Du, J. and Pardalos, P. (Eds.), The Satisfiability Problem: Theory and Applications, Vol. 35 of DIMACS Series in Discrete Mathematics and Theoretical Computer Science, pp. 573–586. AMS. ([link](https://cs.rochester.edu/u/kautz/papers/maxsatDIMACSfinal.ps))
 
-Tuyen N. Huynh and Raymond J. Mooney. (2011). Max-Margin Weight Learning for Markov Logic Networks. In Proceedings of the
-European Conference on Machine Learning and Principles and Practice of Knowledge Discovery in Databases (ECML-PKDD 2011),
-Vol. 2, pp. 81-96. ([link](http://www.ai.sri.com/~huynh/papers/huynh_mooney_ecmlpkdd09.pdf))
+* Tuyen N. Huynh and Raymond J. Mooney. (2009). Max-Margin Weight Learning for Markov Logic Networks. In Proceedings of the European Conference on Machine Learning and Principles and Practice of Knowledge Discovery in Databases (ECML PKDD-09). ([link](http://www.ai.sri.com/~huynh/papers/huynh_mooney_ecmlpkdd09.pdf))
 
-Poon, Hoifung and Domingos, Pedro (2006). Sound and Efficient Inference with Probabilistic and Deterministic Dependencies.
-In Proceedings of the 21th National Conference on Artificial Intelligence (pp. 458-463), 2006. Boston, MA: AAAI Press. ([link](http://homes.cs.washington.edu/~pedrod/papers/aaai06a.pdf))
+* Poon, Hoifung and Domingos, Pedro (2006). Sound and Efficient Inference with Probabilistic and Deterministic Dependencies. In Proceedings of the 21th National Conference on Artificial Intelligence (pp. 458-463), 2006. Boston, MA: AAAI Press. ([link](http://homes.cs.washington.edu/~pedrod/papers/aaai06a.pdf))

@@ -1,3 +1,20 @@
+<pre>
+    o                        o     o   o         o
+    |             o          |     |\ /|         | /
+    |    o-o o--o    o-o  oo |     | O |  oo o-o OO   o-o o   o
+    |    | | |  | | |    | | |     |   | | | |   | \  | |  \ /
+    O---oo-o o--O |  o-o o-o-o     o   o o-o-o   o  o o-o   o
+                |
+             o--o
+    o--o              o               o--o       o    o
+    |   |             |               |    o     |    |
+    O-Oo   oo o-o   o-O o-o o-O-o     O-o    o-o |  o-O o-o
+    |  \  | | |  | |  | | | | | |     |    | |-' | |  |  \
+    o   o o-o-o  o  o-o o-o o o o     o    | o-o o  o-o o-o
+
+    Logical Markov Random Fields.
+</pre>
+
 # LoMRF: Logical Markov Random Fields
 
 LoMRF is an open-source implementation of [Markov Logic Networks](https://en.wikipedia.org/wiki/Markov_logic_network) (MLNs) written in [Scala programming language](http://scala-lang.org).
