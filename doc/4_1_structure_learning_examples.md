@@ -1,13 +1,15 @@
 ## Online Structure Learning Examples
 
-Below we provide structure learning examples in LoMRF, using the OSL and OSLa algorithms (for further details see the work of [Huynh and Mooney (2011)](#references) and [Michelioudakis et. al. (2016)](#references)).
+Below we provide structure learning examples in LoMRF, using the *OSL* and *OSLa* algorithms -- for further details see the works of [Huynh and Mooney (2011)](8_references.md) and [Michelioudakis et. al. (2016)](8_references.md).
+
+Sources from the examples are located in the [LoMRF-data](https://github.com/anskarl/LoMRF-data) project (follow the instructions in [Download Example Data](6_2_download_example_data.md)).
 
 ## OSL in Natural Language Processing
 
 We would like to perform an information extraction task, called field segmentation, a real-world problem where the data
 contain many, relatively small, structured examples in the form of short documents. A document is represented as sequence
-of tokens, and the goal is to segment the text into fields, i.e. label each token in the document with a particular field.
-We use the CiteSeer dataset that contains 1563 bibliographic citations. The dataset has four disjoint subsets consisting
+of tokens, and the goal is to segment the text into fields, i.e., label each token in the document with a particular field.
+We use the [CiteSeer dataset](https://alchemy.cs.washington.edu/data/citeseer/) that contains 1563 bibliographic citations. The dataset has four disjoint subsets consisting
 of citations in four different research areas. The task is to segment each citation into three fields: Author, Title and Venue.
 
 ### Knowledge base (empty.mln)
@@ -101,13 +103,12 @@ Center(B0013,P04)
 ```
 
 ### Structure Learning
+Recall that sources from the examples are located in the [LoMRF-data](https://github.com/anskarl/LoMRF-data) project (follow the instructions in [Download Example Data](6_2_download_example_data.md)), the files of this example are the following:
+  * Initiall empty MLN file: `Data/Examples/Structure_Learning/OSL_NLP/empty.mln`
+  * Mode declaration file: `Data/Examples/Structure_Learning/OSL_NLP/citeceer.mln`
+  * Training files for online learning: `Data/Examples/Structure_Learning/OSL_NLP/training/`
 
-The files of this example are the following:
-  * Initially empty MLN file: [empty.mln](https://github.com/anskarl/LoMRF-data/tree/master/Examples/Structure_Learning/OSL_NLP/empty.mln)
-  * Mode declaration file: [citeceer.mln](https://github.com/anskarl/LoMRF-data/tree/master/Examples/Structure_Learning/OSL_NLP/citeceer.mln)
-  * Training files for online learning: [micro-batches](https://github.com/anskarl/LoMRF-data/tree/master/Examples/Structure_Learning/OSL_NLP/training/)
-
-Parameters:
+**Parameters:**
  * Non-evidence predicates: `InField/3`
  * Max clause length: `12`
  * AdaGrad learning rate: `0.001`
@@ -123,8 +124,7 @@ lomrf-slearn -i empty.mln -t ./training/ -o learned.mln -m citeceer.modes -ne In
 
 In this example we demonstrate how to perform structure learning for activity recognition, using a fragment of the first
 set of the [CAVIAR dataset](http://homepages.inf.ed.ac.uk/rbf/CAVIARDATA1/). We use the same Probabilistic Event Calculus
-formalism as presented in the [Quick Start](0_quick_start.md) section and an empty knowledge base having only the Probabilistic
-Event Calculus axioms.
+formalism as presented in the Section [Quick Start](0_quick_start.md) (for details see [Skarlatidis et. al., (2011, 2014, 2015)](8_references.md)) and an empty knowledge base having only the Probabilistic Event Calculus axioms.
 
 ### Knowledge base (empty.mln)
 
@@ -218,7 +218,7 @@ modeF(2, enter(.))
 modeF(2, exit(.))
 ```
 
-###Training data
+### Training data
 
 The training micro-batches are composed of ground facts of the input predicates `StartTime/1`, `Happens/2`, `Close/4`, `OrientationMove/3`, `Next/2`
 ground facts of the annotation predicates `HoldsAt/2`, as well as ground function mappings. For example, consider the following fragment:
@@ -271,23 +271,13 @@ Happens(Active_ID1, 170)
 // ... sequence of facts ...
 ```
 
-### Weight Learning
-
-The files of this example are the following:
-  * Knowledge base files:
-    * Main MLN file in CNF: [theory_cnf.mln](https://github.com/anskarl/LoMRF-data/tree/master/Examples/Weight_Learning/Activity_Recognition/theory.mln)
-    * Definitions of moving activity: [definitions/moving.mln](https://github.com/anskarl/LoMRF-data/tree/master/Examples/Weight_Learning/Activity_Recognition/definitions/moving.mln)
-    * Definitions of meeting activity: [definitions/meeting.mln](https://github.com/anskarl/LoMRF-data/tree/master/Examples/Weight_Learning/Activity_Recognition/definitions/meeting.mln)
-  * Training file for batch learning: [training.db](https://github.com/anskarl/LoMRF-data/tree/master/Examples/Weight_Learning/Activity_Recognition/training/batch/training.db)
-  * Training files for online learning: [micro-batches](https://github.com/anskarl/LoMRF-data/tree/master/Examples/Weight_Learning/Activity_Recognition/training/online/)
-
-
 ### Structure Learning
 
-The files of this example are the following:
-  * Initially empty MLN file: [meet.mln](https://github.com/anskarl/LoMRF-data/tree/master/Examples/Structure_Learning/OSLa_CAVIAR/meet.mln)
-  * Mode declaration file: [meet.modes](https://github.com/anskarl/LoMRF-data/tree/master/Examples/Structure_Learning/OSLa_CAVIAR/meet.modes)
-  * Training files for online learning: [micro-batches](https://github.com/anskarl/LoMRF-data/tree/master/Examples/Structure_Learning/OSLa_CAVIAR/training/meet)
+Recall that sources from the examples are located in the [LoMRF-data](https://github.com/anskarl/LoMRF-data) project (follow the instructions in [Download Example Data](6_2_download_example_data.md)), the files of this example are the following:
+
+  * Initially empty MLN file: `Data/Examples/Structure_Learning/OSLa_CAVIAR/meet.mln`
+  * Mode declaration file: `Data/Examples/Structure_Learning/OSLa_CAVIAR/meet.modes`
+  * Training files for online learning: `Data/Examples/Structure_Learning/OSLa_CAVIAR/training/meet`
 
 Parameters:
  * Non-evidence predicates: `HoldsAt/2`
@@ -300,9 +290,3 @@ Parameters:
 ```lang-none
 lomrf-slearn -i meet.mln -o learned_meet.mln -t ./training/meet -m meet.modes -ne HoldsAt/2 -template InitiatedAt/2,TerminatedAt/2 -maxLength 8 -threshold 1
 ```
-
-## References
-
-* Tuyen N. Huynh and Raymond J. Mooney. (2011) Online Structure Learning for Markov Logic Networks (2011). In Proceedings of the European Conference on Machine Learning and Principles and Practice of Knowledge Discovery in Databases (ECML-PKDD 2011), Vol. 2, pp. 81-96. ([link](http://www.cs.utexas.edu/users/ai-lab/?huynh:ecml11))
-
-* Michelioudakis E., Skarlatidis A., Paliouras G. and Artikis A. (2016) OSLa: Online Structure Learning using Background Knowledge Axiomatization. In Proceedings of the European Conference on Machine Learning and Principles and Practice of Knowledge Discovery in Databases (ECML-PKDD 2016).

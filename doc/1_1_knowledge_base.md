@@ -206,7 +206,7 @@ Otherwise, the resulting translation will keep the same weight value. The last r
 introduces the opposite direction, that is `head => disjunction of all body parts`. That formula is always
 hard-constraint and states that in order to have the *head* satisfied, at least one of the body parts must also be satisfied.
 Any other possibility doesn't affect the state of the head predicate. With that translation LoMRF implicitly introduces
-closed-world assumption to head predicates, using a technique that is  called predicate completion (see [McCarthy, 1980; Lifschitz, 1994](#references)).
+closed-world assumption to head predicates, using a technique that is called predicate completion (see [McCarthy, 1980; Lifschitz, 1994](8_references.md)).
 
 LoMRF tries to simplify the resulting knowledge base, by specializing as much as possible the predicate completion for each distinct head predicate.
 Specifically, the original predicate completion will result to a more general form, producing a single formula with an equivalence:
@@ -219,15 +219,15 @@ number variables (i.e., the additional variable `a`).
 
 > In contrast to the original predicate completion approach, LoMRF expresses the predicate completion in a decomposed form, that is one
 formula per definite clause and one single formula with the disjunctions of body parts. The implementation is based on the
-transformations presented in [Skarlatidis et. al. (2011, 2015)](#references).
+transformations presented in [Skarlatidis et. al. (2011, 2015)](8_references.md).
 
 > Technically, the definite clauses are translated into logically stronger first-order formulas.
 In particular, LoMRF performs predicate completion for each *unique* head predicate in the knowledge base.
 In cases where some definitions of head predicates are missing, the corresponding missing definition are implicitly
-considered as *False*. For further details see [Skarlatidis et. al. (2011, 2015)](#references), as well as
+considered as *False*. For further details see [Skarlatidis et. al. (2011, 2015)](8_references.md), as well as
 the [Advanced Cases](#advanced-cases) section.
 
-### Advanced Cases ###
+### Advanced Cases
 
 ***Variables that appear only in the body part***
 
@@ -244,7 +244,7 @@ In such case, the translated formulas will be the following:
 Head(x,y) => Exist z Foo(x, z) ^ Bar(z, y).
 ```
 *Please note that during grounding existentially quantified formulas are replaced by the disjunction of their groundings
-(see [Domingos and Lowd, 2009](#references)). This may lead to a large number of disjunctions and a combinatorial explosion of the number
+(see [Domingos and Lowd, 2009](8_references.md)). This may lead to a large number of disjunctions and a combinatorial explosion of the number
 of clauses, producing unmanageably large Markov networks.* ***This type of clauses should be avoided, if it is possible.***
 
 ***Partial definitions***
@@ -303,17 +303,3 @@ R(x) ^ Q(t) => Head(x, t).
 
 Head(x, t) => (x = Foo ^ P(t) ^ Q(t)) v (R(x) ^ Q(t)).
 ```
-
-## References
-
-Domingos, P., and Lowd, D. (2009). Markov Logic: An Interface Layer for Artificial Intelligence. Synthesis Lectures on Artiﬁcial Intelligence and Machine Learning. Morgan & Claypool Publishers. ([link](http://www.morganclaypool.com/doi/abs/10.2200/S00206ED1V01Y200907AIM007))
-
-Lifschitz, V. (1994). Circumscription. In Handbook of logic in Artificial Intelligence and Logic Programming, Vol. 3, pp. 297-352. ([link](http://www.jstor.org/stable/420980))
-
-McCarthy, J. (1980). Circumscription - A Form of Non-Monotonic Reasoning. Artificial Intelligence, 13 (1-2), 27-39. ([link](http://www-formal.stanford.edu/jmc/circumscription.ps))
-
-Skarlatidis A., Paliouras G., Vouros G. and Artikis. (2011) A. Probabilistic Event Calculus based on Markov Logic Networks.
-Proceedings of International Symposium on Rules (RuleML@BRF), Springer. ([link](http://link.springer.com/chapter/10.1007%2F978-3-642-24908-2_19))
-
-Skarlatidis A., Paliouras G., Artikis A. and Vouros G. (2015). Probabilistic Event Calculus for Event Recognition. ACM
-Transactions on Computational Logic, 16, 2, Article 11, pp. 11:1-11:37. ([link](http://dx.doi.org/10.1145/2699916))

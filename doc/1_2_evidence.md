@@ -47,4 +47,4 @@ By default LoMRF takes [Closed-world assumption](https://en.wikipedia.org/wiki/C
 instantiations of predicates that have at least one fact in the specified evidence file, unless it is explicitly
 specified to take [Open-world assumption](https://en.wikipedia.org/wiki/Open-world_assumption) in the inference
 options or it is a query predicate (see [Inference](2_inference.md)). Therefore, we can define only the true
-groundings in the evidence and assume a *False* state for all other possible combinations (e.g., `Brother(Achilles, Menelaus)` is implicitly assumed as **False**).   
+groundings in the evidence and assume a *False* state for all other possible combinations (e.g., `Brother(Achilles, Menelaus)` is implicitly assumed as **False**).

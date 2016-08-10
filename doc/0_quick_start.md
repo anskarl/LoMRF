@@ -1,13 +1,11 @@
 # Quick Start
 
-Assuming that you have successfully build a LoMRF distribution and added LoMRF executables in your default `PATH` (see
-[Build and Test LoMRF](6_build_test_lomrf.md)). In the following paragraphs we present our first LoMRF model and
-perform probabilistic inference.
+Assuming that you have successfully build a LoMRF distribution and added LoMRF executables in your default `PATH` (see [Build and Test LoMRF](6_build_test_lomrf.md)). In the following paragraphs we present our first LoMRF model and perform probabilistic inference.
 
 ## Running Example
 
 For our running example we use the [Yale Shooting Problem](https://en.wikipedia.org/wiki/Yale_shooting_problem),
-a well-known AI test case of non-monotonic temporal reasoning which was proposed by [Steve Hanks and Drew McDermott (1987)](#references).
+a well-known AI test case of non-monotonic temporal reasoning which was proposed by [Hanks and McDermott (1987)](8_references.md).
 In brief, a hunter tries to kill a prey with his gun.  Only when the hunter shoots with a loaded gun the prey is being
 killed.
 
@@ -16,7 +14,7 @@ alive). The series of actions and situations occur in linear time. Furthermore, 
 happen (e.g., the hunter loads the gun), causing related situations to hold or not (e.g., the gun is loaded).
 
 To demonstrate the core features of  LoMRF, we model the Yale Shooting scenario by using the
-[Event Calculus](https://en.wikipedia.org/wiki/Event_calculus) (see [Kowalski and Sergot (1986), Shanahan (1999) and Mueller (2008)](#references))
+[Event Calculus](https://en.wikipedia.org/wiki/Event_calculus) (see [Kowalski and Sergot (1986), Shanahan (1999) and Mueller (2008)](8_references.md))
 logical action formalism. In the Event Calculus we represent *actions* with *events* and *situations* with *fluents*.
 More formally, a fluent is a property whose value may change over time. When an event occurs it may change the value of a fluent.
 The underlying time  model is linear and we represent time-points as integer numbers. The core domain-independent axioms of
@@ -78,7 +76,7 @@ That part is optional, since the LoMRF can collect all possible constant symbols
 our formulas, as well as in the specified evidence. Furthermore, if the have constant symbols in both evidence and our
 theory (domain types, as well as in formulas), the LoMRF automatically computes the union of all constant symbols.
 On the other hand, in situations where the evidence might not contain all possible constant symbols, then it is advised
-to define that subset of symbols in the theory.  
+to define that subset of symbols in the theory.
 
 The domain types that we are using in our example belong to the domains of *time*, *event* and *fluent*. The values where
 each one domain takes are constant symbols and are finite. Their possible finite symbols can be explicitly defined in our
@@ -158,7 +156,7 @@ time-point.
 
 All four formulas are hard-constrained, thus they do not have any weight value, instead they have a dot at the end. The reason that
 we use hard-constrained formulas to express the core Event Calculus axioms, is that we want to hold with absolute
-certainty. Further details about the probabilistic Event Calculus formalism of our example can be found in [Skarlatidis et. al. (2014, 2015)](#references).
+certainty. Further details about the probabilistic Event Calculus formalism of our example can be found in [Skarlatidis et. al. (2014, 2015)](8_references.md).
 
 ### Domain-dependent axioms (expressed as definite clauses)
 
@@ -183,7 +181,7 @@ InitiatedAt(Loaded, t) :- Happens(Load, t)
 ```
 
 In order to express a soft-constrained formula, we have to associated it with a weight value. Lets say that by using a
-weight learning algorithm (see [Weight Learning](doc/3_weight_learning.md)), the weight of the first rule is estimated
+weight learning algorithm (see [Weight Learning](3_weight_learning.md)), the weight of the first rule is estimated
 to be equal with 2.0.
 
 ```lang-none
@@ -449,18 +447,3 @@ HoldsAt(Loaded,12) 0
 HoldsAt(Loaded,13) 0
 HoldsAt(Loaded,14) 0
 ```
-
-## References
-
-* Hanks S. and McDermott D. Nonmonotonic Logic and Temporal Projection. Artificial Intelligence 33.3, 379-412. 1987. ([link](http://www.sciencedirect.com/science/article/pii/0004370287900439))
-
-* Kowalski, R. and Sergot, M. (1986). A Logic-based Calculus of Events. New Generation Computing, 4(1):67–95. ([link](http://dx.doi.org/10.1007/BF03037383))
-
-* Mueller, E. T. (2008). Event Calculus. In Handbook of Knowledge Representation, volume 3 of Foundations of Artificial Intelligence, pages 671–708. Elsevier. ([link](http://dx.doi.org/10.1016/S1574-6526%2807%2903017-9))
-
-* Shanahan, M. (1999). The Event Calculus Explained. In Wooldridge, M. and Veloso, M., editors, Artificial Intelligence Today, volume 1600 of Lecture Notes in Computer Science, pages 409–430. Springer. ([link](http://www.doc.ic.ac.uk/~mpsha/ECExplained.pdf))
-
-* Skarlatidis A. (2014). Event Recognition Under Uncertainty and Incomplete Data. PhD Thesis. Department of Digital Systems, University of Piraeus. ([link](http://hdl.handle.net/10442/hedi/35692))
-
-* Skarlatidis A., Paliouras G., Artikis A. and Vouros G. (2015). Probabilistic Event Calculus for Event Recognition. ACM
-Transactions on Computational Logic, 16, 2, Article 11, pp. 11:1-11:37. ([link](http://dx.doi.org/10.1145/2699916))

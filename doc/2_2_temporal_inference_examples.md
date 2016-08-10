@@ -2,12 +2,12 @@
 
 Below we provide example MLNs that demonstrate some LoMRF advanced inference capabilities in the domain of temporal reasoning.
 
-## Yale Shooting Scenario ##
+## Yale Shooting Scenario
 
-For a quick introduction to temporal representation (using the Probabilistic Event Calculus formalism, see [Skarlatidis et. al. (2014, 2015)](#references)) and reasoning,
+For a quick introduction to temporal representation (using the Probabilistic Event Calculus formalism, see [Skarlatidis et. al. (2014, 2015)](8_references.md)) and reasoning,
 see the temporal reasoning example in [Quick Start](0_quick_start.md) section.
 
-## Activity Recognition ##
+## Activity Recognition
 
 In this example we demonstrate how to perform probabilistic activity recognition, using a small fragment of
 the first set of the [CAVIAR dataset](http://homepages.inf.ed.ac.uk/rbf/CAVIARDATA1/). We use the same
@@ -95,7 +95,7 @@ fluent leaving_object(id,id)
 
 ### Predicate schemas
 
-The predicates that we use follow the definition of the Probabilistic Event Calculus ([Skarlatidis et. al. (2014, 2015)](#references)) formalism. We additionally
+The predicates that we use follow the definition of the Probabilistic Event Calculus ([Skarlatidis et. al. (2014, 2015)](8_references.md)) formalism. We additionally
 use some utility predicates in order to represent some spacial constraints.
 
 | Predicate                  | Meaning                                                                                                   |
@@ -263,14 +263,14 @@ Happens(Active_ID1, 170)
 
 ### Inference
 
-The files of this example are the following:
-  * Knowledge base files:
-    * Main MLN file: [theory.mln](https://github.com/anskarl/LoMRF-data/tree/master/Examples/Inference/Activity_Recognition/theory.mln)
-    * Definitions of moving activity: [definitions/moving.mln](https://github.com/anskarl/LoMRF-data/tree/master/Examples/Inference/Activity_Recognition/definitions/moving.mln)
-    * Definitions of meeting activity: [definitions/meeting.mln](https://github.com/anskarl/LoMRF-data/tree/master/Examples/Inference/Activity_Recognition/definitions/meeting.mln)
-  * Evidence file: [narrative.db](https://github.com/anskarl/LoMRF-data/tree/master/Examples/Inference/Activity_Recognition/narrative.db)
+Recall that sources from the examples are located in the [LoMRF-data](https://github.com/anskarl/LoMRF-data) project (follow the instructions in [Download Example Data](6_2_download_example_data.md)), the files of this example are the following:
+  1. Knowledge base files:
+    * Main MLN file: `Data/Examples/Inference/Activity_Recognition/theory.mln`
+    * Definitions of moving activity: `Data/Examples/Inference/Activity_Recognition/definitions/moving.mln`
+    * Definitions of meeting activity: `Data/Examples/Inference/Activity_Recognition/definitions/meeting.mln`
+  2. Evidence file: `Data/Examples/Inference/Activity_Recognition/narrative.db`
 
-Parameters:
+**Parameters:**
  * Query predicates: `HoldsAt/2`
  * Evidence predicates (Closed-world assumtion): `StartTime/1`, `Happens/2`, `Close/4` and `OrientationMove/3`.
 
@@ -284,10 +284,3 @@ lomrf -infer marginal -i theory.mln -e narrative.db -r marginal-out.result -q Ho
 ```lang-none
 lomrf -infer map -i theory.mln -e narrative.db -r map-out.result -q HoldsAt/2 -cwa StartTime/1,Happens/2,Close/4,OrientationMove/3
 ```
-
-## References
-
-Skarlatidis A. Event Recognition Under Uncertainty and Incomplete Data. (2014). PhD Thesis. Department of Digital Systems, University of Piraeus. ([link](http://hdl.handle.net/10442/hedi/35692))
-
-Skarlatidis A., Paliouras G., Artikis A. and Vouros G. (2015). Probabilistic Event Calculus for Event Recognition. ACM
-Transactions on Computational Logic, 16, 2, Article 11, pp. 11:1-11:37. ([link](http://dx.doi.org/10.1145/2699916))

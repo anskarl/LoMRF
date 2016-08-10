@@ -2,7 +2,7 @@
 
 LoMRF employs structure learning using on-line algorithms, in order to update the structure and its weights at each learning step according to a sequence of training examples (micro-batches). Compare to batch learning methods, the main benefits of on-line structure learning is that it can scale to problems with large amount of data and that can revise/refine an MLN model according to new training examples.
 
-The supported algorithms are OSL and OSLa -- for details see [Huynh and Mooney (2011)](#references) and [Michelioudakis et. al. (2016)](#references).
+The supported algorithms are *OSL* and *OSLa* -- for details see [Huynh and Mooney (2011)](8_references.md) and [Michelioudakis et. al. (2016)](8_references.md).
 
 
 ## Types of structure learning in LoMRF
@@ -14,9 +14,9 @@ In order to perform structure learning in LoMRF the following definitions are re
 * Output learned file, e.g., `output.mln`.
 * A mode declaration file, e.g., `name.modes`
 * The atomic signatures (identities) that define the non-evidence predicates ('-ne' option), that is the predicates for which training data contains supervision. Please note that for all non-evidence predicates LoMRF takes [Closed-world assumption](https://en.wikipedia.org/wiki/Open-world_assumption) and therefore the learning procedure assumes fully supervision is present. In case of missing annotations LoMRF would assume their truth values are *False*.
-* In the case of `OSLa`, the atomic signatures that define the template atoms (`-template` option) present in the defined axioms of the input theory. If these template atoms are given then LoMRF will automatically switch to the `OSLa` algorithm, otherwise the standard `OSL` will run.
+* In the case of *OSLa*, the atomic signatures that define the template atoms (`-template` option) present in the defined axioms of the input theory. If these template atoms are given then LoMRF will automatically switch to the *OSLa* algorithm, otherwise the standard *OSL* will run.
 
-**Important note:** Structure learning in the current version of LoMRF does not support Functions and Dynamic functions. The given First-order logic theory must be function free.
+**Important note: Structure learning in the current version of LoMRF does not support [build-in dynamic functions and predicates](1_1_knowledge_base.md) (e.g., `t++`, `a = b`, etc.).**
 
 ### Structure learning using the `lomrf-slearn` command-line tool
 
@@ -51,7 +51,7 @@ The results of learning are stored in the `learned.mln` (see parameter `-o`)
 
 ## Structure Learning Examples
 
-For a detailed structure learning tutorial in LoMRF, see Sections [Structure Learning Examples](4_1_structure_learning_examples.md). Sources from the examples are located in the LoMRF-data project (follow the instructions in [Download Example Data](6_2_download_example_data.md)).
+For a detailed structure learning tutorial in LoMRF, see Sections [Structure Learning Examples](4_1_structure_learning_examples.md). Sources from the examples are located in the [LoMRF-data](https://github.com/anskarl/LoMRF-data) project (follow the instructions in [Download Example Data](6_2_download_example_data.md)).
 
 ## Command-line Interface Options ##
 
@@ -99,9 +99,3 @@ By executing the ```lomrf-slearn -h``` (or ```lomrf-slearn --help```) command fr
 weight values from (ground) clauses. Specifically, the sign of negative weights in clauses is inverted, as well as all disjunctions become conjunctions (due to de Morgan's law). For example, using the de Morgan's law, the weighted clause `-2 A(x) v B(x)` is equivalent to `-2 !(!A(x) ^ !B(x))`. In MLN this is also equivalent to `2 !A(x) ^ !B(x)`, which produces the following two unit clauses: `1 A(x)` and `1 B(x)`.
 
 * `-noNegatedUnit, --eliminate-negated-unit` **[Optional]** When it is enabled, unit clauses with negative literal become unit clauses with positive literal and inverted sign in their corresponding weight.
-
-## References
-
-* Tuyen N. Huynh and Raymond J. Mooney. (2011) Online Structure Learning for Markov Logic Networks (2011). In Proceedings of the European Conference on Machine Learning and Principles and Practice of Knowledge Discovery in Databases (ECML-PKDD 2011), Vol. 2, pp. 81-96. ([link](http://www.cs.utexas.edu/users/ai-lab/?huynh:ecml11))
-
-* Michelioudakis E., Skarlatidis A., Paliouras G. and Artikis A. (2016) OSLa: Online Structure Learning using Background Knowledge Axiomatization. In Proceedings of the European Conference on Machine Learning and Principles and Practice of Knowledge Discovery in Databases (ECML-PKDD 2016).

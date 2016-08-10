@@ -1,12 +1,17 @@
 # Weight Learning Examples
 
-Below we provide simple example models, in order to demonstrate weight learning in LoMRF.
+Below we provide simple example models, in order to demonstrate weight learning in LoMRF. Recall that sources from the following examples are located in the [LoMRF-data](https://github.com/anskarl/LoMRF-data) project (follow the instructions in [Download Example Data](6_2_download_example_data.md)).
 
 ## Social Network Analysis
 
 We would like to model a simple social network of friends, smoking, and cancer. The network attempts to model friendship ties between people, their smoking habits and the causality of cancer (see [original example](http://alchemy.cs.washington.edu/tutorial/3Social_Network_Analysis.html)).
 
-### Knowledge base (smoking.mln)
+The sources of this example can be found in `Data/Examples/Weight_Learning/Friends_Smokers` in the sub-module **Data** (see the instructions in Section [Download Example Data](6_2_download_example_data.md)).
+
+
+### Knowledge Base
+
+In the first part of the knowledge base we shoule define the *schema* of each predicate that we are using in the example (for details see the instructions in Section [Knowlege Base](1_1_knowledge_base.md)).
 
 *Predicate schema:*
 ```lang-none
@@ -17,6 +22,7 @@ Friends(person, person)
 Smokes(person)
 Cancer(person)
 ```
+In the second part we give the *formuals*, using first-order logic syntax, in order to define the relations and the constraints of our example model.
 
 *Formulas:*
 
@@ -29,13 +35,15 @@ Smokes(x) => Cancer(x)
 Friends(x, y) => (Smokes(x) <=> Smokes(y))
 ```
 
-Since this cannot not hold for all smokers with absolute certainty, in Markov Logic we can associate a weight value to each logical formula, or use weight learning in order to estimate the weights from training data.
+Of course, this cannot not hold for all smokers and their friends with absolute certainty. In Markov Logic we can associate a weight value to each logical formula, or use weight learning in order to estimate the weights from training data.
 
-Please note, that both example formulas are not hard-constrained (i.e., ending with a full-stop character). On the other hand, although they are both soft-constrained, they are not (yet) associated with a weight value. The lack of weight value, indicates that the weight needs to be estimated by the weight learning algorithm.
+Please note, that both example formulas are not hard-constrained (i.e., ending with a full-stop character). On the other hand, although they are both soft-constrained, they are not (yet) associated with a weight value. *The lack of weight value, indicates that the weight needs to be estimated by the weight learning algorithm*.
 
 ### Training data (smoking-train.db)
 
-In the following training data we are giving example relations between friends, e.g., the fact that the persons `Anna` and `Bob` are friends (using the true ground fact `Friends(Anna, Bob)`). Furthermore, we are stating the fact who is a smoker, e.g., `Anna` is a smoker, therefore we are givind the true ground fact `Smokes(Anna)`. Similarly, we are stating which persons have been diagnosed with cancer, e.g., `Canser(Anna)`. Please note that, due to Closed-world assumption we do not nessesary need to give which possible is false, e.g., the fact that `Bob` is not a smoker (i.e., `!Smokes(Bob)`). Below we are giving the full example of our training data: 
+In the following training data we give example relations between friends, e.g., the fact that the persons `Anna` and `Bob` are friends (using the true ground fact `Friends(Anna, Bob)`). Furthermore, we define who is a smoker, e.g., `Anna` is a smoker, therefore we are givind the true ground fact `Smokes(Anna)`. Similarly, we define which persons are diagnosed with cancer, e.g., `Canser(Anna)`. Please note, that due to [Closed-world](https://en.wikipedia.org/wiki/Closed-world_assumption) assumption in evidence we do not nessesary need to give which possible is false, e.g., the fact that `Bob` is not a smoker (i.e., `!Smokes(Bob)`).
+
+Below we are giving the full example of our training data:
 
 ```lang-none
 Friends(Anna, Bob)
@@ -75,14 +83,16 @@ Where the parameter '-i smoking.mln' is the input MLN theory, '-o smoking-learne
 
 ## Car Traffic
 
-In the following example we are going to demonstrate weight learning using a naive implementation of [Hidden Markov Model](https://en.wikipedia.org/wiki/Hidden_Markov_model) for modelling car traffic (see [original example](http://alchemy.cs.washington.edu/tutorial/7Hidden_Markov_Models.html)).
-We assume that each day a car may take one of the following actions (1) stopped, (2) driving, (3) or slowing down. Furthermore, we assume that these actions are dependent by the state of the stoplight in front of it, which can be either red, green or yellow.
+In the following example we demonstrate weight learning using a *simple* implementation of [Hidden Markov Model](https://en.wikipedia.org/wiki/Hidden_Markov_model) for modelling car traffic (see [original example](http://alchemy.cs.washington.edu/tutorial/7Hidden_Markov_Models.html)).
+We assume that each day a car may take one of the following actions (1) *stopped*, (2) *driving*, (3) or *slowing down*. Furthermore, we assume that these actions are dependent by the state of the stoplight in front of it, which can be either *red*, *green* or *yellow*.
 
-In a Markov process we need to model `states` and `observations` at certain points in `time`. Using first-order logic representation we can model a `state` and `observation` using predicates. On the other hand, time, car actions and traffic light observations are represented as variables in each one of these predicates.
+In a Markov process we need to model `states` and `observations` at certain points in `time`. Using first-order logic representation we can model a `state` and `observation` using predicates. On the other hand, *time*, *car states* and *traffic light observations* are represented as variables in each one of these predicates.
 
-Please find below the example knowledge base and training data:
+The sources of this example can be found in `Data/Examples/Weight_Learning/Car_Traffic` in the sub-module **Data** (see the instructions in Section [Download Example Data](6_2_download_example_data.md)).
 
-### Knowledge base (traffic.mln)
+### Knowledge base.
+
+Please find below the example knowledge base (file `traffic.mln`):
 
 *Domain and predicate schema:*
 
@@ -136,7 +146,9 @@ Obs(Yellow, t) => State(Drive, t)
 Obs(Yellow, t) => State(Slow, t)
 ```
 
-### Training data (traffic-train.db)
+### Training data
+
+Please find below the example training data (file `traffic-train.db`):
 
 ```lang-none
 Obs(Red, 0)
@@ -179,4 +191,4 @@ State(Drive, 10)
 lomrf-wlearn -i traffic.mln -o traffic-learned.mln -t traffic-train.db -ne State/2
 ```
 
-This produces the file traffic-learned.mln with the learned weights. Using the resulting trained MLN model along with the test data, we can compute the truth value of each state.
+This produces the file `traffic-learned.mln` with the learned weights. Using the resulting trained MLN model along with the test data (file `traffic-test.db`), we can compute the truth value of each state.

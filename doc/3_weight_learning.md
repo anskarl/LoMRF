@@ -2,7 +2,7 @@
 
 The weights of the soft-constrained clauses in Markov Logic Networks (MLNs) can be estimated from training data using supervised learning techniques. The goal is to learn a model (i.e., weighted clauses) by estimating the weight values from training examples. Since the learning paradigm is supervised, the trainin examples is a collection of input ground atoms (i.e., input evidence) and their corresponding output query atoms (i.e., annotation). The learned model should be capable of inferring as *correct as possible* the marginal probabilities or the maximum a-posteriory estimation of query atoms, given an input of ground evidence facts.
 
-There are several weight estimation methods in the literature, the majority of them are batch learning methods that optimise the conditional log likelihood of the Markov Logic model -- for example see the works of [Singla and Domingos (2005)](#references) and [Lowd and Domingos (2007)](#references). LoMRF implements batch and on-line weight learning methods that optimize the max-margin, that is the ratio between the probability of correct truth assignment of query atoms (taken by the training data) and the closest competing incorrect truth assignment (estimated by the trained model) -- for details see the works of [Huynh and Mooney, (2009, 2011)](#references) and [Duchi et al. (2011)](#references). Max-margin training is better suited to problems where the goal is to maximise the classification accuracy.
+There are several weight estimation methods in the literature, the majority of them are batch learning methods that optimise the conditional log likelihood of the Markov Logic model -- for example see the works of [Singla and Domingos (2005)](8_references.md) and [Lowd and Domingos (2007)](8_references.md). LoMRF implements batch and on-line weight learning methods that optimize the max-margin, that is the ratio between the probability of correct truth assignment of query atoms (taken by the training data) and the closest competing incorrect truth assignment (estimated by the trained model) -- for details see the works of [Huynh and Mooney, (2009, 2011)](8_references.md) and [Duchi et al. (2011)](8_references.md). Max-margin training is better suited to problems where the goal is to maximise the classification accuracy.
 
 ## Weight learning in LoMRF
 
@@ -38,7 +38,7 @@ Max-margin learning considers all training data at once in order to estimate the
 ```lang-none
 lomrf-wlearn -alg MAX_MARGIN -i theory.mln -t training.db -o learned.mln -ne NonEvidence_A/2,NonEvidence_B/2
 ```
-Where the parameter '-alg MAX_MARGING' defines that we are using max-margin training method. The paramter '-i theory.mln' is the input theory that contains all MLN logic formulas (both soft-constrained and hard-constrained). The method will try to estimate the weights of all resulting soft-constrained clauses of the MLN logic formulas. All hard-constrained clauses will remain the same. Parameter '-t training.db' is the input training file, that is the file that contains all ground predicates (both evidence and non-evidence). The parameter '-o learned.mln' specifies the resulting output file. Finally, the parameter '-ne NonEvidence_A/2,NonEvidence_B/2' defines which predicates are non-evidence (thus will be the query atoms).
+Where the parameter '-alg MAX_MARGIN' defines that we are using max-margin training method. The paramter '-i theory.mln' is the input theory that contains all MLN logic formulas (both soft-constrained and hard-constrained). The method will try to estimate the weights of all resulting soft-constrained clauses of the MLN logic formulas. All hard-constrained clauses will remain the same. Parameter '-t training.db' is the input training file, that is the file that contains all ground predicates (both evidence and non-evidence). The parameter '-o learned.mln' specifies the resulting output file. Finally, the parameter '-ne NonEvidence_A/2,NonEvidence_B/2' defines which predicates are non-evidence (thus will be the query atoms).
 
 **Important Note:** Max-margin learner requires the proprietary [Gurobi](http://www.gurobi.com/) solver installed on your system, because the learning algorithm needs to solve a [Quadratic Optimization problem](https://en.wikipedia.org/wiki/Quadratic_programming). In case the solver is not present the learning procedure will terminated and notify you to install the software.
 
@@ -57,7 +57,7 @@ Where the parameter '-alg' defines that we are using either 'CDA' or 'ADAGRAD' t
 
 ## Weight Leaning Examples
 
-For a detailed weight learning tutorial in LoMRF, see Sections [Weight Learning Examples](3_1_weight_learning_examples.md) and [Temporal Weight Learning Examples](3_2_temporal_weight_learning_examples.md). Sources from the examples are located in the LoMRF-data project (follow the instructions in [Download Example Data](6_2_download_example_data.md)).
+For a detailed weight learning tutorial in LoMRF, see Sections [Weight Learning Examples](3_1_weight_learning_examples.md) and [Temporal Weight Learning Examples](3_2_temporal_weight_learning_examples.md). Sources from the examples are located in the [LoMRF-data](https://github.com/anskarl/LoMRF-data) project (follow the instructions in [Download Example Data](6_2_download_example_data.md)).
 
 ## Command-line Interface Options for Weight Learning
 
@@ -110,15 +110,3 @@ By executing the ```lomrf-wlearn -h``` (or ```lomrf-wlearn --help```) command fr
 * `-noNegWeights, --eliminate-negative-weights` **[Optional]** When it is enabled, LoMRF eliminates negative weight values from (ground) clauses. Specifically, the sign of negative weights in clauses is inverted, as well as all disjunctions become conjunctions (due to de Morgan's law). For example, using the de Morgan's law, the weighted clause `-2 A(x) v B(x)` is equivalent to `-2 !(!A(x) ^ !B(x))`. In MLN this is also equivalent to `2 !A(x) ^ !B(x)`, which produces the following two unit clauses: `1 A(x)` and `1 B(x)`.
 
 * `-noNegatedUnit, --eliminate-negated-unit` **[Optional]** When it is enabled, unit clauses with negative literal become unit clauses with positive literal and inverted sign in their corresponding weight.
-
-## References
-
-* Daniel Lowd and Pedro Domingos (2007). Efficient Weight Learning for Markov Logic Networks. In Proceedings of the Eleventh European Conference on Principles and Practice of Knowledge Discovery in Databases (pp. 200-211), Springer. ([link](https://alchemy.cs.washington.edu/papers/lowd07b))
-
-* Parag Singla and Pedro Domingos (2005). Discriminative Training of Markov Logic Networks. In Proceedings of the Twentieth National Conference on Artificial Intelligence (pp. 868-873), AAAI Press. ([link](https://alchemy.cs.washington.edu/papers/singla05))
-
-* Tuyen N. Huynh and Raymond J. Mooney. (2009). Max-Margin Weight Learning for Markov Logic Networks. In Proceedings of the European Conference on Machine Learning and Principles and Practice of Knowledge Discovery in Databases (ECML PKDD-09). ([link](http://www.ai.sri.com/~huynh/papers/huynh_mooney_ecmlpkdd09.pdf))
-
-* Tuyen N. Huynh and Raymond J. Mooney. (2011). Online Max-Margin Weight Learning for Markov Logic Networks. In Proceedings of the Eleventh SIAM International Conference on Data Mining (SDM11). ([link](http://www.ai.sri.com/~huynh/papers/huynh_mooney_sdm11.pdf))
-
-* John Duchi, Elad Hazan and Yoram Singer (2011). Adaptive Subgradient Methods for Online Learning and Stochastic Optimization. The Journal of Machine Learning Research, Vol. 12, pp. 2121--2159. ([link](http://jmlr.org/papers/v12/duchi11a.html))

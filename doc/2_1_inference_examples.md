@@ -6,7 +6,7 @@ Below we provide some example MLNs, in order to demonstrate the LoMRF inference 
 
 ### Uniform distribution
 
-We would like to model a simple coin flip scenario. We state that the outcome of a flip is heads with the predicate Heads(flip). Flip ranges from 1 to 20. If Heads(n) is true, then flip n was heads, otherwise it was tails ([see original example](http://alchemy.cs.washington.edu/tutorial/2_1Uniform_Distribution.html)).
+We would like to model a simple coin flip scenario. We state that the outcome of a flip is heads with the predicate Heads(flip). Flip ranges from 1 to 20. If Heads(n) is true, then flip n was heads, otherwise it was tails (see [original example](http://alchemy.cs.washington.edu/tutorial/2_1Uniform_Distribution.html)).
 
 Knowledge base (uniform.mln):
 
@@ -47,7 +47,7 @@ Heads(2) 0.473
 Heads(1) 0.512
 ```
 
-### Binomial distribution ###
+### Binomial distribution
 
 To model a binomial distribution we simply add the weighted unit clause `1 Heads(f)` ([see original example](http://alchemy.cs.washington.edu/tutorial/2_1Uniform_Distribution.html)).
 
@@ -93,7 +93,7 @@ Heads(2) 0.73
 Heads(1) 0.746
 ```
 
-### Multinomial distribution ###
+### Multinomial distribution
 
 In this example we model the outcome of a six-faced die for 20 throws. The outcome of each throw with is modeled by the predicate `Outcome(throw, face)` and two formulas stating that each throw has exactly one outcome ([see original example](http://alchemy.cs.washington.edu/tutorial/2_3Multinomial_Distribution.html)).
 

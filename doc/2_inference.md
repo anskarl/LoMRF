@@ -76,11 +76,10 @@ The results from MAP inference are stored in the `map-out.result` (see paramter 
 
 ## Probabilistic Inference Examples
 
-See Sections [Probabilistic Inference Examples](2_1_inference_examples.md) and [Temporal Probabilistic Inference Examples](2_2_temporal_inference_examples.md). Sources from the examples are located in the LoMRF-data project (follow the instructions in [Download Example Data](6_2_download_example_data.md)).
+See Sections [Probabilistic Inference Examples](2_1_inference_examples.md) and [Temporal Probabilistic Inference Examples](2_2_temporal_inference_examples.md). Sources from the examples are located in the [LoMRF-data](https://github.com/anskarl/LoMRF-data) project (follow the instructions in [Download Example Data](6_2_download_example_data.md)).
 
 
-
-## Command-line Interface Options ##
+## Command-line Interface Options
 
 By executing the ```lomrf -h``` (or ```lomrf --help```) command from the command-line interface, we take a print of multiple parameters. Below we explain all LoMRF inference command-line interface parameters:
 
@@ -127,19 +126,14 @@ By default, all non-evidence atoms are open-world in LoMRF, except when are incl
 
 * `-infer, --inference-type <map | marginal>` **[Optional]** Specify the inference type, either [MAP](https://en.wikipedia.org/wiki/Maximum_a_posteriori_estimation)
 or Marginal. By default LoMRF uses marginal inference, in order to estimate the marginal probabilities of all possible
-query predicate instantiations. MAP inference can be performed using either local-search algorithm ([MaxWalkSAT](http://www.cs.rochester.edu/u/kautz/walksat/), [Selman et. al., 1993; Kautz et. al., 1996](#references))
-or using an Integer Linear Programming ([ILP](https://en.wikipedia.org/wiki/Integer_programming)) solver ([Huynh and Mooney, 2011](#references)). Marginal inference
-is estimated using the [MC-SAT](http://alchemy.cs.washington.edu/papers/poon06/) ([Hoifung and Domingos, 2006](#references)) algorithm, that is a [Metropolis–Hastings](https://en.wikipedia.org/wiki/Metropolis%E2%80%93Hastings_algorithm) algorithm
-(a [Markov chain Monte Carlo](https://en.wikipedia.org/wiki/Markov_chain_Monte_Carlo) method)
-that combines [Simulated-Annealing](https://en.wikipedia.org/wiki/Simulated_annealing) with a local-search [SAT solver](https://en.wikipedia.org/wiki/Boolean_satisfiability_problem)
-([MaxWalkSAT](http://www.cs.rochester.edu/u/kautz/walksat/)), using a [Slice-sampling](https://en.wikipedia.org/wiki/Slice_sampling)
-technique.
+query predicate instantiations. MAP inference can be performed using either local-search algorithm (for details see [MaxWalkSAT](http://www.cs.rochester.edu/u/kautz/walksat/) and the works of [Selman et. al., 1993](8_references.md) and [Kautz et. al., 1997](8_references.md))
+or using an Integer Linear Programming ([ILP](https://en.wikipedia.org/wiki/Integer_programming)) solver ([Huynh and Mooney, 2011](8_references.md)). Marginal inference is estimated using the [MC-SAT](http://alchemy.cs.washington.edu/papers/poon06/) ([Hoifung and Domingos, 2006](8_references.md)) algorithm, that is a [Metropolis–Hastings](https://en.wikipedia.org/wiki/Metropolis%E2%80%93Hastings_algorithm) algorithm (a [Markov chain Monte Carlo](https://en.wikipedia.org/wiki/Markov_chain_Monte_Carlo) method) with [Slice-sampling](https://en.wikipedia.org/wiki/Slice_sampling) technique that combines [Simulated-Annealing](https://en.wikipedia.org/wiki/Simulated_annealing) with a local-search [SAT solver](https://en.wikipedia.org/wiki/Boolean_satisfiability_problem) ([MaxWalkSAT](http://www.cs.rochester.edu/u/kautz/walksat/)).
 
 
 ### Advanced inference options
 
 * `-mapType, --map-type <mws | ilp>` **[Optional]** When inference is set to MAP (i.e., `-infer map`) we can define
-either [MaxWalkSAT](http://www.cs.rochester.edu/u/kautz/walksat/) ([Selman et. al., 1993; Kautz et. al., 1996](#references)) or relaxed [Integer Linear Programming](https://en.wikipedia.org/wiki/Integer_programming) ([Huynh and Mooney, 2011](#references))
+either [MaxWalkSAT](http://www.cs.rochester.edu/u/kautz/walksat/) ([Selman et. al., 1993; Kautz et. al., 1996](8_references.md)) or relaxed [Integer Linear Programming](https://en.wikipedia.org/wiki/Integer_programming) ([Huynh and Mooney, 2011](8_references.md))
 as MAP inference algorithm to use. By default LoMRF uses a variant of the MaxWalkSAT algorithm (with [TABU search](https://en.wikipedia.org/wiki/Tabu_search)).
 
 * `-mapOutput, --map-output-type <all | positive>` **[Optional]** When MAP inference is selected (i.e., `-infer map`) we
@@ -165,11 +159,11 @@ picks a recently unsatisfied hard-constrained clause (if any exists). In any oth
 
 
 * `-ilpRounding, --ilp-rounding <roundup | mws>` **[Optional]** Specify which rounding algorithm to use in ILP. LoMRF uses the
-algorithm proposed by [Huynh and Mooney (2011)](#references), in which the ILP problem is relaxed as a standard LP problem.
+algorithm proposed by [Huynh and Mooney (2011)](8_references.md), in which the ILP problem is relaxed as a standard LP problem.
 The resulting LP solution, however, may not integral. As a result the solution may contain ground query predicates in
 which their state may be any number in the interval from 0 to 1, exclusive. Since, in MAP inference the solution should
 contain only 0/1 states for each resulting ground predicate, LoMRF employs a rounding algorithm to change the non-integral
-solutions to 0/1 state values. By default LoMRF uses the RoundUp algorithm of [Huynh and Mooney (2011)](#references) (i.e., `-ilpRounding roundup`). Alternatively, LoMRF can run the local-search MaxWalkSAT only for the non-integral part (i.e., `-ilpRounding mws`).
+solutions to 0/1 state values. By default LoMRF uses the RoundUp algorithm of [Huynh and Mooney (2011)](8_references.md) (i.e., `-ilpRounding roundup`). Alternatively, LoMRF can run the local-search MaxWalkSAT only for the non-integral part (i.e., `-ilpRounding mws`).
 
 * `-ilpSolver, --ilp-solver <lpsolve | ojalgo | gurobi>` **[Optional]** When MAP inference is chosen to be solved using
 an ILP solver, we can specify which solver to use. We can choose between the open-source solvers
@@ -225,14 +219,3 @@ literal become unit clauses with positive literal and inverted sign in their cor
 
 * `-dynamic, --dynamic-implementations <string>` **[Optional]** Comma separated paths to search recursively for dynamic
 predicates/functions implementations (*.class and *.jar files).
-
-
-## References
-
-* Bart Selman, Henry Kautz, and Bram Cohen. (1993) Local Search Strategies for Satisfiability Testing.  Final version appears in Cliques, Coloring, and Satisfiability: Second DIMACS Implementation Challenge. In David S. Johnson and Michael A. Trick, (Ed.), DIMACS Series in Discrete Mathematics and Theoretical Computer Science, vol. 26, AMS. ([link](http://www.cs.cornell.edu/selman/papers/pdf/dimacs.pdf))
-
-* Henry Kautz, Bart Selman and Yueyen Jiang. (1996) A General Stochastic Approach to Solving Problems with Hard and Soft Constraints. In Gu, D., Du, J. and Pardalos, P. (Eds.), The Satisfiability Problem: Theory and Applications, Vol. 35 of DIMACS Series in Discrete Mathematics and Theoretical Computer Science, pp. 573–586. AMS. ([link](https://cs.rochester.edu/u/kautz/papers/maxsatDIMACSfinal.ps))
-
-* Tuyen N. Huynh and Raymond J. Mooney. (2009). Max-Margin Weight Learning for Markov Logic Networks. In Proceedings of the European Conference on Machine Learning and Principles and Practice of Knowledge Discovery in Databases (ECML PKDD-09). ([link](http://www.ai.sri.com/~huynh/papers/huynh_mooney_ecmlpkdd09.pdf))
-
-* Poon, Hoifung and Domingos, Pedro (2006). Sound and Efficient Inference with Probabilistic and Deterministic Dependencies. In Proceedings of the 21th National Conference on Artificial Intelligence (pp. 458-463), 2006. Boston, MA: AAAI Press. ([link](http://homes.cs.washington.edu/~pedrod/papers/aaai06a.pdf))
