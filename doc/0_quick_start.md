@@ -156,7 +156,7 @@ time-point.
 
 All four formulas are hard-constrained, thus they do not have any weight value, instead they have a dot at the end. The reason that
 we use hard-constrained formulas to express the core Event Calculus axioms, is that we want to hold with absolute
-certainty. Further details about the probabilistic Event Calculus formalism of our example can be found in [Skarlatidis et. al. (2014, 2015)](8_references.md).
+certainty. Further details about the probabilistic Event Calculus formalism of our example can be found in [Skarlatidis et. al. (2011, 2014, 2015)](8_references.md).
 
 ### Domain-dependent axioms (expressed as definite clauses)
 

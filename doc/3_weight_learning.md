@@ -1,6 +1,6 @@
 # Weight Learning
 
-The weights of the soft-constrained clauses in Markov Logic Networks (MLNs) can be estimated from training data using supervised learning techniques. The goal is to learn a model (i.e., weighted clauses) by estimating the weight values from training examples. Since the learning paradigm is supervised, the trainin examples is a collection of input ground atoms (i.e., input evidence) and their corresponding output query atoms (i.e., annotation). The learned model should be capable of inferring as *correct as possible* the marginal probabilities or the maximum a-posteriory estimation of query atoms, given an input of ground evidence facts.
+The weights of the soft-constrained clauses in Markov Logic Networks (MLNs) can be estimated from training data using supervised learning techniques. The goal is to learn a model (i.e., weighted clauses) by estimating the weight values from training examples. Since the learning paradigm is supervised, the training examples is a collection of input ground atoms (i.e., input evidence) and their corresponding output query atoms (i.e., annotation). The learned model should be capable of inferring as *correct as possible* the marginal probabilities or the maximum a-posteriori estimation of query atoms, given an input of ground evidence facts.
 
 There are several weight estimation methods in the literature, the majority of them are batch learning methods that optimise the conditional log likelihood of the Markov Logic model -- for example see the works of [Singla and Domingos (2005)](8_references.md) and [Lowd and Domingos (2007)](8_references.md). LoMRF implements batch and on-line weight learning methods that optimize the max-margin, that is the ratio between the probability of correct truth assignment of query atoms (taken by the training data) and the closest competing incorrect truth assignment (estimated by the trained model) -- for details see the works of [Huynh and Mooney, (2009, 2011)](8_references.md) and [Duchi et al. (2011)](8_references.md). Max-margin training is better suited to problems where the goal is to maximise the classification accuracy.
 
@@ -101,7 +101,7 @@ By executing the ```lomrf-wlearn -h``` (or ```lomrf-wlearn --help```) command fr
 
 * `-ilpSolver --ilp-solver <lpsolve | ojalgo | gurobi>` **[Optional]** Specify which solver to use. We can choose between the open-source solvers [LPSolve](http://lpsolve.sourceforge.net/5.5/) and [ojAlgo](http://ojalgo.org/), as well as the commercial solver [Gurobi](http://www.gurobi.com/). By default LoMRF uses the open-source solver LPSolve.
 
-* `-lossAugmented --loss-augmented` **[Optional]** Enables loss augmented inference (also known as seperation oracle) using the Hamming loss function by adding to the objective function during inference additional loss terms.
+* `-lossAugmented --loss-augmented` **[Optional]** Enables loss augmented inference (also known as separation oracle) using the Hamming loss function by adding to the objective function during inference additional loss terms.
 
 * `-nonMarginRescaling --non-margin-rescaling` **[Optional]** Do not rescale the margin by the loss during Max-Margin learning.
 

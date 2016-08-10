@@ -67,7 +67,7 @@ Happens(Active_ID1, 170)
 
 As we have seen in [Temporal Inference Examples](2_2_temporal_inference_examples.md), the knowledge base contains, among others, the predicates with signatures `InitiatedAt/2` and `TerminatedAt/2`. These predicates form the head of the definite clauses that represent the domain-dependent axioms in our Activity Recognition example. However the supervision of `InitiatedAt/2` and `TerminatedAt/2` is missing from the training data. Therefore, `InitiatedAt/2` and `TerminatedAt/2` from hidden variables in the resulting Markov Network and supervised learning cannot be performed.
 
-To overcome this problem, we are apply a Knowledge Base transformation step (for details see [Skarlatidis et. al (2014, 2015)](8_referencies.md)). In brief, all logical definitions of `InitiatedAt/2` and `TerminatedAt/2` can be represented as equivalences for each composite event separately. Consider, for example, the following fragment of definitions for the composite event *meeting*, withought any weigth value:
+To overcome this problem, we are apply a Knowledge Base transformation step (for details see [Skarlatidis et. al (2014, 2015)](8_referencies.md)). In brief, all logical definitions of `InitiatedAt/2` and `TerminatedAt/2` can be represented as equivalences for each composite event separately. Consider, for example, the following fragment of definitions for the composite event *meeting*, without any weight value:
 
 ```lang-none
 InitiatedAt(meet(p1,p2), t) :- Happens(active(p1), t) ^ !Happens(running(p2), t) ^  Close(p1,p2,25,t)
@@ -80,7 +80,7 @@ This can be written as:
 InitiatedAt(meet(p1,p2), t) <=> (Happens(active(p1), t) ^ !Happens(running(p2), t) ^  Close(p1,p2,25,t)) v (Happens(inactive(p1),t) ^ !Happens(running(p2),t)  ^ !Happens(active(p2),t) ^ Close(p1,p2,25,t))
 ```
 
-Furthermore, each Event Calculus domain-independent axiom can be specialised according to the constants and function symbols that appear in the head predicate of each domain-dependent defintion. In our example, for instance, the head predicate `InitiatedAt(meet(p1,p2), t)` contains the function symbol `meet/2`. Threfore, we can specialise the Event Calculus domain-independent axiom by substituting the `fluent` variable with the function symbol `meet/2`:
+Furthermore, each Event Calculus domain-independent axiom can be specialised according to the constants and function symbols that appear in the head predicate of each domain-dependent definition. In our example, for instance, the head predicate `InitiatedAt(meet(p1,p2), t)` contains the function symbol `meet/2`. Therefore, we can specialise the Event Calculus domain-independent axiom by substituting the `fluent` variable with the function symbol `meet/2`:
 
 ```lang-none
 // the original inertia axiom
@@ -92,22 +92,22 @@ This process is being applied for all head predicates of all definite clauses.
 
 Finally, we can replace `InitiatedAt(meet(p1,p2), t)` with the corresponding equivalence. With that process, the knowledge base is translated into an equivalent one and the `InitiatedAt/2` and `TerminatedAt/2` predicates are completely eliminated. As a result, we do not need the supervision for `InitiatedAt/2` and `TerminatedAt/2` and the training problem is now fully supervised.
 
-In bried, LoMRF can automaticaly rewrite definite clause definitions, in order to create such equivalences and simplify the knowledge base by applying the following transformation:
-1. Rewrite all definite clauses as equivalenses.
+In brief, LoMRF can automatically rewrite definite clause definitions, in order to create such equivalences and simplify the knowledge base by applying the following transformation:
+1. Rewrite all definite clauses as equivalencies.
 2. All axioms that contain the target head predicates are specialised, with respect to the constants and function that appear in the head predicates.
-3. Replace all predicates with their equilivances
-4. (opional step) Compute the [Conjunctive Normal Form (CNF)](https://en.wikipedia.org/wiki/Conjunctive_normal_form) of the theory.
+3. Replace all predicates with their equivalencies.
+4. (optional step) Compute the [Conjunctive Normal Form (CNF)](https://en.wikipedia.org/wiki/Conjunctive_normal_form) of the theory.
 
 All these steps can be applied by the `mlnc` command-line tool of LoMRF:
 ```lang-none
 mlnc -i theory.mln -o theory_cnf.mln -cnf -w remove_all -pcm simplification
 ```
-Where '-i theory.mln' is the original input theory MLN file, '-o theory_cnf.mln' is the resulting output file, '-cnf' specifies that all clauses in the resulting theory are in CNF form, '-w remove_all' specifies that all weigths from formulas will be removed and '-pcm simplification' applied the whole transoformation step (i.e., all first three steps).
+Where '-i theory.mln' is the original input theory MLN file, '-o theory_cnf.mln' is the resulting output file, '-cnf' specifies that all clauses in the resulting theory are in CNF form, '-w remove_all' specifies that all weights from formulas will be removed and '-pcm simplification' applied the whole transformation step (i.e., all first three steps).
 
 
 ### Weight Learning
 
-Once we have aplied the preprocessing step, we can proceed to the weight learning step. Recall that sources from the examples are located in the [LoMRF-data](https://github.com/anskarl/LoMRF-data) project (follow the instructions in [Download Example Data](6_2_download_example_data.md)). The files of this example are the following:
+Once we have applied the preprocessing step, we can proceed to the weight learning step. Recall that sources from the examples are located in the [LoMRF-data](https://github.com/anskarl/LoMRF-data) project (follow the instructions in [Download Example Data](6_2_download_example_data.md)). The files of this example are the following:
   * Knowledge base files:
     * Main MLN file in CNF: `Data/Examples/Weight_Learning/Activity_Recognition/theory_cnf.mln`
     * Definitions of moving activity: `Data/Examples/Weight_Learning/Activity_Recognition/definitions/moving.mln`
@@ -121,8 +121,8 @@ Once we have aplied the preprocessing step, we can proceed to the weight learnin
  * Input MLN theory: `-i theory_cnf.mln`
  * Input training data: `-t training.db`
  * Resulting output MLN theory: `-o learned.mln`
- * Enable loss augmented inference (also known as seperation oracle) using the Hamming loss function by adding to the objective function during inference additional loss terms: `-lossAugmented`
- * Specify the learning alogirhtm, i.e., Max-Margin (default), Adagrad or CDA: `-alg`
+ * Enable loss augmented inference (also known as separation oracle) using the Hamming loss function by adding to the objective function during inference additional loss terms: `-lossAugmented`
+ * Specify the learning algorithm, i.e., Max-Margin (default), Adagrad or CDA: `-alg`
 
 ***Max-Margin Learning***
 

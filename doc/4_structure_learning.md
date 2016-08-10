@@ -85,7 +85,7 @@ By executing the ```lomrf-slearn -h``` (or ```lomrf-slearn --help```) command fr
 
 * `-initialWeight, --initial-weight <value>` **[Optional]** Specify the initial weight value for new clauses.
 
-* `-lossAugmented --loss-augmented` **[Optional]** Enables loss augmented inference (also known as seperation oracle) using the Hamming loss function by adding to the objective function during inference additional loss terms.
+* `-lossAugmented --loss-augmented` **[Optional]** Enables loss augmented inference (also known as separation oracle) using the Hamming loss function by adding to the objective function during inference additional loss terms.
 
 * `-lambda, --lambda <value>` **[Optional]** Regularization parameter for the AdaGrad online learner (default is 0.01). It defines how much you want to avoid misclassification.
 

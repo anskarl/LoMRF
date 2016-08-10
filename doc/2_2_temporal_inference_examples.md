@@ -4,7 +4,7 @@ Below we provide example MLNs that demonstrate some LoMRF advanced inference cap
 
 ## Yale Shooting Scenario
 
-For a quick introduction to temporal representation (using the Probabilistic Event Calculus formalism, see [Skarlatidis et. al. (2014, 2015)](8_references.md)) and reasoning,
+For a quick introduction to temporal representation (using the Probabilistic Event Calculus formalism, see [Skarlatidis et. al. (2011, 2014, 2015)](8_references.md)) and reasoning,
 see the temporal reasoning example in [Quick Start](0_quick_start.md) section.
 
 ## Activity Recognition
@@ -95,7 +95,7 @@ fluent leaving_object(id,id)
 
 ### Predicate schemas
 
-The predicates that we use follow the definition of the Probabilistic Event Calculus ([Skarlatidis et. al. (2014, 2015)](8_references.md)) formalism. We additionally
+The predicates that we use follow the definition of the Probabilistic Event Calculus ([Skarlatidis et. al. (2011, 2014, 2015)](8_references.md)) formalism. We additionally
 use some utility predicates in order to represent some spacial constraints.
 
 | Predicate                  | Meaning                                                                                                   |
@@ -272,7 +272,7 @@ Recall that sources from the examples are located in the [LoMRF-data](https://gi
 
 **Parameters:**
  * Query predicates: `HoldsAt/2`
- * Evidence predicates (Closed-world assumtion): `StartTime/1`, `Happens/2`, `Close/4` and `OrientationMove/3`.
+ * Evidence predicates (Closed-world assumption): `StartTime/1`, `Happens/2`, `Close/4` and `OrientationMove/3`.
 
 ***Marginal inference***
 

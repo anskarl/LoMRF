@@ -1,6 +1,6 @@
 ## References
 
-*The implemetation of LoMRF is based on the following publications:*
+*The implementation of LoMRF is based on the following publications:*
 
 * Domingos, P., and Lowd, D. (2009). Markov Logic: An Interface Layer for Artificial Intelligence. Synthesis Lectures on Artiﬁcial Intelligence and Machine Learning. Morgan & Claypool Publishers. ([link](http://www.morganclaypool.com/doi/abs/10.2200/S00206ED1V01Y200907AIM007))
 

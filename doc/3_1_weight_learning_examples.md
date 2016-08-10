@@ -11,7 +11,7 @@ The sources of this example can be found in `Data/Examples/Weight_Learning/Frien
 
 ### Knowledge Base
 
-In the first part of the knowledge base we shoule define the *schema* of each predicate that we are using in the example (for details see the instructions in Section [Knowlege Base](1_1_knowledge_base.md)).
+In the first part of the knowledge base we should define the *schema* of each predicate that we are using in the example (for details see the instructions in Section [Knowledge Base](1_1_knowledge_base.md)).
 
 *Predicate schema:*
 ```lang-none
@@ -22,7 +22,7 @@ Friends(person, person)
 Smokes(person)
 Cancer(person)
 ```
-In the second part we give the *formuals*, using first-order logic syntax, in order to define the relations and the constraints of our example model.
+In the second part we give the *formulas*, using first-order logic syntax, in order to define the relations and the constraints of our example model.
 
 *Formulas:*
 
@@ -41,7 +41,7 @@ Please note, that both example formulas are not hard-constrained (i.e., ending w
 
 ### Training data (smoking-train.db)
 
-In the following training data we give example relations between friends, e.g., the fact that the persons `Anna` and `Bob` are friends (using the true ground fact `Friends(Anna, Bob)`). Furthermore, we define who is a smoker, e.g., `Anna` is a smoker, therefore we are givind the true ground fact `Smokes(Anna)`. Similarly, we define which persons are diagnosed with cancer, e.g., `Canser(Anna)`. Please note, that due to [Closed-world](https://en.wikipedia.org/wiki/Closed-world_assumption) assumption in evidence we do not nessesary need to give which possible is false, e.g., the fact that `Bob` is not a smoker (i.e., `!Smokes(Bob)`).
+In the following training data we give example relations between friends, e.g., the fact that the persons `Anna` and `Bob` are friends (using the true ground fact `Friends(Anna, Bob)`). Furthermore, we define who is a smoker, e.g., `Anna` is a smoker, therefore we are givind the true ground fact `Smokes(Anna)`. Similarly, we define which persons are diagnosed with cancer, e.g., `Canser(Anna)`. Please note, that due to [Closed-world](https://en.wikipedia.org/wiki/Closed-world_assumption) assumption in evidence we do not necessary need to give which possible is false, e.g., the fact that `Bob` is not a smoker (i.e., `!Smokes(Bob)`).
 
 Below we are giving the full example of our training data:
 
@@ -79,7 +79,7 @@ In order to perform weight learning for this example we are giving the following
 ```lang-none
 lomrf-wlearn -i smoking.mln -o smoking-learned.mln -t smoking-train.db -ne Smokes/1,Cancer/1
 ```
-Where the parameter '-i smoking.mln' is the input MLN theory, '-o smoking-learned.mln' is the resulting output theory with the estimated weights, '-t smoking-train.db' is the training data and the parameer '-ne Smokes/1,Cancer/1' specifies which predicates are the non-evidence predicates. After the execution of this example, the resulting file smoking-learned.mln is an MLN knowledge base with the learned weights. Using this file along with the test data, we can compute the truth value of each person smoking and getting cancer.
+Where the parameter '-i smoking.mln' is the input MLN theory, '-o smoking-learned.mln' is the resulting output theory with the estimated weights, '-t smoking-train.db' is the training data and the parameer '-ne Smokes/1,Cancer/1' specifies which predicates are the non-evidence predicates. After the execution of this example, the resulting file `smoking-learned.mln` is an MLN knowledge base with the learned weights. Using this file along with the test data, we can compute the truth value of each person smoking and getting cancer.
 
 ## Car Traffic
 

@@ -201,7 +201,7 @@ Head(f(x), t) => (FooPredicate(x, t) ^ !BarPredicate(z(t))) v AnotherPredicate(x
 ```
 As we can see from the resulting translation, LoMRF produces *2 + 1* formulas for the definitions of `Head(f(x), t)`.
 The first two formulas are straightforward translations of the definite clauses to `(weight) body => head` formulas.
-Specifically, if the definite clause is hard-constrainted, the corresponding translation will also remain hard-constrainted.
+Specifically, if the definite clause is hard-constrained, the corresponding translation will also remain hard-constrained.
 Otherwise, the resulting translation will keep the same weight value. The last resulting hard-constrained formula
 introduces the opposite direction, that is `head => disjunction of all body parts`. That formula is always
 hard-constraint and states that in order to have the *head* satisfied, at least one of the body parts must also be satisfied.

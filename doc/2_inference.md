@@ -18,9 +18,9 @@ In order to perform inference, we have to define the following:
   * (Optionally) The atomic signatures (identities) that define predicates with [Open-world assumption](https://en.wikipedia.org/wiki/Open-world_assumption) ('-owa' option).
   By default, all non-evidence predicates have Open-world assumption.
 
-### Inference using the `lomrf` commmand-line tool
+### Inference using the `lomrf` command-line tool
 
-To demonstrate the usage of LoMRF from commmand-line interface, assume that we have one knowledge base file, named as `theoy.mln`, and one evidence file, named as `evidence.db`.
+To demonstrate the usage of LoMRF from command-line interface, assume that we have one knowledge base file, named as `theoy.mln`, and one evidence file, named as `evidence.db`.
 
 In our example knowledge-base we have the following predicates:
 
