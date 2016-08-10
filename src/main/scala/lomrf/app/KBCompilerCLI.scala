@@ -97,7 +97,9 @@ object KBCompilerCLI extends Logging {
     }
   }
 
-  def compile(source: String, evidenceOpt: Option[String], target: String,
+  def compile(source: String,
+              evidenceOpt: Option[String],
+              target: String,
               functionPrefix: String,
               includeDomain: Boolean,
               removePredicateDefinitions: Boolean,
@@ -143,6 +145,7 @@ object KBCompilerCLI extends Logging {
     lazy val resultingPredicateSchema = pcm match {
       case Simplification =>
         val resultingFormulas = kb.predicateSchema -- kb.definiteClauses.map(_.clause.head.signature)
+
         if(resultingFormulas.isEmpty)
           warn("The given theory is empty (i.e., contains empty set of non-zeroed formulas).")
 
@@ -150,7 +153,7 @@ object KBCompilerCLI extends Logging {
       case _ => kb.predicateSchema
     }
 
-    lazy val mlnSchema = MLNSchema(resultingPredicateSchema, kb.functionSchema, kb.dynamicPredicates, kb.dynamicFunctions)
+    //lazy val mlnSchema = MLNSchema(resultingPredicateSchema, kb.functionSchema, kb.dynamicPredicates, kb.dynamicFunctions)
 
     info(
       "\nSource MLN: " + source + "\n" +
@@ -172,7 +175,7 @@ object KBCompilerCLI extends Logging {
     // write predicate definitions. In case we introduce functions do not write function predicates (beginning with function prefix)
     if (!removePredicateDefinitions && resultingPredicateSchema.nonEmpty) {
       write("// Predicate definitions\n")
-      for ((signature, args) <- kb.predicateSchema ; if !introduceFunctions || !signature.symbol.contains(functionPrefix)) {
+      for ((signature, args) <- resultingPredicateSchema ; if !introduceFunctions || !signature.symbol.contains(functionPrefix)) {
         val line = signature.symbol + (
           if (args.isEmpty) "\n"
           else "(" + args.mkString(",") + ")\n")
@@ -358,11 +361,7 @@ object KBCompilerCLI extends Logging {
                 sentence = literal.sentence
                 newArgs = for (arg <- sentence.terms) yield arg match {
                   case t: Term =>
-                    val term =
-                      if(lMap.contains(t))
-                        lMap(t)
-                      else
-                        t
+                    val term = if(lMap.contains(t)) lMap(t) else t
                     term
                 }
               } yield literal match {
