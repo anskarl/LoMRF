@@ -39,19 +39,19 @@ As it is presented in the above table, there are two query predicates, `Query_A`
 Marginal inference computes the conditional probability of query predicates, given some evidence.
 
 ```lang-none
-lomrf -infer marginal -i theory.mln -e evidence.db -r marginal-out.result -q Query_A/2,Query_B/2 -cwa Ev_A/1,Ev_B/1 -owa Hidden/1
+lomrf infer -inferType marginal -i theory.mln -e evidence.db -r marginal-out.result -q Query_A/2,Query_B/2 -cwa Ev_A/1,Ev_B/1 -owa Hidden/1
 ```
 Since `Hidden/1` is a non-evidence atom and thus does not contain any facts in the `evidence.db`, we can omit the `-owa` parameter. Furthermore, when the evidence file (evidence.db) contains at least one fact for Ev_A/1 and Ev_B/1 predicates, then we can also omit the parameter `-cwa`.
 In that case, LoMRF can automatically infer which predicates have Open-world or Closed-world assumption. As a result, we can simply give the following parameters and take the same results:
 
 ```lang-none
-lomrf -infer marginal -i theory.mln -e evidence.db -r marginal-out.result -q Query_A/2,Query_B/2
+lomrf infer -inferType marginal -i theory.mln -e evidence.db -r marginal-out.result -q Query_A/2,Query_B/2
 ```
 
 Also the default inference type for LoMRF is marginal, we can further simplify the example given the following parameters:
 
 ```lang-none
-lomrf -i theory.mln -e evidence.db -r marginal-out.result -q Query_A/2,Query_B/2
+lomrf infer -i theory.mln -e evidence.db -r marginal-out.result -q Query_A/2,Query_B/2
 ```
 
 The results from marginal inference are stored in the `marginal-out.result` (see parameter `-r`)
@@ -62,13 +62,13 @@ MAP inference, on the other hand, identifies the most probable assignment among 
 the truth assignment of all query predicate instantiations that maximises the sum of weights of satisfied ground clauses. This is equivalent to the weighted maximum satisfiability problem.
 
 ```lang-none
-lomrf -infer map -i theory.mln -e evidence.db -r map-out.result -q Query_A/2,Query_B/2 -cwa Ev_A/1,Ev_B/1 -owa Hidden/1
+lomrf infer -inferType map -i theory.mln -e evidence.db -r map-out.result -q Query_A/2,Query_B/2 -cwa Ev_A/1,Ev_B/1 -owa Hidden/1
 ```
 
 or simply:
 
 ```lang-none
-lomrf -infer map -i theory.mln -e evidence.db -r map-out.result -q Query_A/2,Query_B/2
+lomrf infer -inferType map -i theory.mln -e evidence.db -r map-out.result -q Query_A/2,Query_B/2
 ```
 
 The results from MAP inference are stored in the `map-out.result` (see paramter `-r`)
@@ -81,7 +81,7 @@ See Sections [Probabilistic Inference Examples](2_1_inference_examples.md) and [
 
 ## Command-line Interface Options
 
-By executing the ```lomrf -h``` (or ```lomrf --help```) command from the command-line interface, we take a print of multiple parameters. Below we explain all LoMRF inference command-line interface parameters:
+By executing the ```lomrf infer -h``` (or ```lomrf infer --help```) command from the command-line interface, we take a print of multiple parameters. Below we explain all LoMRF inference command-line interface parameters:
 
 ### Basic inference options
 
@@ -124,7 +124,7 @@ in the evidence file(s). If it is desirable, we can also define explicitly close
 of predicates that we would like to have [Open-world assumption](https://en.wikipedia.org/wiki/Open-world_assumption).
 By default, all non-evidence atoms are open-world in LoMRF, except when are included in the `-cwa` option.
 
-* `-infer, --inference-type <map | marginal>` **[Optional]** Specify the inference type, either [MAP](https://en.wikipedia.org/wiki/Maximum_a_posteriori_estimation)
+* `-inferType, --inference-type <map | marginal>` **[Optional]** Specify the inference type, either [MAP](https://en.wikipedia.org/wiki/Maximum_a_posteriori_estimation)
 or Marginal. By default LoMRF uses marginal inference, in order to estimate the marginal probabilities of all possible
 query predicate instantiations. MAP inference can be performed using either local-search algorithm (for details see [MaxWalkSAT](http://www.cs.rochester.edu/u/kautz/walksat/) and the works of [Selman et. al., 1993](8_references.md) and [Kautz et. al., 1997](8_references.md))
 or using an Integer Linear Programming ([ILP](https://en.wikipedia.org/wiki/Integer_programming)) solver ([Huynh and Mooney, 2011](8_references.md)). Marginal inference is estimated using the [MC-SAT](http://alchemy.cs.washington.edu/papers/poon06/) ([Hoifung and Domingos, 2006](8_references.md)) algorithm, that is a [Metropolis–Hastings](https://en.wikipedia.org/wiki/Metropolis%E2%80%93Hastings_algorithm) algorithm (a [Markov chain Monte Carlo](https://en.wikipedia.org/wiki/Markov_chain_Monte_Carlo) method) with [Slice-sampling](https://en.wikipedia.org/wiki/Slice_sampling) technique that combines [Simulated-Annealing](https://en.wikipedia.org/wiki/Simulated_annealing) with a local-search [SAT solver](https://en.wikipedia.org/wiki/Boolean_satisfiability_problem) ([MaxWalkSAT](http://www.cs.rochester.edu/u/kautz/walksat/)).

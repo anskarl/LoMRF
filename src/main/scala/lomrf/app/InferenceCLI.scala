@@ -173,7 +173,7 @@ object InferenceCLI extends CLIApp {
     "Specified evidence atoms (comma-separated without white-spaces) are open world, while other evidence atoms are closed-world. " +
       "Each atom must be defined using its identity (i.e. Name/arity, see the description of -q for an example)", _.split(",").foreach(v => addOWA(v)))
 
-  opt("infer", "inference-type", "<map | marginal>", "Specify the inference type: MAP or Marginal (default is marginal).", {
+  opt("inferType", "inference-type", "<map | marginal>", "Specify the inference type: MAP or Marginal (default is marginal).", {
     v: String => v.trim.toLowerCase match {
       case "map" => _marginalInference = false
       case "marginal" => _marginalInference = true

@@ -117,7 +117,7 @@ Recall that sources from the examples are located in the [LoMRF-data](https://gi
 ***OSL Learning***
 
 ```lang-none
-lomrf-slearn -i empty.mln -t ./training/ -o learned.mln -m citeceer.modes -ne InField/3 -maxLength 12 -lambda 0.001 -threshold 2
+lomrf slearn -i empty.mln -t ./training/ -o learned.mln -m citeceer.modes -ne InField/3 -maxLength 12 -lambda 0.001 -threshold 2
 ```
 
 ## OSLa in Activity Recognition
@@ -288,5 +288,5 @@ Parameters:
 ***OSLa Learning***
 
 ```lang-none
-lomrf-slearn -i meet.mln -o learned_meet.mln -t ./training/meet -m meet.modes -ne HoldsAt/2 -template InitiatedAt/2,TerminatedAt/2 -maxLength 8 -threshold 1
+lomrf slearn -i meet.mln -o learned_meet.mln -t ./training/meet -m meet.modes -ne HoldsAt/2 -template InitiatedAt/2,TerminatedAt/2 -maxLength 8 -threshold 1
 ```

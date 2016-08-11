@@ -15,4 +15,4 @@ popd
 call %bin_dir%\inc.env.bat
 
 
-java %VM_ARGS% -Djava.ext.dirs=%lib_dir% lomrf.app.InferenceCLI %*
+java %VM_ARGS% -Djava.ext.dirs=%lib_dir% lomrf.app.LoMRF %*

@@ -47,7 +47,7 @@ libraryDependencies += "com.nativelibs4java" %% "scalaxy-streams" % "0.3.4" % "p
 libraryDependencies += "com.vividsolutions" % "jts-core" % "1.14.0"
 
 // Adding auxlib library requires local publishing (for details see https://github.com/anskarl/auxlib)
-libraryDependencies += "com.github.anskarl" %% "auxlib" % "0.1"
+libraryDependencies += "com.github.anskarl" %% "auxlib" % "0.2.0"
 
 // Adding optimus library requires local publishing (for details see https://github.com/vagm/Optimus)
 libraryDependencies += "com.github.vagm" %% "optimus" % "1.2.2"

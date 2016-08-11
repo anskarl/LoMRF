@@ -16,7 +16,7 @@ In order to perform weight learning in LoMRF the following definitions are requi
   * Output filename for the resulting learned MLN file, e.g., `output.mln` or with a path prefix `/path/to/output.mln`.
   * The atomic signatures (identities) that define the non-evidence predicates (specified by the '-ne' option), that is the predicates for which training data contains supervision. For example `-ne Foo/2,Bar/3`. Please note that for all non-evidence predicates LoMRF takes [Closed-world assumption](https://en.wikipedia.org/wiki/Open-world_assumption) and therefore the learning procedure assumes fully supervision is present. In case of **missing annotations** LoMRF would assume that their truth values are **False**.
 
-### Weight learning using the `lomrf-wlearn` command-line tool
+### Weight learning using the `lomrf wlearn` command-line tool
 
 To demonstrate the usage of LoMRF from command-line interface for weight learning, assume that we have one knowledge base file, named as `theory.mln`, and one training file, named as `training.db` containing both the evidence and the supervision. Please note that the supervision is a collection of the expected ground atoms of the non-evidence atoms (i.e., query atoms).
 
@@ -36,7 +36,7 @@ As it is presented in the above table, there are two non-evidence predicates, `N
 Max-margin learning considers all training data at once in order to estimate the weights of the given formulas defined in the input theory file.
 
 ```lang-none
-lomrf-wlearn -alg MAX_MARGIN -i theory.mln -t training.db -o learned.mln -ne NonEvidence_A/2,NonEvidence_B/2
+lomrf wlearn -alg MAX_MARGIN -i theory.mln -t training.db -o learned.mln -ne NonEvidence_A/2,NonEvidence_B/2
 ```
 Where the parameter '-alg MAX_MARGIN' defines that we are using max-margin training method. The paramter '-i theory.mln' is the input theory that contains all MLN logic formulas (both soft-constrained and hard-constrained). The method will try to estimate the weights of all resulting soft-constrained clauses of the MLN logic formulas. All hard-constrained clauses will remain the same. Parameter '-t training.db' is the input training file, that is the file that contains all ground predicates (both evidence and non-evidence). The parameter '-o learned.mln' specifies the resulting output file. Finally, the parameter '-ne NonEvidence_A/2,NonEvidence_B/2' defines which predicates are non-evidence (thus will be the query atoms).
 
@@ -47,11 +47,11 @@ Where the parameter '-alg MAX_MARGIN' defines that we are using max-margin train
 Suppose that we have multiple training micro-batches of training data named as `training1.db`, `training2.db`, etc. Then we can run an online weight learner to estimate the weights of the formulas defined in the input theory file, given a path of input training files.
 
 ```lang-none
-lomrf-wlearn -alg CDA -i theory.mln -t /path/to/training/batches/ -o learned.mln -ne NonEvidence_A/2,NonEvidence_B/2
+lomrf wlearn -alg CDA -i theory.mln -t /path/to/training/batches/ -o learned.mln -ne NonEvidence_A/2,NonEvidence_B/2
 ```
 or
 ```lang-none
-lomrf-wlearn -alg ADAGRAD -i theory.mln -t /path/to/training/batches/ -o learned.mln -ne NonEvidence_A/2,NonEvidence_B/2
+lomrf wlearn -alg ADAGRAD -i theory.mln -t /path/to/training/batches/ -o learned.mln -ne NonEvidence_A/2,NonEvidence_B/2
 ```
 Where the parameter '-alg' defines that we are using either 'CDA' or 'ADAGRAD' training method. The paramter '-i theory.mln' is the input theory that contains all MLN logic formulas (both soft-constrained and hard-constrained). The method will try to estimate the weights of all resulting soft-constrained clauses of the MLN logic formulas. All hard-constrained clauses will remain the same. Parameter '-t /path/to/training/batches/' is the path to the directory that contains all training files (*.db), where each one contains ground predicates (both evidence and non-evidence) that belong to the same micro-batch. The parameter '-o learned.mln' specifies the resulting output file. Finally, the parameter '-ne NonEvidence_A/2,NonEvidence_B/2' defines which predicates are non-evidence (thus will be the query atoms).
 
@@ -61,7 +61,7 @@ For a detailed weight learning tutorial in LoMRF, see Sections [Weight Learning 
 
 ## Command-line Interface Options for Weight Learning
 
-By executing the ```lomrf-wlearn -h``` (or ```lomrf-wlearn --help```) command from the command-line interface, we get a print of multiple parameters. Below we explain all LoMRF weight learning command-line interface parameters:
+By executing the ```lomrf wlearn -h``` (or ```lomrf wlearn --help```) command from the command-line interface, we get a print of multiple parameters. Below we explain all LoMRF weight learning command-line interface parameters:
 
 ### Basic weight learning options
 

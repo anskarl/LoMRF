@@ -333,7 +333,7 @@ In order to perform inference, we have to define the following:
 Marginal inference computes the conditional probability of query predicates (e.g., HoldsAt), given the evidence (e.g., Happens).
 
 ```lang-none
-lomrf -infer marginal -i theory.mln -e evidence.db -r marginal-out.result -q HoldsAt/2 -owa InitiatedAt/2,TerminatedAt/2 -cwa Happens/2
+lomrf infer -inferType marginal -i theory.mln -e evidence.db -r marginal-out.result -q HoldsAt/2 -owa InitiatedAt/2,TerminatedAt/2 -cwa Happens/2
 ```
 
 The following results are stored in the `marginal-out.result` file:
@@ -395,7 +395,7 @@ instantiations that maximizes the sum of weights of satisfied ground clauses. Th
 satisfiability problem.
 
 ```lang-none
-lomrf -infer map -i theory.mln -e evidence.db -r map-out.result -q HoldsAt/2 -owa InitiatedAt/2,TerminatedAt/2 -cwa Happens/2
+lomrf infer -inferType map -i theory.mln -e evidence.db -r map-out.result -q HoldsAt/2 -owa InitiatedAt/2,TerminatedAt/2 -cwa Happens/2
 ```
 
 The following results are stored in the `map-out.result` file:

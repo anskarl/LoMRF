@@ -22,16 +22,16 @@ LoMRF is an open-source implementation of [Markov Logic Networks](https://en.wik
 ## Features overview:
 
 1. Parallel grounding algorithm based on [Akka Actors library](http://akka.io).
-2. Marginal (MC-SAT) and MAP (MaxWalkSAT and LP-relaxed Integer Linear Programming) inference (**lomrf**).
-3. Batch and on-line Weight Learning (Max-Margin, AdaGrad and CDA) (**lomrf-wlearn**).
-4. On-line Structure Learning (OSL and OSLa) (**lomrf-slearn**).
-5. MLN knowledge base compilation (**mlnc**):
+2. Marginal (MC-SAT) and MAP (MaxWalkSAT and LP-relaxed Integer Linear Programming) inference (**lomrf infer**).
+3. Batch and on-line Weight Learning (Max-Margin, AdaGrad and CDA) (**lomrf wlearn**).
+4. On-line Structure Learning (OSL and OSLa) (**lomrf slearn**).
+5. MLN knowledge base compilation (**lomrf compile**):
   * Predicate completion.
   * Clausal form transformation.
   * Replacement of functions with utility predicates and vice versa.
   * Reads and produces [Alchemy](http://alchemy.cs.washington.edu/alchemy1.html) compatible MLN files.
-6. Can export ground MRF in various formats (**mrfwriter**).
-7. Can compare MLN theories (**mlndiff**).
+6. Can export ground MRF in various formats (**lomrf export**).
+7. Can compare MLN theories (**lomrf diff**).
 
 ## License
 

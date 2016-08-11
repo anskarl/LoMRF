@@ -19,7 +19,7 @@ Heads(flip)
 We do not have any evidence in this example, thus we omit the `-e` parameter and we run our example with the following parameters:
 
 ```lang-none
-lomrf -i uniform.mln -q Heads/1 -r uniform.result
+lomrf infer -i uniform.mln -q Heads/1 -r uniform.result
 ```
 
 The contents of the result file (uniform.result) are the following:
@@ -65,7 +65,7 @@ Heads(flip)
 We run our example with the following parameters:
 
 ```lang-none
-lomrf -i binomial.mln -q Heads/1 -r binomial.result
+lomrf infer -i binomial.mln -q Heads/1 -r binomial.result
 ```
 
 The contents of the result file (binomial.result) are the following:
@@ -114,7 +114,7 @@ Outcome(t,f0) ^ !(f0 = f1) => !Outcome(t,f1).
 
 We run our example with the following parameters:
 ```
-lomrf -i multinomial.mln -q Outcome/2 -r multinomial.result
+lomrf infer -i multinomial.mln -q Outcome/2 -r multinomial.result
 ```
 
 The contents of the result file (multinomial.result) are the following:
@@ -354,7 +354,7 @@ Assassinate(Marcus, Caesar)
 ***Inference execution***
 
 ```lang-none
-lomrf -infer marginal -i theory.mln -e evidence.db -r output.result -q Hate/2 -owa Loyal/2,Roman/1 -cwa People/1,Ruler/1,Pompeian/1,Assassinate/2
+lomrf infer -inferType marginal -i theory.mln -e evidence.db -r output.result -q Hate/2 -owa Loyal/2,Roman/1 -cwa People/1,Ruler/1,Pompeian/1,Assassinate/2
 ```
 
 ***Inference result (output.result)***

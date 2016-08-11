@@ -1,8 +1,7 @@
 # Build and Link LoMRF
 
 In order to build LoMRF from source, you need to have Java SE Development Kit (e.g., OpenJDK) version 8 or higher and 
-[SBT](http://www.scala-sbt.org/) (v0.13.x) installed in your system. Furthermore, LoMRF build depends on the 
-[auxlib](https://github.com/anskarl/auxlib), [Optimus](https://github.com/vagm/Optimus) and optionally to [
+[SBT](http://www.scala-sbt.org/) (v0.13.x) installed in your system. Furthermore, LoMRF build depends on the [auxlib](https://github.com/anskarl/auxlib), [Optimus](https://github.com/vagm/Optimus) and optionally to [
 Gurobi](http://www.gurobi.com/) and [LPSolve](http://lpsolve.sourceforge.net).
 
 ## Instructions to build LoMRF from source

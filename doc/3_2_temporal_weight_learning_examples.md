@@ -98,9 +98,9 @@ In brief, LoMRF can automatically rewrite definite clause definitions, in order 
 3. Replace all predicates with their equivalencies.
 4. (optional step) Compute the [Conjunctive Normal Form (CNF)](https://en.wikipedia.org/wiki/Conjunctive_normal_form) of the theory.
 
-All these steps can be applied by the `mlnc` command-line tool of LoMRF:
+All these steps can be applied by the `lomrf compile` command-line tool of LoMRF:
 ```lang-none
-mlnc -i theory.mln -o theory_cnf.mln -cnf -w remove_all -pcm simplification
+lomrf compile -i theory.mln -o theory_cnf.mln -cnf -w remove_all -pcm simplification
 ```
 Where '-i theory.mln' is the original input theory MLN file, '-o theory_cnf.mln' is the resulting output file, '-cnf' specifies that all clauses in the resulting theory are in CNF form, '-w remove_all' specifies that all weights from formulas will be removed and '-pcm simplification' applied the whole transformation step (i.e., all first three steps).
 
@@ -127,12 +127,12 @@ Once we have applied the preprocessing step, we can proceed to the weight learni
 ***Max-Margin Learning***
 
 ```lang-none
-lomrf-wlearn -alg MAX_MARGIN -i theory_cnf.mln -t training.db -o learned.mln -ne HoldsAt/2 -lossAugmented
+lomrf wlearn -alg MAX_MARGIN -i theory_cnf.mln -t training.db -o learned.mln -ne HoldsAt/2 -lossAugmented
 ```
 ***Online Learning using AdaGrad or CDA***
 
 ```lang-none
-lomrf-wlearn -alg ADAGRAD -i theory_cnf.mln -t ./training/online -o learned.mln -ne HoldsAt/2
+lomrf wlearn -alg ADAGRAD -i theory_cnf.mln -t ./training/online -o learned.mln -ne HoldsAt/2
 
-lomrf-wlearn -alg CDA -i theory_cnf.mln -t ./training/online -o learned.mln -ne HoldsAt/2 -lossAugmented
+lomrf wlearn -alg CDA -i theory_cnf.mln -t ./training/online -o learned.mln -ne HoldsAt/2 -lossAugmented
 ```

@@ -18,7 +18,7 @@ In order to perform structure learning in LoMRF the following definitions are re
 
 **Important note: Structure learning in the current version of LoMRF does not support [build-in dynamic functions and predicates](1_1_knowledge_base.md) (e.g., `t++`, `a = b`, etc.).**
 
-### Structure learning using the `lomrf-slearn` command-line tool
+### Structure learning using the `lomrf slearn` command-line tool
 
 To demonstrate the usage of LoMRF from command-line interface for structure learning, assume that we have one knowledge base file, named as `theory.mln`, and a set of training files, named as `training1.db`, `training2.db` etc, containing both the evidence and the supervision.
 
@@ -38,13 +38,13 @@ As it is presented in the above table, there are two non-evidence predicates, `N
 #### *OSL* learning
 
 ```lang-none
-lomrf-slearn -i theory.mln -t /path/to/training/batches/ -o learned.mln -ne NonEvidence_A/2,NonEvidence_B/2
+lomrf slearn -i theory.mln -t /path/to/training/batches/ -o learned.mln -ne NonEvidence_A/2,NonEvidence_B/2
 ```
 
 #### *OSLa* learning
 
 ```lang-none
-lomrf-slearn -i theory.mln -t /path/to/training/batches/ -o learned.mln -ne NonEvidence_A/2,NonEvidence_B/2 -template Template_A/2,Template_B/2
+lomrf slearn -i theory.mln -t /path/to/training/batches/ -o learned.mln -ne NonEvidence_A/2,NonEvidence_B/2 -template Template_A/2,Template_B/2
 ```
 
 The results of learning are stored in the `learned.mln` (see parameter `-o`)
@@ -55,7 +55,7 @@ For a detailed structure learning tutorial in LoMRF, see Sections [Structure Lea
 
 ## Command-line Interface Options ##
 
-By executing the ```lomrf-slearn -h``` (or ```lomrf-slearn --help```) command from the command-line interface, we get a print of multiple parameters. Below we explain all LoMRF structure learning command-line interface parameters:
+By executing the ```lomrf slearn -h``` (or ```lomrf slearn --help```) command from the command-line interface, we get a print of multiple parameters. Below we explain all LoMRF structure learning command-line interface parameters:
 
 ### Basic structure learning options
 

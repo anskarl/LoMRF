@@ -77,7 +77,7 @@ Cancer(Edward)
 In order to perform weight learning for this example we are giving the following:
 
 ```lang-none
-lomrf-wlearn -i smoking.mln -o smoking-learned.mln -t smoking-train.db -ne Smokes/1,Cancer/1
+lomrf wlearn -i smoking.mln -o smoking-learned.mln -t smoking-train.db -ne Smokes/1,Cancer/1
 ```
 Where the parameter '-i smoking.mln' is the input MLN theory, '-o smoking-learned.mln' is the resulting output theory with the estimated weights, '-t smoking-train.db' is the training data and the parameer '-ne Smokes/1,Cancer/1' specifies which predicates are the non-evidence predicates. After the execution of this example, the resulting file `smoking-learned.mln` is an MLN knowledge base with the learned weights. Using this file along with the test data, we can compute the truth value of each person smoking and getting cancer.
 
@@ -188,7 +188,7 @@ State(Drive, 10)
 ***Weight learning execution***
 
 ```lang-none
-lomrf-wlearn -i traffic.mln -o traffic-learned.mln -t traffic-train.db -ne State/2
+lomrf wlearn -i traffic.mln -o traffic-learned.mln -t traffic-train.db -ne State/2
 ```
 
 This produces the file `traffic-learned.mln` with the learned weights. Using the resulting trained MLN model along with the test data (file `traffic-test.db`), we can compute the truth value of each state.

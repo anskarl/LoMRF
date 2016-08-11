@@ -26,4 +26,4 @@ declare -r lib_dir="$base_dir/lib"
 declare -r INFER_JAVA_OPTS=$VM_ARGS" -XX:+AggressiveOpts"
 declare -r INFER_CLASSPATH=$PRJ_COMMONS_CLASSPATH
 
-nice java $INFER_JAVA_OPTS -cp $INFER_CLASSPATH lomrf.app.InferenceCLI $@
+nice java $INFER_JAVA_OPTS -cp $INFER_CLASSPATH lomrf.app.LoMRF $@
