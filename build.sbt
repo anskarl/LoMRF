@@ -1,6 +1,6 @@
 name := "LoMRF"
 
-version := "0.5.1-SNAPSHOT"
+version := "0.5.1"
 
 // Load LoMRF Build settings
 LoMRFBuild.settings
