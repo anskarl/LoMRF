@@ -156,9 +156,15 @@ final class KBParser(predicateSchema: Map[AtomSignature, Vector[String]],
     }
   }
 
-  private def fetchTypedVariable(symbol: String): Variable = currentTypes.find(v => v.symbol == symbol) match {
-    case Some(x) => Variable(symbol, x.domain, x.index)
-    case None => Variable(symbol) //sys.error("Cannot determine the type of variable '" + symbol + "'.")
+  private def fetchTypedVariable(symbol: String): Variable = {
+    val (isFlaggedGroundPerConstant, variableSymbol) =
+      if(symbol.startsWith("+")) (true, symbol.drop(1))
+      else (false, symbol)
+
+    currentTypes.find(v => v.symbol == variableSymbol) match {
+      case Some(x) => Variable(variableSymbol, x.domain, index = x.index, groundPerConstant = isFlaggedGroundPerConstant)
+      case None => Variable(variableSymbol) //sys.error("Cannot determine the type of variable '" + symbol + "'.")
+    }
   }
 
   /**
@@ -190,7 +196,7 @@ final class KBParser(predicateSchema: Map[AtomSignature, Vector[String]],
    * An atomic formula (or atom) starts with an uppercase letter and it is followed by parenthesis,
    * which contains a list of terms (variables, constants or functions).
    */
-  private def atomicFormulaPrefix: Parser[AtomicFormula] = (lowerCaseID | upperCaseID) ~ "(" ~ repsep(functionArg | lowerCaseID | upperCaseID, ",") ~ ")" ^^ {
+  private def atomicFormulaPrefix: Parser[AtomicFormula] = (lowerCaseID | upperCaseID) ~ "(" ~ repsep(functionArg | variableArg | upperCaseID, ",") ~ ")" ^^ {
     case name ~ "(" ~ arguments ~ ")" =>
 
       val atomSignature = AtomSignature(name, arguments.size)
@@ -198,15 +204,16 @@ final class KBParser(predicateSchema: Map[AtomSignature, Vector[String]],
       dynamicAtomBuilders.get(atomSignature) match {
         case Some(atomBuilder) =>
           val termList: Vector[Term] =
-            (for (element <- arguments) yield  element match {
+            (for (element <- arguments) yield element match {
                 case upperCaseID(s, _*) => Constant(s)
-                case lowerCaseID(v, _*) => fetchTypedVariable(v)
+                case variableArg(v, _*) => fetchTypedVariable(v)
                 case func: TermFunction => func
                 case _ => sys.error("Cannot parse the symbol: " + element)
               })(breakOut)
 
           dynamicPredicates += (atomSignature -> atomBuilder.stateFunction)
           atomBuilder(termList)
+
         case None =>
           //the atomicFormula is a common used-defined predicate
           val argTypes: Vector[String] = predicateSchema.get(atomSignature) match {
@@ -218,8 +225,12 @@ final class KBParser(predicateSchema: Map[AtomSignature, Vector[String]],
 
                 case upperCaseID(s, _*) => Constant(s)
 
-                case lowerCaseID(v, _*) =>
-                  val variable = Variable(v, argType)
+                case variableArg(v, _*) =>
+                  val (isFlaggedGroundPerConstant, variableSymbol) =
+                    if(v.startsWith("+")) (true, v.drop(1))
+                    else (false, v)
+
+                  val variable = Variable(variableSymbol, argType, groundPerConstant = isFlaggedGroundPerConstant)
                   currentTypes = Vector(variable) ++: currentTypes
                   variable
 
@@ -270,7 +281,7 @@ final class KBParser(predicateSchema: Map[AtomSignature, Vector[String]],
    * Parses FOL function symbols, as well as their arguments. The arguments may be constant symbols, variables
    * or even other FOL function definitions. Consequently, recursive function definitions are supported.
    */
-  def functionArgPrefix: Parser[TermFunction] = lowerCaseID ~ "(" ~ repsep(lowerCaseID | upperCaseID | functionArg, ",") ~ ")" ^^ {
+  def functionArgPrefix: Parser[TermFunction] = lowerCaseID ~ "(" ~ repsep(variableArg | upperCaseID | functionArg, ",") ~ ")" ^^ {
     case functionName ~ "(" ~ arguments ~ ")" =>
 
       val functionSignature = AtomSignature(functionName, arguments.size)
@@ -283,7 +294,7 @@ final class KBParser(predicateSchema: Map[AtomSignature, Vector[String]],
           // fetch the function's terms that are defined in its arguments
           val termList: Vector[Term] = (for (term <- arguments) yield term match {
               case upperCaseID(s, _*) => Constant(s)
-              case lowerCaseID(v, _*) => fetchTypedVariable(v)
+              case variableArg(v, _*) => fetchTypedVariable(v)
               case func: TermFunction => func
               case _ => sys.error("Cannot parse symbol: " + term)
             })(breakOut)
@@ -310,8 +321,13 @@ final class KBParser(predicateSchema: Map[AtomSignature, Vector[String]],
             (for ((symbol, argType: String) <- arguments.zip(argTypes)) yield symbol match {
               case upperCaseID(s, _*) => Constant(s)
 
-              case lowerCaseID(v, _*) =>
-                val variable = Variable(v, argType)
+              case variableArg(v, _*) =>
+                val (isFlaggedGroundPerConstant, variableSymbol) =
+                  if(v.startsWith("+")) (true, v.drop(1))
+                  else (false, v)
+
+
+                val variable = Variable(variableSymbol, argType, groundPerConstant = isFlaggedGroundPerConstant)
                 currentTypes = Vector(variable) ++: currentTypes //NEW
                 variable
 

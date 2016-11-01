@@ -91,7 +91,8 @@ sealed trait Term extends MLNExpression with Substitutable[Term]{
  */
 sealed case class Variable(override val symbol: String,
                            private[logic] var domainName: String = Variable.UNDEFINED_DOMAIN,
-                           index: Int = Variable.DEFAULT_INDEX) extends Term {
+                           index: Int = Variable.DEFAULT_INDEX,
+                           groundPerConstant: Boolean = false) extends Term {
 
 
   override def isGround = false

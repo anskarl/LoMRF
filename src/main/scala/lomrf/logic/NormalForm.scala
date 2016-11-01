@@ -37,6 +37,7 @@ package lomrf.logic
 
 import auxlib.log.Logger
 import lomrf.mln.model.ConstantsSet
+import lomrf.util.Cartesian.CartesianIterator
 
 import annotation.tailrec
 import collection.mutable
@@ -90,7 +91,7 @@ object NormalForm {
     }
 
     val normalized = source match {
-      case wf:WeightedFormula =>
+      case wf: WeightedFormula =>
         WeightedFormula(wf.weight, normaliseConstruct(wf.formula))
 
       case DefiniteClause(head, body) =>
@@ -108,7 +109,25 @@ object NormalForm {
   }
 
   def compileCNF(formulas: Iterable[Formula])(implicit constants: Map[String, ConstantsSet] = Map.empty): Set[Clause] ={
-    formulas.par.foldLeft(Set[Clause]())((clauses, formula) => clauses ++ toCNF(formula))
+    val compiled = formulas.par.foldLeft(Set[Clause]())((clauses, formula) => clauses ++ toCNF(formula))
+
+    val (toPartialGround, rest) = compiled.partition(clause => clause.variables.exists(_.groundPerConstant))
+
+    if(toPartialGround.nonEmpty){
+
+      val partiallyGrounded = toPartialGround.
+        flatMap{ clause =>
+          val targetVariables = clause.variables.filter(_.groundPerConstant)
+
+          val iterator = CartesianIterator(targetVariables.map(v => v -> constants(v.domainName)).toMap)
+          iterator.map(s => clause.substitute(s.mapValues(Constant).asInstanceOf[Map[Term, Term]]))
+
+        }
+
+
+      partiallyGrounded ++ rest
+    }
+    else compiled
   }
 
   /**
