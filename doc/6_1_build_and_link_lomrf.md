@@ -195,18 +195,14 @@ $ brew install lp_solve
 ```
 
 To install the Java Native Interface support for LPSolve v5.5.x you need follow the  instructions below:
-* Download LPSolve dev, 64bit *lp_solve_5.5.2.x_dev_ux64.zip* or for 32bit *lp_solve_5.5.2.x_dev_ux32.zip*, from [LPSolve official repository](http://sourceforge.net/projects/lpsolve/files/lpsolve/5.5.2.0/).
-  * Extract the file
-  * We only need the `lpsolve55.dylib` file.
-* Download LPSolve java bindings (lp_solve_5.5.2.x_java.zip) from [LPSolve official repository](http://sourceforge.net/projects/lpsolve/files/lpsolve/5.5.2.0/).
-    * Extract the file
-    * We only need the `lpsolve55j.jnilib` files
-* Create a directory containing the `lpsolve55.dylib` and `lpsolve55j.jnilib` files, e.g., `$HOME/lib/lpsolve55`    
-* Add this directory to `LD_LIBRARY_PATH` inside `.profile` file in your home directory:
+* Copy `liblpsolve55.dylib` to Java Extensions dir:
+`$ sudo cp /usr/local/Cellar/lp_solve/5.5.2.0/lib/liblpsolve55.dylib /Library/Java/Extensions/`
 
-```bash
-export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$HOME/lib/lpsolve55
-```
+* Download `lp_solve_5.5.2.0_source.tar.gz` and `lp_solve_5.5.2.0_java.zip` from [LPSolve official repository](http://sourceforge.net/projects/lpsolve/files/lpsolve/5.5.2.0/)
+and read the instructions `lp_solve_5.5_java/lib/mac/build-osx` to build `liblpsolve55j.jnilib`. Then copy it to Java Extensions dir:
+`$ sudo cp lp_solve_5.5_java/lib/mac/build-osx/liblpsolve55j.jnilib /Library/Java/Extensions/`
+
+* If you prefer to copy these files elsewhere (instead of `/Library/Java/Extensions/`), then you need to set-up `LD_LIBRARY_PATH` and, in case of OSX El Capitan, [disable SIP protection](https://github.com/oracle/node-oracledb/issues/231).
 
 
 ### Microsoft Windows
