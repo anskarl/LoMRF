@@ -109,25 +109,7 @@ object NormalForm {
   }
 
   def compileCNF(formulas: Iterable[Formula])(implicit constants: Map[String, ConstantsSet] = Map.empty): Set[Clause] ={
-    val compiled = formulas.par.foldLeft(Set[Clause]())((clauses, formula) => clauses ++ toCNF(formula))
-
-    val (toPartialGround, rest) = compiled.partition(clause => clause.variables.exists(_.groundPerConstant))
-
-    if(toPartialGround.nonEmpty){
-
-      val partiallyGrounded = toPartialGround.
-        flatMap{ clause =>
-          val targetVariables = clause.variables.filter(_.groundPerConstant)
-
-          val iterator = CartesianIterator(targetVariables.map(v => v -> constants(v.domainName)).toMap)
-          iterator.map(s => clause.substitute(s.mapValues(Constant).asInstanceOf[Map[Term, Term]]))
-
-        }
-
-
-      partiallyGrounded ++ rest
-    }
-    else compiled
+    formulas.par.foldLeft(Set[Clause]())((clauses, formula) => clauses ++ toCNF(formula))
   }
 
   /**

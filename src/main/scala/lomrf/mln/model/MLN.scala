@@ -41,6 +41,7 @@ import java.text.DecimalFormat
 
 import auxlib.log.Logger
 import lomrf.logic._
+import lomrf.util.Cartesian.CartesianIterator
 import lomrf.util._
 
 import scala.collection.breakOut
@@ -178,8 +179,29 @@ object MLN {
 
   import PredicateCompletionMode._
 
-  def apply(schema: MLNSchema, evidence: Evidence, space: PredicateSpace, clauses: Vector[Clause]): MLN =
-    new MLN(schema, space, evidence, clauses)
+  def expand(clauses: Vector[Clause], constants: ConstantsDomain): Vector[Clause] = {
+
+    val (toPartialGround, rest) = clauses.partition(clause => clause.variables.exists(_.groundPerConstant))
+
+    if(toPartialGround.nonEmpty){
+
+      val partiallyGrounded = toPartialGround.
+        flatMap{ clause =>
+          val targetVariables = clause.variables.filter(_.groundPerConstant)
+
+          val iterator = CartesianIterator(targetVariables.map(v => v -> constants(v.domain)).toMap)
+          iterator.map(s => clause.substitute(s.mapValues(Constant).asInstanceOf[Map[Term, Term]]))
+
+        }
+
+      partiallyGrounded ++ rest
+    }
+    else clauses
+  }
+
+  def apply(schema: MLNSchema, evidence: Evidence, space: PredicateSpace, clauses: Vector[Clause]): MLN = {
+    new MLN(schema, space, evidence, expand(clauses, evidence.constants))
+  }
 
   def apply(predicateSchema: PredicateSchema,
             functionSchema: FunctionSchema,
@@ -201,7 +223,7 @@ object MLN {
 
     val evidence = Evidence(constants, evidenceDB, functionMappers)
 
-    val clauses =  NormalForm.compileCNF(formulas)(constants).toVector
+    val clauses =  expand(NormalForm.compileCNF(formulas)(constants).toVector, constants)
 
     new MLN(schema, space, evidence, clauses)
   }
@@ -213,7 +235,7 @@ object MLN {
 
     val space = PredicateSpace(schema, queryAtoms, evidence.constants)
 
-    new MLN(schema, space, evidence, clauses)
+    new MLN(schema, space, evidence, expand(clauses, evidence.constants))
   }
 
   def apply(schema: MLNSchema,
@@ -223,9 +245,9 @@ object MLN {
             evidenceDB: EvidenceDB,
             space: PredicateSpace): MLN = {
 
-    val evidence = Evidence(constants,evidenceDB,functionMappers)
+    val evidence = Evidence(constants, evidenceDB, functionMappers)
 
-    new MLN(schema, space, evidence, clauses)
+    new MLN(schema, space, evidence, expand(clauses, evidence.constants))
   }
 
   /**
@@ -262,11 +284,12 @@ object MLN {
     val logger = Logger(getClass)
     import logger._
 
-    info(
+    info {
       s"""--- Stage 0: Loading an MLN instance from data...
         |\tInput MLN file: $mlnFileName
-        |\tInput evidence file(s): ${evidenceFileNames.mkString(", ")}""".stripMargin)
-
+        |\tInput evidence file(s): ${evidenceFileNames.mkString(", ")}
+        |""".stripMargin
+    }
 
 
     //parse knowledge base (.mln)
@@ -328,15 +351,18 @@ object MLN {
 
     val mlnSchema = MLNSchema(resultingPredicateSchema, kb.functionSchema, kb.dynamicPredicates, kb.dynamicFunctions)
 
-    val clauses = NormalForm
-      .compileCNF(completedFormulas)(evidence.constants)
-      .toVector
+    val expandedClauses = expand (
+      clauses = NormalForm
+        .compileCNF(completedFormulas)(evidence.constants)
+        .toVector,
+      constants = evidence.constants
+    )
 
     val hiddenAtoms = (kb.signatures.predicates -- queryAtoms) -- evidence.cwaAtoms
     val space = PredicateSpace(kb.schema, queryAtoms, hiddenAtoms, evidence.constants)
 
     // Give the resulting MLN
-    new MLN(mlnSchema, space, evidence, clauses)
+    new MLN(mlnSchema, space, evidence, expandedClauses)
   }
 
 
@@ -457,9 +483,12 @@ object MLN {
       else formula
     }
 
-    val clauses = NormalForm
-      .compileCNF(formulas.map(initialiseWeight))(trainingEvidence.constants)
-      .toVector
+    val clauses = expand (
+      clauses = NormalForm
+        .compileCNF(formulas.map(initialiseWeight))(trainingEvidence.constants)
+        .toVector,
+      constants = constantsDomain
+    )
 
 
     val evidence = new Evidence(trainingEvidence.constants, atomStateDB, trainingEvidence.functionMappers)
@@ -517,7 +546,9 @@ object MLN {
     // Create constant builder and append all constants found in the clauses (constants may exist from previous data)
     val builder = ConstantsDomainBuilder.from(initialConstantsDomain)
 
-    clauses.foreach { clause =>
+    val expandedClauses = expand(clauses, initialConstantsDomain)
+
+    expandedClauses.foreach { clause =>
       clause.literals.foreach { literal =>
         val domain = mlnSchema.predicates(literal.sentence.signature)
         literal.sentence.terms.zip(domain).foreach(tuple => if (tuple._1.isConstant) builder += (tuple._2, tuple._1.symbol))
@@ -543,7 +574,7 @@ object MLN {
         forceCWAForAll = true
       )
 
-    forLearning(mlnSchema, trainingEvidence, nonEvidenceAtoms, clauses)
+    forLearning(mlnSchema, trainingEvidence, nonEvidenceAtoms, expandedClauses)
   }
 
 
@@ -593,7 +624,9 @@ object MLN {
 
     val evidence = new Evidence(trainingEvidence.constants, atomStateDB, trainingEvidence.functionMappers)
 
+    val expandedClauses = expand(clauses, trainingEvidence.constants)
+
     // Give the resulting MLN and the annotation database
-    (new MLN(mlnSchema, domainSpace, evidence, clauses), annotationDB)
+    (new MLN(mlnSchema, domainSpace, evidence, expandedClauses), annotationDB)
   }
 }

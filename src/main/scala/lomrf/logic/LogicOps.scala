@@ -36,7 +36,9 @@
 package lomrf.logic
 
 import lomrf.logic.dynamic.DynEqualsBuilder
-import lomrf.mln.model.{FunctionSchema, PredicateSchema}
+import lomrf.mln.model._
+import lomrf.util.Cartesian.CartesianIterator
+
 import scala.collection.mutable
 import scala.util.Try
 

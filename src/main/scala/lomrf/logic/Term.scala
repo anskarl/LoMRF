@@ -101,7 +101,11 @@ sealed case class Variable(override val symbol: String,
 
   def domain: String = domainName
 
-  def toText = if (index > 0) symbol + "_" + index else symbol
+  def toText = {
+    val txtSymbol = if (index > 0) symbol + "_" + index else symbol
+
+    if(groundPerConstant) "+"+txtSymbol else txtSymbol
+  }
 
   override def toString = symbol + (if (index > 0) "$" + index + ":" else ":") + domain
 
