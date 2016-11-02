@@ -38,8 +38,11 @@ import auxlib.log.Logging
 import auxlib.opt.MasterOptionParser
 
 object LoMRF extends App with Logging with MasterOptionParser {
-  println(lomrf.ASCIILogo)
-  println(lomrf.BuildVersion)
+
+  if(args.isEmpty) {
+    println(lomrf.ASCIILogo)
+    println(lomrf.BuildVersion)
+  }
 
   addOpt("infer",   "Perform probabilistic inference", InferenceCLI.main)
   addOpt("wlearn",  "Perform weight learning", WeightLearningCLI.main)
@@ -47,6 +50,12 @@ object LoMRF extends App with Logging with MasterOptionParser {
   addOpt("compile", "Perform knowledge base compilation", KBCompilerCLI.main)
   addOpt("diff",    "Perform knowledge base diff", KBDifferenceCLI.main)
   addOpt("export",  "Export a knowledge base into other supported formats", MRFWriterCLI.main)
+  addOpt("help",    "Show basic usage", _ => {
+    println(lomrf.ASCIILogo)
+    println(lomrf.BuildVersion)
+
+    println(usage)
+  })
 
   parse(args)
 
