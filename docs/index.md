@@ -34,13 +34,31 @@ LoMRF is an open-source implementation of [Markov Logic Networks](https://en.wik
 7. Can compare MLN theories (**lomrf diff**).
 
 
-## Documentation
+## Building
 
-Latest [documentation](docs/index.md).
+See [Build and Link LoMRF](6_1_build_and_link_lomrf.md).
 
-## Contributions
+## Documentation contents
 
-Contributions are welcome, for details see [CONTRIBUTING.md](CONTRIBUTING.md).
+  - [Quick-start guide](0_quick_start.md)
+  - [Syntax](1_syntax.md)
+    - [Knowledge base](1_1_knowledge_base.md)
+    - [Evidence](1_2_evidence.md)
+  - [Inference](2_inference.md)
+    - [Probabilistic Inference Examples](2_1_inference_examples.md)
+    - [Temporal Probabilistic Inference Examples](2_2_temporal_inference_examples.md)
+  - [Weight Learning](3_weight_learning.md)
+    - [Weight Learning Examples](3_1_weight_learning_examples.md)
+    - [Temporal Weight Learning Examples](3_2_temporal_weight_learning_examples.md)
+  - [Structure Learning](4_structure_learning.md)
+    - [Structure Learning Examples](4_1_structure_learning_examples.md)
+  - [CLI Tools](5_tools.md)
+  - [Build from source](6_build_test_lomrf.md)
+    - [Build and Link](6_1_build_and_link_lomrf.md)
+    - [Download example data](6_2_download_example_data.md)
+  - [Configuration](7_configuration.md)
+  - [References](8_references.md)
+
 
 ## License
 
