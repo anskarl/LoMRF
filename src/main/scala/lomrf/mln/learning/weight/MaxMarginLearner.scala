@@ -449,8 +449,8 @@ final class MaxMarginLearner(mrf: MRF, annotationDB: Map[AtomSignature, AtomEvid
       }
 
       // Do not scale the margin by the loss if required
-      if(nonMarginRescaling) add(sum(constraints) >= 1 - LPVars.get(numberOfClauses))
-      else add(sum(constraints) >= loss - LPVars.get(numberOfClauses))
+      if(nonMarginRescaling) add(sum(constraints) >:= 1 - LPVars.get(numberOfClauses))
+      else add(sum(constraints) >:= loss - LPVars.get(numberOfClauses))
 
       debug(sum(constraints) + " >= " + (loss - LPVars.get(numberOfClauses)))
 

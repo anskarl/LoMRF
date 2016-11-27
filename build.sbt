@@ -50,15 +50,10 @@ libraryDependencies += "com.vividsolutions" % "jts-core" % "1.14.0"
 libraryDependencies += "com.github.anskarl" %% "auxlib" % "0.2.0"
 
 // Adding optimus library requires local publishing (for details see https://github.com/vagm/Optimus)
-libraryDependencies += "com.github.vagm" %% "optimus" % "1.2.2"
-
-// oJalgo library for optimisation
-libraryDependencies += "org.ojalgo" % "ojalgo" % "39.0" 
-
-//from "https://repo1.maven.org/maven2/org/ojalgo/ojalgo/38.1/ojalgo-38.1.jar"
-
-// lpsolve library for optimization
-libraryDependencies += "com.datumbox" % "lpsolve" % "5.5.2.0"
+libraryDependencies += "com.github.vagmcs" %% "optimus" % "2.0.0"
+libraryDependencies += "com.github.vagmcs" %% "optimus-solver-oj" % "2.0.0"
+libraryDependencies += "com.github.vagmcs" %% "optimus-solver-lp" % "2.0.0"
+libraryDependencies += "com.github.vagmcs" %% "optimus-solver-gurobi" % "2.0.0"
 
 // jansi
 libraryDependencies += "org.fusesource.jansi" % "jansi" % "1.11"

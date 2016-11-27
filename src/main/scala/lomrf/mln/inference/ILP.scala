@@ -77,7 +77,7 @@ final class ILP(mrf: MRF, annotationDB: Map[AtomSignature, AtomEvidenceDB] = Map
   implicit val problem = ilpSolver match {
     case Solver.GUROBI => LQProblem(SolverLib.gurobi)
     case Solver.LPSOLVE => LQProblem(SolverLib.lp_solve)
-    case Solver.OJALGO => LQProblem(SolverLib.oJalgo)
+    case Solver.OJALGO => LQProblem(SolverLib.ojalgo)
   }
 
   implicit val mln = mrf.mln
@@ -201,18 +201,18 @@ final class ILP(mrf: MRF, annotationDB: Map[AtomSignature, AtomEvidenceDB] = Map
 
       // Step 3: Add constraints to the solver (don't introduce constraint for zero weighted constraints)
       if (constraint.isHardConstraint) {
-        add(sum(constraints) >= 1)
+        add(sum(constraints) >:= 1)
         debug(constraints.mkString(" + ") + " >= 1")
       }
       else if (!constraint.isUnit && constraint.getWeight != 0.0) {
         val clauseVar = clauseLPVars.get(cid)
         if (constraint.getWeight > 0) {
-          add(sum(constraints) >= clauseVar)
+          add(sum(constraints) >:= clauseVar)
           debug(constraints.mkString(" + ") + " >= " + clauseVar.symbol)
         }
         else {
           for (c <- constraints) {
-            add(c >= clauseVar)
+            add(c >:= clauseVar)
             debug(c + " >= " + clauseVar.symbol)
           }
         }

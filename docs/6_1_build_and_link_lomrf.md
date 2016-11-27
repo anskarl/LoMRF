@@ -14,11 +14,8 @@ $ cd auxlib
 $ sbt ++2.11.8 publishLocal
 ```
 
-**Step 2.** Clone and publish locally the Optimus project (see instructions [here](https://github.com/vagm/Optimus)).
-
-**Step 3 (optional).** Please note that Gurobi is required for running max-margin weight learning and optionally can also 
-be used for MAP inference. In order to enable support for Gurobi, you have to build Optimus with Gurobi support 
-([see instructions](https://github.com/vagm/Optimus)) and then include Gurobi library dependencies to the `./lib` subdirectory 
+**Step 2 (optional).** Please note that Gurobi is required for running max-margin weight learning and optionally can also
+be used for MAP inference. In order to enable support for Gurobi, you have to include Gurobi library dependencies to the `./lib` subdirectory
 inside the cloned LoMRF directory (create if not already exists), as it is illustrated in the tree below:
 
 ```bash
@@ -27,7 +24,7 @@ LoMRF
     |-- gurobi.jar
 ```
 
-**Step 4.** To build the LoMRF distribution, give the following command:
+**Step 3.** To build the LoMRF distribution, give the following command:
 
 ```bash
 $ sbt dist
@@ -41,7 +38,7 @@ The distribution contains all library dependencies and requires Java 8
 into the `./target/scala-2.11/` directory. The resulting documentation is located inside the `./target/site/scaladocs`
 directory.
 
-**Optional step 5.** Run Unit tests.
+**Optional step 4.** Run Unit tests.
 In order to run Unit tests, you need to download example data. Please follow the instructions in 
 [Download Example and Unit Testing Data](6_2_download_example_data.md). LoMRF uses the [ScalaTest](http://www.scalatest.org) 
 framework for unit testing.
