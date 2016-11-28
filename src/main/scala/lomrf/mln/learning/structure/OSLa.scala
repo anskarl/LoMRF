@@ -49,43 +49,44 @@ import scala.util.{Failure, Success}
 import scala.language.existentials
 
 /**
- *
- * This is an implementation of online structure learning algorithm for structure and parameter estimation in
- * Markov Logic Networks. The algorithm exploits background knowledge axioms in order to constrain the search space for
- * definite clauses. Then it uses the axioms to produce a theory and learn parameters using an online weight learning
- * algorithm. The algorithm is based on the online algorithm for MLNs presented in the following publications:
- *
- * <ul>
- * <li> Tuyen N. Huynh and Raymond J. Mooney. Online Structure Learning for Markov Logic Networks (2011)
- * In Proceedings of the European Conference on Machine Learning and Principles and Practice of Knowledge Discovery
- * in Databases (ECML-PKDD 2011), Vol. 2, pp. 81-96, September 2011.
- * The paper can be found in [[http://www.cs.utexas.edu/users/ai-lab/?huynh:ecml11]]
- * </li>
- * </ul>
- *
- * @param kb knowledge base definition used for learning clauses
- * @param constants constant domain of the knowledge base
- * @param evidenceAtoms a set of evidence atoms
- * @param nonEvidenceAtoms a set of non evidence atoms
- * @param modes mode declarations to guide the search
- * @param maxLength maximum length of a path
- * @param allowFreeVariables allow learned clauses to have free variables e.g. variables appearing only once
- * @param threshold evaluation threshold for each new clause produced
- * @param ilpSolver solver type selection option for ILP inference (default is LPSolve) [[lomrf.mln.inference.Solver]]
- * @param lossAugmented use loss augmented inference (default is false)
- * @param lambda regularization parameter for AdaGrad online learner (default is 0.01)
- * @param eta learning rate parameter for AdaGrad online learner (default is 1.0)
- * @param delta delta parameter for AdaGrad (should be positive or equal zero, default is 1.0)
- * @param printLearnedWeightsPerIteration print learned weights for each iteration (default is false)
- * @param axioms a set of weighted formulas, defining the axioms of the background knowledge
- * @param pathTemplates a set of path templates, used by the hypergraph to produce definite clauses
- * @param backgroundClauses a set of background clauses (other clauses given as background knowledge)
- */
+  *
+  * This is an implementation of online structure learning algorithm for structure and parameter estimation in
+  * Markov Logic Networks. The algorithm exploits background knowledge axioms in order to constrain the search space for
+  * definite clauses. Then it uses the axioms to produce a theory and learn parameters using an online weight learning
+  * algorithm. The algorithm is based on the online algorithm for MLNs presented in the following publications:
+  *
+  * <ul>
+  * <li> Tuyen N. Huynh and Raymond J. Mooney. Online Structure Learning for Markov Logic Networks (2011)
+  * In Proceedings of the European Conference on Machine Learning and Principles and Practice of Knowledge Discovery
+  * in Databases (ECML-PKDD 2011), Vol. 2, pp. 81-96, September 2011.
+  * The paper can be found in [[http://www.cs.utexas.edu/users/ai-lab/?huynh:ecml11]]
+  * </li>
+  * </ul>
+  *
+  * @param kb knowledge base definition used for learning clauses
+  * @param constants constant domain of the knowledge base
+  * @param evidenceAtoms a set of evidence atoms
+  * @param nonEvidenceAtoms a set of non evidence atoms
+  * @param modes mode declarations to guide the search
+  * @param maxLength maximum length of a path
+  * @param allowFreeVariables allow learned clauses to have free variables e.g. variables appearing only once
+  * @param threshold evaluation threshold for each new clause produced
+  * @param ilpSolver solver type selection option for ILP inference (default is LPSolve) [[lomrf.mln.inference.Solver]]
+  * @param lossAugmented use loss augmented inference (default is false)
+  * @param lambda regularization parameter for AdaGrad online learner (default is 0.01)
+  * @param eta learning rate parameter for AdaGrad online learner (default is 1.0)
+  * @param delta delta parameter for AdaGrad (should be positive or equal zero, default is 1.0)
+  * @param printLearnedWeightsPerIteration print learned weights for each iteration (default is false)
+  * @param axioms a set of weighted formulas, defining the axioms of the background knowledge
+  * @param pathTemplates a set of path templates, used by the hypergraph to produce definite clauses
+  * @param backgroundDefiniteClauses a set of background definite clauses
+  * @param backgroundClauses a set of background clauses (other clauses given as background knowledge)
+  */
 final class OSLa private(kb: KB, constants: ConstantsDomain, evidenceAtoms: Set[AtomSignature], nonEvidenceAtoms: Set[AtomSignature],
                          modes: ModeDeclarations, maxLength: Int, allowFreeVariables: Boolean, threshold: Int, theta: Double,
                          ilpSolver: Solver, lossAugmented: Boolean, initialWeightValue: Double, lambda: Double, eta: Double, delta: Double,
                          printLearnedWeightsPerIteration: Boolean, axioms: Set[WeightedFormula], pathTemplates: Set[PathTemplate],
-                         backgroundClauses: Vector[Clause]) extends StructureLearner {
+                         backgroundDefiniteClauses: Set[WeightedDefiniteClause], backgroundClauses: Vector[Clause]) extends StructureLearner {
 
   // Current training step
   private var step: Int = 0
@@ -94,7 +95,7 @@ final class OSLa private(kb: KB, constants: ConstantsDomain, evidenceAtoms: Set[
   private var learnedClauses: Vector[Clause] = backgroundClauses
 
   // Initially empty
-  private var learnedDefiniteClauses: Set[WeightedDefiniteClause] = Set.empty
+  private var learnedDefiniteClauses: Set[WeightedDefiniteClause] = backgroundDefiniteClauses
 
   // Initially all weights for the background clauses are zero
   private var weights: Array[Double] = backgroundClauses.map(c => if (c.isHard) 0.0 else initialWeightValue).toArray
@@ -429,7 +430,7 @@ object OSLa {
             initialWeightValue: Double = 0.01, lambda: Double = 0.01, eta: Double = 1.0, delta: Double = 1.0,
             printLearnedWeightsPerIteration: Boolean = false): OSLa = {
 
-    val (axioms, clauses, pathTemplates) = TemplateExtractor(kb, constants, nonEvidenceAtoms, templateAtoms) match {
+    val (axioms, definiteClauses, clauses, pathTemplates) = TemplateExtractor(kb, constants, nonEvidenceAtoms, templateAtoms) match {
       case Success(tuple) => tuple
       case Failure(exception) => throw exception
     }
@@ -443,6 +444,6 @@ object OSLa {
 
     new OSLa(kb, constants, evidenceAtoms, nonEvidenceAtoms, modes, maxLength, allowFreeVariables, threshold, theta,
       ilpSolver, lossAugmented, initialWeightValue, lambda, eta, delta, printLearnedWeightsPerIteration, axioms,
-      pathTemplates, clauses.toVector)
+      pathTemplates, definiteClauses, clauses.toVector)
   }
 }

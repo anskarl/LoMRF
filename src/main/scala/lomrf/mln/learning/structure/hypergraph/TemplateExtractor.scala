@@ -36,10 +36,10 @@
 package lomrf.mln.learning.structure.hypergraph
 
 import auxlib.log.Logger
-import lomrf.logic.{Clause, WeightedFormula, Literal, AtomSignature}
+import lomrf.logic._
 import lomrf.mln.model.{ConstantsDomain, KB}
 import lomrf.logic.LogicOps._
-import scala.util.{Try, Failure, Success}
+import scala.util.{Failure, Success, Try}
 
 /**
  * Template extractor constructs the basic components for structure learning initialization. That is the Markov Logic
@@ -67,7 +67,7 @@ object TemplateExtractor {
    * @return a Markov Logic network, a annotation database and optionally a set of axioms and a set of path templates
    */
   def apply(kb: KB, constants: ConstantsDomain, nonEvidenceAtoms: Set[AtomSignature],
-            templateAtoms: Set[AtomSignature]): Try[(Set[WeightedFormula], Set[Clause], Set[PathTemplate])] = {
+            templateAtoms: Set[AtomSignature]): Try[(Set[WeightedFormula], Set[WeightedDefiniteClause], Set[Clause], Set[PathTemplate])] = {
 
     /**
      * @return true if the given literal has a template atom, false otherwise
@@ -89,6 +89,9 @@ object TemplateExtractor {
     val (axioms, clauses) = kb.formulas.flatMap(_.toCNF(constants)).
                             partition(clause => clause.literals.exists(hasTemplateAtom))
 
+    val completedFormulas =
+      PredicateCompletion(axiomFormulas.map(a => if (a.weight.isNaN) a.copy(weight = 1.0) else a), kb.definiteClauses) (kb.predicateSchema, kb.functionSchema, constants)
+
     // In case template atoms are given, but there is no hard-constraint formula defined containing them -> warn or error???
     if (axioms.isEmpty && templateAtoms.nonEmpty)
       warn(s"There is no formulas (axioms) containing the template" +
@@ -100,6 +103,7 @@ object TemplateExtractor {
     }
 
     // We pass copy of each axiom formula having unit weight in order to be able to perform inference during evaluation
-    Success(axiomFormulas.map(a => if (a.weight.isNaN) a.copy(weight = 1.0) else a), clauses, pathTemplates.get)
+    Success(axiomFormulas.map(a => if (a.weight.isNaN) a.copy(weight = 1.0) else a), kb.definiteClauses,
+      clauses ++ NormalForm.compileCNF(completedFormulas)(constants), pathTemplates.get)
   }
 }
