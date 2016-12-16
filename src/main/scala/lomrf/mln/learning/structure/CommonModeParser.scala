@@ -42,10 +42,11 @@ import scala.util.parsing.combinator.{RegexParsers, JavaTokenParsers}
  */
 trait CommonModeParser extends JavaTokenParsers with RegexParsers {
 
-  val recall = """([0]|[1-9][0-9]*|\*)""".r
-  val predicate = """([A-Z0-9]([a-zA-Z0-9]|_[a-zA-Z0-9])*)""".r
-  val function = """([a-z]([a-zA-Z0-9]|_[a-zA-Z0-9])*)""".r
-  val placemarker = """(#)?(\+|-|\.)""".r
+  protected val arity =  """([1-9][0-9]*)""".r
+  protected val recall = """([0]|[1-9][0-9]*|\*)""".r
+  protected val predicate = """([A-Z0-9]([a-zA-Z0-9]|_[a-zA-Z0-9])*)""".r
+  protected val function = """([a-z]([a-zA-Z0-9]|_[a-zA-Z0-9])*)""".r
+  protected val placeMarker = """(#)?(\+|-|\.)""".r
 
-  override val whiteSpace = """(\s|//.*\n|(/\*(?:.|[\n\r])*?\*/))+""".r
+  protected override val whiteSpace = """(\s|//.*\n|(/\*(?:.|[\n\r])*?\*/))+""".r
 }

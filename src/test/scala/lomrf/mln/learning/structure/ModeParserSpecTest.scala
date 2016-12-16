@@ -37,39 +37,40 @@ package lomrf.mln.learning.structure
 
 import lomrf.logic.AtomSignature
 import org.scalatest.{Matchers, FunSpec}
+import lomrf.mln.learning.structure.{PlaceMarker => PM}
 
 /**
- * Specification test for mode declaration parser.
+ * Specification test for the mode declaration parser.
  */
 final class ModeParserSpecTest extends FunSpec with Matchers {
 
-  val modeParser = new ModeParser
+  val noIncompatible = Set.empty[AtomSignature]
 
   // List of mode declarations to be parsed along with an annotation of the results
   val modeList = List (
-    ("modeP(2, A(#-,+,.))", AtomSignature("A", 3), 2, Vector( (false, true, true), (true, false, false), (false, false, false) )),
-    ("modeP(4, B(.,+,+))", AtomSignature("B", 3), 4, Vector( (false, false, false), (true, false, false), (true, false, false) )),
-    ("modeP(1, C(-,-))", AtomSignature("C", 2), 1, Vector( (false, true, false), (false, true, false) )),
-    ("modeP(91, D(-,+))", AtomSignature("D", 2), 91, Vector( (false, true, false), (true, false, false) )),
-    ("modeP(7, E(#+))", AtomSignature("E", 1), 7, Vector( (true, false, true) )),
-    ("modeP(0, F(+))", AtomSignature("F", 1), 0, Vector( (true, false, false) )),
-    ("modeP(21, G(-))", AtomSignature("G", 1), 21, Vector( (false, true, false) )),
-    ("modeP(67, H(.,+))", AtomSignature("H", 2), 67, Vector( (false, false, false), (true, false, false) )),
-    ("modeP(9, I(.,-))", AtomSignature("I", 2), 9, Vector( (false, false, false), (false, true, false) )),
-    ("modeP(*, J(#.,+))", AtomSignature("J", 2), Int.MaxValue, Vector( (false, false, true), (true, false, false) )),
-    ("modeP(5, K(.,+))", AtomSignature("K", 2), 5, Vector( (false, false, false), (true, false, false) )),
-    ("modeP(1, L(.,.))", AtomSignature("L", 2), 1, Vector( (false, false, false), (false, false, false) )),
-    ("modeP(*, M(+,+))", AtomSignature("M", 2), Int.MaxValue, Vector( (true, false, false), (true, false, false) )),
-    ("modeP(2, N(#-,#.,#+))", AtomSignature("N", 3), 2, Vector( (false, true, true), (false, false, true), (true, false, true) )),
-    ("modeP(102, O(+,#-,#+))", AtomSignature("O", 3), 102, Vector( (true, false, false), (false, true, true), (true, false, true) )),
-    ("modeF(7, foo(-,.))", AtomSignature(lomrf.AUX_PRED_PREFIX + "foo", 3), 7, Vector( (true, false, false), (false, true, false), (false, false, false) )),
-    ("modeF(0, bar(-))", AtomSignature(lomrf.AUX_PRED_PREFIX + "bar", 2), 0, Vector( (true, false, false), (false, true, false) ))
+    ("modeP(2, A(#-, +, .))", AtomSignature("A", 3), 2, Vector(PM.outputConstant, PM.input, PM.ignore), noIncompatible),
+    ("modeP(4, B(., +, +))", AtomSignature("B", 3), 4, Vector(PM.ignore, PM.input, PM.input), noIncompatible),
+    ("modeP(1, C(-, -))", AtomSignature("C", 2), 1, Vector(PM.output, PM.output), noIncompatible),
+    ("modeP(91, D(-, +))", AtomSignature("D", 2), 91, Vector(PM.output, PM.input), noIncompatible),
+    ("modeP(7, E(#+) body~/> A/3, D/2)", AtomSignature("E", 1), 7, Vector(PM.inputConstant), Set(AtomSignature("A", 3), AtomSignature("D", 2)) ),
+    ("modeP(0, F(+) body~/> foo/2)", AtomSignature("F", 1), 0, Vector(PM.input), Set(AtomSignature(lomrf.AUX_PRED_PREFIX + "foo", 3)) ),
+    ("modeP(21, G(-))", AtomSignature("G", 1), 21, Vector(PM.output), noIncompatible),
+    ("modeP(67, H(., +))", AtomSignature("H", 2), 67, Vector(PM.ignore, PM.input), noIncompatible),
+    ("modeP(9, I(., -))", AtomSignature("I", 2), 9, Vector(PM.ignore, PM.output), noIncompatible),
+    ("modeP(*, J(#., +))", AtomSignature("J", 2), Int.MaxValue, Vector(PM.ignoreConstant, PM.input), noIncompatible),
+    ("modeP(5, K(., +))", AtomSignature("K", 2), 5, Vector(PM.ignore, PM.input), noIncompatible),
+    ("modeP(1, L(., .))", AtomSignature("L", 2), 1, Vector(PM.ignore, PM.ignore), noIncompatible),
+    ("modeP(*, M(+, +))", AtomSignature("M", 2), Int.MaxValue, Vector(PM.input, PM.input), noIncompatible),
+    ("modeP(2, N(#-, #., #+))", AtomSignature("N", 3), 2, Vector(PM.outputConstant, PM.ignoreConstant, PM.inputConstant), noIncompatible),
+    ("modeP(102, O(+, #-, #+))", AtomSignature("O", 3), 102, Vector(PM.input, PM.outputConstant, PM.inputConstant), noIncompatible),
+    ("modeF(7, foo(-, .))", AtomSignature(lomrf.AUX_PRED_PREFIX + "foo", 3), 7, Vector(PM.input, PM.output, PM.ignore), noIncompatible),
+    ("modeF(*, bar(-))", AtomSignature(lomrf.AUX_PRED_PREFIX + "bar", 2), Int.MaxValue, Vector(PM.input, PM.output), noIncompatible)
   )
 
   // For each mode declaration string, parse it and then check if everything is OK
-  for( (source, signature, recall, values) <- modeList) describe("Mode declaration '" + source + "'") {
+  for( (source, signature, recall, values, incompatible) <- modeList) describe(s"Mode declaration '$source'") {
 
-    val (parsedSignature, mode) = modeParser.parseMode(source)
+    val (parsedSignature, mode) = ModeParser.parseFrom(source)
 
     it(s"Signature should be equal to $signature") {
       parsedSignature shouldEqual signature
@@ -79,15 +80,15 @@ final class ModeParserSpecTest extends FunSpec with Matchers {
       mode.recall shouldEqual recall
     }
 
-    it("All placemarkers should be valid") {
-      val placemarkers = mode.placemarkers
-      for(i <- placemarkers.indices) {
-        val (isInput, isOutput, isConstant) = values(i)
-        placemarkers(i).input shouldBe isInput
-        placemarkers(i).output shouldBe isOutput
-        placemarkers(i).constant shouldBe isConstant
-      }
+    it("All place markers should be valid") {
+      for {
+        (a, b) <- mode.placeMarkers zip values
+      } a shouldEqual b
     }
 
+    it(s"Incompatible atom signatures should be [${incompatible.mkString(" ")}]") {
+       incompatible shouldEqual mode.incompatibleSignatures
+    }
   }
+
 }

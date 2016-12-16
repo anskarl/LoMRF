@@ -41,7 +41,7 @@ import lomrf.mln.model._
 import org.scalatest.{FunSpec, Matchers}
 
 /**
- * Specification test for hypergraph paths.
+ * Specification test for HyperGraph paths.
  */
 final class HPathSpecTest extends FunSpec with Matchers {
 
@@ -49,30 +49,29 @@ final class HPathSpecTest extends FunSpec with Matchers {
 
   // Predicate schema
   private val predicateSchema = Map(
-    AtomSignature("PredA", 2) -> Vector("domA", "domA"),
-    AtomSignature("PredB", 2) -> Vector("domA", "domB"))
+    AtomSignature("PredicateA", 2) -> Vector("Integer", "Integer"),
+    AtomSignature("PredicateB", 2) -> Vector("Integer", "Character"))
 
   // Constants domain
   private val constantsDomain = Map(
-    "domA" -> ConstantsSet((0 to DOMAIN_SIZE).map(_.toString)),
-    "domB" -> ConstantsSet("A", "B", "C", "D", "E"))
+    "Integer" -> ConstantsSet((0 to DOMAIN_SIZE).map(_.toString)),
+    "Character" -> ConstantsSet("A", "B", "C", "D", "E"))
 
-
+  // Evidence Builder
   val builder = EvidenceBuilder(predicateSchema, Set.empty, Set.empty, constantsDomain)
 
-  // Append evidence atoms for predicate A
-  val evidenceForPredA = (0 until DOMAIN_SIZE).map { timepoint =>
-    EvidenceAtom.asTrue("PredA", Vector[Constant](Constant((timepoint + 1).toString), Constant(timepoint.toString)))
-  }.toSeq
+  // Append evidence atoms for 'PredicateA'
+  val evidenceForPredicateA = (0 until DOMAIN_SIZE).map { integer =>
+    EvidenceAtom.asTrue("PredicateA", Vector[Constant](Constant((integer + 1).toString), Constant(integer.toString)))
+  }
+  builder.evidence ++= evidenceForPredicateA
 
-  builder.evidence ++= evidenceForPredA
-
-  // Append evidence atoms for predicate B
-  builder.evidence += EvidenceAtom.asTrue("PredB", Vector[Constant](Constant(0.toString), Constant("A")))
-  builder.evidence += EvidenceAtom.asTrue("PredB", Vector[Constant](Constant(1.toString), Constant("B")))
-  builder.evidence += EvidenceAtom.asTrue("PredB", Vector[Constant](Constant(2.toString), Constant("C")))
-  builder.evidence += EvidenceAtom.asTrue("PredB", Vector[Constant](Constant(3.toString), Constant("D")))
-  builder.evidence += EvidenceAtom.asTrue("PredB", Vector[Constant](Constant(4.toString), Constant("E")))
+  // Append evidence atoms for 'PredicateB'
+  builder.evidence += EvidenceAtom.asTrue("PredicateB", Vector[Constant](Constant(0.toString), Constant("A")))
+  builder.evidence += EvidenceAtom.asTrue("PredicateB", Vector[Constant](Constant(1.toString), Constant("B")))
+  builder.evidence += EvidenceAtom.asTrue("PredicateB", Vector[Constant](Constant(2.toString), Constant("C")))
+  builder.evidence += EvidenceAtom.asTrue("PredicateB", Vector[Constant](Constant(3.toString), Constant("D")))
+  builder.evidence += EvidenceAtom.asTrue("PredicateB", Vector[Constant](Constant(4.toString), Constant("E")))
 
   val evidence = builder.result()
 
@@ -81,8 +80,8 @@ final class HPathSpecTest extends FunSpec with Matchers {
   val predicateSpace = PredicateSpace(mlnSchema, Set.empty, constantsDomain)
 
   // Parse mode declarations
-  val modeParser = new ModeParser
-  val modes = List("modeP(1, PredA(-,+))", "modeP(2, PredB(-,#-))").map(entry => modeParser.parseMode(entry)).toMap
+  val modes = List("modeP(1, PredicateA(-, +))", "modeP(2, PredicateB(-, #-))")
+    .map(ModeParser.parseFrom).toMap
 
   // Identity functions for each atom signature
   val identities = predicateSpace.identities
@@ -99,47 +98,50 @@ final class HPathSpecTest extends FunSpec with Matchers {
   }
 
   // ------------------------------------------------------------------------------------------------------------------
-  // --- TEST: Hypergraph Path (begin from empty path).
+  // --- TEST CASE: HyperGraph Path (begin from empty path).
   // ------------------------------------------------------------------------------------------------------------------
 
-  var path = HPath.empty(modes, identities)
+  describe("HyperGraph Path starting from an empty path.") {
 
-  // Add all ids
-  atomIDs.foreach { case (id, signature) => path += (id, signature) }
+    var path = HPath.empty(modes, identities)
 
-  it("path should have length 10") {
-    path.length shouldBe 10
-  }
+    // Add all ids
+    atomIDs.foreach { case (id, signature) => path +=(id, signature) }
 
-  it("path should contain all true ground atoms, 2 atom signatures and 10 constants") {
-    atomIDs.keys.forall(path.contains) shouldBe true
-    predicateSchema.keys.forall(path.contains) shouldBe true
-    constantsDomain.values.foreach { set =>
-      val iterator = set.valuesIterator
-      while(iterator.hasNext) {
-        iterator.advance()
-        path.contains(iterator.key) shouldBe true
+    it("path should have length 10") {
+      path.length shouldBe 10
+    }
+
+    it("path should contain all true ground atoms, 2 atom signatures and 10 constants") {
+      atomIDs.keys.forall(path.contains) shouldBe true
+      predicateSchema.keys.forall(path.contains) shouldBe true
+      constantsDomain.values.foreach { set =>
+        val iterator = set.valuesIterator
+        while (iterator.hasNext) {
+          iterator.advance()
+          path.contains(iterator.key) shouldBe true
+        }
       }
     }
-  }
 
-  it("predicate appearance should contain 2 entries each having 5 appearances") {
-    path.predicateAppearance.size shouldBe 2
-    path.predicateAppearance.values.forall( count => count == 5) shouldBe true
-  }
-
-  it("constant appearance should contain the correct counts for all constants") {
-
-    constantsDomain("domA").foreach { value =>
-      if (value == "0") path.constantAppearance(value) shouldBe 2
-      else if (value == "5") path.constantAppearance(value) shouldBe 1
-      else path.constantAppearance(value) shouldBe 3
+    it("predicate appearance should contain 2 entries each having 5 appearances") {
+      path.predicates.size shouldBe 2
+      path.predicateAppearance.values.forall(count => count == 5) shouldBe true
     }
 
-    constantsDomain("domB").foreach(path.constantAppearance(_) shouldBe 0)
-  }
+    it("constant appearance should contain the correct counts for all constants") {
 
-  it("checking path ordering") {
-    path.ordering.reverse.map(_._1).toSet shouldEqual atomIDs.keys
+      constantsDomain("Integer").foreach { value =>
+        if (value == "0") path.constantAppearance(value) shouldBe 2
+        else if (value == "5") path.constantAppearance(value) shouldBe 1
+        else path.constantAppearance(value) shouldBe 3
+      }
+
+      constantsDomain("Character").foreach(path.constantAppearance(_) shouldBe 0)
+    }
+
+    it("checking path ordering") {
+      path.ordering.reverse.map { case (id, signature) => id }.toSet shouldEqual atomIDs.keys
+    }
   }
 }

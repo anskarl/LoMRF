@@ -35,52 +35,114 @@
 
 package lomrf.mln.learning.structure
 
-import java.io.{FileReader, BufferedReader, File}
+import java.io.{BufferedReader, File, FileReader}
 import auxlib.log.{Logger, Logging}
 import lomrf.logic.AtomSignature
 import lomrf.mln.model.ModeDeclarations
 
 /**
- * Parser for mode declarations.
- *
- * For example mode(recall, PredicateName(#placemarkers, ...)) where
- * placemarkers are either + (input), - (output) or . (ignore). The symbol #
- * is optional and denotes that the specific placemarker is constant.
- */
+  * Parser for mode declarations. Mode declarations can be either function modes declared
+  * using the prefix modeF or predicate modes declared using the prefix modeP. The parameters
+  * of each mode are defined inside parentheses as follows:
+  *
+  * {{{
+  *   modeP(recall, PredicateSymbol(#placeMarker, ...) body~/> AtomSignature/arity, ...)
+  *   modeF(recall, functionSymbol(#placeMarker, ...) body~/> AtomSignature/arity, ...)
+  * }}}
+  *
+  * The recall number limits the appearances of the predicate or function. For unlimited appearances
+  * use the symbol * in the recall position. Place markers can be either + (input), - (output) or
+  * . (ignore) and the prefix symbol # is optional and denotes that the specific place marker is constant.
+  * Finally the body~/> notation following the predicate or function symbol definition is optional and
+  * defines a set of atom signatures that cannot appear in the body of a clause that has this specific
+  * predicate or function in the head.
+  *
+  * <p>
+  *
+  * Example:
+  * {{{
+  *   modeP(*, Q(+, +))
+  *   modeF(2, foo(-, -, +))
+  *   modeP(1, R(-, +) body~/> foo)
+  * }}}
+  */
 class ModeParser extends CommonModeParser with Logging {
 
-  def modeDeclarations: Parser[ModeDeclarations] = rep(mode) ^^ (Map() ++ _)
+  private def mode: Parser[(AtomSignature, ModeDeclaration)] = modePredicate | modeFunction
 
-  private def mode: Parser[(AtomSignature, ModeDeclaration)] = ( "modeP" ~ "(" ~ recall ~ "," ~ predicate | "modeF" ~ "(" ~ recall ~ "," ~ function ) ~ "(" ~ repsep(placemarker, ",") ~ ")" ~ ")" ^^ {
+  private def modeDeclarations: Parser[ModeDeclarations] = rep(mode) ^^ (Map() ++ _)
 
-    case "modeP" ~ "(" ~ "*" ~ "," ~ predName ~ "(" ~ values ~ ")" ~ ")" =>
-      (AtomSignature(predName, values.length),
-        ModeDeclaration(placemarkers = values.map(symbol => PlaceMarker(symbol.contains("+"), symbol.contains("-"), symbol.contains("#"))).toVector))
+  private def modePredicate =
+    "modeP" ~ "(" ~ recall ~ "," ~ predicate ~ "(" ~ repsep(placeMarker, ",") ~ ")" ~
+    (("body~/>" ~> repsep(predicateSignature | functionSignature, ","))?) ~ ")" ^^ {
 
-    case "modeP" ~ "(" ~ limit ~ "," ~ predName ~ "(" ~ values ~ ")" ~ ")" =>
-      (AtomSignature(predName, values.length),
-        ModeDeclaration(limit.toInt, values.map(symbol => PlaceMarker(symbol.contains("+"), symbol.contains("-"), symbol.contains("#"))).toVector))
+    case "modeP" ~ "(" ~ "*" ~ "," ~ predicateSymbol ~ "(" ~ values ~ ")" ~ atoms ~ ")" => (
+      AtomSignature(predicateSymbol, values.length),
+      ModeDeclaration(
+        placeMarkers = values.map(symbol => PlaceMarker(symbol.contains("+"), symbol.contains("-"), symbol.contains("#"))).toVector,
+        incompatibleSignatures = atoms.getOrElse(Set.empty[AtomSignature]).toSet
+        )
+      )
 
-    case "modeF" ~ "(" ~ limit ~ "," ~ funcName ~ "(" ~ values ~ ")" ~ ")" => // Function return value is always an input placemarker
-      (AtomSignature(lomrf.AUX_PRED_PREFIX + funcName, values.length + 1),
-        ModeDeclaration(limit.toInt, (PlaceMarker.input :: values.map(symbol => PlaceMarker(symbol.contains("+"), symbol.contains("-"), symbol.contains("#")))).toVector))
+    case "modeP" ~ "(" ~ limit ~ "," ~ predicateSymbol ~ "(" ~ values ~ ")" ~ atoms ~ ")" => (
+      AtomSignature(predicateSymbol, values.length),
+      ModeDeclaration(
+        limit.toInt,
+        values.map(symbol => PlaceMarker(symbol.contains("+"), symbol.contains("-"), symbol.contains("#"))).toVector,
+        atoms.getOrElse(Set.empty[AtomSignature]).toSet
+        )
+      )
+  }
+
+  private def modeFunction =
+    "modeF" ~ "(" ~ recall ~ "," ~ function ~ "(" ~ repsep(placeMarker, ",") ~ ")" ~
+      (("body~/>" ~> repsep(predicateSignature | functionSignature, ","))?) ~ ")" ^^ {
+
+    // Function return value is always an input place marker
+
+    case "modeF" ~ "(" ~ "*" ~ "," ~ functionSymbol ~ "(" ~ values ~ ")" ~ atoms ~ ")" => (
+      AtomSignature(lomrf.AUX_PRED_PREFIX + functionSymbol.trim, values.length + 1),
+      ModeDeclaration(
+        placeMarkers = (PlaceMarker.input :: values.map(symbol => PlaceMarker(symbol.contains("+"), symbol.contains("-"), symbol.contains("#")))).toVector,
+        incompatibleSignatures = atoms.getOrElse(Set.empty[AtomSignature]).toSet
+        )
+      )
+
+    case "modeF" ~ "(" ~ limit ~ "," ~ functionSymbol ~ "(" ~ values ~ ")" ~ atoms ~ ")" => (
+      AtomSignature(lomrf.AUX_PRED_PREFIX + functionSymbol.trim, values.length + 1),
+      ModeDeclaration(
+        limit.toInt,
+        (PlaceMarker.input :: values.map(symbol => PlaceMarker(symbol.contains("+"), symbol.contains("-"), symbol.contains("#")))).toVector,
+        atoms.getOrElse(Set.empty[AtomSignature]).toSet
+        )
+      )
+  }
+
+  private def functionSignature = function ~ "/" ~ arity ^^ {
+    case functionSymbol ~ "/" ~ functionArity =>
+      AtomSignature(lomrf.AUX_PRED_PREFIX + functionSymbol.trim, functionArity.toInt + 1)
+  }
+
+  private def predicateSignature = predicate ~ "/" ~ arity ^^ {
+    case predicateSymbol ~ "/" ~ predicateArity =>
+      AtomSignature(predicateSymbol.trim, predicateArity.toInt)
   }
 
   /**
-   * Parses an individual mode declaration from text
-   *
-   * @param src string representation of the mode declaration
-   * @return the resulting atom signature along the mode declaration
-   */
-  def parseMode(src: String): (AtomSignature, ModeDeclaration) = parse(mode, src) match {
-    case Success(expr, _) if expr.isInstanceOf[(AtomSignature, ModeDeclaration)] => expr.asInstanceOf[(AtomSignature, ModeDeclaration)]
+    * Parses an individual mode declaration from text
+    *
+    * @param src string representation of the mode declaration
+    * @return the resulting atom signature along the mode declaration
+    */
+  private def parseMode(src: String): (AtomSignature, ModeDeclaration) = parse(mode, src) match {
+    case Success(expr: (AtomSignature, ModeDeclaration), _) => expr
     case x => fatal("Can't parse the following expression: " + x)
   }
 }
 
 /**
- * Mode parser object used to parse mode declarations from source. Source could
- * be a file or a iterable of strings.
+ * Mode parser object used to parse mode declarations from a given source. The source can
+ * be a simple string, a file or an iterable of strings.
  */
 object ModeParser {
 
@@ -88,37 +150,60 @@ object ModeParser {
   private lazy val log = Logger(this.getClass)
   import log._
 
-  def parseFrom(sources: Iterable[String]): ModeDeclarations = sources.map(parser.parseMode).toMap
+  /**
+    * Parses an individual mode declaration from a given string.
+    *
+    * @param source string representation of the mode declaration
+    *
+    * @return a tuple of an [[lomrf.logic.AtomSignature]] along a [[lomrf.mln.learning.structure.ModeDeclaration]]
+    */
+  def parseFrom(source: String): (AtomSignature, ModeDeclaration) = parser.parseMode(source)
 
-  def parseFrom(modesFileName: String): ModeDeclarations = {
+  /**
+    * Parses a set of mode declarations from a given iterable of strings.
+    *
+    * @param sources an iterable of mode declaration strings
+    *
+    * @return a map from [[lomrf.logic.AtomSignature]] to [[lomrf.mln.learning.structure.ModeDeclaration]]
+    */
+  def parseFrom(sources: Iterable[String]): ModeDeclarations = sources.map(parseFrom).toMap
 
-    val modeFile = new File(modesFileName)
-    val fileReader = new BufferedReader(new FileReader(modeFile))
+  /**
+    * Parses a set of mode declarations from a given file.
+    *
+    * @param modesFile a [[java.io.File]] object
+    *
+    * @return a map from [[lomrf.logic.AtomSignature]] to [[lomrf.mln.learning.structure.ModeDeclaration]]
+    */
+  def parseFrom(modesFile: File): ModeDeclarations = {
+
+    val fileReader = new BufferedReader(new FileReader(modesFile))
 
     parser.parseAll(parser.modeDeclarations, fileReader) match {
-      case parser.Success(expr, _) => expr.asInstanceOf[ModeDeclarations]
-      case x => fatal("Can't parse the following expression: " + x +" in file: " + modeFile.getPath)
+      case parser.Success(expr: ModeDeclarations, _) => expr
+      case x => fatal("Can't parse the following expression: " + x +" in file: " + modesFile.getPath)
     }
   }
-
 }
 
 /**
- * Defines the mode declaration for a specific predicate schema (atom signature).
- *
- * @param recall limits the number of appearances in a clause
- * @param placemarkers vector of modes for each variable in the predicate
- */
-final case class ModeDeclaration(recall: Int = Int.MaxValue, placemarkers: Vector[PlaceMarker]) {
-  override def toString = "mode(" + (if(recall == Int.MaxValue) "*" else recall) + "," + placemarkers.mkString(",") + ")"
+  * Definition of a mode declaration.
+  *
+  * @param recall limits the number of appearances in a clause
+  * @param placeMarkers vector of modes for each variable in the predicate or function
+  * @param incompatibleSignatures a set of incompatible atom signatures
+  */
+final case class ModeDeclaration(recall: Int = Int.MaxValue, placeMarkers: Vector[PlaceMarker], incompatibleSignatures: Set[AtomSignature]) {
+  override def toString =
+    "mode(" + (if(recall == Int.MaxValue) "*" else recall) + "," + placeMarkers.mkString(",") + ", " + incompatibleSignatures.toString + ")"
 }
 
 /**
- * Defines the mode of a specific variable.
+ * Defines the place marker of a specific variable.
  *
  * @param input is input variable
  * @param output is output variable
- * @param constant the variable would be constant (forbids varabilization)
+ * @param constant the argument would remain constant
  */
 final case class PlaceMarker(input: Boolean, output: Boolean, constant: Boolean) {
 
@@ -127,6 +212,8 @@ final case class PlaceMarker(input: Boolean, output: Boolean, constant: Boolean)
   def isInputOnly: Boolean = input && !output
 
   def isOutputOnly: Boolean = !input && output
+
+  def isConstant: Boolean = constant
 
   override def toString =
     if(input && output && constant) "#+-"
@@ -139,20 +226,38 @@ final case class PlaceMarker(input: Boolean, output: Boolean, constant: Boolean)
     else "."
 }
 
+/**
+  * Object for [[lomrf.mln.learning.structure.PlaceMarker]]
+  */
 object PlaceMarker {
 
   /**
-   * @return input placemarker
+   * An input place marker
    */
-  def input = new PlaceMarker(true, false, false)
+  val input = new PlaceMarker(true, false, false)
 
   /**
-   * @return output placemarker
-   */
-  def output = new PlaceMarker(false, true, false)
+    * An input and constant place marker
+    */
+  val inputConstant = new PlaceMarker(true, false, true)
 
   /**
-   * @return ignore placemarker
+   * An output place marker
    */
-  def ignore = new PlaceMarker(false, false, false)
+  val output = new PlaceMarker(false, true, false)
+
+  /**
+    * An output and constant place marker
+    */
+  val outputConstant = new PlaceMarker(false, true, true)
+
+  /**
+   * An ignore place marker
+   */
+  val ignore = new PlaceMarker(false, false, false)
+
+  /**
+    * An ignore and constant place marker
+    */
+  val ignoreConstant = new PlaceMarker(false, false, true)
 }

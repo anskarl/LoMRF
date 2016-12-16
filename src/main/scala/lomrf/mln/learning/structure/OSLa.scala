@@ -219,14 +219,14 @@ final class OSLa private(kb: KB, constants: ConstantsDomain, evidenceAtoms: Set[
       case None => trainingEvidence.getEvidence
     }
 
-    // Construct hypergraph
+    // Construct HyperGraph
     val HG = HyperGraph(mln, evidence.db, annotationDB, modes, Some(pathTemplates))
-    info(s"Hypergraph has ${HG.numberOfNodes} nodes (constants) and ${HG.numberOfEdges} edges (true ground atoms)")
-    debug(s"Hypergraph Structure:\n$HG")
+    info(s"HyperGraph has ${HG.numberOfNodes} nodes (constants) and ${HG.numberOfEdges} edges (true ground atoms)")
+    debug(s"HyperGraph Structure:\n$HG")
 
-    // Search for paths using relational pathfinding
+    // Search for paths using relational path finding
     val (pathFindingRuntime, paths) = measureTime { HG.findPaths(misclassifiedAtomIDs, maxLength, allowFreeVariables) }
-    info(s"'Relational Pathfinding': ${paths.size} paths found in ${msecTimeToText(pathFindingRuntime)}")
+    info(s"'Relational PathFinding': ${paths.size} paths found in ${msecTimeToText(pathFindingRuntime)}")
     debug(s"Paths:\n${paths.map(_.toText(mln)).mkString("\n")}")
 
     val (createClausesRuntime, resultedDefiniteClauses) = measureTime {

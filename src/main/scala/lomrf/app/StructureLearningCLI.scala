@@ -247,7 +247,7 @@ object StructureLearningCLI extends CLIApp {
     )
 
     // Parse all mode declarations from file
-    val modes = ModeParser.parseFrom(strModeFileName)
+    val modes = ModeParser.parseFrom(new File(strModeFileName))
     info("Modes Declarations: \n" + modes.map(pair => "\t" + pair._1 + " -> " + pair._2).reduce(_ + "\n" + _))
 
     if(_templateAtoms.isEmpty) {
