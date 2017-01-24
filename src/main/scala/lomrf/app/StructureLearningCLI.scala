@@ -182,7 +182,10 @@ object StructureLearningCLI extends CLIApp {
     var learnedClauses = Vector[Clause]()
 
     val strMLNFileName = _mlnFileName.getOrElse(fatal("Please specify an input MLN file."))
-    val strTrainingFileNames = _trainingFileName.getOrElse(fatal("Please specify input training file(s)."))
+    val strTrainingFileNames = _trainingFileName match {
+      case Some(list) => list.sorted
+      case None => fatal("Please specify input training file(s).")
+    }
     val strModeFileName = _modesFileName.getOrElse(fatal("Please specify an input mode declaration file."))
 
     val outputWriter = _outputFileName match {

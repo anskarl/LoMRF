@@ -90,7 +90,10 @@ object TemplateExtractor {
                             partition(clause => clause.literals.exists(hasTemplateAtom))
 
     val completedFormulas =
-      PredicateCompletion(axiomFormulas.map(a => if (a.weight.isNaN) a.copy(weight = 1.0) else a), kb.definiteClauses) (kb.predicateSchema, kb.functionSchema, constants)
+      PredicateCompletion(
+        axiomFormulas.map(a => if (a.weight.isNaN) a.copy(weight = 1.0) else a),
+        kb.definiteClauses)(kb.predicateSchema, kb.functionSchema, constants)
+        .filterNot(_.formula.signatures.exists(templateAtoms.contains))
 
     // In case template atoms are given, but there is no hard-constraint formula defined containing them -> warn or error???
     if (axioms.isEmpty && templateAtoms.nonEmpty)
