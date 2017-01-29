@@ -201,8 +201,12 @@ object LoMRFBuild extends AutoPlugin {
         // Make consumer script executable
         runRaw(s"chmod +x $targetDir/bin/lomrf")
 
+
+        runRaw("mkdir /data")
         // set working dir
-        workDir(s"$targetDir")
+        workDir(s"/data")
+
+        volume("/data")
 
         entryPoint(s"$targetDir/bin/lomrf")
       }
