@@ -1,19 +1,8 @@
-name := "LoMRF"
+addCommandAlias("build", ";compile;test;package;package-src;package-doc")
+addCommandAlias("rebuild", ";clean;build")
 
-version := "0.5.3-SNAPSHOT"
+scalaVersion := "2.11.8"
 
-// Load LoMRF Build settings
-LoMRFBuild.settings
-
-enablePlugins(JavaAppPackaging)
-
-/** Dependencies */
-resolvers ++= Seq(
-	"typesafe" at "http://repo.typesafe.com/typesafe/releases/",
-	"sonatype-oss-public" at "https://oss.sonatype.org/content/groups/public/")
-
-resolvers += Resolver.sonatypeRepo("snapshots")
-	
 // Scala-lang
 libraryDependencies ++= Seq(
   "org.scala-lang" % "scala-library" % scalaVersion.value,
