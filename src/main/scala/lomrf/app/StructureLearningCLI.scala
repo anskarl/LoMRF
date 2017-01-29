@@ -22,7 +22,7 @@ object StructureLearningCLI extends CLIApp {
   private var _outputFileName: Option[String] = None
 
   // Input training file(s) (path)
-  private var _trainingFileName: Option[List[String]] = None
+  private var _trainingFileNames: Option[List[String]] = None
 
   // The set of non evidence atoms (in the form of AtomName/Arity)
   private var _nonEvidenceAtoms = Set[AtomSignature]()
@@ -92,8 +92,8 @@ object StructureLearningCLI extends CLIApp {
   opt("t", "training", "<training file | folder>", "Training database file", {
     v: String =>
       val file = new java.io.File(v)
-      if(file.isDirectory) _trainingFileName = Some(file.listFiles().filter(file => file.getName.matches(".*[.]db")).map(file => file.getPath).toList)
-      else _trainingFileName = Some(v.split(',').toList)
+      if(file.isDirectory) _trainingFileNames = Some(file.listFiles().filter(file => file.getName.matches(".*[.]db")).map(file => file.getPath).toList)
+      else _trainingFileNames = Some(v.split(',').toList)
   })
 
   opt("m", "modes", "<mode file>", "Mode declarations file", {
@@ -176,16 +176,17 @@ object StructureLearningCLI extends CLIApp {
     sys.exit(0)
   })
 
-  def structLearn() = {
+  private def structLearn() = {
 
     // Clauses found across all learning steps
     var learnedClauses = Vector[Clause]()
 
     val strMLNFileName = _mlnFileName.getOrElse(fatal("Please specify an input MLN file."))
-    val strTrainingFileNames = _trainingFileName match {
-      case Some(list) => list.sorted
-      case None => fatal("Please specify input training file(s).")
-    }
+
+    val strTrainingFileNames = _trainingFileNames
+      .map(files => files.sorted)
+      .getOrElse(fatal("Please specify input training file(s)."))
+
     val strModeFileName = _modesFileName.getOrElse(fatal("Please specify an input mode declaration file."))
 
     val outputWriter = _outputFileName match {
