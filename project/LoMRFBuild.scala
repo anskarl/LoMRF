@@ -41,6 +41,9 @@ import de.heikoseeberger.sbtheader.HeaderPlugin.autoImport.headers
 import com.typesafe.sbt.SbtNativePackager.Universal
 import com.typesafe.sbt.SbtNativePackager.autoImport._
 import com.typesafe.sbt.packager.archetypes.JavaAppPackaging
+import com.typesafe.sbt.packager.universal.UniversalPlugin.autoImport.stage
+import sbtdocker.DockerPlugin.autoImport._
+import sbtdocker.mutable.Dockerfile
 
 
 object LoMRFBuild extends AutoPlugin {
@@ -84,7 +87,8 @@ object LoMRFBuild extends AutoPlugin {
       baseProjectSettings ++
         ScalaSettings ++
         JavaSettings ++
-        PackagingOptions
+        PackagingOptions ++
+        DockerSettings
     }
   }
 
@@ -170,6 +174,56 @@ object LoMRFBuild extends AutoPlugin {
       "-language:implicitConversions",
       "-Ybackend:GenBCode" //use the new optimisation level
     )
+  )
+
+  private lazy val DockerSettings: Seq[Setting[_]] = Seq(
+    dockerfile in docker := {
+      val DistName = s"${name.value}-${version.value}"
+
+      val universalBuildDir: File = stage.value
+
+      val targetDir = s"/opt/$DistName"
+
+      new Dockerfile {
+
+        // Base image
+        from("frolvlad/alpine-oraclejdk8")
+
+        // Copy to docker
+        copy(universalBuildDir, targetDir)
+
+        // Add Bash support
+        runRaw("apk add --update bash")
+
+        // clean up package cache to reduce space
+        runRaw("rm -rf /var/cache/apk/*")
+
+        // Make consumer script executable
+        runRaw(s"chmod +x $targetDir/bin/lomrf")
+
+        // set working dir
+        workDir(s"$targetDir")
+
+        entryPoint(s"$targetDir/bin/lomrf")
+      }
+    },
+
+    imageNames in docker := {
+      val localTag = ImageName(s"${name.value.toLowerCase}:latest")
+
+      // Set a name with a tag that contains the project version.
+      val versionTag = ImageName(s"${organization.value}/${name.value.toLowerCase}:${version.value}")
+
+      // Set a name with the latest tag, only for stable versions.
+      if(!isSnapshot.value) {
+        val latestTag = ImageName(s"${organization.value}/${name.value.toLowerCase}:latest")
+        Seq(versionTag, latestTag, localTag)
+      }
+      else Seq(versionTag, localTag)
+
+    },
+
+    buildOptions in docker := BuildOptions(cache = false)
   )
 
   lazy val projectHeaders = Map(

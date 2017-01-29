@@ -10,3 +10,5 @@ addSbtPlugin("com.scalapenos" % "sbt-prompt" % "1.0.0")
 addSbtPlugin("com.github.gseitz" % "sbt-release" % "1.0.4")
 
 addSbtPlugin("de.heikoseeberger" % "sbt-header" % "1.6.0")
+
+addSbtPlugin("se.marcuslonnberg" % "sbt-docker" % "1.4.0")
