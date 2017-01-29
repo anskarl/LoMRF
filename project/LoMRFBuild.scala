@@ -33,13 +33,13 @@
  *
  */
 
-
 import sbt._
 import sbt.Keys._
 import sbt.plugins.JvmPlugin
 import de.heikoseeberger.sbtheader._
 import de.heikoseeberger.sbtheader.HeaderPlugin.autoImport.headers
 import com.typesafe.sbt.SbtNativePackager.Universal
+import com.typesafe.sbt.SbtNativePackager.autoImport._
 import com.typesafe.sbt.packager.archetypes.JavaAppPackaging
 
 
@@ -67,14 +67,9 @@ object LoMRFBuild extends AutoPlugin {
   private final val javaVersion: Double = sys.props("java.specification.version").toDouble
 
   override def requires: Plugins = {
-    JvmPlugin && JavaAppPackaging && AutomateHeaderPlugin
+    JvmPlugin && JavaAppPackaging && HeaderPlugin && AutomateHeaderPlugin
   }
 
-  /*
-   * -------------------------------------------------------------------------------------------------------------------
-   * --- The functionality that we want this plug-in to provide
-   * -------------------------------------------------------------------------------------------------------------------
-   */
   override def projectSettings: Seq[Setting[_]] = settings
 
   /**
@@ -100,11 +95,8 @@ object LoMRFBuild extends AutoPlugin {
     name := "LoMRF",
     headers := projectHeaders,
 
-    autoScalaLibrary := true,
+    autoScalaLibrary := false,
     managedScalaInstance := true,
-
-    logLevel in Test := Level.Info,
-    logLevel in Compile := Level.Error,
 
     // fork a new JVM for 'run' and 'test:run'
     fork := true,
@@ -116,9 +108,25 @@ object LoMRFBuild extends AutoPlugin {
 
     publishTo := Some(Resolver.file("file",  new File(Path.userHome.absolutePath+"/.m2/repository"))),
 
-    resolvers += Resolver.typesafeRepo("releases"),
-    resolvers += Resolver.sonatypeRepo("releases"),
-    resolvers += Resolver.sonatypeRepo("snapshots")
+    resolvers ++= Seq(
+      Resolver.typesafeRepo("releases"),
+      Resolver.sonatypeRepo("releases"),
+      Resolver.sonatypeRepo("snapshots")
+    ),
+
+    libraryDependencies ++= Seq(
+      "org.scala-lang" % "scala-library" % scalaVersion.value,
+      "org.scala-lang" % "scala-reflect" % scalaVersion.value,
+      "org.scala-lang.modules" %% "scala-parser-combinators" % "1.0.4"
+    ),
+
+    dependencyOverrides ++= Set(
+      "org.scala-lang" % "scala-compiler" % scalaVersion.value,
+      "org.scala-lang" % "scala-library" % scalaVersion.value,
+      "org.scala-lang" % "scala-reflect" % scalaVersion.value,
+      "org.scala-lang.modules" %% "scala-parser-combinators" % "1.0.4",
+      "org.scala-lang.modules" %% "scala-xml" % "1.0.5"
+    )
   )
 
   private lazy val PackagingOptions: Seq[Setting[_]] = Seq(
@@ -137,7 +145,10 @@ object LoMRFBuild extends AutoPlugin {
       scriptsDir.listFiles.toSeq.map { f =>
         f -> ("etc/" + f.getName)
       }
-    }
+    },
+
+    // File name of universal distribution
+    packageName in Universal := s"${name.value}-${version.value}"
   )
 
   private lazy val JavaSettings: Seq[Setting[_]] = Seq(
@@ -161,7 +172,7 @@ object LoMRFBuild extends AutoPlugin {
     )
   )
 
-  private lazy val projectHeaders = Map(
+  lazy val projectHeaders = Map(
     "scala" -> (
       HeaderPattern.cStyleBlockComment,
       """
@@ -198,8 +209,8 @@ object LoMRFBuild extends AutoPlugin {
         | * You should have received a copy of the GNU Lesser General Public License
         | * along with LoMRF. If not, see <http://www.gnu.org/licenses/>.
         | *
-        |
-      """.stripMargin.trim
+        | */
+      """.stripMargin.trim + "\n\n"
     )
   )
 

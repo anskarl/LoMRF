@@ -32,6 +32,7 @@
  * along with LoMRF. If not, see <http://www.gnu.org/licenses/>.
  *
  */
+
 package lomrf.mln.model
 
 import org.scalatest.{Matchers, FunSpec}

@@ -1,57 +1,15 @@
-addCommandAlias("build", ";compile;test;package;package-src;package-doc")
+addCommandAlias("build", ";createHeaders;compile;test;package")
 addCommandAlias("rebuild", ";clean;build")
 
-scalaVersion := "2.11.8"
-
-// Scala-lang
-libraryDependencies ++= Seq(
-  "org.scala-lang" % "scala-library" % scalaVersion.value,
-  "org.scala-lang" % "scala-reflect" % scalaVersion.value
-)
-
-// Akka.io
-libraryDependencies ++= Seq(
-	"com.typesafe.akka" %% "akka-actor"  % "2.3.14",
-	"com.typesafe.akka" %% "akka-remote" % "2.3.14",
-	"com.typesafe.akka" %% "akka-slf4j"  % "2.3.14"
-)
-
-// Logging with slf4j and logback
-libraryDependencies ++= Seq(
-	"ch.qos.logback" % "logback-classic" % "1.1.7",
-	"ch.qos.logback" % "logback-core" % "1.1.7",
-	"org.slf4j" % "slf4j-api" % "1.7.21"
-)
-
-// GNU Trove4j for high performance and memory efficient data-structures
-libraryDependencies += "net.sf.trove4j" % "trove4j" % "3.0.3"
-
-// Unit testing
-libraryDependencies += "org.scalatest" %% "scalatest" % "2.2.6" % "test"
-
-// Optimized Range foreach loops
-libraryDependencies += "com.nativelibs4java" %% "scalaxy-streams" % "0.3.4" % "provided"
-
-// JTS Topology API for modelling and manipulating 2-dimensional linear geometry
-libraryDependencies += "com.vividsolutions" % "jts-core" % "1.14.0"
-
-// Adding auxlib library requires local publishing (for details see https://github.com/anskarl/auxlib)
-libraryDependencies += "com.github.anskarl" %% "auxlib" % "0.2.0"
-
-// Adding optimus library requires local publishing (for details see https://github.com/vagm/Optimus)
-libraryDependencies += "com.github.vagmcs" %% "optimus" % "2.0.0"
-libraryDependencies += "com.github.vagmcs" %% "optimus-solver-oj" % "2.0.0"
-libraryDependencies += "com.github.vagmcs" %% "optimus-solver-lp" % "2.0.0"
-libraryDependencies += "com.github.vagmcs" %% "optimus-solver-gurobi" % "2.0.0"
-
-// jansi
-libraryDependencies += "org.fusesource.jansi" % "jansi" % "1.11"
-
-libraryDependencies += "org.scala-lang.modules" %% "scala-parser-combinators" % "1.0.4"
-
-// Scala-modules
-dependencyOverrides += "org.scala-lang" % "scala-compiler" % scalaVersion.value
-dependencyOverrides += "org.scala-lang" % "scala-library" % scalaVersion.value
-dependencyOverrides += "org.scala-lang" % "scala-reflect" % scalaVersion.value
-dependencyOverrides += "org.scala-lang.modules" %% "scala-parser-combinators" % "1.0.4"
-dependencyOverrides += "org.scala-lang.modules" %% "scala-xml" % "1.0.5"
+lazy val lomrf = Project("LoMRF", file("."))
+  .enablePlugins(AutomateHeaderPlugin)
+  .enablePlugins(JavaAppPackaging)
+	.settings(scalaVersion := "2.11.8")
+	.settings(headers := LoMRFBuild.projectHeaders)
+	.settings(logLevel in Test := Level.Info)
+	.settings(logLevel in Compile := Level.Error)
+	.settings(libraryDependencies ++= Dependencies.Akka)
+	.settings(libraryDependencies ++= Dependencies.Logging)
+	.settings(libraryDependencies ++= Dependencies.Utils)
+	.settings(libraryDependencies ++= Dependencies.Optimus)
+	.settings(libraryDependencies += Dependencies.ScalaTest)
