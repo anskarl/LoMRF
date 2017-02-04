@@ -315,31 +315,34 @@ object InferenceCLI extends CLIApp {
       case None => System.out
     }
 
-    info("Parameters:"
-      + "\n\t(q) Query predicate(s): " + _queryAtoms.map(_.toString).mkString(", ")
-      + "\n\t(cwa) Closed-world assumption predicate(s): " + (if (_cwa.isEmpty) "empty" else _cwa.map(_.toString).mkString(", "))
-      + "\n\t(owa) Open-world assumption predicate(s): " + (if (_owa.isEmpty) "empty" else _owa.map(_.toString).mkString(", "))
-      + "\n\t(marginal) Perform marginal inference: " + _marginalInference
-      + "\n\t(mws) Perform MAP inference using MaxWalkSAT: " + _mws
-      + "\n\t(all) Show 0/1 results for all query atoms: " + _mapOutputAll
-      + "\n\t(satHardUnit) Trivially satisfy hard constrained unit clauses: " + _satHardUnit
-      + "\n\t(satHardPriority) Satisfiability priority to hard constrained clauses: " + _satHardPriority
-      + "\n\t(ilpRounding) Rounding algorithm used in ILP map inference: " + (if (_ilpRounding == RoundingScheme.ROUNDUP) "RoundUp" else "MaxWalkSAT")
-      + "\n\t(ilpSolver) Solver used by ILP map inference: " + (if (_ilpSolver == Solver.GUROBI) "Gurobi" else "LPSolve")
-      + "\n\t(samples) Number of samples to take: " + _samples
-      + "\n\t(pSA) Probability to perform simulated annealing: " + _pSA
-      + "\n\t(pBest) Probability to perform a greedy search: " + _pBest
-      + "\n\t(saTemperature) Temperature for the simulated annealing step: " + _saTemperature
-      + "\n\t(maxFlips) Maximum number of flips: " + _maxFlips
-      + "\n\t(maxTries) Maximum number of attempts: " + _maxTries
-      + "\n\t(targetCost) Target cost: " + _targetCost
-      + "\n\t(tabuLength) Minimum number of flips between flipping the same atom: " + _tabuLength
-      + "\n\t(numSolutions) Number of solutions in MC-SAT: " + _numSolutions
-      + "\n\t(lateSA) Simulated annealing is performed only when MC-SAT reaches a plateau: " + _lateSA
-      + "\n\t(noNegWeights) Eliminate negative weights: " + _noNeg
-      + "\n\t(noNegatedUnit) Eliminate negated ground unit clauses: " + _eliminateNegatedUnit
-      + "\n\t(unitProp) Perform unit-propagation: " + _unitProp
-    )
+    info{
+      s"""
+         |Parameters:
+         |  (q) Query predicate(s):  ${_queryAtoms.map(_.toString).mkString(", ")}
+         |  (cwa) Closed-world assumption predicate(s): ${if (_cwa.isEmpty) "empty" else _cwa.map(_.toString).mkString(", ")}
+         |  (owa) Open-world assumption predicate(s): ${if (_owa.isEmpty) "empty" else _owa.map(_.toString).mkString(", ")}
+         |  (marginal) Perform marginal inference: ${_marginalInference}
+         |  (mws) Perform MAP inference using MaxWalkSAT: ${_mws}
+         |  (all) Show 0/1 results for all query atoms: ${_mapOutputAll}
+         |  (satHardUnit) Trivially satisfy hard constrained unit clauses: ${_satHardUnit}
+         |  (satHardPriority) Satisfiability priority to hard constrained clauses: ${_satHardPriority}
+         |  (ilpRounding) Rounding algorithm used in ILP map inference: ${_ilpRounding}
+         |  (ilpSolver) Solver used by ILP map inference: ${_ilpSolver}
+         |  (samples) Number of samples to take: ${_samples}
+         |  (pSA) Probability to perform simulated annealing: ${_pSA}
+         |  (pBest) Probability to perform a greedy search: ${_pBest}
+         |  (saTemperature) Temperature for the simulated annealing step: ${_saTemperature}
+         |  (maxFlips) Maximum number of flips: ${_maxFlips}
+         |  (maxTries) Maximum number of attempts: ${_maxTries}
+         |  (targetCost) Target cost: ${_targetCost}
+         |  (tabuLength) Minimum number of flips between flipping the same atom: ${_tabuLength}
+         |  (numSolutions) Number of solutions in MC-SAT: ${_numSolutions}
+         |  (lateSA) Simulated annealing is performed only when MC-SAT reaches a plateau: ${_lateSA}
+         |  (noNegWeights) Eliminate negative weights: ${_noNeg}
+         |  (noNegatedUnit) Eliminate negated ground unit clauses: ${_eliminateNegatedUnit}
+         |  (unitProp) Perform unit-propagation: ${_unitProp}
+       """.stripMargin
+    }
 
     val dynamicDefinitionsOpt = _implPaths.map(paths => {
       val implFinder = ImplFinder(classOf[DynamicAtomBuilder], classOf[DynamicFunctionBuilder])

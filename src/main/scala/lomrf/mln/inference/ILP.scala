@@ -376,7 +376,10 @@ final class ILP(mrf: MRF, annotationDB: Map[AtomSignature, AtomEvidenceDB] = Map
  */
 object RoundingScheme extends Enumeration {
   type RoundingScheme = Value
-  val ROUNDUP, MWS = Value
+
+  val ROUNDUP= Value(0, "RoundUp")
+
+  val MWS = Value(1, "MaxWalkSAT")
 }
 
 /**
@@ -384,5 +387,8 @@ object RoundingScheme extends Enumeration {
  */
 object Solver extends Enumeration {
   type Solver = Value
-  val GUROBI, LPSOLVE, OJALGO = Value
+
+  val GUROBI = Value(0,"Gurobi")
+  val LPSOLVE = Value(1, "lp_solve")
+  val OJALGO = Value(2, "ojAlgo")
 }
