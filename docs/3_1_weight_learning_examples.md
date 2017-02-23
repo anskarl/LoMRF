@@ -1,12 +1,12 @@
 # Weight Learning Examples
 
-Below we provide simple example models, in order to demonstrate weight learning in LoMRF. Recall that sources from the following examples are located in the [LoMRF-data](https://github.com/anskarl/LoMRF-data) project (follow the instructions in [Download Example Data](6_2_download_example_data.md)).
+Below we provide simple example models, in order to demonstrate weight learning in LoMRF. Recall that sources from the following examples are located in the [LoMRF-data](https://github.com/anskarl/LoMRF-data) project (follow the instructions in [Download Example Data](7_2_download_example_data.md)).
 
 ## Social Network Analysis
 
 We would like to model a simple social network of friends, smoking, and cancer. The network attempts to model friendship ties between people, their smoking habits and the causality of cancer (see [original example](http://alchemy.cs.washington.edu/tutorial/3Social_Network_Analysis.html)).
 
-The sources of this example can be found in `Data/Examples/Weight_Learning/Friends_Smokers` in the sub-module **Data** (see the instructions in Section [Download Example Data](6_2_download_example_data.md)).
+The sources of this example can be found in `Data/Examples/Weight_Learning/Friends_Smokers` in the sub-module **Data** (see the instructions in Section [Download Example Data](7_2_download_example_data.md)).
 
 
 ### Knowledge Base
@@ -88,7 +88,7 @@ We assume that each day a car may take one of the following actions (1) *stopped
 
 In a Markov process we need to model `states` and `observations` at certain points in `time`. Using first-order logic representation we can model a `state` and `observation` using predicates. On the other hand, *time*, *car states* and *traffic light observations* are represented as variables in each one of these predicates.
 
-The sources of this example can be found in `Data/Examples/Weight_Learning/Car_Traffic` in the sub-module **Data** (see the instructions in Section [Download Example Data](6_2_download_example_data.md)).
+The sources of this example can be found in `Data/Examples/Weight_Learning/Car_Traffic` in the sub-module **Data** (see the instructions in Section [Download Example Data](7_2_download_example_data.md)).
 
 ### Knowledge base.
 

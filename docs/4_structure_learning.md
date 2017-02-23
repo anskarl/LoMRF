@@ -2,7 +2,7 @@
 
 LoMRF employs structure learning using on-line algorithms, in order to update the structure and its weights at each learning step according to a sequence of training examples (micro-batches). Compare to batch learning methods, the main benefits of on-line structure learning is that it can scale to problems with large amount of data and that can revise/refine an MLN model according to new training examples.
 
-The supported algorithms are *OSL* and *OSLa* -- for details see [Huynh and Mooney (2011)](8_references.md) and [Michelioudakis et. al. (2016)](8_references.md).
+The supported algorithms are *OSL* and *OSLa* -- for details see [Huynh and Mooney (2011)](9_references.md) and [Michelioudakis et. al. (2016)](9_references.md).
 
 
 ## Types of structure learning in LoMRF
@@ -51,7 +51,7 @@ The results of learning are stored in the `learned.mln` (see parameter `-o`)
 
 ## Structure Learning Examples
 
-For a detailed structure learning tutorial in LoMRF, see Sections [Structure Learning Examples](4_1_structure_learning_examples.md). Sources from the examples are located in the [LoMRF-data](https://github.com/anskarl/LoMRF-data) project (follow the instructions in [Download Example Data](6_2_download_example_data.md)).
+For a detailed structure learning tutorial in LoMRF, see Sections [Structure Learning Examples](4_1_structure_learning_examples.md). Sources from the examples are located in the [LoMRF-data](https://github.com/anskarl/LoMRF-data) project (follow the instructions in [Download Example Data](7_2_download_example_data.md)).
 
 ## Command-line Interface Options ##
 

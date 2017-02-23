@@ -32,6 +32,7 @@ LoMRF is an open-source implementation of [Markov Logic Networks](https://en.wik
   * Reads and produces [Alchemy](http://alchemy.cs.washington.edu/alchemy1.html) compatible MLN files.
 6. Can export ground MRF in various formats (**lomrf export**).
 7. Can compare MLN theories (**lomrf diff**).
+8. Online supervision completion on semi-supervised training sets [*currently experimental*] (**lomrf supervision**)
 
 
 ## Documentation

@@ -49,8 +49,8 @@ object Dependencies {
     final val Scalaxy = "0.3.4"
     final val AuxLib = "0.3.0"
     final val JANSI = "1.11"
+    final val Breeze = "0.12"
   }
-
 
   // Akka.io
   lazy val Akka = Seq(
@@ -58,7 +58,6 @@ object Dependencies {
     "com.typesafe.akka" %% "akka-remote" % v.Akka,
     "com.typesafe.akka" %% "akka-slf4j"  % v.Akka
   )
-
 
   // Logging with slf4j and logback
   lazy val Logging = Seq(
@@ -86,17 +85,20 @@ object Dependencies {
     "com.github.anskarl" %% "auxlib-opt" % v.AuxLib,
     "com.github.anskarl" %% "auxlib-trove" % v.AuxLib,
 
-    "org.fusesource.jansi" % "jansi" % v.JANSI
+    "org.fusesource.jansi" % "jansi" % v.JANSI,
+
+    // Breeze library for efficient numerical processing
+    "org.scalanlp" %% "breeze" % v.Breeze,
+   "org.scalanlp" %% "breeze-natives" % v.Breeze
+
   )
 
+  // Optimus library for linear and quadratic optimization
   lazy val Optimus = Seq(
     "com.github.vagmcs" %% "optimus" % v.Optimus,
     "com.github.vagmcs" %% "optimus-solver-oj" % v.Optimus,
     "com.github.vagmcs" %% "optimus-solver-lp" % v.Optimus,
     "com.github.vagmcs" %% "optimus-solver-gurobi" % v.Optimus
   )
-
-
-
 
 }

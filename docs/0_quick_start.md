@@ -1,11 +1,11 @@
 # Quick Start
 
-Assuming that you have successfully build a LoMRF distribution and added LoMRF executables in your default `PATH` (see [Build and Test LoMRF](6_build_test_lomrf.md)). In the following paragraphs we present our first LoMRF model and perform probabilistic inference.
+Assuming that you have successfully build a LoMRF distribution and added LoMRF executables in your default `PATH` (see [Build and Test LoMRF](7_build_test_lomrf.md)). In the following paragraphs we present our first LoMRF model and perform probabilistic inference.
 
 ## Running Example
 
 For our running example we use the [Yale Shooting Problem](https://en.wikipedia.org/wiki/Yale_shooting_problem),
-a well-known AI test case of non-monotonic temporal reasoning which was proposed by [Hanks and McDermott (1987)](8_references.md).
+a well-known AI test case of non-monotonic temporal reasoning which was proposed by [Hanks and McDermott (1987)](9_references.md).
 In brief, a hunter tries to kill a prey with his gun.  Only when the hunter shoots with a loaded gun the prey is being
 killed.
 
@@ -14,7 +14,7 @@ alive). The series of actions and situations occur in linear time. Furthermore, 
 happen (e.g., the hunter loads the gun), causing related situations to hold or not (e.g., the gun is loaded).
 
 To demonstrate the core features of  LoMRF, we model the Yale Shooting scenario by using the
-[Event Calculus](https://en.wikipedia.org/wiki/Event_calculus) (see [Kowalski and Sergot (1986), Shanahan (1999) and Mueller (2008)](8_references.md))
+[Event Calculus](https://en.wikipedia.org/wiki/Event_calculus) (see [Kowalski and Sergot (1986), Shanahan (1999) and Mueller (2008)](9_references.md))
 logical action formalism. In the Event Calculus we represent *actions* with *events* and *situations* with *fluents*.
 More formally, a fluent is a property whose value may change over time. When an event occurs it may change the value of a fluent.
 The underlying time  model is linear and we represent time-points as integer numbers. The core domain-independent axioms of
@@ -156,7 +156,7 @@ time-point.
 
 All four formulas are hard-constrained, thus they do not have any weight value, instead they have a dot at the end. The reason that
 we use hard-constrained formulas to express the core Event Calculus axioms, is that we want to hold with absolute
-certainty. Further details about the probabilistic Event Calculus formalism of our example can be found in [Skarlatidis et. al. (2011, 2014, 2015)](8_references.md).
+certainty. Further details about the probabilistic Event Calculus formalism of our example can be found in [Skarlatidis et. al. (2011, 2014, 2015)](9_references.md).
 
 ### Domain-dependent axioms (expressed as definite clauses)
 

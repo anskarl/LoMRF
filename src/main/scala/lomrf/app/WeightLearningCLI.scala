@@ -22,8 +22,9 @@ import lomrf.logic.AtomSignature
 import lomrf.logic.AtomSignatureOps._
 import lomrf.mln.grounding.MRFBuilder
 import lomrf.mln.inference.Solver
-import lomrf.mln.learning.weight.{OnlineLearner, LossFunction, MaxMarginLearner}
+import lomrf.mln.learning.weight.{LossFunction, MaxMarginLearner, OnlineLearner}
 import lomrf.mln.model.MLN
+import lomrf.util.NaturalComparator
 import lomrf.util.time._
 
 /**
@@ -38,7 +39,7 @@ object WeightLearningCLI extends CLIApp {
   private var _outputFileName: Option[String] = None
 
   // Input training file(s) (path)
-  private var _trainingFileName: Option[List[String]] = None
+  private var _trainingFileName: Option[Array[String]] = None
 
   // The set of non evidence atoms (in the form of AtomName/Arity)
   private var _nonEvidenceAtoms = Set[AtomSignature]()
@@ -117,8 +118,9 @@ object WeightLearningCLI extends CLIApp {
   opt("t", "training", "<training file | folder>", "Training database file", {
     v: String =>
       val file = new java.io.File(v)
-      if(file.isDirectory) _trainingFileName = Some(file.listFiles().filter(file => file.getName.matches(".*[.]db")).map(file => file.getPath).toList)
-      else _trainingFileName = Some(v.split(',').toList)
+      if (file.isDirectory) _trainingFileName =
+        Some(file.listFiles().filter(file => file.getName.matches(".*[.]db")).map(file => file.getPath))
+      else _trainingFileName = Some(v.split(','))
   })
 
   opt("ne", "non-evidence atoms", "<string>", "Comma separated non-evidence atoms. "
@@ -202,10 +204,12 @@ object WeightLearningCLI extends CLIApp {
     sys.exit(0)
   })
 
-  def weightLearn() = {
+  def weightLearn(): Unit = {
 
     val strMLNFileName = _mlnFileName.getOrElse(fatal("Please specify an input MLN file."))
-    val strTrainingFileNames = _trainingFileName.getOrElse(fatal("Please specify input training file(s)."))
+    val strTrainingFileNames = _trainingFileName
+      .map(_.sortWith(NaturalComparator.compareBool))
+      .getOrElse(fatal("Please specify input training file(s)."))
 
     val outputWriter = _outputFileName match {
       case Some(fileName) => new PrintStream(new FileOutputStream(fileName), true)
@@ -237,11 +241,17 @@ object WeightLearningCLI extends CLIApp {
 
     if(_algorithm == Algorithm.MAX_MARGIN) {
 
-      val (mln, annotationDB) = MLN.forLearning(strMLNFileName, strTrainingFileNames, _nonEvidenceAtoms, addUnitClauses = _addUnitClauses)
+      if(_ilpSolver != Solver.GUROBI) {
+        warn("For MAX_MARGIN training, only GUROBI solver is supported. Switching to GUROBI.")
+        _ilpSolver = Solver.GUROBI
+      }
+
+      val (mln, annotationDB) = MLN.forLearning(strMLNFileName, strTrainingFileNames.toList, _nonEvidenceAtoms, addUnitClauses = _addUnitClauses)
 
       info("AnnotationDB: "
         + "\n\tAtoms with annotations: " + annotationDB.keys.map(_.toString).reduceLeft((left, right) => left + "," + right)
       )
+
       info(mln.toString)
 
       info("Number of CNF clauses = " + mln.clauses.size)

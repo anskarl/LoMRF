@@ -17,7 +17,30 @@
 
 package lomrf.util.evaluation
 
+import java.io.PrintStream
+
 object Metrics {
+
+  /**
+    * Report the results of metrics into a selected output stream.
+    *
+    * @param out output stream for results (default is console)
+    */
+  def report(evaluationStats: EvaluationStats, out: PrintStream = System.out): Unit = {
+
+    val (tp, tn, fp, fn) = evaluationStats
+
+    val accuracy = this.accuracy(tp, fp, tn, fn)
+    val precision = this.precision(tp, fp, fn)
+    val recall = this.recall(tp, fp, fn)
+    val f1 = this.f1(tp, fp, fn)
+
+    out.println(s"TP: $tp TN: $tn FP: $fp FN: $fn")
+    out.println(s"Accuracy: $accuracy")
+    out.println(s"Precision: $precision")
+    out.println(s"Recall: $recall")
+    out.println(s"F1-Score: $f1")
+  }
 
   /**
    * Computation of precision based on true positives, false positives.
@@ -186,7 +209,7 @@ object Metrics {
 
   def areaUnder(curve: Iterable[(Double, Double)], x0: Double, y0: Double, xN: Double, yN: Double): Double = {
 
-    @inline def calcArea(x1: Double, y1: Double, x2: Double, y2: Double): Double = (y1 + y2) * (x2-x1) / 2.0
+    @inline def calcArea(x1: Double, y1: Double, x2: Double, y2: Double): Double = (y1 + y2) * (x2 - x1) / 2.0
 
     var area = 0.0
     var xPrev = x0

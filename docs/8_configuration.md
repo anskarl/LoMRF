@@ -1,6 +1,6 @@
 # Configuration Parameters
 
-Assuming that you have successfully created a LoMRF distribution from sources (see [Build and Link LoMRF](6_1_build_and_link_lomrf.md))
+Assuming that you have successfully created a LoMRF distribution from sources (see [Build and Link LoMRF](7_1_build_and_link_lomrf.md))
 and that you have extracted the distribution into some path (e.g., `/path/to/your/compiled/LoMRF/`). You may want to
 adjust the following runtime parameters.
 

@@ -40,7 +40,7 @@ directory.
 
 **Optional step 4.** Run Unit tests.
 In order to run Unit tests, you need to download example data. Please follow the instructions in 
-[Download Example and Unit Testing Data](6_2_download_example_data.md). LoMRF uses the [ScalaTest](http://www.scalatest.org) 
+[Download Example and Unit Testing Data](7_2_download_example_data.md). LoMRF uses the [ScalaTest](http://www.scalatest.org) 
 framework for unit testing.
 
 To run all tests (**requires LPSolve and Gurobi solvers installed**), give the following command inside the SBT console:

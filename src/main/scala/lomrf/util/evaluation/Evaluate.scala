@@ -17,27 +17,67 @@
 
 package lomrf.util.evaluation
 
-import lomrf.logic.AtomSignature
+import scala.collection.parallel.ParSeq
+import lomrf.logic.{AtomSignature, EvidenceAtom, UNKNOWN}
 import lomrf.mln.model.{AtomEvidenceDB, MLN}
 import lomrf.mln.model.mrf.GroundAtom
-import lomrf.util._
-
-import scala.collection.parallel.ParIterable
 
 object Evaluate {
 
   /**
-   * Count the number of true positives, true negatives, false positives and false negatives in the given MRF,
-   * regarding the specified annotation.
-   *
-   * @param atoms a par-iterable collection of ground atoms
-   * @param annotationDB the annotated state of ground atoms
-   *
-   * @return the counted true positives, true negatives, false positives and false negatives
-   */
-  def apply(atoms: ParIterable[GroundAtom], annotationDB: Map[AtomSignature, AtomEvidenceDB])(implicit mln: MLN): EvaluationStats ={
-    atoms
-      .map{ groundAtom =>
+    * @return an empty evaluation tuple
+    */
+  def empty: EvaluationStats  = (0, 0, 0, 0)
+
+  /**
+    * Count the number of true positives, true negatives, false positives and false negatives in the given evidence atoms,
+    * regarding the specified annotation.
+    *
+    * @param atoms a par-iterable collection of evidence atoms
+    * @param annotationDB the annotated state of ground atoms
+    * @param previousEvaluation previous evaluation stats to be combined (optional)
+    *
+    * @return the counted true positives, true negatives, false positives and false negatives
+    */
+  def apply(atoms: ParSeq[EvidenceAtom],
+            annotationDB: Map[AtomSignature, AtomEvidenceDB],
+            previousEvaluation: Option[EvaluationStats]): EvaluationStats = {
+
+    if (atoms.isEmpty) previousEvaluation match {
+      case Some(previousStats) => return previousStats
+      case None => return empty
+    }
+
+    require(atoms.forall(_.state != UNKNOWN) , "All evidence atoms should have known truth values.")
+
+    val currentStats = atoms.map { evidenceAtom =>
+        val truthValue = evidenceAtom.state.value
+        val db = annotationDB(evidenceAtom.signature)
+        val annotation = db(evidenceAtom.terms.map(_.toString))
+        evaluateSingle(truthValue > 0, annotation)
+      }.reduce(combine)
+
+    previousEvaluation match {
+      case Some(previousStats) => combine(previousStats, currentStats)
+      case None => currentStats
+    }
+  }
+
+  /**
+    * Count the number of true positives, true negatives, false positives and false negatives in the given MRF,
+    * regarding the specified annotation.
+    *
+    * @param atoms a par-iterable collection of ground atoms
+    * @param annotationDB the annotated state of ground atoms
+    * @param previousEvaluation previous evaluation stats to be combined (optional)
+    *
+    * @return the counted true positives, true negatives, false positives and false negatives
+    */
+  def apply(atoms: ParSeq[GroundAtom],
+            annotationDB: Map[AtomSignature, AtomEvidenceDB],
+            previousEvaluation: Option[EvaluationStats])(implicit mln: MLN): EvaluationStats = {
+
+    val currentStats = atoms.map{ groundAtom =>
         val inferredState = groundAtom.getState
         val gid = groundAtom.id
         val signature = mln.space.signatureOf(gid)
@@ -45,26 +85,34 @@ object Evaluate {
         evaluateSingle(inferredState, annotationState)
       }
       .reduce(combine)
+
+    previousEvaluation match {
+      case Some(previousStats) => combine(previousStats, currentStats)
+      case None => currentStats
+    }
   }
 
   /**
-   * Count the number of true positives, true negatives, false positives and false negatives in the given MRF,
-   * regarding the specified annotation.
-   *
-   * @param atoms a par-iterable collection of ground atoms
-   * @param annotationDB the annotated state of ground atoms
-   * @param samples the number of samples taken during marginal inference
-   * @param threshold the minimum probability that we assume as true state (e.g., recognised, classified, etc.)
-   *
-   * @return the counted true positives, true negatives, false positives and false negatives
-   */
-  def apply(atoms: ParIterable[GroundAtom], annotationDB: Map[AtomSignature, AtomEvidenceDB], samples: Int, threshold: Double = 0.5)(implicit mln: MLN): EvaluationStats ={
+    * Count the number of true positives, true negatives, false positives and false negatives in the given MRF,
+    * regarding the specified annotation.
+    *
+    * @param atoms a par-iterable collection of ground atoms
+    * @param annotationDB the annotated state of ground atoms
+    * @param samples the number of samples taken during marginal inference
+    * @param threshold the minimum probability that we assume as true state (e.g., recognised, classified, etc.)
+    * @param previousEvaluation previous evaluation stats to be combined (optional)
+    *
+    * @return the counted true positives, true negatives, false positives and false negatives
+    */
+  def apply(atoms: ParSeq[GroundAtom],
+            annotationDB: Map[AtomSignature, AtomEvidenceDB],
+            samples: Int, threshold: Double = 0.5,
+            previousEvaluation: Option[EvaluationStats])(implicit mln: MLN): EvaluationStats = {
 
-    require( threshold > 0.0 && threshold < 1.0, "Threshold value should be between 0 and 1.")
-    require( samples > 0 , "Number of samples should be great than zero.")
+    require(threshold > 0.0 && threshold < 1.0, "Threshold value should be between 0 and 1.")
+    require(samples > 0, "Number of samples should be great than zero.")
 
-    atoms
-      .map{ groundAtom =>
+    val currentStats = atoms.map{ groundAtom =>
         val inferredProbability = groundAtom.getTruesCount * 1.0 / samples
         val state = inferredProbability >= threshold
         val gid = groundAtom.id
@@ -73,6 +121,11 @@ object Evaluate {
         evaluateSingle(state, annotationState)
       }
       .reduce(combine)
+
+    previousEvaluation match {
+      case Some(previousStats) => combine(previousStats, currentStats)
+      case None => currentStats
+    }
   }
 
 }

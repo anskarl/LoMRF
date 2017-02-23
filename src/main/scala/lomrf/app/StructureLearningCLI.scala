@@ -18,13 +18,15 @@
 package lomrf.app
 
 import java.io._
-import lomrf.logic.{Clause, AtomSignature}
+
+import lomrf.logic.{AtomSignature, Clause}
 import lomrf.mln.inference.Solver
 import lomrf.mln.learning.structure.ClauseConstructor.ClauseType
 import lomrf.mln.learning.structure.ModeParser
 import lomrf.mln.model.KB
 import lomrf.mln.learning.structure._
 import lomrf.logic.AtomSignatureOps._
+import lomrf.util.NaturalComparator
 import lomrf.util.time._
 
 /**
@@ -39,7 +41,7 @@ object StructureLearningCLI extends CLIApp {
   private var _outputFileName: Option[String] = None
 
   // Input training file(s) (path)
-  private var _trainingFileNames: Option[List[String]] = None
+  private var _trainingFileNames: Option[Array[String]] = None
 
   // The set of non evidence atoms (in the form of AtomName/Arity)
   private var _nonEvidenceAtoms = Set[AtomSignature]()
@@ -109,8 +111,9 @@ object StructureLearningCLI extends CLIApp {
   opt("t", "training", "<training file | folder>", "Training database file", {
     v: String =>
       val file = new java.io.File(v)
-      if(file.isDirectory) _trainingFileNames = Some(file.listFiles().filter(file => file.getName.matches(".*[.]db")).map(file => file.getPath).toList)
-      else _trainingFileNames = Some(v.split(',').toList)
+      if (file.isDirectory) _trainingFileNames =
+        Some(file.listFiles().filter(file => file.getName.matches(".*[.]db")).map(file => file.getPath))
+      else _trainingFileNames = Some(v.split(','))
   })
 
   opt("m", "modes", "<mode file>", "Mode declarations file", {
@@ -139,8 +142,8 @@ object StructureLearningCLI extends CLIApp {
     v: Int => if (v < 0) fatal("The evaluation threshold must be any integer above zero, but you gave: " + v) else _threshold = v
   })
 
-  intOpt("theta", "tolerance-theta", "Tolerance theta threshold for discarding clauses having poor weights at the end of learning (default is " + _theta + ").", {
-    v: Int => if (v < 0) fatal("Theta threshold must be any integer above zero, but you gave: " + v) else _theta = v
+  doubleOpt("theta", "tolerance-theta", "Tolerance theta threshold for discarding clauses having poor weights at the end of learning (default is " + _theta + ").", {
+    v: Double => if (v < 0) fatal("Theta threshold must be any integer above zero, but you gave: " + v) else _theta = v
   })
 
   opt("clauseType", "clause-type", "<horn | conjunction | both>", "Type of clauses to be produced (default is both).", {
@@ -201,7 +204,7 @@ object StructureLearningCLI extends CLIApp {
     val strMLNFileName = _mlnFileName.getOrElse(fatal("Please specify an input MLN file."))
 
     val strTrainingFileNames = _trainingFileNames
-      .map(files => files.sorted)
+      .map(_.sortWith(NaturalComparator.compareBool))
       .getOrElse(fatal("Please specify input training file(s)."))
 
     val strModeFileName = _modesFileName.getOrElse(fatal("Please specify an input mode declaration file."))

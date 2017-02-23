@@ -1,12 +1,12 @@
 # Temporal Weight Learning Examples
 
-Below we provide examples that demonstrate LoMRF weight learning capabilities in the domain of temporal reasoning. Recall that sources from the following examples are located in the [LoMRF-data](https://github.com/anskarl/LoMRF-data) project (follow the instructions in [Download Example Data](6_2_download_example_data.md)).
+Below we provide examples that demonstrate LoMRF weight learning capabilities in the domain of temporal reasoning. Recall that sources from the following examples are located in the [LoMRF-data](https://github.com/anskarl/LoMRF-data) project (follow the instructions in [Download Example Data](7_2_download_example_data.md)).
 
 ## Activity Recognition
 
 In this example we demonstrate how to perform weight learning for activity recognition, using a small fragment of the first set of the [CAVIAR dataset](http://homepages.inf.ed.ac.uk/rbf/CAVIARDATA1/). We use the approach that is proposed by [Skarlatidis et. al. (2014, 2015)](8_referencies.md), that employs the Probabilistic Event Calculus formalism as presented in the Section [Quick Start](0_quick_start.md) and the knowledge base that is defined in the [Temporal Inference Examples](2_2_temporal_inference_examples.md).
 
-Recall that in Section [Knowledge Base](1_1_knowledge_base.md) we presented a special type of formulas, named [Definite Clauses](1_1_knowledge_base.md#definite-clauses), as well as their properties and their limitations regarding predicate completion (for details see the works of [McCarthy, 1980](8_references.md) and [Lifschitz, 1994](8_references.md)).
+Recall that in Section [Knowledge Base](1_1_knowledge_base.md) we presented a special type of formulas, named [Definite Clauses](1_1_knowledge_base.md#definite-clauses), as well as their properties and their limitations regarding predicate completion (for details see the works of [McCarthy, 1980](9_references.md) and [Lifschitz, 1994](9_references.md)).
 
 ### Training data
 
@@ -107,7 +107,7 @@ Where '-i theory.mln' is the original input theory MLN file, '-o theory_cnf.mln'
 
 ### Weight Learning
 
-Once we have applied the preprocessing step, we can proceed to the weight learning step. Recall that sources from the examples are located in the [LoMRF-data](https://github.com/anskarl/LoMRF-data) project (follow the instructions in [Download Example Data](6_2_download_example_data.md)). The files of this example are the following:
+Once we have applied the preprocessing step, we can proceed to the weight learning step. Recall that sources from the examples are located in the [LoMRF-data](https://github.com/anskarl/LoMRF-data) project (follow the instructions in [Download Example Data](7_2_download_example_data.md)). The files of this example are the following:
   * Knowledge base files:
     * Main MLN file in CNF: `Data/Examples/Weight_Learning/Activity_Recognition/theory_cnf.mln`
     * Definitions of moving activity: `Data/Examples/Weight_Learning/Activity_Recognition/definitions/moving.mln`

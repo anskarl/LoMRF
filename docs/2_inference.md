@@ -76,7 +76,7 @@ The results from MAP inference are stored in the `map-out.result` (see paramter 
 
 ## Probabilistic Inference Examples
 
-See Sections [Probabilistic Inference Examples](2_1_inference_examples.md) and [Temporal Probabilistic Inference Examples](2_2_temporal_inference_examples.md). Sources from the examples are located in the [LoMRF-data](https://github.com/anskarl/LoMRF-data) project (follow the instructions in [Download Example Data](6_2_download_example_data.md)).
+See Sections [Probabilistic Inference Examples](2_1_inference_examples.md) and [Temporal Probabilistic Inference Examples](2_2_temporal_inference_examples.md). Sources from the examples are located in the [LoMRF-data](https://github.com/anskarl/LoMRF-data) project (follow the instructions in [Download Example Data](7_2_download_example_data.md)).
 
 
 ## Command-line Interface Options
@@ -126,14 +126,14 @@ By default, all non-evidence atoms are open-world in LoMRF, except when are incl
 
 * `-inferType, --inference-type <map | marginal>` **[Optional]** Specify the inference type, either [MAP](https://en.wikipedia.org/wiki/Maximum_a_posteriori_estimation)
 or Marginal. By default LoMRF uses marginal inference, in order to estimate the marginal probabilities of all possible
-query predicate instantiations. MAP inference can be performed using either local-search algorithm (for details see [MaxWalkSAT](http://www.cs.rochester.edu/u/kautz/walksat/) and the works of [Selman et. al., 1993](8_references.md) and [Kautz et. al., 1997](8_references.md))
-or using an Integer Linear Programming ([ILP](https://en.wikipedia.org/wiki/Integer_programming)) solver ([Huynh and Mooney, 2011](8_references.md)). Marginal inference is estimated using the [MC-SAT](http://alchemy.cs.washington.edu/papers/poon06/) ([Hoifung and Domingos, 2006](8_references.md)) algorithm, that is a [Metropolis–Hastings](https://en.wikipedia.org/wiki/Metropolis%E2%80%93Hastings_algorithm) algorithm (a [Markov chain Monte Carlo](https://en.wikipedia.org/wiki/Markov_chain_Monte_Carlo) method) with [Slice-sampling](https://en.wikipedia.org/wiki/Slice_sampling) technique that combines [Simulated-Annealing](https://en.wikipedia.org/wiki/Simulated_annealing) with a local-search [SAT solver](https://en.wikipedia.org/wiki/Boolean_satisfiability_problem) ([MaxWalkSAT](http://www.cs.rochester.edu/u/kautz/walksat/)).
+query predicate instantiations. MAP inference can be performed using either local-search algorithm (for details see [MaxWalkSAT](http://www.cs.rochester.edu/u/kautz/walksat/) and the works of [Selman et. al., 1993](9_references.md) and [Kautz et. al., 1997](9_references.md))
+or using an Integer Linear Programming ([ILP](https://en.wikipedia.org/wiki/Integer_programming)) solver ([Huynh and Mooney, 2011](9_references.md)). Marginal inference is estimated using the [MC-SAT](http://alchemy.cs.washington.edu/papers/poon06/) ([Hoifung and Domingos, 2006](9_references.md)) algorithm, that is a [Metropolis–Hastings](https://en.wikipedia.org/wiki/Metropolis%E2%80%93Hastings_algorithm) algorithm (a [Markov chain Monte Carlo](https://en.wikipedia.org/wiki/Markov_chain_Monte_Carlo) method) with [Slice-sampling](https://en.wikipedia.org/wiki/Slice_sampling) technique that combines [Simulated-Annealing](https://en.wikipedia.org/wiki/Simulated_annealing) with a local-search [SAT solver](https://en.wikipedia.org/wiki/Boolean_satisfiability_problem) ([MaxWalkSAT](http://www.cs.rochester.edu/u/kautz/walksat/)).
 
 
 ### Advanced inference options
 
 * `-mapType, --map-type <mws | ilp>` **[Optional]** When inference is set to MAP (i.e., `-infer map`) we can define
-either [MaxWalkSAT](http://www.cs.rochester.edu/u/kautz/walksat/) ([Selman et. al., 1993; Kautz et. al., 1996](8_references.md)) or relaxed [Integer Linear Programming](https://en.wikipedia.org/wiki/Integer_programming) ([Huynh and Mooney, 2011](8_references.md))
+either [MaxWalkSAT](http://www.cs.rochester.edu/u/kautz/walksat/) ([Selman et. al., 1993; Kautz et. al., 1996](9_references.md)) or relaxed [Integer Linear Programming](https://en.wikipedia.org/wiki/Integer_programming) ([Huynh and Mooney, 2011](9_references.md))
 as MAP inference algorithm to use. By default LoMRF uses a variant of the MaxWalkSAT algorithm (with [TABU search](https://en.wikipedia.org/wiki/Tabu_search)).
 
 * `-mapOutput, --map-output-type <all | positive>` **[Optional]** When MAP inference is selected (i.e., `-infer map`) we
@@ -159,11 +159,11 @@ picks a recently unsatisfied hard-constrained clause (if any exists). In any oth
 
 
 * `-ilpRounding, --ilp-rounding <roundup | mws>` **[Optional]** Specify which rounding algorithm to use in ILP. LoMRF uses the
-algorithm proposed by [Huynh and Mooney (2011)](8_references.md), in which the ILP problem is relaxed as a standard LP problem.
+algorithm proposed by [Huynh and Mooney (2011)](9_references.md), in which the ILP problem is relaxed as a standard LP problem.
 The resulting LP solution, however, may not integral. As a result the solution may contain ground query predicates in
 which their state may be any number in the interval from 0 to 1, exclusive. Since, in MAP inference the solution should
 contain only 0/1 states for each resulting ground predicate, LoMRF employs a rounding algorithm to change the non-integral
-solutions to 0/1 state values. By default LoMRF uses the RoundUp algorithm of [Huynh and Mooney (2011)](8_references.md) (i.e., `-ilpRounding roundup`). Alternatively, LoMRF can run the local-search MaxWalkSAT only for the non-integral part (i.e., `-ilpRounding mws`).
+solutions to 0/1 state values. By default LoMRF uses the RoundUp algorithm of [Huynh and Mooney (2011)](9_references.md) (i.e., `-ilpRounding roundup`). Alternatively, LoMRF can run the local-search MaxWalkSAT only for the non-integral part (i.e., `-ilpRounding mws`).
 
 * `-ilpSolver, --ilp-solver <lpsolve | ojalgo | gurobi>` **[Optional]** When MAP inference is chosen to be solved using
 an ILP solver, we can specify which solver to use. We can choose between the open-source solvers

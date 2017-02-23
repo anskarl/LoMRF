@@ -2,7 +2,7 @@
 
 The weights of the soft-constrained clauses in Markov Logic Networks (MLNs) can be estimated from training data using supervised learning techniques. The goal is to learn a model (i.e., weighted clauses) by estimating the weight values from training examples. Since the learning paradigm is supervised, the training examples is a collection of input ground atoms (i.e., input evidence) and their corresponding output query atoms (i.e., annotation). The learned model should be capable of inferring as *correct as possible* the marginal probabilities or the maximum a-posteriori estimation of query atoms, given an input of ground evidence facts.
 
-There are several weight estimation methods in the literature, the majority of them are batch learning methods that optimise the conditional log likelihood of the Markov Logic model -- for example see the works of [Singla and Domingos (2005)](8_references.md) and [Lowd and Domingos (2007)](8_references.md). LoMRF implements batch and on-line weight learning methods that optimize the max-margin, that is the ratio between the probability of correct truth assignment of query atoms (taken by the training data) and the closest competing incorrect truth assignment (estimated by the trained model) -- for details see the works of [Huynh and Mooney, (2009, 2011)](8_references.md) and [Duchi et al. (2011)](8_references.md). Max-margin training is better suited to problems where the goal is to maximise the classification accuracy.
+There are several weight estimation methods in the literature, the majority of them are batch learning methods that optimise the conditional log likelihood of the Markov Logic model -- for example see the works of [Singla and Domingos (2005)](9_references.md) and [Lowd and Domingos (2007)](9_references.md). LoMRF implements batch and on-line weight learning methods that optimize the max-margin, that is the ratio between the probability of correct truth assignment of query atoms (taken by the training data) and the closest competing incorrect truth assignment (estimated by the trained model) -- for details see the works of [Huynh and Mooney, (2009, 2011)](9_references.md) and [Duchi et al. (2011)](9_references.md). Max-margin training is better suited to problems where the goal is to maximise the classification accuracy.
 
 ## Weight learning in LoMRF
 
@@ -57,7 +57,7 @@ Where the parameter '-alg' defines that we are using either 'CDA' or 'ADAGRAD' t
 
 ## Weight Leaning Examples
 
-For a detailed weight learning tutorial in LoMRF, see Sections [Weight Learning Examples](3_1_weight_learning_examples.md) and [Temporal Weight Learning Examples](3_2_temporal_weight_learning_examples.md). Sources from the examples are located in the [LoMRF-data](https://github.com/anskarl/LoMRF-data) project (follow the instructions in [Download Example Data](6_2_download_example_data.md)).
+For a detailed weight learning tutorial in LoMRF, see Sections [Weight Learning Examples](3_1_weight_learning_examples.md) and [Temporal Weight Learning Examples](3_2_temporal_weight_learning_examples.md). Sources from the examples are located in the [LoMRF-data](https://github.com/anskarl/LoMRF-data) project (follow the instructions in [Download Example Data](7_2_download_example_data.md)).
 
 ## Command-line Interface Options for Weight Learning
 

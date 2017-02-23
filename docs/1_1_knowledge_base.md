@@ -206,7 +206,7 @@ Otherwise, the resulting translation will keep the same weight value. The last r
 introduces the opposite direction, that is `head => disjunction of all body parts`. That formula is always
 hard-constraint and states that in order to have the *head* satisfied, at least one of the body parts must also be satisfied.
 Any other possibility doesn't affect the state of the head predicate. With that translation LoMRF implicitly introduces
-closed-world assumption to head predicates, using a technique that is called predicate completion (see [McCarthy, 1980; Lifschitz, 1994](8_references.md)).
+closed-world assumption to head predicates, using a technique that is called predicate completion (see [McCarthy, 1980; Lifschitz, 1994](9_references.md)).
 
 LoMRF tries to simplify the resulting knowledge base, by specializing as much as possible the predicate completion for each distinct head predicate.
 Specifically, the original predicate completion will result to a more general form, producing a single formula with an equivalence:
@@ -219,12 +219,12 @@ number variables (i.e., the additional variable `a`).
 
 > In contrast to the original predicate completion approach, LoMRF expresses the predicate completion in a decomposed form, that is one
 formula per definite clause and one single formula with the disjunctions of body parts. The implementation is based on the
-transformations presented in [Skarlatidis et. al. (2011, 2015)](8_references.md).
+transformations presented in [Skarlatidis et. al. (2011, 2015)](9_references.md).
 
 > Technically, the definite clauses are translated into logically stronger first-order formulas.
 In particular, LoMRF performs predicate completion for each *unique* head predicate in the knowledge base.
 In cases where some definitions of head predicates are missing, the corresponding missing definition are implicitly
-considered as *False*. For further details see [Skarlatidis et. al. (2011, 2015)](8_references.md), as well as
+considered as *False*. For further details see [Skarlatidis et. al. (2011, 2015)](9_references.md), as well as
 the [Advanced Cases](#advanced-cases) section.
 
 ### Advanced Cases
@@ -244,7 +244,7 @@ In such case, the translated formulas will be the following:
 Head(x,y) => Exist z Foo(x, z) ^ Bar(z, y).
 ```
 *Please note that during grounding existentially quantified formulas are replaced by the disjunction of their groundings
-(see [Domingos and Lowd, 2009](8_references.md)). This may lead to a large number of disjunctions and a combinatorial explosion of the number
+(see [Domingos and Lowd, 2009](9_references.md)). This may lead to a large number of disjunctions and a combinatorial explosion of the number
 of clauses, producing unmanageably large Markov networks.* ***This type of clauses should be avoided, if it is possible.***
 
 ***Partial definitions***

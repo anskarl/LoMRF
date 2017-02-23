@@ -1,8 +1,8 @@
 ## Online Structure Learning Examples
 
-Below we provide structure learning examples in LoMRF, using the *OSL* and *OSLa* algorithms -- for further details see the works of [Huynh and Mooney (2011)](8_references.md) and [Michelioudakis et. al. (2016)](8_references.md).
+Below we provide structure learning examples in LoMRF, using the *OSL* and *OSLa* algorithms -- for further details see the works of [Huynh and Mooney (2011)](9_references.md) and [Michelioudakis et. al. (2016)](9_references.md).
 
-Sources from the examples are located in the [LoMRF-data](https://github.com/anskarl/LoMRF-data) project (follow the instructions in [Download Example Data](6_2_download_example_data.md)).
+Sources from the examples are located in the [LoMRF-data](https://github.com/anskarl/LoMRF-data) project (follow the instructions in [Download Example Data](7_2_download_example_data.md)).
 
 ## OSL in Natural Language Processing
 
@@ -103,7 +103,7 @@ Center(B0013,P04)
 ```
 
 ### Structure Learning
-Recall that sources from the examples are located in the [LoMRF-data](https://github.com/anskarl/LoMRF-data) project (follow the instructions in [Download Example Data](6_2_download_example_data.md)), the files of this example are the following:
+Recall that sources from the examples are located in the [LoMRF-data](https://github.com/anskarl/LoMRF-data) project (follow the instructions in [Download Example Data](7_2_download_example_data.md)), the files of this example are the following:
   * Initiall empty MLN file: `Data/Examples/Structure_Learning/OSL_NLP/empty.mln`
   * Mode declaration file: `Data/Examples/Structure_Learning/OSL_NLP/citeceer.mln`
   * Training files for online learning: `Data/Examples/Structure_Learning/OSL_NLP/training/`
@@ -124,7 +124,7 @@ lomrf slearn -i empty.mln -t ./training/ -o learned.mln -m citeceer.modes -ne In
 
 In this example we demonstrate how to perform structure learning for activity recognition, using a fragment of the first
 set of the [CAVIAR dataset](http://homepages.inf.ed.ac.uk/rbf/CAVIARDATA1/). We use the same Probabilistic Event Calculus
-formalism as presented in the Section [Quick Start](0_quick_start.md) (for details see [Skarlatidis et. al., (2011, 2014, 2015)](8_references.md)) and an empty knowledge base having only the Probabilistic Event Calculus axioms.
+formalism as presented in the Section [Quick Start](0_quick_start.md) (for details see [Skarlatidis et. al., (2011, 2014, 2015)](9_references.md)) and an empty knowledge base having only the Probabilistic Event Calculus axioms.
 
 ### Knowledge base (empty.mln)
 
@@ -273,7 +273,7 @@ Happens(Active_ID1, 170)
 
 ### Structure Learning
 
-Recall that sources from the examples are located in the [LoMRF-data](https://github.com/anskarl/LoMRF-data) project (follow the instructions in [Download Example Data](6_2_download_example_data.md)), the files of this example are the following:
+Recall that sources from the examples are located in the [LoMRF-data](https://github.com/anskarl/LoMRF-data) project (follow the instructions in [Download Example Data](7_2_download_example_data.md)), the files of this example are the following:
 
   * Initially empty MLN file: `Data/Examples/Structure_Learning/OSLa_CAVIAR/meet.mln`
   * Mode declaration file: `Data/Examples/Structure_Learning/OSLa_CAVIAR/meet.modes`
