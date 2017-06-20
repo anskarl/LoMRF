@@ -37,8 +37,8 @@ package lomrf.mln.learning.weight
 
 import java.text.DecimalFormat
 import lomrf.mln.learning.weight.LossFunction.LossFunction
-import lomrf.mln.inference.Solver.Solver
-import lomrf.mln.inference.{Solver, ILP}
+import lomrf.mln.inference.Solver._
+import lomrf.mln.inference.ILP
 import lomrf.mln.model.AtomEvidenceDB
 import lomrf.util.time._
 import java.io.PrintStream
@@ -79,18 +79,26 @@ import scala.language.postfixOps
  * @param ilpSolver Solver type selection option for ILP inference (default is LPSolve)
  * @param L1Regularization Perform loss augmented inference using hamming distance (default is false)
  * @param printLearnedWeightsPerIteration Print learned weights for each iteration
- *
- *
- *
  */
 final class MaxMarginLearner(mrf: MRF, annotationDB: Map[AtomSignature, AtomEvidenceDB],
                              nonEvidenceAtoms: Set[AtomSignature], iterations: Int = 1000, C: Double = 1e+3, epsilon: Double = 0.001,
                              lossFunction: LossFunction = LossFunction.HAMMING, lossScale: Double = 1.0, nonMarginRescaling: Boolean = false,
-                             lossAugmented: Boolean = false, ilpSolver: Solver = Solver.LPSOLVE, L1Regularization: Boolean = false,
+                             lossAugmented: Boolean = false, ilpSolver: Solver = OJALGO, L1Regularization: Boolean = false,
                              printLearnedWeightsPerIteration: Boolean = false) extends Logging {
 
+  private val _ilpSolver = ilpSolver match {
+    case LPSOLVE =>
+      warn("MAX_MARGIN training is supported only by GUROBI and OJALGO solvers.\n" +
+        "Switching to OJALGO. In case you have a license, use GUROBI for better performance.")
+      OJALGO
+    case _ => ilpSolver
+  }
+
   // Select the appropriate mathematical programming solver
-  implicit val problem = LQProblem(SolverLib.gurobi)
+  implicit val problem = _ilpSolver match {
+    case OJALGO => LQProblem(SolverLib.ojalgo)
+    case _ => LQProblem(SolverLib.gurobi)
+  }
 
   // Number of first-order CNF clauses
   val numberOfClauses = mrf.mln.clauses.length
@@ -274,7 +282,7 @@ final class MaxMarginLearner(mrf: MRF, annotationDB: Map[AtomSignature, AtomEvid
    */
   @inline private def infer() = {
     updateConstraintWeights()
-    val solver = new ILP(mrf, annotationDB = annotationDB, lossAugmented = lossAugmented, ilpSolver = ilpSolver)
+    val solver = new ILP(mrf, annotationDB = annotationDB, lossAugmented = lossAugmented, ilpSolver = _ilpSolver)
     solver.infer()
   }
 

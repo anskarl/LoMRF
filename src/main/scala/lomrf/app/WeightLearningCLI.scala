@@ -255,11 +255,6 @@ object WeightLearningCLI extends CLIApp {
 
     if(_algorithm == Algorithm.MAX_MARGIN) {
 
-      if(_ilpSolver != Solver.GUROBI) {
-        warn("For MAX_MARGIN training, only GUROBI solver is supported. Switching to GUROBI.")
-        _ilpSolver = Solver.GUROBI
-      }
-
       val (mln, annotationDB) = MLN.forLearning(strMLNFileName, strTrainingFileNames, _nonEvidenceAtoms, addUnitClauses = _addUnitClauses)
 
       info("AnnotationDB: "
