@@ -98,8 +98,8 @@ class KB(val predicateSchema: PredicateSchema,
 
 object KB {
 
-  private lazy val formulaRegex = Pattern.compile(".*\\s=>\\s.*|.*\\s<=>\\s.*|.*\\s:-\\s.*|.*\\s^\\s.*|.*\\sv\\s.*|.*\\s!\\s.*|\\d.*|.*\\.")
-  private lazy val ignoreRegex = Pattern.compile("\\s*\\*.*|/\\*.*|//.*|\\s+")
+  private lazy val formulaRegex = Pattern.compile("^[^(//)](.*\\s=>\\s.*|.*\\s<=>\\s.*|.*\\s:-\\s.*|.*\\s^\\s.*|.*\\sv\\s.*|.*\\s!\\s.*|\\d.*|.*\\.)")
+  private lazy val ignoreRegex = Pattern.compile("(\\s*\\*.*|/\\*.*|//.*|\\s+)+")
   private lazy val log = Logger(this.getClass)
 
   def apply(predicateSchema: PredicateSchema,
@@ -199,7 +199,6 @@ object KB {
     while (fileReader.ready() && !stop) {
       val line = fileReader.readLine()
       lineIdx += 1
-
       if (!line.isEmpty) {
         if (formulaMatcher.reset(line).matches()) stop = true
         else if (!commentMatcher.reset(line).matches()) {
