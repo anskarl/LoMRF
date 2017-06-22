@@ -335,20 +335,21 @@ object PredicateCompletion extends Logging {
       info(s"\t\tProduced ${entries.size} completion formulas for '$signature'")
 
       // 2. Find which partial-grounded heads are missing, in order to introduce them as negated unit clauses to the theory (=complementary clauses)
-      val headPred = entries.head._1
-      val variabilizedPred = variabilizeAtom(headPred)
+      val headPredicate = entries.head._1
+      val variabilizedPredicate = variabilizeAtom(headPredicate)
 
-      val complementaryDomains = collectByKey[Variable, String](entries.keys.flatMap(p => extractTheta(Unify(variabilizedPred, p))))
-        .map{
-          case (v, collectedConstants) =>
-            v -> constants(v.domain).filter(c => !collectedConstants.contains(c))
-        }
+      val complementaryDomains =
+        collectByKey[Variable, String](entries.keys.flatMap(p => extractTheta(Unify(variabilizedPredicate, p))))
+          .map {
+            case (v, collectedConstants) =>
+              v -> constants(v.domain).filter(c => !collectedConstants.contains(c))
+          }
 
-      // 3. Add complementary clauses to the resulting knowledge base
+      // 3. Add complementary unit clauses to the resulting knowledge base
       val complementaryClauses = {
-        if(complementaryDomains.nonEmpty)
+        if(complementaryDomains.nonEmpty && complementaryDomains.values.forall(_.nonEmpty))
         (for (theta <- CartesianIterator(complementaryDomains); mappedTheta: Theta = theta.mapValues(Constant).asInstanceOf[Map[Term, Term]])
-          yield WeightedFormula.asHard(Not(variabilizedPred.substitute(mappedTheta)))).toList
+          yield WeightedFormula.asHard(Not(variabilizedPredicate.substitute(mappedTheta)))).toList
         else Nil
       }
 
@@ -358,7 +359,7 @@ object PredicateCompletion extends Logging {
 
       debug{
           s"""
-            |Head predicate: ${headPred.toText}
+            |Head predicate: ${headPredicate.toText}
             |Complementary domains: ${complementaryDomains.mkString(", ")}
             |Complementary clauses: ${complementaryClauses.map(_.toText).mkString(", ")}
           """.stripMargin
