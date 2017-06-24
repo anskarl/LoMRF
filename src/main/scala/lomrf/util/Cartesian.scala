@@ -68,19 +68,12 @@ object Cartesian {
 
     def apply(sets: scol.Map[Variable, Iterable[String]]): Iterator[Map[Variable, String]] = {
 
-      val arrayKeys = new Array[Variable](sets.size)
-      val arrayIterators = new Array[Iterator[String]](sets.size)
-      val arrayElements = new Array[String](sets.size)
-      val arrayIterables = new Array[Iterable[String]](sets.size)
+      val arrayIterables : Array[Iterable[String]] = sets.values.toArray
+      val arrayIterators : Array[Iterator[String]] = arrayIterables.map(_.toIterator)
 
-      var idx = 0
-      for ((k, v) <- sets.iterator) {
-        arrayKeys(idx) = k
-        arrayIterables(idx) = v
-        arrayIterators(idx) = v.iterator
-        arrayElements(idx) = arrayIterators(idx).next()
-        idx += 1
-      }
+      val arrayElements : Array[String] = arrayIterables.flatMap(el => el)
+      val arrayKeys : Array[Variable] = sets.keys.toArray
+
 
       new CartesianIteratorMapImpl(arrayKeys, arrayIterables, arrayIterators, arrayElements)
     }
