@@ -71,9 +71,10 @@ object Cartesian {
       val arrayIterables : Array[Iterable[String]] = sets.values.toArray
       val arrayIterators : Array[Iterator[String]] = arrayIterables.map(_.toIterator)
 
-      val arrayElements : Array[String] = arrayIterables.flatMap(el => el)
       val arrayKeys : Array[Variable] = sets.keys.toArray
 
+      val valuesIterable : Iterable[String] = for { (k, v) <- sets } yield { v.mkString }
+      val arrayElements : Array[String] = valuesIterable.toArray
 
       new CartesianIteratorMapImpl(arrayKeys, arrayIterables, arrayIterators, arrayElements)
     }
@@ -139,12 +140,12 @@ object Cartesian {
 
     private val arrayLength = aKeys.length
     private var has_next = true
+    private var currentEl = 0
 
     def hasNext = has_next
 
     def next(): Map[Variable, String] = {
       var result = Map[Variable, String]()
-
       var i = 0
       while (i < arrayLength) {
         result = result + (aKeys(i) -> aElements(i))
@@ -173,6 +174,7 @@ object Cartesian {
       has_next = stop || idx != arrayLength
 
       result
+
     }
   }
 
