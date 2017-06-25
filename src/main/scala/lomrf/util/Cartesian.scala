@@ -140,7 +140,6 @@ object Cartesian {
 
     private val arrayLength = aKeys.length
     private var has_next = true
-    private var currentEl = 0
 
     def hasNext = has_next
 
