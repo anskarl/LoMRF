@@ -186,7 +186,7 @@ sealed case class TermFunction(override val symbol: String,
 
   lazy val signature = AtomSignature(symbol, terms.size)
 
-  lazy val variables: Set[Variable] = uniqueVariablesIn(this)
+  def variables: Set[Variable] = uniqueVariablesIn(this)
 
   lazy val constants: Set[Constant] = uniqueConstantsIn(this)
 

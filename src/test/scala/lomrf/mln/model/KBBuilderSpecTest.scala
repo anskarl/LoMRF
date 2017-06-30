@@ -35,9 +35,10 @@
 
 package lomrf.mln.model
 
-import lomrf.logic.{KBParser, AtomSignature}
-import org.scalatest.{Matchers, FunSpec}
-import lomrf.logic.predef.{dynFunctions, dynAtoms}
+import lomrf.logic.AtomSignature
+import lomrf.logic.parser.KBParser
+import org.scalatest.{FunSpec, Matchers}
+import lomrf.logic.predef.{dynAtoms, dynFunctions}
 
 /**
  * A series of API behaviour tests for KBBuilder

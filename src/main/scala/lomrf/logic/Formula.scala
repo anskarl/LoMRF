@@ -41,7 +41,7 @@ import lomrf.mln.model.ConstantsSet
 sealed trait Formula extends MLNExpression with Substitutable[Formula] with Serializable{
 
   // The collection of variables that appear inside this formula
-  @transient lazy val variables: Set[Variable] = subFormulas.foldRight(Set[Variable]())((f: FormulaConstruct, rest) => f.variables ++ rest)
+  def variables: Set[Variable] = subFormulas.foldRight(Set[Variable]())((f: FormulaConstruct, rest) => f.variables ++ rest)
 
   // The collection of constants that appear inside this formula
   @transient lazy val constants: Set[Constant] = subFormulas.foldRight(Set[Constant]())((f: FormulaConstruct, rest) => f.constants ++ rest)
@@ -158,7 +158,7 @@ sealed trait ConditionalStatement extends FormulaConstruct {
 
 final case class DefiniteClause(head: AtomicFormula, body: DefiniteClauseConstruct) extends Formula {
 
-  @transient override lazy val variables: Set[Variable] = body.subFormulas.foldRight(head.variables)((a: FormulaConstruct, b) => a.variables ++ b)
+  override def variables: Set[Variable] = body.subFormulas.foldRight(head.variables)((a: FormulaConstruct, b) => a.variables ++ b)
 
   @transient override lazy val constants: Set[Constant] = body.subFormulas.foldRight(head.constants)((a: FormulaConstruct, b) => a.constants ++ b)
 
@@ -237,6 +237,7 @@ final case class WeightedFormula(weight: Double, formula: FormulaConstruct) exte
   override def hashCode() = weight.hashCode() ^ formula.hashCode()
 
   override def equals(obj: Any) = obj match {
+    case WeightedFormula(w, f) if w.isNaN && weight.isNaN && f == formula => true
     case WeightedFormula(w, f) if w == weight && f == formula => true
     case _ => false
   }
@@ -270,6 +271,7 @@ final case class WeightedDefiniteClause(weight: Double, clause: DefiniteClause) 
   override def hashCode() = weight.hashCode() ^ clause.hashCode()
 
   override def equals(obj: Any) = obj match {
+    case WeightedDefiniteClause(w, c) if w.isNaN && weight.isNaN && c == clause => true
     case WeightedDefiniteClause(w, c) if w == weight && c == clause => true
     case _ => false
   }
@@ -313,7 +315,7 @@ case class AtomicFormula(symbol: String, terms: Vector[Term])
   /**
    * All variables of this atom
    */
-  @transient override lazy val variables: Set[Variable] = uniqueVariablesIn(this)
+  override def variables: Set[Variable] = uniqueVariablesIn(this)
 
   /**
    * All constants of this atom
@@ -386,7 +388,7 @@ final class EvidenceAtom(override val symbol: String, override val terms: Vector
                    val state: TriState, val probability: Double = Double.NaN) extends AtomicFormula(symbol, terms) with EvidenceExpression {
 
 
-  @transient override lazy val variables: Set[Variable] = Set.empty[Variable]
+  override def variables: Set[Variable] = Set.empty[Variable]
 
   @transient override lazy val constants: Set[Constant] = terms.toSet[Constant]
 
@@ -442,6 +444,14 @@ final class FunctionMapping(val retValue: String, val functionSymbol: String, va
     val symbol = lomrf.AUX_PRED_PREFIX + functionSymbol
     val terms = values.+:(retValue).map(Constant)
     EvidenceAtom.asTrue(symbol, terms)
+  }
+
+  override def equals(that: Any): Boolean = that match {
+    case fp: FunctionMapping =>
+      this.functionSymbol == fp.functionSymbol &&
+        this.retValue == fp.retValue &&
+        this.values == fp.values
+    case _ => false
   }
 
 }

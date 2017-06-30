@@ -35,6 +35,7 @@
 
 package lomrf.logic
 
+import lomrf.logic.parser.KBParser
 import org.scalatest.{FunSpec, Matchers}
 import lomrf.mln.model.{ConstantsSet, MLN}
 import lomrf.tests.TestData

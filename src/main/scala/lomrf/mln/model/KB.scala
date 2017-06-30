@@ -37,11 +37,14 @@ package lomrf.mln.model
 
 
 import auxlib.log.Logger
+
 import scala.collection.mutable
 import java.io.{BufferedReader, File, FileReader}
 import java.util.regex.Pattern
+
 import lomrf.logic._
 import lomrf.logic.dynamic.{DynamicAtomBuilder, DynamicFunctionBuilder}
+import lomrf.logic.parser.{DomainParser, KBParser}
 import lomrf.util.ImplFinder
 
 import scala.concurrent._

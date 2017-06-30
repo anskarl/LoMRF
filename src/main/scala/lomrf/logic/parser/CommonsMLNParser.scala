@@ -33,34 +33,31 @@
  *
  */
 
-package lomrf.logic
+package lomrf.logic.parser
 
-import util.parsing.combinator.{RegexParsers, JavaTokenParsers}
+import scala.util.matching.Regex
+import scala.util.parsing.combinator.{JavaTokenParsers, RegexParsers}
 
 /**
- * Contains common regular expressions for parsing
+ * Contains common regular expressions for parsing.
  */
-
 trait CommonsMLNParser extends JavaTokenParsers with RegexParsers {
-  val functionID = """[a-z]([a-zA-Z0-9]|_[a-zA-Z0-9])*\\([\w_\-,]+\\)""".r
 
-  val lowerCaseID = """([a-z][_a-zA-Z0-9]*)""".r
+  protected val functionID: Regex = """[a-z]([a-zA-Z0-9]|_[a-zA-Z0-9])*\\([\w_\-,]+\\)""".r
 
-  val variableArg = """(\+?([a-z]([a-zA-Z0-9]|_[a-zA-Z0-9])*))""".r
+  protected val lowerCaseID: Regex = """([a-z][_a-zA-Z0-9]*)""".r
+  protected val upperCaseID: Regex = """-?([_A-Z0-9][_a-zA-Z0-9]*)""".r
 
+  protected val variableArg: Regex = """(\+?([a-z]([a-zA-Z0-9]|_[a-zA-Z0-9])*))""".r
 
-  val upperCaseID = """-?([_A-Z0-9][_a-zA-Z0-9]*)""".r
-  val constOrVar = """[a-zA-Z0-9]([a-zA-Z0-9]|_[a-zA-Z0-9])*""".r
+  protected val constOrVar: Regex = """[a-zA-Z0-9]([a-zA-Z0-9]|_[a-zA-Z0-9])*""".r
 
-  val numDouble = "-?\\d+(\\.\\d+)?".r
-  val numPosInt = "\\d+".r
-  val exist = "Exist|EXIST".r
-  val forall = "Forall|FORALL".r
-  val quote = "\"".r
-  val includeID = """.+\.mln""".r
-  val dot = ".".r
+  protected val numDouble: Regex = "-?\\d+(\\.\\d+)?".r
+  protected val numPosInt: Regex = "\\d+".r
+  protected val exist: Regex = "Exist|EXIST".r
+  protected val forall: Regex = "Forall|FORALL".r
+  protected val quote: Regex = "\"".r
+  protected val includeID: Regex = """.+\.mln""".r
 
-  override val whiteSpace = """(\s|//.*\n|(/\*(?:.|[\n\r])*?\*/))+""".r
-
-
+  protected override val whiteSpace: Regex = """(\s|//.*\n|(/\*(?:.|[\n\r])*?\*/))+""".r
 }

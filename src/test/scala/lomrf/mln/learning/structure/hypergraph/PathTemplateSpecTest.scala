@@ -35,7 +35,8 @@
 
 package lomrf.mln.learning.structure.hypergraph
 
-import lomrf.logic.{AtomSignature, KBParser}
+import lomrf.logic.AtomSignature
+import lomrf.logic.parser.KBParser
 import lomrf.mln.model.ConstantsSet
 import org.scalatest.{FunSpec, Matchers}
 

@@ -35,7 +35,8 @@
 
 package lomrf.logic
 
-import org.scalatest.{Matchers, FunSpec}
+import lomrf.logic.parser.KBParser
+import org.scalatest.{FunSpec, Matchers}
 
 /**
  * A series of spec tests for Atomic formulas (a.k.a atoms and (atomic) predicates)

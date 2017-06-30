@@ -37,6 +37,7 @@ package lomrf.mln.model
 
 import lomrf.logic._
 import lomrf.logic.LogicOps._
+import lomrf.logic.parser.KBParser
 import lomrf.{AUX_PRED_PREFIX => FUNC_PREFIX}
 import lomrf.{FUNC_RET_VAR_PREFIX => RET_VAR}
 import org.scalatest.{FunSpec, Matchers}

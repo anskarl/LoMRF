@@ -35,9 +35,12 @@
 
 package lomrf.mln.model
 
-import java.io.{File, BufferedReader, FileReader}
+import java.io.{BufferedReader, File, FileReader}
+
 import auxlib.log.Logger
 import lomrf.logic._
+import lomrf.logic.parser.EvidenceParser
+
 import scala.util.Try
 import scala.collection.breakOut
 
