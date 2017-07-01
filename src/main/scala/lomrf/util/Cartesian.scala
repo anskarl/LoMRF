@@ -68,19 +68,13 @@ object Cartesian {
 
     def apply(sets: scol.Map[Variable, Iterable[String]]): Iterator[Map[Variable, String]] = {
 
-      val arrayKeys = new Array[Variable](sets.size)
-      val arrayIterators = new Array[Iterator[String]](sets.size)
-      val arrayElements = new Array[String](sets.size)
-      val arrayIterables = new Array[Iterable[String]](sets.size)
+      val arrayIterables : Array[Iterable[String]] = sets.values.toArray
+      val arrayIterators : Array[Iterator[String]] = arrayIterables.map(_.toIterator)
 
-      var idx = 0
-      for ((k, v) <- sets.iterator) {
-        arrayKeys(idx) = k
-        arrayIterables(idx) = v
-        arrayIterators(idx) = v.iterator
-        arrayElements(idx) = arrayIterators(idx).next()
-        idx += 1
-      }
+      val arrayKeys : Array[Variable] = sets.keys.toArray
+
+      val valuesIterable : Iterable[String] = for { (k, v) <- sets } yield { v.mkString }
+      val arrayElements : Array[String] = valuesIterable.toArray
 
       new CartesianIteratorMapImpl(arrayKeys, arrayIterables, arrayIterators, arrayElements)
     }
@@ -151,7 +145,6 @@ object Cartesian {
 
     def next(): Map[Variable, String] = {
       var result = Map[Variable, String]()
-
       var i = 0
       while (i < arrayLength) {
         result = result + (aKeys(i) -> aElements(i))
@@ -180,6 +173,7 @@ object Cartesian {
       has_next = stop || idx != arrayLength
 
       result
+
     }
   }
 
