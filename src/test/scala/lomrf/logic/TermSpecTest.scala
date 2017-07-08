@@ -38,12 +38,14 @@ package lomrf.logic
 import org.scalatest.{Matchers, FunSpec}
 
 /**
- * A series of spec tests for FOL terms.
- */
+  * A series of specification tests for FOL terms.
+  *
+  * @see [[lomrf.logic.Term]]
+  */
 final class TermSpecTest extends FunSpec with Matchers {
 
-  /**
-   * Test constant
+  /*
+   * Test constant terms
    */
   describe("The instance of Constant(Foo) is a constant, which") {
     val resultingTerm = Constant("Foo")
@@ -73,8 +75,8 @@ final class TermSpecTest extends FunSpec with Matchers {
     }
   }
 
-  /**
-   * Test Variables (untyped)
+  /*
+   * Test variable terms (untyped)
    */
   describe("The instance of Variable(x) is a variable, which") {
     val resultingTerm = Variable("x")
@@ -102,11 +104,10 @@ final class TermSpecTest extends FunSpec with Matchers {
     it("has domain: " + Variable.UNDEFINED_DOMAIN) {
       resultingTerm.domain shouldEqual Variable.UNDEFINED_DOMAIN
     }
-
   }
 
-  /**
-   * Test Variables (typed)
+  /*
+   * Test variable terms (typed)
    */
   describe("The instance of Variable(t,time) is a variable, which") {
     val resultingTerm = Variable("t", "time")
@@ -127,7 +128,7 @@ final class TermSpecTest extends FunSpec with Matchers {
       resultingTerm should not equal Constant("Foo")
     }
 
-    it("prints as 'x'") {
+    it("prints as 't'") {
       resultingTerm.toText should be("t")
     }
 
@@ -140,8 +141,8 @@ final class TermSpecTest extends FunSpec with Matchers {
     }
   }
 
-  /**
-   * Test Variables (typed and indexed)
+  /*
+   * Test variable terms (typed and indexed)
    */
   describe("The instance of Variable(t,time,10) is a variable, which") {
     val resultingTerm = Variable("t", "time", 10)
@@ -180,24 +181,23 @@ final class TermSpecTest extends FunSpec with Matchers {
     it("has index: 10") {
       resultingTerm.index shouldEqual 10
     }
-
   }
 
-
-  /**
-   * Test Functions
+  /*
+   * Test function terms
    *
-   * functions description: (TermFunction instance, string representation, arity, number of constants, number of variables )
+   * functions description:
+   * (TermFunction instance, string representation, arity, number of constants, number of variables )
    */
   val functionsDescription = List(
     (TermFunction("Foo", Vector(Constant("Bar"))), "Foo(Bar)", 1, 1, 0),
-    (TermFunction("Foo", Vector(Variable("x"), Constant("Bar"))), "Foo(x,Bar)", 2, 1, 1),
-    (TermFunction("Foo", Vector(Variable("x"), Constant("Bar"), Variable("y"))), "Foo(x,Bar,y)", 3, 1, 2),
-    (TermFunction("Foo", Vector(Variable("x"), Constant("Bar"), TermFunction("F", Vector(Variable("y"))))), "Foo(x,Bar,F(y))", 3, 1, 2),
-    (TermFunction("Foo", Vector(Variable("x"), Constant("Bar"), TermFunction("F", Vector(Variable("y"), Constant("G"))))), "Foo(x,Bar,F(y,G))", 3, 2, 2)
+    (TermFunction("Foo", Vector(Variable("x"), Constant("Bar"))), "Foo(x, Bar)", 2, 1, 1),
+    (TermFunction("Foo", Vector(Variable("x"), Constant("Bar"), Variable("y"))), "Foo(x, Bar, y)", 3, 1, 2),
+    (TermFunction("Foo", Vector(Variable("x"), Constant("Bar"), TermFunction("F", Vector(Variable("y"))))), "Foo(x, Bar, F(y))", 3, 1, 2),
+    (TermFunction("Foo", Vector(Variable("x"), Constant("Bar"), TermFunction("F", Vector(Variable("y"), Constant("G"))))), "Foo(x, Bar, F(y, G))", 3, 2, 2)
   )
 
-  for ((termFunction, strFunction, arity, nConstant, nVariables) <- functionsDescription) {
+  for ((termFunction, textFunction, arity, nConstant, nVariables) <- functionsDescription) {
     describe("The instance of '" + termFunction.toText + "' is a function, which") {
 
       it("has symbol 'Foo'") {
@@ -215,8 +215,11 @@ final class TermSpecTest extends FunSpec with Matchers {
       it("has '" + nVariables + "' variables(s)") {
         termFunction.variables.size should be(nVariables)
       }
+
+      it(s"prints as $textFunction") {
+        textFunction shouldEqual termFunction.toText
+      }
     }
   }
-
 
 }

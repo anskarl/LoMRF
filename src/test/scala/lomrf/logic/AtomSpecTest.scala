@@ -39,8 +39,11 @@ import lomrf.logic.parser.KBParser
 import org.scalatest.{FunSpec, Matchers}
 
 /**
- * A series of spec tests for Atomic formulas (a.k.a atoms and (atomic) predicates)
- */
+  * A series of specification tests for atomic formulas
+  * (a.k.a atoms and (atomic) predicates).
+  *
+  * @see [[lomrf.logic.AtomicFormula]]
+  */
 final class AtomSpecTest extends FunSpec with Matchers {
 
   private val predicateSchema = Map[AtomSignature, Vector[String]](
@@ -48,15 +51,15 @@ final class AtomSpecTest extends FunSpec with Matchers {
   )
 
   private val functionsSchema = Map[AtomSignature, (String, Vector[String])](
-    AtomSignature("walking", 1) ->("event", Vector("id"))
+    AtomSignature("walking", 1) -> ("event", Vector("id"))
   )
 
   private val parser = new KBParser(predicateSchema, functionsSchema)
 
-
-  /**
+  /*
    * Parse an atomic formula with two constants
    */
+
   describe("The sentence: 'HappensAt(Foo,10)'") {
     val strHappens = "Happens(Foo,10)"
     val atomHappens = AtomicFormula("Happens", Vector(Constant("Foo"), Constant("10")))
@@ -92,9 +95,10 @@ final class AtomSpecTest extends FunSpec with Matchers {
     }
   }
 
-  /**
+  /*
    * Parse an atomic formula with one constant and one variable
    */
+
   describe("The sentence: 'HappensAt(Foo,t)'") {
     val strHappens = "Happens(Foo,t)"
     val atomHappens = AtomicFormula("Happens", Vector(Constant("Foo"), Variable("t", "time")))
@@ -189,6 +193,5 @@ final class AtomSpecTest extends FunSpec with Matchers {
     }
 
   }
-
 
 }
