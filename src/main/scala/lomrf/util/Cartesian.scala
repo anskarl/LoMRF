@@ -49,7 +49,6 @@ import scala.language.postfixOps
  */
 object Cartesian {
 
-
   object CartesianIterator {
 
     def apply[T](sets: Iterable[Iterable[T]])(implicit m: Manifest[T]): Iterator[Array[T]] = {
@@ -68,13 +67,19 @@ object Cartesian {
 
     def apply(sets: scol.Map[Variable, Iterable[String]]): Iterator[Map[Variable, String]] = {
 
-      val arrayIterables : Array[Iterable[String]] = sets.values.toArray
-      val arrayIterators : Array[Iterator[String]] = arrayIterables.map(_.toIterator)
+      val arrayKeys = new Array[Variable](sets.size)
+      val arrayIterators = new Array[Iterator[String]](sets.size)
+      val arrayElements = new Array[String](sets.size)
+      val arrayIterables = new Array[Iterable[String]](sets.size)
 
-      val arrayKeys : Array[Variable] = sets.keys.toArray
-
-      val valuesIterable : Iterable[String] = for { (k, v) <- sets } yield { v.mkString }
-      val arrayElements : Array[String] = valuesIterable.toArray
+      var idx = 0
+      for ((k, v) <- sets.iterator) {
+        arrayKeys(idx) = k
+        arrayIterables(idx) = v
+        arrayIterators(idx) = v.iterator
+        arrayElements(idx) = arrayIterators(idx).next()
+        idx += 1
+      }
 
       new CartesianIteratorMapImpl(arrayKeys, arrayIterables, arrayIterators, arrayElements)
     }
@@ -82,16 +87,12 @@ object Cartesian {
     def mkArithmetic(sets: Iterable[ConstantsSet]) = new CartesianIteratorArithmeticImpl(sets.map(_.size - 1))
 
     def mkArithmetic(sizes: Array[Int]) = new CartesianIteratorArithmeticImpl(sizes)
-
-
   }
 
-  private class CartesianIteratorSeqImpl[T](
-                                             sets: Array[Iterable[T]],
-                                             iterators: Array[Iterator[T]],
-                                             elements: Array[T]) extends Iterator[Array[T]] {
+  private class CartesianIteratorSeqImpl[T](sets: Array[Iterable[T]],
+                                            iterators: Array[Iterator[T]],
+                                            elements: Array[T]) extends Iterator[Array[T]] {
     private var has_next = true
-
 
     def next(): Array[T] = {
       val result = elements.clone()

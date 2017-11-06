@@ -314,7 +314,7 @@ object PredicateCompletion extends Logging {
                                  functionSchema: FunctionSchema): Set[WeightedFormula] = {
 
     def extractTheta(theta: ThetaOpt) = theta.getOrElse(Map.empty).map{
-      case (k:Variable, v: Constant) => k -> v.symbol
+      case (k:Variable, v: Term) => k -> v.symbol
     }
 
     var pcResultingKB = Set[WeightedFormula]()
