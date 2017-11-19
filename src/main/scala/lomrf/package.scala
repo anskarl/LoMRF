@@ -12,25 +12,7 @@
  * |  \  | | |  | |  | | | | | |     |    | |-' | |  |  \
  * o   o o-o-o  o  o-o o-o o o o     o    | o-o o  o-o o-o
  *
- * Logical Markov Random Fields.
- *
- * Copyright (c) Anastasios Skarlatidis.
- *
- * This file is part of Logical Markov Random Fields (LoMRF).
- *
- * LoMRF is free software: you can redistribute it and/or modify it
- * under the terms of the GNU Lesser General Public License as published
- * by the Free Software Foundation, either version 3 of the License,
- * or (at your option) any later version.
- *
- * LoMRF is distributed in the hope that it will be useful, but WITHOUT
- * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
- * or FITNESS FOR A PARTICULAR PURPOSE. See the GNU Lesser General Public
- * License for more details.
- *
- * You should have received a copy of the GNU Lesser General Public License
- * along with LoMRF. If not, see <http://www.gnu.org/licenses/>.
- *
+ * Logical Markov Random Fields LoMRF (LoMRF).
  */
 
 /**
@@ -38,17 +20,17 @@
  */
 package object lomrf {
 
-  val NO_ENTRY_KEY = -1
-  val DEFAULT_CAPACITY = 43
-  val DEFAULT_LOAD_FACTOR = 0.75f
+  final val NO_ENTRY_KEY = -1
+  final val DEFAULT_CAPACITY = 43
+  final val DEFAULT_LOAD_FACTOR = 0.75f
 
   // predicate prefix when functions are converted into auxiliary predicates
-  val AUX_PRED_PREFIX = "AUX"
+  final val AUX_PRED_PREFIX = "AUX"
 
   // function return value prefix
-  val FUNC_RET_VAR_PREFIX = "funcRetVar"
+  final val FUNC_RET_VAR_PREFIX = "funcRetVar"
 
-  val ASCIILogo =
+  final val ASCIILogo =
     """
       |o                        o     o   o         o
       ||             o          |     |\ /|         | /
@@ -62,16 +44,18 @@ package object lomrf {
       |O-Oo   oo o-o   o-O o-o o-O-o     O-o    o-o |  o-O o-o
       ||  \  | | |  | |  | | | | | |     |    | |-' | |  |  \
       |o   o o-o-o  o  o-o o-o o o o     o    | o-o o  o-o o-o
+      |
+      |Logical Markov Random Fields LoMRF (LoMRF).
     """.stripMargin
 
 
-  val processors = sys.runtime.availableProcessors
+  final val processors = sys.runtime.availableProcessors
 
   object BuildVersion {
 
     import java.net.URL
 
-    val version: String = "LoMRF: " + {
+    final val version: String = "Version: " + {
       val clazz = lomrf.BuildVersion.getClass
       try {
         val classPath = clazz.getResource("package$" + clazz.getSimpleName + ".class").toString

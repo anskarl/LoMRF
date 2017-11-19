@@ -48,7 +48,9 @@ import sbtdocker.mutable.Dockerfile
 
 object LoMRFBuild extends AutoPlugin {
 
-  println {
+  val logger = ConsoleLogger()
+
+  logger info {
     """
       | o                        o     o   o         o
       | |             o          |     |\ /|         | /
@@ -63,7 +65,7 @@ object LoMRFBuild extends AutoPlugin {
       | |  \  | | |  | |  | | | | | |     |    | |-' | |  |  \
       | o   o o-o-o  o  o-o o-o o o o     o    | o-o o  o-o o-o
       |
-      | Logical Markov Random Fields.
+      | Logical Markov Random Fields (LoMRF).
     """.stripMargin
   }
 
@@ -95,7 +97,7 @@ object LoMRFBuild extends AutoPlugin {
   private lazy val baseProjectSettings: Seq[Setting[_]] = Seq(
 
     organization := "com.github.anskarl",
-    scalaVersion := "2.11.8",
+    scalaVersion := "2.11.12",
     name := "LoMRF",
     headers := projectHeaders,
 
@@ -121,15 +123,15 @@ object LoMRFBuild extends AutoPlugin {
     libraryDependencies ++= Seq(
       "org.scala-lang" % "scala-library" % scalaVersion.value,
       "org.scala-lang" % "scala-reflect" % scalaVersion.value,
-      "org.scala-lang.modules" %% "scala-parser-combinators" % "1.0.4"
+      "org.scala-lang.modules" %% "scala-parser-combinators" % "1.0.6"
     ),
 
     dependencyOverrides ++= Set(
       "org.scala-lang" % "scala-compiler" % scalaVersion.value,
       "org.scala-lang" % "scala-library" % scalaVersion.value,
       "org.scala-lang" % "scala-reflect" % scalaVersion.value,
-      "org.scala-lang.modules" %% "scala-parser-combinators" % "1.0.4",
-      "org.scala-lang.modules" %% "scala-xml" % "1.0.5"
+      "org.scala-lang.modules" %% "scala-parser-combinators" % "1.0.6",
+      "org.scala-lang.modules" %% "scala-xml" % "1.0.6"
     )
   )
 
@@ -166,14 +168,35 @@ object LoMRFBuild extends AutoPlugin {
   )
 
   private lazy val ScalaSettings: Seq[Setting[_]] = Seq(
-    scalacOptions ++= Seq(
-      "-Yclosure-elim",
-      "-Yinline",
-      "-feature",
-      "-target:jvm-1.8",
-      "-language:implicitConversions",
-      "-Ybackend:GenBCode" //use the new optimisation level
-    )
+    scalacOptions := {
+      scalaBinaryVersion.value match {
+
+        case "2.11" =>
+          // Scala compiler settings for Scala 2.12.x
+          Seq(
+            "-deprecation",       // Emit warning and location for usages of deprecated APIs.
+            "-unchecked",         // Enable additional warnings where generated code depends on assumptions.
+            "-feature",           // Emit warning and location for usages of features that should be imported explicitly.
+            "-target:jvm-1.8",    // Target JVM version 1.8
+            "-Ywarn-dead-code",   // Warn when dead code is identified.
+            "-Yinline-warnings",  // Emit inlining warnings
+            "-Yclosure-elim",     // Perform closure elimination
+            "-Ybackend:GenBCode"  // Use the new optimisation level
+          )
+
+        case "2.12" =>
+          // Scala compiler settings for Scala 2.12+
+          // see https://tpolecat.github.io/2017/04/25/scalac-flags.html
+          Seq(
+            "-deprecation",       // Emit warning and location for usages of deprecated APIs.
+            "-unchecked",         // Enable additional warnings where generated code depends on assumptions.
+            "-feature",           // Emit warning and location for usages of features that should be imported explicitly.
+            "-target:jvm-1.8",    // Target JVM version 1.8
+            "-Ywarn-dead-code"    // Warn when dead code is identified.
+          )
+        case _ => sys.error(s"Unsupported version of Scala '${scalaBinaryVersion.value}'")
+      }
+    }
   )
 
   private lazy val DockerSettings: Seq[Setting[_]] = Seq(
@@ -248,25 +271,7 @@ object LoMRFBuild extends AutoPlugin {
         | * |  \  | | |  | |  | | | | | |     |    | |-' | |  |  \
         | * o   o o-o-o  o  o-o o-o o o o     o    | o-o o  o-o o-o
         | *
-        | * Logical Markov Random Fields.
-        | *
-        | * Copyright (c) Anastasios Skarlatidis.
-        | *
-        | * This file is part of Logical Markov Random Fields (LoMRF).
-        | *
-        | * LoMRF is free software: you can redistribute it and/or modify it
-        | * under the terms of the GNU Lesser General Public License as published
-        | * by the Free Software Foundation, either version 3 of the License,
-        | * or (at your option) any later version.
-        | *
-        | * LoMRF is distributed in the hope that it will be useful, but WITHOUT
-        | * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
-        | * or FITNESS FOR A PARTICULAR PURPOSE. See the GNU Lesser General Public
-        | * License for more details.
-        | *
-        | * You should have received a copy of the GNU Lesser General Public License
-        | * along with LoMRF. If not, see <http://www.gnu.org/licenses/>.
-        | *
+        | * Logical Markov Random Fields LoMRF (LoMRF).
         | */
       """.stripMargin.trim + "\n\n"
     )

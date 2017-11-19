@@ -12,25 +12,7 @@
  * |  \  | | |  | |  | | | | | |     |    | |-' | |  |  \
  * o   o o-o-o  o  o-o o-o o o o     o    | o-o o  o-o o-o
  *
- * Logical Markov Random Fields.
- *
- * Copyright (c) Anastasios Skarlatidis.
- *
- * This file is part of Logical Markov Random Fields (LoMRF).
- *
- * LoMRF is free software: you can redistribute it and/or modify it
- * under the terms of the GNU Lesser General Public License as published
- * by the Free Software Foundation, either version 3 of the License,
- * or (at your option) any later version.
- *
- * LoMRF is distributed in the hope that it will be useful, but WITHOUT
- * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
- * or FITNESS FOR A PARTICULAR PURPOSE. See the GNU Lesser General Public
- * License for more details.
- *
- * You should have received a copy of the GNU Lesser General Public License
- * along with LoMRF. If not, see <http://www.gnu.org/licenses/>.
- *
+ * Logical Markov Random Fields LoMRF (LoMRF).
  */
 
 package lomrf.mln.grounding
@@ -49,9 +31,11 @@ import lomrf.mln.model.mrf.{Constraint, GroundAtom, MRF}
 import lomrf.util.time._
 import lomrf.{DEFAULT_CAPACITY, DEFAULT_LOAD_FACTOR, NO_ENTRY_KEY}
 
-import scala.concurrent.Await
+import scala.concurrent.{Await, Future}
+import scala.concurrent.duration._
 import scala.language.postfixOps
 import scalaxy.streams.optimize
+import scala.concurrent.ExecutionContext.Implicits.global
 
 
 /**
@@ -97,8 +81,6 @@ import scalaxy.streams.optimize
  * @param mln the input MLN to ground
  * @param noNegWeights transform negative weighted clauses into (possibly several) positive weighted clauses (default is false, since the inference algorithms support negative weights).
  * @param eliminateNegatedUnit eliminate negated unit clauses by transforming them into negative positive unit clauses.
- *
- *
  */
 final class MRFBuilder(val mln: MLN,
                        noNegWeights: Boolean = false,
@@ -111,9 +93,7 @@ final class MRFBuilder(val mln: MLN,
 
   private val system = ActorSystem.create("MRFBuilder")
 
-
-  private implicit val timeout = Timeout.intToTimeout(5000)
-
+  private implicit val timeout = Timeout(214748363 seconds)
 
   def buildNetwork: MRF = {
     val latch = new CountDownLatch(1)
@@ -122,10 +102,13 @@ final class MRFBuilder(val mln: MLN,
     val masterActor = system.actorOf(Props(new GroundingMaster(mln, latch, noNegWeights, eliminateNegatedUnit, createDependencyMap)), name = "master")
     latch.await()
     val endTime = System.currentTimeMillis()
-    val result = Await.result((masterActor ? REQUEST_RESULTS).mapTo[Result], timeout.duration)
+    val resultF: Future[Result] = (masterActor ? REQUEST_RESULTS).mapTo[Result]
+    val result = Await.result(resultF, Duration.Inf)
 
 
-    system.shutdown()
+    system.terminate().foreach{ _ =>
+      info("Actor system was shut down")
+    }
 
 
     var weightHard = 10.0

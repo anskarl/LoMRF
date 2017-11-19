@@ -3,7 +3,6 @@ addCommandAlias("rebuild", ";clean;build")
 
 lazy val lomrf = Project("LoMRF", file("."))
   .enablePlugins(JavaAppPackaging, AutomateHeaderPlugin, sbtdocker.DockerPlugin)
-	.settings(scalaVersion := "2.11.8")
 	.settings(headers := LoMRFBuild.projectHeaders)
 	.settings(logLevel in Test := Level.Info)
 	.settings(logLevel in Compile := Level.Error)

@@ -11,7 +11,7 @@ Gurobi](http://www.gurobi.com/) and [LPSolve](http://lpsolve.sourceforge.net).
 ```bash
 $ git clone https://github.com/anskarl/auxlib.git
 $ cd auxlib
-$ sbt ++2.11.8 publishLocal
+$ sbt ++2.11.12 publishLocal
 ```
 
 **Step 2 (optional).** Please note that Gurobi is required for running max-margin weight learning and optionally can also
@@ -67,11 +67,11 @@ You can add all CLI tools to your default PATH, in order to directly call LoMRF 
 interface. Depending on your OS configuration you have the add and export the path `/path/to/lomrf-<version>/bin` to
 the `PATH` variable.
 
-For example, lets say that the LoMRF distribution version 0.5.1 is being installed in your home directory in `$HOME/lomrf-0.5.1`,
+For example, lets say that the LoMRF distribution version 0.5.5 is being installed in your home directory in `$HOME/lomrf-0.5.5`,
 the directory structure inside the LoMRF directory is the following:
 
 ```bash
-lomrf-0.5.1/
+lomrf-0.5.5/
 |-- bin
 |-- etc
 |-- lib
@@ -85,30 +85,30 @@ add the following line in you profile file.
 
 **BASH** e.g., inside `.profile`, `.bashrc` or `.bash_profile` file in your home directory:
 ```bash
-export PATH=$PATH:$HOME/lomrf-0.5.1/bin
+export PATH=$PATH:$HOME/lomrf-0.5.5/bin
 ```
 
 **CSH/TCSH** e.g., inside `~/.login` file in your home directory:
 ```csh
-set path = ($path $HOME/lomrf-0.5.1/bin .)
+set path = ($path $HOME/lomrf-0.5.5/bin .)
 ```
 or in `~/.cshrc` file in your home directory:
 ```csh
-setenv PATH $PATH:$HOME/lomrf-0.5.1/bin:.
+setenv PATH $PATH:$HOME/lomrf-0.5.5/bin:.
 ```
 
 ### Microsoft Windows Operating Systems
 
-For MS Windows OS add the location of LoMRF sub-folder (e.g., `C:\path\to\lomrf-0.5.1\bin`) in your PATH environment variable.
+For MS Windows OS add the location of LoMRF sub-folder (e.g., `C:\path\to\lomrf-0.5.5\bin`) in your PATH environment variable.
 
 **Windows 8:**
   1. Drag the Mouse pointer to the Right bottom corner of the screen
   2. Click on the Search icon and type: Control Panel
   3. Click on -> Control Panel -> System -> Advanced
   4. Click on Environment Variables, under System Variables, find PATH, and click on it.
-  5. In the Edit windows, modify PATH by adding the location of the LoMRF bin sub-folder (e.g., `C:\path\to\lomrf-0.5.1\bin`)
+  5. In the Edit windows, modify PATH by adding the location of the LoMRF bin sub-folder (e.g., `C:\path\to\lomrf-0.5.5\bin`)
   to the value for PATH. If you do not have the item PATH, you may select to add a new variable and add PATH as the name
-  and the location of LoMRF bin sub-folder (i.e., `C:\path\to\lomrf-0.5.1\bin`) as the value.
+  and the location of LoMRF bin sub-folder (i.e., `C:\path\to\lomrf-0.5.5\bin`) as the value.
   6. Close the window.
   7. Reopen Command prompt window, and run your LoMRF experiments.
 
@@ -117,26 +117,26 @@ For MS Windows OS add the location of LoMRF sub-folder (e.g., `C:\path\to\lomrf-
   2. Choose System Properties from the context menu
   3. Click Advanced system settings -> Advanced tab
   4. Click on Environment Variables, under System Variables, find PATH, and click on it.
-  5. In the Edit windows, modify PATH by adding the location of LoMRF bin sub-folder (i.e., `C:\path\to\lomrf-0.5.1\bin`)
+  5. In the Edit windows, modify PATH by adding the location of LoMRF bin sub-folder (i.e., `C:\path\to\lomrf-0.5.5\bin`)
   to the value for PATH. If you do not have the item PATH, you may select to add a new variable and add PATH as the name
-  and the location of LoMRF bin sub-folder (i.e., `C:\path\to\lomrf-0.5.1\bin`) as the value.
+  and the location of LoMRF bin sub-folder (i.e., `C:\path\to\lomrf-0.5.5\bin`) as the value.
   6. Reopen Command prompt window, and run your LoMRF experiments.
 
 **Windows Vista:**
   1. Right click My Computer icon
   2. Choose Properties from the context menu
   3. Click Advanced tab (Advanced system settings link in Vista)
-  4. In the Edit windows, modify PATH by adding the location of LoMRF bin sub-folder (i.e., `C:\path\to\lomrf-0.5.1\bin`)
+  4. In the Edit windows, modify PATH by adding the location of LoMRF bin sub-folder (i.e., `C:\path\to\lomrf-0.5.5\bin`)
      to the value for PATH. If you do not have the item PATH, you may select to add a new variable and add PATH as the name
-     and the location of LoMRF bin sub-folder (i.e., `C:\path\to\lomrf-0.5.1\bin`) as the value.
+     and the location of LoMRF bin sub-folder (i.e., `C:\path\to\lomrf-0.5.5\bin`) as the value.
   5. Reopen Command prompt window, and run your LoMRF experiments.
 
 **Windows XP:**
   1. Start -> Control Panel -> System -> Advanced
   2. Click on Environment Variables, under System Variables, find PATH, and click on it.
-  3. In the Edit windows, modify PATH by adding the location of LoMRF bin sub-folder (i.e., `C:\path\to\lomrf-0.5.1\bin`)
+  3. In the Edit windows, modify PATH by adding the location of LoMRF bin sub-folder (i.e., `C:\path\to\lomrf-0.5.5\bin`)
      to the value for PATH. If you do not have the item PATH, you may select to add a new variable and add PATH as the name
-     and the location of LoMRF bin sub-folder (i.e., `C:\path\to\lomrf-0.5.1\bin`) as the value.
+     and the location of LoMRF bin sub-folder (i.e., `C:\path\to\lomrf-0.5.5\bin`) as the value.
   4. Close the window.
   5. Reopen Command prompt window, and run your LoMRF experiments.
 
@@ -225,11 +225,11 @@ Follow the first 2 steps of Section [Instructions to build LoMRF from source](#i
 $ sbt publishLocal
 ```
 
-Thereafter, in order to link LoMRF (e.g., version 0.5.1) to your [SBT](http://www.scala-sbt.org/) project, add the
+Thereafter, in order to link LoMRF (e.g., version 0.5.5) to your [SBT](http://www.scala-sbt.org/) project, add the
 following dependency:
 
 ```
-libraryDependencies += "com.github.anskarl" %% "lomrf" % "0.5.1"
+libraryDependencies += "com.github.anskarl" %% "lomrf" % "0.5.5"
 ```
 
 Similarly, in an [Apache Maven](https://maven.apache.org/) pom file:
@@ -238,6 +238,6 @@ Similarly, in an [Apache Maven](https://maven.apache.org/) pom file:
 <dependency>
     <groupId>com.github.anskarl</groupId>
     <artifactId>lomrf_2.11</artifactId>
-    <version>0.5.1</version>
+    <version>0.5.5</version>
 </dependency>
 ```

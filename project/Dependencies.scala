@@ -38,53 +38,62 @@ import sbt.Keys._
 
 object Dependencies {
 
-  final val AkkaVersion = "2.3.14"
-  final val LogbackVersion = "1.1.7"
-  final val SLF4JVersion = "1.7.21"
-  final val ScalaTestVesion = "2.2.6"
-  final val OptimusVersion = "2.0.0"
+  object v {
+    final val Akka = "2.5.6"
+    final val Logback = "1.2.3"
+    final val SLF4JVersion = "1.7.25"
+    final val ScalaTest = "3.0.4"
+    final val Optimus = "2.0.0"
+    final val Trove4j = "3.0.3"
+    final val JTS = "1.14.0"
+    final val Scalaxy = "0.3.4"
+    final val AuxLib = "0.3.0"
+    final val JANSI = "1.11"
+  }
 
 
   // Akka.io
   lazy val Akka = Seq(
-    "com.typesafe.akka" %% "akka-actor"  % AkkaVersion,
-    "com.typesafe.akka" %% "akka-remote" % AkkaVersion,
-    "com.typesafe.akka" %% "akka-slf4j"  % AkkaVersion
+    "com.typesafe.akka" %% "akka-actor"  % v.Akka,
+    "com.typesafe.akka" %% "akka-remote" % v.Akka,
+    "com.typesafe.akka" %% "akka-slf4j"  % v.Akka
   )
 
 
   // Logging with slf4j and logback
   lazy val Logging = Seq(
-    "ch.qos.logback" % "logback-classic" % LogbackVersion,
-    "ch.qos.logback" % "logback-core" % LogbackVersion,
-    "org.slf4j" % "slf4j-api" % SLF4JVersion
+    "ch.qos.logback" % "logback-classic" % v.Logback,
+    "ch.qos.logback" % "logback-core" % v.Logback,
+    "org.slf4j" % "slf4j-api" % v.SLF4JVersion
   )
 
   // ScalaTest got Unit testing
-  lazy val ScalaTest = "org.scalatest" %% "scalatest" % ScalaTestVesion % "test"
+  lazy val ScalaTest = "org.scalatest" %% "scalatest" % v.ScalaTest % "test"
 
 
   lazy val Utils = Seq(
     // GNU Trove4j for high performance and memory efficient data-structures
-    "net.sf.trove4j" % "trove4j" % "3.0.3",
+    "net.sf.trove4j" % "trove4j" % v.Trove4j,
 
     // JTS Topology API for modelling and manipulating 2-dimensional linear geometry
-    "com.vividsolutions" % "jts-core" % "1.14.0",
+    "com.vividsolutions" % "jts-core" % v.JTS,
 
     // Optimized Range foreach loops
-    "com.nativelibs4java" %% "scalaxy-streams" % "0.3.4" % "provided",
+    "com.nativelibs4java" %% "scalaxy-streams" % v.Scalaxy % "provided",
 
     // Adding auxlib library requires local publishing (for details see https://github.com/anskarl/auxlib)
-    "com.github.anskarl" %% "auxlib" % "0.2.0",
+    "com.github.anskarl" %% "auxlib-log" % v.AuxLib,
+    "com.github.anskarl" %% "auxlib-opt" % v.AuxLib,
+    "com.github.anskarl" %% "auxlib-trove" % v.AuxLib,
 
-    "org.fusesource.jansi" % "jansi" % "1.11"
+    "org.fusesource.jansi" % "jansi" % v.JANSI
   )
 
   lazy val Optimus = Seq(
-    "com.github.vagmcs" %% "optimus" % OptimusVersion,
-    "com.github.vagmcs" %% "optimus-solver-oj" % OptimusVersion,
-    "com.github.vagmcs" %% "optimus-solver-lp" % OptimusVersion,
-    "com.github.vagmcs" %% "optimus-solver-gurobi" % OptimusVersion
+    "com.github.vagmcs" %% "optimus" % v.Optimus,
+    "com.github.vagmcs" %% "optimus-solver-oj" % v.Optimus,
+    "com.github.vagmcs" %% "optimus-solver-lp" % v.Optimus,
+    "com.github.vagmcs" %% "optimus-solver-gurobi" % v.Optimus
   )
 
 
