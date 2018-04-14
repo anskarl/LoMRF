@@ -18,7 +18,6 @@
 package lomrf.app
 
 import java.io._
-
 import lomrf.logic.{AtomSignature, Clause}
 import lomrf.mln.inference.Solver
 import lomrf.mln.learning.structure.ClauseConstructor.ClauseType
