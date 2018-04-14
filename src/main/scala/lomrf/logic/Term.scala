@@ -17,6 +17,7 @@
 
 package lomrf.logic
 
+
 /**
   * In ''First-Order Logic'' a `Term` is any expression representing an object
   * in the domain. It can be a constant ([[lomrf.logic.Constant Constant]]) or
@@ -25,7 +26,7 @@ package lomrf.logic
   *
   * @see [[lomrf.logic.Substitutable]] <br> [[lomrf.logic.MLNExpression]]
   */
-sealed trait Term extends MLNExpression with Substitutable[Term] {
+sealed trait Term extends MLNExpression with Substitutable[Term]{
 
   val symbol: String
 
@@ -110,17 +111,17 @@ sealed case class Variable(override val symbol: String,
   /**
     * @return the textual representation of this term.
     */
-  def toText: String = {
-    val txtSymbol = if (index > 0) s"${symbol}_$index" else symbol
-    if (groundPerConstant) s"+$txtSymbol" else txtSymbol
+  def toText = {
+    val txtSymbol = if (index > 0) symbol + "_" + index else symbol
+
+    if(groundPerConstant) "+"+txtSymbol else txtSymbol
   }
 
   /**
     * @return a string representation for this variable
     *         containing its `symbol`, its `index` and its `domain`.
     */
-  override def toString: String =
-    symbol + (if (index > 0) "$" + index + ":" else ":") + domain
+  override def toString: String = symbol + (if (index > 0) "$" + index + ":" else ":") + domain
 
   /**
     * Hash code of a variable produces a value using the hash code of
@@ -137,7 +138,10 @@ sealed case class Variable(override val symbol: String,
     */
   override def equals(obj: scala.Any): Boolean = obj match {
     case other: Variable =>
-      this.symbol == other.symbol && this.domain == other.domain && this.index == other.index
+      this.symbol == other.symbol &&
+        this.domain == other.domain &&
+        this.index == other.index
+
     case _ => false
   }
 
@@ -183,7 +187,7 @@ object Variable {
  *
  * @param symbol constant value
  */
-sealed case class Constant(override val symbol: String) extends Term {
+sealed case class Constant(override val symbol: String) extends Term{
 
   /**
     * @inheritdoc
@@ -228,7 +232,7 @@ sealed case class Constant(override val symbol: String) extends Term {
   */
 sealed case class TermFunction(override val symbol: String,
                                terms: Vector[_ <: Term],
-                               domain: String) extends Term with TermIterable {
+                               domain: String) extends Term with TermIterable{
   
   def this(symbol: String, terms: Vector[Term]) = this(symbol, terms, "_?")
 
@@ -271,8 +275,8 @@ sealed case class TermFunction(override val symbol: String,
   /**
     * @return the textual representation of this term.
     */
-  def toText: String = {
-    if (terms.isEmpty) s"$symbol()"
+  def toText = {
+    if (terms.isEmpty) symbol + "()"
     else s"$symbol(${terms.map(_.toText).mkString(", ")})"
   }
 
@@ -290,8 +294,11 @@ sealed case class TermFunction(override val symbol: String,
     * Hash code of a term function produces a value using the hash code
     * of its `symbol`, `domain`, as well as its `terms` hash codes.
     */
-  override lazy val hashCode: Int =
-    terms.foldLeft(symbol.## ^ domain.##)(_ ^ _.##)
+  override lazy val hashCode: Int = {
+    var code = symbol.## ^ domain.##
+    for (term <- terms) code ^= term.##
+    code
+  }
 
   /**
     * Compares this term function to another object.

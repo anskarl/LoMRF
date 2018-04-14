@@ -51,15 +51,15 @@ final class AtomSpecTest extends FunSpec with Matchers {
   )
 
   private val functionsSchema = Map[AtomSignature, (String, Vector[String])](
-    AtomSignature("walking", 1) -> ("event", Vector("id"))
+    AtomSignature("walking", 1) ->("event", Vector("id"))
   )
 
   private val parser = new KBParser(predicateSchema, functionsSchema)
 
-  /*
-   * Parse an atomic formula with two constants
-   */
 
+  /**
+    * Parse an atomic formula with two constants
+    */
   describe("The sentence: 'HappensAt(Foo,10)'") {
     val strHappens = "Happens(Foo,10)"
     val atomHappens = AtomicFormula("Happens", Vector(Constant("Foo"), Constant("10")))
@@ -95,10 +95,9 @@ final class AtomSpecTest extends FunSpec with Matchers {
     }
   }
 
-  /*
-   * Parse an atomic formula with one constant and one variable
-   */
-
+  /**
+    * Parse an atomic formula with one constant and one variable
+    */
   describe("The sentence: 'HappensAt(Foo,t)'") {
     val strHappens = "Happens(Foo,t)"
     val atomHappens = AtomicFormula("Happens", Vector(Constant("Foo"), Variable("t", "time")))
@@ -136,9 +135,9 @@ final class AtomSpecTest extends FunSpec with Matchers {
   }
 
   /**
-   * Parse an atomic formula with one function and one variable or constant
-   * (term1: TermFunction, term2: variable or constant, no. of constants, no. of variables, string representation)
-   */
+    * Parse an atomic formula with one function and one variable or constant
+    * (term1: TermFunction, term2: variable or constant, no. of constants, no. of variables, string representation)
+    */
   val functionsToTest = Vector(
     // Happens(walking(ID0),0) : 2 constants and 0 variables
     (TermFunction("walking", Vector(Constant("ID0")), "event"), Constant("0"), 2, 0, "Happens(walking(ID0),0)"),
@@ -193,5 +192,6 @@ final class AtomSpecTest extends FunSpec with Matchers {
     }
 
   }
+
 
 }

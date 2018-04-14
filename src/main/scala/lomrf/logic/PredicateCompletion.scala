@@ -71,8 +71,7 @@ object PredicateCompletion extends Logging {
 
   import PredicateCompletionMode._
 
-  private type DefiniteClausesDB =
-    mutable.HashMap[AtomSignature, mutable.HashMap[AtomicFormula, mutable.HashSet[DefiniteClauseConstruct]]]
+  private type DefiniteClausesDB = mutable.HashMap[AtomSignature, mutable.HashMap[AtomicFormula, mutable.HashSet[DefiniteClauseConstruct]]]
 
   /**
    * Performs predicate completion with simplification (see [[lomrf.logic.PredicateCompletion]]).
@@ -231,13 +230,13 @@ object PredicateCompletion extends Logging {
    */
   private def applyPCSimplification(formulas: Set[WeightedFormula], dcDB: DefiniteClausesDB): Set[WeightedFormula] = {
     val targetSignatures = dcDB.keySet
-    var pcResultingKB =  Set.empty[WeightedFormula]
+    var pcResultingKB =  Set[WeightedFormula]()
     pcResultingKB ++= formulas
 
     for (signature <- targetSignatures) {
-      var lambdaPrime = Set.empty[WeightedFormula]
+      var lambdaPrime = Set[WeightedFormula]()
       for (formula <- pcResultingKB) {
-        if (formula.contains(signature)) {
+        if(formula.contains(signature)) {
           for ((headPredicate, bodies) <- dcDB(signature)) {
             val replacement = bodies.map(_.boundVarsNotIn(headPredicate)).reduceLeft((left, right) => Or(left, right))
 
@@ -268,7 +267,7 @@ object PredicateCompletion extends Logging {
    */
   private def applyPC(formulas: Set[WeightedFormula], dcDB: DefiniteClausesDB): Set[WeightedFormula] = {
 
-    var pcResultingKB = Set.empty[WeightedFormula]
+    var pcResultingKB = Set[WeightedFormula]()
     pcResultingKB ++= formulas
 
     for ((_, entries) <- dcDB; (head, bodies) <- entries) {
@@ -294,23 +293,23 @@ object PredicateCompletion extends Logging {
                                 dcDB: DefiniteClausesDB,
                                 constants: ConstantsDomain)
                                (implicit predicateSchema: PredicateSchema,
-                                functionSchema: FunctionSchema): Set[WeightedFormula] = {
+                                 functionSchema: FunctionSchema): Set[WeightedFormula] = {
 
-    def extractTheta(theta: ThetaOpt) = theta.getOrElse(Map.empty).map {
+    def extractTheta(theta: ThetaOpt) = theta.getOrElse(Map.empty).map{
       case (k: Variable, v: Term) => k -> v.symbol
     }
 
-    var pcResultingKB = Set.empty[WeightedFormula]
+    var pcResultingKB = Set[WeightedFormula]()
     pcResultingKB ++= formulas
 
     // Insert the original definite clauses as weighted formulas:
     for (dClause <- definiteClauses)
       pcResultingKB += WeightedFormula(dClause.weight, Implies(dClause.clause.body, dClause.clause.head))
 
-    for ((signature, entries) <- dcDB) {
+    for ((signature, entries) <- dcDB){
 
       // 1. Insert the additional "completion" formulas
-      for ((head, bodies) <- entries) {
+      for((head, bodies) <- entries){
         val completionBody = bodies.map(_.boundVarsNotIn(head)).reduceLeft((left, right) => Or(left, right))
         pcResultingKB += WeightedFormula.asHard(Implies(head, completionBody))
       }
@@ -331,7 +330,7 @@ object PredicateCompletion extends Logging {
 
       // 3. Add complementary unit clauses to the resulting knowledge base
       val complementaryClauses = {
-        if (complementaryDomains.nonEmpty && complementaryDomains.values.forall(_.nonEmpty))
+        if(complementaryDomains.nonEmpty && complementaryDomains.values.forall(_.nonEmpty))
         (for (theta <- CartesianIterator(complementaryDomains); mappedTheta: Theta = theta.mapValues(Constant).asInstanceOf[Map[Term, Term]])
           yield WeightedFormula.asHard(Not(variabilizedPredicate.substitute(mappedTheta)))).toList
         else Nil
@@ -341,7 +340,7 @@ object PredicateCompletion extends Logging {
 
       info(s"\t\tAdded ${complementaryClauses.size} complementary negated unit clause(s) for '$signature'")
 
-      debug {
+      debug{
           s"""
             |Head predicate: ${headPredicate.toText}
             |Complementary domains: ${complementaryDomains.mkString(", ")}

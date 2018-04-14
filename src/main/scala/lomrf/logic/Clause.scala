@@ -25,25 +25,22 @@ import java.text.DecimalFormat
   * @param weight the weight of the clause
   * @param literals a set of literals, representing a disjunction of atoms or their negations.
   */
-final class Clause(val weight: Double, val literals: Set[Literal]) extends Substitutable[Clause] {
+final class Clause(val weight: Double, val literals: Set[Literal]) extends Substitutable[Clause]{
 
   /**
     * The set of variables appearing inside the clause
     */
-  lazy val variables: Set[Variable] =
-    literals.foldRight(Set.empty[Variable])((a: Literal, b) => a.sentence.variables ++ b)
+  lazy val variables: Set[Variable] = literals.foldRight(Set[Variable]())((a:Literal, b) => a.sentence.variables ++ b)
 
   /**
     * The set of constants appearing inside the clause
     */
-  lazy val constants: Set[Constant] =
-    literals.foldRight(Set.empty[Constant])((a: Literal, b) => a.sentence.constants ++ b)
+  lazy val constants: Set[Constant] = literals.foldRight(Set[Constant]())((a:Literal, b) => a.sentence.constants ++ b)
 
   /**
     * The set of functions appearing inside the clause
     */
-  lazy val functions: Set[TermFunction] =
-    literals.foldRight(Set.empty[TermFunction])((a: Literal, b) => a.sentence.functions ++ b)
+  lazy val functions: Set[TermFunction] = literals.foldRight(Set[TermFunction]())((a:Literal, b) => a.sentence.functions ++ b)
 
   /**
     * @return true if this clause is hard-constrained (i.e. weight = Infinity), otherwise false.
@@ -80,9 +77,9 @@ final class Clause(val weight: Double, val literals: Set[Literal]) extends Subst
     * @return the textual representation of this clause
     */
   def toText(weighted: Boolean = true)(implicit numFormat: DecimalFormat = Clause.defaultNumFormat): String = {
-    if (weighted) {
-      if (isHard) literals.map(_.toText).mkString(" v ") + "."
-      else s"${numFormat.format(weight)} ${literals.map(_.toText).mkString(" v ")}"
+    if(weighted) {
+      if(isHard) literals.map(_.toText).mkString(" v ")+"."
+      else numFormat.format(weight)+" "+literals.map(_.toText).mkString(" v ")
     }
     else literals.map(_.toText).mkString(" v ")
   }
@@ -94,8 +91,9 @@ final class Clause(val weight: Double, val literals: Set[Literal]) extends Subst
     * @param theta a given mapping of logical terms
     * @return a substitution instance of the original expression type
     */
-  override def substitute(theta: Theta): Clause =
+  override def substitute(theta: Theta): Clause = {
     Clause(literals.map(_.substitute(theta)), weight)
+  }
 
   /**
     * Compares this clause to another object.
@@ -105,8 +103,7 @@ final class Clause(val weight: Double, val literals: Set[Literal]) extends Subst
     *         and the same set of literals, false otherwise
     */
   override def equals(that: Any): Boolean = that match {
-    case x: Clause =>
-      x.weight == this.weight && this.literals.size == x.literals.size && x.literals == this.literals
+    case x: Clause => x.weight == this.weight && this.literals.size == x.literals.size && x.literals == this.literals
     case _ => false
   }
 
@@ -146,11 +143,13 @@ final class Clause(val weight: Double, val literals: Set[Literal]) extends Subst
 
   override def hashCode: Int = hash
 
-  override def toString: String =
-    weight + " {" + literals.map(_.toString).mkString(" v ") + "}"
+  override def toString: String = weight+" {" + literals.map(_.toString()).mkString(" v ") + "}"
 
-  private lazy val hash: Int =
-    literals.foldLeft(weight.hashCode)(_ ^ _.hashCode)
+  private lazy val hash: Int = {
+    var code = weight.hashCode()
+    for (literal <- literals) code ^= literal.hashCode()
+    code
+  }
 }
 
 object Clause {
@@ -166,8 +165,7 @@ object Clause {
     * @param weight a weight for the clause (default is infinite)
     * @return a clause representing a disjunction over the given literals
     */
-  def apply(literals: Set[Literal], weight: Double = Double.PositiveInfinity): Clause =
-    new Clause(weight, literals)
+  def apply(literals: Set[Literal], weight: Double = Double.PositiveInfinity): Clause = new Clause(weight, literals)
 
   /**
     * Constructs a weighted unit clause given an atomic formula.
@@ -179,8 +177,9 @@ object Clause {
     * @param negated true for a positive unit clause, false otherwise
     * @return a unit clause having a single literal
     */
-  def from(atom: AtomicFormula, weight: Double = Double.PositiveInfinity, negated: Boolean = false): Clause =
-    new Clause(weight, if (negated) Set(NegativeLiteral(atom)) else Set(PositiveLiteral(atom)))
+  def from(atom: AtomicFormula, weight: Double = Double.PositiveInfinity, negated: Boolean = false): Clause = {
+    new Clause(weight, if(negated) Set(NegativeLiteral(atom)) else Set(PositiveLiteral(atom)))
+  }
 
   /**
     * Constructs a weighted unit clause given a single literal.
@@ -191,8 +190,7 @@ object Clause {
     * @param weight a weight for the given unit clause (default is infinite)
     * @return a unit clause having a single literal
     */
-  def unit(literal: Literal, weight: Double = Double.PositiveInfinity): Clause =
-    new Clause(weight, Set(literal))
+  def unit(literal: Literal, weight: Double = Double.PositiveInfinity): Clause = new Clause(weight, Set(literal))
 }
 
 /**
@@ -204,7 +202,7 @@ object Clause {
   *
   * @param sentence an atomic formula (optionally ground)
   */
-sealed abstract class Literal(val sentence: AtomicFormula) extends Substitutable[Literal] with TermIterable {
+sealed abstract class Literal(val sentence: AtomicFormula) extends Substitutable[Literal] with TermIterable{
 
   /**
     * The number of sentence arguments.
@@ -229,7 +227,7 @@ sealed abstract class Literal(val sentence: AtomicFormula) extends Substitutable
   /**
     * @return the negations of this literal
     */
-  def negate: Literal = if (isPositive) NegativeLiteral(sentence) else PositiveLiteral(sentence)
+  def negate: Literal = if(isPositive) NegativeLiteral(sentence) else PositiveLiteral(sentence)
 
   /**
     * Compares this literal to another object.
@@ -239,8 +237,7 @@ sealed abstract class Literal(val sentence: AtomicFormula) extends Substitutable
     *         and sense, false otherwise
     */
   override def equals(obj: Any): Boolean = obj match {
-    case other: Literal =>
-      other.positive == this.positive && other.sentence == this.sentence
+    case other: Literal => other.positive == this.positive && other.sentence == this.sentence
     case _ =>  false
   }
 
@@ -260,8 +257,9 @@ sealed abstract class Literal(val sentence: AtomicFormula) extends Substitutable
     * @param other another literal
     * @return true if the literals are similar, false otherwise
     */
-  def =~= (other: Literal): Boolean =
+  def =~= (other: Literal): Boolean = {
     this.positive == other.positive && this.sentence =~= other.sentence
+  }
 
   /**
     * @return the textual representation of this literal.
@@ -286,8 +284,9 @@ object Literal {
     * @param negative true if the literal is negated, false otherwise
     * @return a literal over the given atomic formula
     */
-  def apply(a: AtomicFormula, negative: Boolean): Literal =
-    if (negative) NegativeLiteral(a) else PositiveLiteral(a)
+  def apply(a: AtomicFormula, negative: Boolean): Literal = {
+    if(negative) NegativeLiteral(a) else PositiveLiteral(a)
+  }
 
   /**
     * Constructs a `Negative Literal` given an atomic formula.
@@ -317,7 +316,7 @@ object Literal {
   *
   * @param s an atomic formula
   */
-case class PositiveLiteral(s: AtomicFormula) extends Literal(s) {
+case class PositiveLiteral(s: AtomicFormula) extends Literal(s){
 
   /**
     * @inheritdoc
@@ -345,8 +344,7 @@ case class PositiveLiteral(s: AtomicFormula) extends Literal(s) {
     * @param theta a given mapping of logical terms
     * @return a substitution instance of the original expression type
     */
-  override def substitute(theta: Theta): PositiveLiteral =
-    PositiveLiteral(s.substitute(theta))
+  override def substitute(theta: Theta): PositiveLiteral = PositiveLiteral(s.substitute(theta))
 }
 
 /**
@@ -382,23 +380,26 @@ case class NegativeLiteral(s: AtomicFormula) extends Literal(s) {
     * @param theta a given mapping of logical terms
     * @return a substitution instance of the original expression type
     */
-  override def substitute(theta: Theta): NegativeLiteral =
-    NegativeLiteral(s.substitute(theta))
+  override def substitute(theta: Theta): NegativeLiteral = NegativeLiteral(s.substitute(theta))
 }
 
 /**
   * Literal ordering based on arity.
   */
-final class LiteralArityOrdering extends Ordering[Literal] {
+final class LiteralArityOrdering extends Ordering[Literal]{
 
-  override def compare(x: Literal, y: Literal): Int =
-    if (x == y) 0 else if (x.arity <= y.arity) -1 else 1
+  override def compare(lit0: Literal, lit1: Literal):Int = {
+    if(lit0 == lit1) 0
+    else if(lit0.arity <= lit1.arity) -1
+    else 1
+  }
+
 }
 
 /**
   * Literal ordering based on the textual representation.
   */
-final class LiteralTextOrdering extends Ordering[Literal] {
+final class LiteralTextOrdering extends Ordering[Literal]{
 
   override def compare(x: Literal, y: Literal): Int = x.toText.compare(y.toText)
 }
@@ -408,8 +409,7 @@ final class LiteralTextOrdering extends Ordering[Literal] {
   *
   * @see [[lomrf.logic.AtomicFormula]]
   */
-final class LiteralSentenceOrdering extends Ordering[Literal] {
+final class LiteralSentenceOrdering extends Ordering[Literal]{
 
-  override def compare(x: Literal, y: Literal): Int =
-    x.sentence.toText.compare(y.sentence.toText)
+  override def compare(x: Literal, y: Literal): Int = x.sentence.toText.compare(y.sentence.toText)
 }
