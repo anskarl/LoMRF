@@ -12,25 +12,7 @@
  * |  \  | | |  | |  | | | | | |     |    | |-' | |  |  \
  * o   o o-o-o  o  o-o o-o o o o     o    | o-o o  o-o o-o
  *
- * Logical Markov Random Fields.
- *
- * Copyright (c) Anastasios Skarlatidis.
- *
- * This file is part of Logical Markov Random Fields (LoMRF).
- *
- * LoMRF is free software: you can redistribute it and/or modify it
- * under the terms of the GNU Lesser General Public License as published
- * by the Free Software Foundation, either version 3 of the License,
- * or (at your option) any later version.
- *
- * LoMRF is distributed in the hope that it will be useful, but WITHOUT
- * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
- * or FITNESS FOR A PARTICULAR PURPOSE. See the GNU Lesser General Public
- * License for more details.
- *
- * You should have received a copy of the GNU Lesser General Public License
- * along with LoMRF. If not, see <http://www.gnu.org/licenses/>.
- *
+ * Logical Markov Random Fields LoMRF (LoMRF).
  */
 
 package lomrf.logic
@@ -191,10 +173,10 @@ final class TermSpecTest extends FunSpec with Matchers {
      */
   val functionsDescription = List(
     (TermFunction("Foo", Vector(Constant("Bar"))), "Foo(Bar)", 1, 1, 0),
-    (TermFunction("Foo", Vector(Variable("x"), Constant("Bar"))), "Foo(x,Bar)", 2, 1, 1),
-    (TermFunction("Foo", Vector(Variable("x"), Constant("Bar"), Variable("y"))), "Foo(x,Bar,y)", 3, 1, 2),
-    (TermFunction("Foo", Vector(Variable("x"), Constant("Bar"), TermFunction("F", Vector(Variable("y"))))), "Foo(x,Bar,F(y))", 3, 1, 2),
-    (TermFunction("Foo", Vector(Variable("x"), Constant("Bar"), TermFunction("F", Vector(Variable("y"), Constant("G"))))), "Foo(x,Bar,F(y,G))", 3, 2, 2)
+    (TermFunction("Foo", Vector(Variable("x"), Constant("Bar"))), "Foo(x, Bar)", 2, 1, 1),
+    (TermFunction("Foo", Vector(Variable("x"), Constant("Bar"), Variable("y"))), "Foo(x, Bar, y)", 3, 1, 2),
+    (TermFunction("Foo", Vector(Variable("x"), Constant("Bar"), TermFunction("F", Vector(Variable("y"))))), "Foo(x, Bar, F(y))", 3, 1, 2),
+    (TermFunction("Foo", Vector(Variable("x"), Constant("Bar"), TermFunction("F", Vector(Variable("y"), Constant("G"))))), "Foo(x, Bar, F(y, G))", 3, 2, 2)
   )
 
   for ((termFunction, textFunction, arity, nConstant, nVariables) <- functionsDescription) {
