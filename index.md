@@ -19,7 +19,7 @@
 
 LoMRF is an open-source implementation of [Markov Logic Networks](https://en.wikipedia.org/wiki/Markov_logic_network) (MLNs) written in [Scala programming language](http://scala-lang.org).
 
-Latest stable version [LoMRF v0.5.2](https://github.com/anskarl/LoMRF/releases).
+Latest stable version [LoMRF v0.6.0](https://github.com/anskarl/LoMRF/releases).
 
 ## Features overview:
 
@@ -34,11 +34,12 @@ Latest stable version [LoMRF v0.5.2](https://github.com/anskarl/LoMRF/releases).
   * Reads and produces [Alchemy](http://alchemy.cs.washington.edu/alchemy1.html) compatible MLN files.
 6. Can export ground MRF in various formats (**lomrf export**).
 7. Can compare MLN theories (**lomrf diff**).
+8. Online supervision completion on semi-supervised training sets [*currently experimental*] (**lomrf supervision**).
 
 
 ## Documentation
 
-Documentation is available in [LoMRF GitHub repository](https://github.com/anskarl/LoMRF/blob/master/docs/6_1_build_and_link_lomrf.md), as well as in [lomrf.readthedocs.io](http://lomrf.readthedocs.io/en/stable/) (PDF, EPUB and HTML formats).
+Documentation is available in [LoMRF GitHub repository](https://github.com/anskarl/LoMRF/blob/master/docs/7_1_build_and_link_lomrf.md), as well as in [lomrf.readthedocs.io](http://lomrf.readthedocs.io/en/stable/) (PDF, EPUB and HTML formats).
 
 ## License
 
