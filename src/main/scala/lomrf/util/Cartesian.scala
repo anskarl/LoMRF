@@ -26,9 +26,6 @@ import scala.{collection => scol}
 import scalaxy.streams.optimize
 import scala.language.postfixOps
 
-/**
- *
- */
 object Cartesian {
 
   object CartesianIterator {

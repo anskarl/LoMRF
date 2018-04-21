@@ -19,7 +19,7 @@ package lomrf.mln.model
 
 import java.io.PrintStream
 
-import auxlib.log.Logging
+import com.typesafe.scalalogging.LazyLogging
 import gnu.trove.TCollections
 import gnu.trove.map.TIntDoubleMap
 import gnu.trove.map.hash.TIntDoubleHashMap
@@ -27,7 +27,6 @@ import gnu.trove.set.TIntSet
 import gnu.trove.set.hash.TIntHashSet
 import lomrf.logic._
 import lomrf.mln.model
-import lomrf.mln.model.AtomIdentityFunction
 
 
 /**
@@ -42,13 +41,13 @@ import lomrf.mln.model.AtomIdentityFunction
 abstract class AtomEvidenceDB(val identity: AtomIdentityFunction) {
 
   // The atom's first id in the space of ground atom ids
-  protected val bottomBound = identity.startID
+  protected val bottomBound: Int = identity.startID
 
   // The atom's last id in the space of ground atom ids
-  protected val upperBound = identity.startID + identity.length
+  protected val upperBound: Int = identity.startID + identity.length
 
   // The atom's arity
-  protected val arity = identity.signature.arity
+  protected val arity: Int = identity.signature.arity
 
   /**
    * Get the state (see [[lomrf.logic.TriState]]) for the given atom ID.
@@ -204,12 +203,12 @@ abstract class AtomEvidenceDB(val identity: AtomIdentityFunction) {
   /**
    * Gives the number of groundings
    */
-  def length = identity.length
+  def length: Int = identity.length
 
   /**
    * Gives the number of groundings with known (True or False) state.
    */
-  def numberOfKnown = identity.length - numberOfUnknown
+  def numberOfKnown: Int = identity.length - numberOfUnknown
 
   def isTriStateDB: Boolean = numberOfUnknown > 0
 
@@ -234,18 +233,19 @@ abstract class AtomEvidenceDB(val identity: AtomIdentityFunction) {
 
   private final def isBetweenBounds(id: Int): Boolean = id <= upperBound && id >= bottomBound
 
-  override def toString = {
-    "AtomEvidenceDB[ " + identity.signature + " ]{" +
-      "\n\tnumberOfTrue = " + numberOfTrue +
-      "\n\tnumberOfFalse = " + numberOfFalse +
-      "\n\tnumberOfUnknown = " + numberOfUnknown +
-      "\n\tnumberOfKnown = " + numberOfKnown +
-      "\n\tlength = " + length +
-      "\n\tStart ID: " + identity.startID +
-      "\n\tEnd ID: " + identity.endID +
-      "\n\t" + identity.constantsAndStep.map(_.toString()).toList +
-      "\n}"
-
+  override def toString: String = {
+    s"""
+       |AtomEvidenceDB[ ${identity.signature}" ]{
+       |\tnumberOfTrue    = $numberOfTrue
+       |\tnumberOfFalse   = $numberOfFalse
+       |\tnumberOfUnknown = $numberOfUnknown
+       |\tnumberOfKnown   = $numberOfKnown
+       |\tlength          = $length
+       |\tStart ID        = ${identity.startID}
+       |\tEnd ID          = ${identity.endID}
+       |\t${identity.constantsAndStep.map(_.toString()).toList}
+       |}
+     """.stripMargin
   }
 
   def dumpContents(implicit out: PrintStream = System.out)
@@ -361,15 +361,15 @@ private class DBCWA(positives: TIntSet, override val identity: AtomIdentityFunct
 
   def numberOfUnknown = 0
 
-  def numberOfFalse = identity.length - numberOfTrue
+  def numberOfFalse: Int = identity.length - numberOfTrue
 
-  def numberOfTrue = positives.size()
+  def numberOfTrue: Int = positives.size()
 
   def getBuilder = AtomEvidenceDBBuilder(identity, isCWA = true, positivesOpt = Some(positives))
 
   def numberOfProbabilistic = 0
 
-  def dumpContents(implicit out: PrintStream = System.out) {
+  def dumpContents(implicit out: PrintStream = System.out): Unit = {
     out.println("Positives:")
     val iterator = positives.iterator()
     while (iterator.hasNext) {
@@ -389,11 +389,11 @@ private class DBCWA_UNK(positives: TIntSet, unknown: TIntSet,
     else FALSE
   }
 
-  def numberOfUnknown = unknown.size()
+  def numberOfUnknown: Int = unknown.size()
 
-  def numberOfFalse = identity.length - (numberOfTrue + numberOfUnknown)
+  def numberOfFalse: Int = identity.length - (numberOfTrue + numberOfUnknown)
 
-  def numberOfTrue = positives.size() - numberOfUnknown
+  def numberOfTrue: Int = positives.size() - numberOfUnknown
 
   def numberOfProbabilistic = 0
 
@@ -429,17 +429,17 @@ private class DBOWA(positives: TIntSet, negatives: TIntSet, override val identit
     else UNKNOWN
   }
 
-  def numberOfUnknown = identity.length - (positives.size() + negatives.size())
+  def numberOfUnknown: Int = identity.length - (positives.size() + negatives.size())
 
-  def numberOfFalse = negatives.size()
+  def numberOfFalse: Int = negatives.size()
 
-  def numberOfTrue = positives.size()
+  def numberOfTrue: Int = positives.size()
 
-  def numberOfProbabilistic = 0
+  def numberOfProbabilistic: Int = 0
 
-  def getBuilder = AtomEvidenceDBBuilder(identity, isCWA = false, positivesOpt = Some(positives), negativesOpt = Some(negatives))
+  def getBuilder: AtomEvidenceDBBuilder = AtomEvidenceDBBuilder(identity, isCWA = false, positivesOpt = Some(positives), negativesOpt = Some(negatives))
 
-  def dumpContents(implicit out: PrintStream = System.out) {
+  def dumpContents(implicit out: PrintStream = System.out): Unit = {
     out.println("Positives:")
     val iteratorPos = positives.iterator()
     while (iteratorPos.hasNext) {
@@ -462,17 +462,17 @@ private class DBOWA(positives: TIntSet, negatives: TIntSet, override val identit
 
 private class DummyDBUnknown(override val identity: AtomIdentityFunction) extends AtomEvidenceDB(identity) {
 
-  protected def fetch(id: Int) = UNKNOWN
+  protected def fetch(id: Int): TriState = UNKNOWN
 
-  def numberOfUnknown = identity.length
+  def numberOfUnknown: Int = identity.length
 
-  def numberOfFalse = 0
+  def numberOfFalse: Int = 0
 
-  def numberOfTrue = 0
+  def numberOfTrue: Int = 0
 
-  def numberOfProbabilistic = 0
+  def numberOfProbabilistic: Int = 0
 
-  def getBuilder = AtomEvidenceDBBuilder(identity, isCWA = false)
+  def getBuilder: AtomEvidenceDBBuilder = AtomEvidenceDBBuilder(identity, isCWA = false)
 
   def dumpContents(implicit out: PrintStream = System.out) {
     out.println("Everything is unknown.")
@@ -481,43 +481,40 @@ private class DummyDBUnknown(override val identity: AtomIdentityFunction) extend
 
 private class DummyDBFalse(override val identity: AtomIdentityFunction) extends AtomEvidenceDB(identity) {
 
-  protected def fetch(id: Int) = FALSE
+  protected def fetch(id: Int): TriState = FALSE
 
-  def numberOfUnknown = 0
+  def numberOfUnknown: Int = 0
 
-  def numberOfFalse = identity.length
+  def numberOfFalse: Int = identity.length
 
-  def numberOfTrue = 0
+  def numberOfTrue: Int = 0
 
-  def numberOfProbabilistic = 0
+  def numberOfProbabilistic: Int = 0
 
-  def getBuilder = AtomEvidenceDBBuilder(identity, isCWA = true)
+  def getBuilder: AtomEvidenceDBBuilder = AtomEvidenceDBBuilder(identity, isCWA = true)
 
-  def dumpContents(implicit out: PrintStream = System.out) {
-    out.println("Everything is false.")
-  }
+  def dumpContents(implicit out: PrintStream = System.out): Unit = out.println("Everything is false.")
 
 
 }
 
 private class DummyDBTrue(override val identity: AtomIdentityFunction) extends AtomEvidenceDB(identity) {
 
-  protected def fetch(id: Int) = TRUE
+  protected def fetch(id: Int): TRUE.type = TRUE
 
-  def numberOfUnknown = 0
+  def numberOfUnknown: Int = 0
 
-  def numberOfFalse = 0
+  def numberOfFalse: Int = 0
 
-  def numberOfTrue = identity.length
+  def numberOfTrue: Int = identity.length
 
-  def numberOfProbabilistic = 0
+  def numberOfProbabilistic: Int = 0
 
-  def getBuilder = AtomEvidenceDBBuilder(identity, isCWA = true)
+  def getBuilder: AtomEvidenceDBBuilder = AtomEvidenceDBBuilder(identity, isCWA = true)
 
 
-  def dumpContents(implicit out: PrintStream = System.out) {
-    out.println("Everything is true.")
-  }
+  def dumpContents(implicit out: PrintStream = System.out):Unit = out.println("Everything is true.")
+
 }
 
 
@@ -531,25 +528,32 @@ private class DBProbOWA(positives: TIntSet, negatives: TIntSet, val probabilisti
     else UNKNOWN
   }
 
-  def numberOfUnknown = identity.length - (numberOfTrue + numberOfFalse)
+  def numberOfUnknown: Int = identity.length - (numberOfTrue + numberOfFalse)
 
-  def numberOfFalse = negatives.size()
+  def numberOfFalse: Int = negatives.size()
 
-  def numberOfTrue = positives.size()
+  def numberOfTrue: Int = positives.size()
 
-  def numberOfProbabilistic = probabilistic.size()
+  def numberOfProbabilistic: Int = probabilistic.size()
 
-  override def probability(id: Int) = probabilistic.get(id)
+  override def probability(id: Int): Double = probabilistic.get(id)
 
-  override def probability(args: Seq[String]) = {
+  override def probability(args: Seq[String]): Double = {
     checkLength(args)
     val id = identity.encode(args)
     probabilistic.get(id)
   }
 
-  def getBuilder = AtomEvidenceDBBuilder(identity, isCWA = false, positivesOpt = Some(positives), negativesOpt = Some(negatives), probabilisticOpt = Some(probabilistic))
+  def getBuilder: AtomEvidenceDBBuilder ={
+    AtomEvidenceDBBuilder(
+      identity, isCWA = false,
+      positivesOpt = Some(positives),
+      negativesOpt = Some(negatives),
+      probabilisticOpt = Some(probabilistic)
+    )
+  }
 
-  def dumpContents(implicit out: PrintStream = System.out) {
+  def dumpContents(implicit out: PrintStream = System.out): Unit = {
     out.println("Positives:")
     val iteratorPos = positives.iterator()
     while (iteratorPos.hasNext) {
@@ -588,25 +592,32 @@ private class DBProbCWA(positives: TIntSet, val probabilistic: TIntDoubleMap, ov
     else FALSE
   }
 
-  def numberOfUnknown = probabilistic.size()
+  def numberOfUnknown: Int = probabilistic.size()
 
-  def numberOfFalse = identity.length - (numberOfUnknown + numberOfTrue)
+  def numberOfFalse: Int = identity.length - (numberOfUnknown + numberOfTrue)
 
-  def numberOfTrue = positives.size()
+  def numberOfTrue: Int = positives.size()
 
-  def numberOfProbabilistic = probabilistic.size()
+  def numberOfProbabilistic: Int = probabilistic.size()
 
-  override def probability(id: Int) = probabilistic.get(id)
+  override def probability(id: Int): Double = probabilistic.get(id)
 
-  override def probability(args: Seq[String]) = {
+  override def probability(args: Seq[String]): Double = {
     checkLength(args)
     val id = identity.encode(args)
     probabilistic.get(id)
   }
 
-  def getBuilder = AtomEvidenceDBBuilder(identity, isCWA = true, positivesOpt = Some(positives), probabilisticOpt = Some(probabilistic))
+  def getBuilder: AtomEvidenceDBBuilder = {
+    AtomEvidenceDBBuilder(
+      identity,
+      isCWA = true,
+      positivesOpt = Some(positives),
+      probabilisticOpt = Some(probabilistic)
+    )
+  }
 
-  def dumpContents(implicit out: PrintStream = System.out) {
+  def dumpContents(implicit out: PrintStream = System.out): Unit = {
     out.println("Positives:")
     val iteratorPos = positives.iterator()
     while (iteratorPos.hasNext) {
@@ -634,7 +645,7 @@ final class AtomEvidenceDBBuilder private(val signature: AtomSignature,
                                           private var positives: TIntHashSet,
                                           private var negatives: TIntHashSet,
                                           private var unknown: TIntHashSet,
-                                          private var probabilistic: TIntDoubleHashMap) extends Logging {
+                                          private var probabilistic: TIntDoubleHashMap) extends LazyLogging{
 
   def this(signature: AtomSignature, schema: Seq[String], identity: AtomIdentityFunction, isCWA: Boolean) =
     this(signature, schema, identity, isCWA, new TIntHashSet(), new TIntHashSet(), new TIntHashSet(), new TIntDoubleHashMap())
@@ -642,7 +653,7 @@ final class AtomEvidenceDBBuilder private(val signature: AtomSignature,
 
   private var dirty = false
 
-  def +=(atom: EvidenceAtom) {
+  def +=(atom: EvidenceAtom): Unit = {
     require(atom.signature == signature, "You are trying to store atom: " + atom + " in a database for " + signature + " atoms.")
     copyIfDirty()
 
@@ -653,18 +664,18 @@ final class AtomEvidenceDBBuilder private(val signature: AtomSignature,
 
     atom.state match {
       case TRUE =>
-        if (negatives.contains(id)) error(s"Atom '${atom.toText}' is defined both as positive and negative in the given evidence db. Will keep only the first definition, which is negative.")
-        else if (probabilistic.contains(id)) error(s"Atom '${atom.toText}' is defined both as positive and probabilistic/unknown in the given evidence db. Will keep only the first definition, which is probabilistic/unknown.")
+        if (negatives.contains(id)) logger.error(s"Atom '${atom.toText}' is defined both as positive and negative in the given evidence db. Will keep only the first definition, which is negative.")
+        else if (probabilistic.contains(id)) logger.error(s"Atom '${atom.toText}' is defined both as positive and probabilistic/unknown in the given evidence db. Will keep only the first definition, which is probabilistic/unknown.")
         else positives.add(id)
 
       case FALSE =>
-        if (positives.contains(id)) error(s"Atom '${atom.toText}' is defined both as positive and negative in the given evidence db. Will keep only the first definition, which is positive.")
-        else if (probabilistic.contains(id)) error(s"Atom '${atom.toText}' is defined both as negative and probabilistic/unknown in the given evidence db. Will keep only the first definition, which is probabilistic/unknown.")
+        if (positives.contains(id)) logger.error(s"Atom '${atom.toText}' is defined both as positive and negative in the given evidence db. Will keep only the first definition, which is positive.")
+        else if (probabilistic.contains(id)) logger.error(s"Atom '${atom.toText}' is defined both as negative and probabilistic/unknown in the given evidence db. Will keep only the first definition, which is probabilistic/unknown.")
         else negatives.add(id)
 
       case UNKNOWN =>
-        if (positives.contains(id)) error(s"Atom '${atom.toText}' is defined both as positive and probabilistic/unknown in the given evidence db. Will keep only the first definition, which is positive.")
-        else if (negatives.contains(id)) error(s"Atom '${atom.toText}' is defined both as negative and probabilistic/unknown in the given evidence db. Will keep only the first definition, which is negative.")
+        if (positives.contains(id)) logger.error(s"Atom '${atom.toText}' is defined both as positive and probabilistic/unknown in the given evidence db. Will keep only the first definition, which is positive.")
+        else if (negatives.contains(id)) logger.error(s"Atom '${atom.toText}' is defined both as negative and probabilistic/unknown in the given evidence db. Will keep only the first definition, which is negative.")
         else {
           atom.probability match {
             case 1.0 => putLiteral(id) // interpret as non-probabilistic evidence (state = TRUE)
@@ -674,7 +685,7 @@ final class AtomEvidenceDBBuilder private(val signature: AtomSignature,
 
                 // A. Interpret it as evidence atom with unknown values:
                 if(probabilistic.containsKey(id))
-                  error(s"Cannot reassign the probabilistic atom '${atom.toText}' as non-probabilistic with unknown state.")
+                  logger.error(s"Cannot reassign the probabilistic atom '${atom.toText}' as non-probabilistic with unknown state.")
                 else unknown.add(id)
               }
               else {
@@ -686,7 +697,7 @@ final class AtomEvidenceDBBuilder private(val signature: AtomSignature,
                 val storedProb = probabilistic.putIfAbsent(id, atom.probability)
 
                 if(storedProb != probabilistic.getNoEntryValue)
-                  error(s"Cannot reassign a different probability (${atom.probability}) for atom '${atom.toText}' (stored probability is $storedProb).")
+                  logger.error(s"Cannot reassign a different probability (${atom.probability}) for atom '${atom.toText}' (stored probability is $storedProb).")
 
                 /*assert((storedProb == probabilistic.getNoEntryValue) || (storedProb == atom.probability),
                   "Cannot reassign a different probability (" + atom.probability + ") for atom " + atom + " (stored probability is " + storedProb + ").")*/
@@ -696,23 +707,23 @@ final class AtomEvidenceDBBuilder private(val signature: AtomSignature,
     } //end match atom.state
   }
 
-  def += (literal: Int) {
+  def += (literal: Int): Unit = {
     val atomID = math.abs(literal)
     require(atomID >= identity.startID && atomID < identity.endID, "The given literal has incompatible id.")
     copyIfDirty()
     putLiteral(literal)
   }
 
-  private def putLiteral(literal: Int) {
+  private def putLiteral(literal: Int): Unit = {
     if (literal > 0) {
-      if (negatives.contains(literal)) error("Atom " + literal + " is defined both as positive and negative.")
-      else if (probabilistic.contains(literal)) error("Atom " + literal + " is defined both as positive and probabilistic/unknown.")
+      if (negatives.contains(literal)) logger.error("Atom " + literal + " is defined both as positive and negative.")
+      else if (probabilistic.contains(literal)) logger.error("Atom " + literal + " is defined both as positive and probabilistic/unknown.")
       else positives.add(literal)
     }
     else {
       val id = -literal
-      if (positives.contains(id)) error("Atom " + id + " is defined both as positive and negative.")
-      else if (probabilistic.contains(id)) error("Atom " + id + " is defined both as negative and probabilistic/unknown.")
+      if (positives.contains(id)) logger.error("Atom " + id + " is defined both as positive and negative.")
+      else if (probabilistic.contains(id)) logger.error("Atom " + id + " is defined both as negative and probabilistic/unknown.")
       else negatives.add(id)
     }
   }

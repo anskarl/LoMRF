@@ -14,23 +14,6 @@
  *
  * Logical Markov Random Fields.
  *
- * Copyright (c) Anastasios Skarlatidis.
- *
- * This file is part of Logical Markov Random Fields (LoMRF).
- *
- * LoMRF is free software: you can redistribute it and/or modify it
- * under the terms of the GNU Lesser General Public License as published
- * by the Free Software Foundation, either version 3 of the License,
- * or (at your option) any later version.
- *
- * LoMRF is distributed in the hope that it will be useful, but WITHOUT
- * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
- * or FITNESS FOR A PARTICULAR PURPOSE. See the GNU Lesser General Public
- * License for more details.
- *
- * You should have received a copy of the GNU Lesser General Public License
- * along with LoMRF. If not, see <http://www.gnu.org/licenses/>.
- *
  */
 
 import sbt._
@@ -40,16 +23,22 @@ object Dependencies {
 
   object v {
     final val Akka = "2.5.6"
+
+    final val ScalaLogging = "3.9.0"
     final val Logback = "1.2.3"
-    final val SLF4JVersion = "1.7.25"
+    final val SLF4J = "1.7.25"
+    final val JANSI = "1.11"
+
     final val ScalaTest = "3.0.4"
-    final val Optimus = "2.0.0"
+
     final val Trove4j = "3.0.3"
     final val JTS = "1.14.0"
     final val Scalaxy = "0.3.4"
-    final val AuxLib = "0.3.0"
-    final val JANSI = "1.11"
+
+    final val Optimus = "2.0.0"
     final val Breeze = "0.12"
+
+    final val AuxLib = "0.3.0"
   }
 
   // Akka.io
@@ -61,9 +50,10 @@ object Dependencies {
 
   // Logging with slf4j and logback
   lazy val Logging = Seq(
+    "com.typesafe.scala-logging" %% "scala-logging" % v.ScalaLogging,
     "ch.qos.logback" % "logback-classic" % v.Logback,
     "ch.qos.logback" % "logback-core" % v.Logback,
-    "org.slf4j" % "slf4j-api" % v.SLF4JVersion
+    "org.slf4j" % "slf4j-api" % v.SLF4J
   )
 
   // ScalaTest got Unit testing
@@ -81,7 +71,7 @@ object Dependencies {
     "com.nativelibs4java" %% "scalaxy-streams" % v.Scalaxy % "provided",
 
     // Adding auxlib library requires local publishing (for details see https://github.com/anskarl/auxlib)
-    "com.github.anskarl" %% "auxlib-log" % v.AuxLib,
+    //"com.github.anskarl" %% "auxlib-log" % v.AuxLib,
     "com.github.anskarl" %% "auxlib-opt" % v.AuxLib,
     "com.github.anskarl" %% "auxlib-trove" % v.AuxLib,
 
@@ -89,7 +79,7 @@ object Dependencies {
 
     // Breeze library for efficient numerical processing
     "org.scalanlp" %% "breeze" % v.Breeze,
-   "org.scalanlp" %% "breeze-natives" % v.Breeze
+    "org.scalanlp" %% "breeze-natives" % v.Breeze
 
   )
 

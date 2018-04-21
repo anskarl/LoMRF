@@ -17,7 +17,9 @@
 
 package lomrf.logic
 
-import auxlib.log.Logger
+
+
+import com.typesafe.scalalogging.LazyLogging
 import lomrf.mln.model.ConstantsSet
 import lomrf.util.Cartesian.CartesianIterator
 
@@ -28,9 +30,7 @@ import collection.mutable
  * Contains functions that convert a First Order Logic (FOL) formula into a normal form,
  * such as Negation Normal Form (NNF), Prenex Normal Form (PNF) and Clausal Normal Form (CNF).
  */
-object NormalForm {
-
-  val log = Logger(this.getClass)
+object NormalForm extends LazyLogging {
 
   /**
    * <p>
@@ -457,7 +457,7 @@ object NormalForm {
               units += literals.head
             } else if (literals.size > 1) {
               if (!isTautology) nonUnits += literals
-              else log.warn("tautology clause is produced")
+              else logger.warn("tautology clause is produced")
             } // end of "Or"
           case _ => throw new IllegalStateException("Failed to collect literals, illegal formula: " + source.toText)
         }

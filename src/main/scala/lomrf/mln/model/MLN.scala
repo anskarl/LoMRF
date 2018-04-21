@@ -21,11 +21,11 @@ package lomrf.mln.model
 import java.io.{File, PrintStream}
 import java.text.DecimalFormat
 
-import auxlib.log.Logger
 import lomrf.logic._
 import lomrf.util.Cartesian.CartesianIterator
 import lomrf.util._
-
+import lomrf.util.logging.Implicits._
+import com.typesafe.scalalogging.Logger
 import scala.collection.breakOut
 
 /**
@@ -43,7 +43,7 @@ final class MLN(val schema: MLNSchema,
   /**
     * Function mappers for both user defined functions from evidence, as well as dynamic functions
     */
-  val functionMappers = evidence.functionMappers ++ schema.dynamicFunctions.map {
+  val functionMappers: Map[AtomSignature, FunctionMapper] = evidence.functionMappers ++ schema.dynamicFunctions.map {
     case (signature, dynamicFunction) => signature -> FunctionMapper(dynamicFunction)
   }
 
@@ -262,11 +262,9 @@ object MLN {
                owa: Set[AtomSignature],
                pcm: PredicateCompletionMode,
                dynamicDefinitions: Option[ImplFinder.ImplementationsMap]): MLN = {
+    val logger = Logger(this.getClass)
 
-    val logger = Logger(getClass)
-    import logger._
-
-    info {
+    logger.info {
       s"""--- Stage 0: Loading an MLN instance from data...
         |\tInput MLN file: $mlnFileName
         |\tInput evidence file(s): ${evidenceFileNames.mkString(", ")}
@@ -284,7 +282,7 @@ object MLN {
      */
     val missingQuerySignatures = queryAtoms.diff(atomSignatures)
     if(missingQuerySignatures.nonEmpty)
-      fatal(s"Missing definitions for the following query predicate(s): ${missingQuerySignatures.mkString(", ")}")
+      logger.fatal(s"Missing definitions for the following query predicate(s): ${missingQuerySignatures.mkString(", ")}")
 
     // OWA predicates
     val predicatesOWA = pcm match {
@@ -293,7 +291,7 @@ object MLN {
         val missingOWASignatures = owa.diff(atomSignatures)
 
         if(missingOWASignatures.nonEmpty)
-          fatal(s"Missing definitions for the following OWA predicate(s): ${missingOWASignatures.mkString(", ")}")
+          logger.fatal(s"Missing definitions for the following OWA predicate(s): ${missingOWASignatures.mkString(", ")}")
 
         queryAtoms ++ owa
     }
@@ -301,7 +299,7 @@ object MLN {
     // Check for predicates that are mistakenly defined as open and closed
     val openClosedSignatures = cwa.intersect(predicatesOWA)
     if(openClosedSignatures.nonEmpty)
-      fatal(s"Predicate(s): ${openClosedSignatures.mkString(", ")} defined both as closed and open.")
+      logger.fatal(s"Predicate(s): ${openClosedSignatures.mkString(", ")} defined both as closed and open.")
 
     //parse the evidence database (.db)
     val evidence = Evidence.fromFiles(
@@ -325,7 +323,7 @@ object MLN {
       case Simplification =>
         val resultingFormulas = kb.predicateSchema -- kb.definiteClauses.map(_.clause.head.signature)
         if(resultingFormulas.isEmpty)
-          warn("The given theory is empty (i.e., contains empty set of non-zeroed formulas).")
+          logger.warn("The given theory is empty (i.e., contains empty set of non-zeroed formulas).")
 
         resultingFormulas
       case _ => kb.predicateSchema
@@ -368,9 +366,9 @@ object MLN {
                   addUnitClauses: Boolean = false): (MLN, EvidenceDB) = {
 
     val logger = Logger(getClass)
-    import logger._
 
-    info(
+
+    logger.info(
       "--- Stage 0: Loading an MLN instance from data..." +
         "\n\tInput MLN file: " + mlnFileName +
         "\n\tInput training file(s): " + (if (trainingFileNames.nonEmpty) trainingFileNames.mkString(", ") else ""))
@@ -384,7 +382,7 @@ object MLN {
 
     // Check if the schema of all Non-Evidence atoms is defined in the MLN file
     nonEvidenceAtoms.find(s => !atomSignatures.contains(s)) match {
-      case Some(x) => fatal(s"The predicate '$x' that appears in the query, is not defined in the mln file.")
+      case Some(x) => logger.fatal(s"The predicate '$x' that appears in the query, is not defined in the mln file.")
       case None => // do nothing
     }
 
@@ -415,7 +413,7 @@ object MLN {
 
     // Define all non evidence atoms for which annotation was not given as false in the annotation database (close world assumption)
     for (signature <- nonEvidenceAtoms; if !annotationDB.contains(signature)) {
-      warn(s"Annotation was not given in the training file(s) for predicate '$signature', assuming FALSE state for all its groundings.")
+      logger.warn(s"Annotation was not given in the training file(s) for predicate '$signature', assuming FALSE state for all its groundings.")
       annotationDB += (signature -> AtomEvidenceDB.allFalse(domainSpace.identities(signature)))
     }
 
@@ -434,7 +432,7 @@ object MLN {
       case Simplification =>
         val resultingFormulas = kb.predicateSchema -- kb.definiteClauses.map(_.clause.head.signature)
         if(resultingFormulas.isEmpty)
-          warn("The given theory is empty (i.e., contains empty set of non-zeroed formulas).")
+          logger.warn("The given theory is empty (i.e., contains empty set of non-zeroed formulas).")
 
         resultingFormulas
       case _ => kb.predicateSchema
@@ -458,7 +456,7 @@ object MLN {
 
     val mlnSchema = MLNSchema(resultingPredicateSchema, kb.functionSchema, kb.dynamicPredicates, kb.dynamicFunctions)
 
-    info(s"Initialising weight values in target formulas and computing CNF form")
+    logger.info(s"Initialising weight values in target formulas and computing CNF form")
 
     def initialiseWeight(formula: WeightedFormula): WeightedFormula ={
       if(formula.weight.isNaN) formula.copy(weight = 1.0)
@@ -519,9 +517,9 @@ object MLN {
                   trainingFileNames: List[String]): (MLN, EvidenceDB) = {
 
     val logger = Logger(getClass)
-    import logger._
 
-    info(
+
+    logger.info(
       "--- Stage 0: Loading an MLN instance from data..." +
         "\n\tInput training file(s): " + (if (trainingFileNames.nonEmpty) trainingFileNames.mkString(", ") else ""))
 
@@ -577,7 +575,7 @@ object MLN {
                   clauses: Vector[Clause]): (MLN, EvidenceDB) = {
 
     val logger = Logger(getClass)
-    import logger._
+
 
     // All atom signatures
     val atomSignatures: Set[AtomSignature] = mlnSchema.predicates.keySet
@@ -593,7 +591,7 @@ object MLN {
 
     // Define all non evidence atoms for which annotation was not given as false in the annotation database (close world assumption)
     for (signature <- nonEvidenceAtoms; if !annotationDB.contains(signature)) {
-      warn(s"Annotation was not given in the training file(s) for predicate '$signature', assuming FALSE state for all its groundings.")
+      logger.warn(s"Annotation was not given in the training file(s) for predicate '$signature', assuming FALSE state for all its groundings.")
       annotationDB += (signature -> AtomEvidenceDB.allFalse(domainSpace.identities(signature)))
     }
 

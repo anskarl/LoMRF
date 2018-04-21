@@ -26,6 +26,7 @@ import lomrf.mln.learning.weight.{LossFunction, MaxMarginLearner, OnlineLearner}
 import lomrf.mln.model.MLN
 import lomrf.util.NaturalComparator
 import lomrf.util.time._
+import lomrf.util.logging.Implicits._
 
 /**
  * Command line tool for weight learning.
@@ -126,7 +127,7 @@ object WeightLearningCLI extends CLIApp {
   opt("ne", "non-evidence atoms", "<string>", "Comma separated non-evidence atoms. "
     + "Each atom must be defined using its identity (i.e. Name/arity). "
     + "For example the identity of NonEvidenceAtom(arg1,arg2) is NonEvidenceAtom/2", {
-      _nonEvidenceAtoms ++= _.split(',').map(s => s.signature.getOrElse(fatal(s"Cannot parse the arity of atom signature: $s")))
+      _nonEvidenceAtoms ++= _.split(',').map(s => s.signature.getOrElse(logger.fatal(s"Cannot parse the arity of atom signature: $s")))
   })
 
   opt("alg", "algorithm", "<MAX_MARGIN | CDA | ADAGRAD>", "Algorithm used to perform learning (default is Max-Margin).", {
@@ -134,12 +135,12 @@ object WeightLearningCLI extends CLIApp {
       case "max_margin" => _algorithm = Algorithm.MAX_MARGIN
       case "cda" => _algorithm = Algorithm.COORDINATE_DUAL_ASCEND
       case "adagrad" => _algorithm = Algorithm.ADAGRAD_FB
-      case _ => fatal("Unknown parameter for learning algorithm type '" + v + "'.")
+      case _ => logger.fatal("Unknown parameter for learning algorithm type '" + v + "'.")
     }
   })
 
   doubleOpt("sigma", "sigma", "Parameter for strong convexity in CDA (default is " + _sigma + ").", {
-    v: Double => if (v <= 0) fatal("Sigma value must be any number above zero, but you gave: " + v) else _sigma = v
+    v: Double => if (v <= 0) logger.fatal("Sigma value must be any number above zero, but you gave: " + v) else _sigma = v
   })
 
   doubleOpt("lambda", "lambda", "Regularization parameter for ADAGRAD (default is " + _lambda + ").", {
@@ -151,7 +152,7 @@ object WeightLearningCLI extends CLIApp {
   })
 
   doubleOpt("delta", "delta", "Delta parameter for ADAGRAD (default is " + _delta + ").", {
-    v: Double => if(v < 0) fatal("Delta value must be any number greater or equal to zero, but you gave: " + v) else _delta = v
+    v: Double => if(v < 0) logger.fatal("Delta value must be any number greater or equal to zero, but you gave: " + v) else _delta = v
   })
 
   doubleOpt("C", "C", "Regularization parameter (default is " + _C + ").", {
@@ -167,7 +168,7 @@ object WeightLearningCLI extends CLIApp {
   })
 
   intOpt("iterations", "maximum-iterations", "The maximum number of iterations to run learning (default is " + _iterations + ").", {
-    v: Int => if (v < 0) fatal("The maximum iterations value must be any integer above zero, but you gave: " + v) else _iterations = v
+    v: Int => if (v < 0) logger.fatal("The maximum iterations value must be any integer above zero, but you gave: " + v) else _iterations = v
   })
 
   flagOpt("addUnitClauses", "add-unit-clauses", "If specified, unit clauses are included in the output MLN file.", {_addUnitClauses = true})
@@ -181,7 +182,7 @@ object WeightLearningCLI extends CLIApp {
       case "gurobi" => _ilpSolver = Solver.GUROBI
       case "lpsolve" => _ilpSolver = Solver.LPSOLVE
       case "ojalgo" => _ilpSolver = Solver.OJALGO
-      case _ => fatal("Unknown parameter for ILP solver type '" + v + "'.")
+      case _ => logger.fatal("Unknown parameter for ILP solver type '" + v + "'.")
     }
   })
 
@@ -206,17 +207,17 @@ object WeightLearningCLI extends CLIApp {
 
   def weightLearn(): Unit = {
 
-    val strMLNFileName = _mlnFileName.getOrElse(fatal("Please specify an input MLN file."))
+    val strMLNFileName = _mlnFileName.getOrElse(logger.fatal("Please specify an input MLN file."))
     val strTrainingFileNames = _trainingFileName
       .map(_.sortWith(NaturalComparator.compareBool))
-      .getOrElse(fatal("Please specify input training file(s)."))
+      .getOrElse(logger.fatal("Please specify input training file(s)."))
 
     val outputWriter = _outputFileName match {
       case Some(fileName) => new PrintStream(new FileOutputStream(fileName), true)
       case None => System.out
     }
 
-    info("Parameters:"
+    logger.info("Parameters:"
       + "\n\t(ne) Non-evidence predicate(s): " + _nonEvidenceAtoms.map(_.toString).reduceLeft((left, right) => left + "," + right)
       + "\n\t(addUnitClauses) Include unit clauses in the output MLN file: " + _addUnitClauses
       + "\n\t(sigma) Parameter for strong convexity in CDA: " + _sigma
@@ -242,23 +243,23 @@ object WeightLearningCLI extends CLIApp {
     if(_algorithm == Algorithm.MAX_MARGIN) {
 
       if(_ilpSolver != Solver.GUROBI) {
-        warn("For MAX_MARGIN training, only GUROBI solver is supported. Switching to GUROBI.")
+        logger.warn("For MAX_MARGIN training, only GUROBI solver is supported. Switching to GUROBI.")
         _ilpSolver = Solver.GUROBI
       }
 
       val (mln, annotationDB) = MLN.forLearning(strMLNFileName, strTrainingFileNames.toList, _nonEvidenceAtoms, addUnitClauses = _addUnitClauses)
 
-      info("AnnotationDB: "
+      logger.info("AnnotationDB: "
         + "\n\tAtoms with annotations: " + annotationDB.keys.map(_.toString).reduceLeft((left, right) => left + "," + right)
       )
 
-      info(mln.toString)
+      logger.info(mln.toString)
 
-      info("Number of CNF clauses = " + mln.clauses.size)
-      info("List of CNF clauses: ")
-      mln.clauses.zipWithIndex.foreach { case (c, idx) => info(idx + ": " + c)}
+      logger.info("Number of CNF clauses = " + mln.clauses.size)
+      logger.info("List of CNF clauses: ")
+      mln.clauses.zipWithIndex.foreach { case (c, idx) => logger.info(idx + ": " + c)}
 
-      info("Creating MRF...")
+      logger.info("Creating MRF...")
       val mrfBuilder = new MRFBuilder(mln, noNegWeights = _noNeg, eliminateNegatedUnit = _eliminateNegatedUnit, createDependencyMap = true)
       val mrf = mrfBuilder.buildNetwork
 
@@ -279,17 +280,17 @@ object WeightLearningCLI extends CLIApp {
 
         val (mln, annotationDB) = MLN.forLearning(strMLNFileName, List(strTrainingFileNames(step)), _nonEvidenceAtoms, addUnitClauses = _addUnitClauses)
 
-        info("AnnotationDB: "
+        logger.info("AnnotationDB: "
           + "\n\tAtoms with annotations: " + annotationDB.keys.mkString(","))
-        info(mln.toString)
+        logger.info(mln.toString)
 
-        info("Number of CNF clauses = " + mln.clauses.size)
-        whenDebug{
-          debug("List of CNF clauses: ")
-          mln.clauses.zipWithIndex.foreach { case (c, idx) => debug(idx + ": " + c)}
+        logger.info("Number of CNF clauses = " + mln.clauses.size)
+        logger.whenDebugEnabled{
+          logger.debug("List of CNF clauses: ")
+          mln.clauses.zipWithIndex.foreach { case (c, idx) => logger.debug(idx + ": " + c)}
         }
 
-        info("Creating MRF...")
+        logger.info("Creating MRF...")
         val mrfBuilder = new MRFBuilder(mln, noNegWeights = _noNeg, eliminateNegatedUnit = _eliminateNegatedUnit, createDependencyMap = true)
         val mrf = mrfBuilder.buildNetwork
 
@@ -297,11 +298,11 @@ object WeightLearningCLI extends CLIApp {
                                                   ilpSolver = _ilpSolver, lossScale = _lossScale, sigma = _sigma, lambda = _lambda, eta = _eta,
                                                   delta = _delta, printLearnedWeightsPerIteration = _printLearnedWeightsPerIteration)
 
-        info("Step " + (step + 1) + ": " + strTrainingFileNames(step))
+        logger.info("Step " + (step + 1) + ": " + strTrainingFileNames(step))
         learner.learningStep(step + 1, mrf, annotationDB)
       }
 
-      info(msecTimeToTextUntilNow("Total learning time: ", start))
+      logger.info(msecTimeToTextUntilNow("Total learning time: ", start))
       learner.writeResults(outputWriter)
     }
 

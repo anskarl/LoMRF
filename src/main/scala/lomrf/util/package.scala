@@ -27,6 +27,8 @@ import scala.collection.mutable
 import scala.reflect._
 import scalaxy.streams.optimize
 
+import scala.language.implicitConversions
+
 package object util {
 
   object seg {
@@ -401,7 +403,7 @@ package object util {
   }
 
 
-  def collectByKey[K,V](collection: Traversable[(K, V)]) = {
+  def collectByKey[K,V](collection: Traversable[(K, V)]): Map[K, Set[V]] = {
     collection
       .groupBy(_._1)
       .map {

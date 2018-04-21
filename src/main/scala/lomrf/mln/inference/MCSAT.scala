@@ -20,11 +20,13 @@ package lomrf.mln.inference
 import java.io.PrintStream
 import java.text.DecimalFormat
 import java.util.concurrent.ThreadLocalRandom
-import auxlib.log.Logging
-import lomrf.mln.model.AtomIdentityFunctionOps
-import lomrf.mln.model.mrf.{GroundAtom, MRFState, MRF}
+
+import com.typesafe.scalalogging.LazyLogging
+import lomrf.mln.model.{AtomIdentityFunctionOps, MLN}
+import lomrf.mln.model.mrf.{GroundAtom, MRF, MRFState}
 import lomrf.util.time._
 import lomrf.util.LongDoubleConversions._
+
 import scala.util.Success
 
 /**
@@ -56,10 +58,10 @@ import scala.util.Success
  */
 final case class MCSAT(mrf: MRF, pBest: Double = 0.5, pSA: Double = 0.1, maxFlips: Int = 100000, maxTries: Int = 1, targetCost: Double = 0.001,
                       numSolutions: Int = 10, saTemperature: Double = 0.1, samples: Int = 1000, lateSA: Boolean = true,
-                      unitPropagation: Boolean = true, satHardPriority: Boolean = false, tabuLength: Int = 10) extends Logging {
+                      unitPropagation: Boolean = true, satHardPriority: Boolean = false, tabuLength: Int = 10) extends LazyLogging {
 
   private val TARGET_COST = new LongDouble(targetCost + 0.0001)
-  implicit val mln = mrf.mln
+  implicit val mln: MLN = mrf.mln
 
   /**
    * Fetch atom given its literal code.
@@ -90,16 +92,16 @@ final case class MCSAT(mrf: MRF, pBest: Double = 0.5, pSA: Double = 0.1, maxFlip
      * all of them by running the MaxWalkSAT algorithm.
      */
     @inline def initialise() {
-      info("Initialising MC-SAT for marginal inference.")
+      logger.info("Initialising MC-SAT for marginal inference.")
       val noHard = state.selectOnlyHardConstraints()
       if (noHard > 0) {
-        info("Running MaxWalkSAT on hard-constrained clauses" +
+        logger.info("Running MaxWalkSAT on hard-constrained clauses" +
           "\n\tNumber of hard-constrained clauses: " + noHard)
-        val sat = new MaxWalkSAT(mrf)
+        val sat = MaxWalkSAT(mrf)
         val mwsatStartTime = System.currentTimeMillis()
         sat.infer(state)
         mwsatTime = System.currentTimeMillis() - mwsatStartTime
-        info(msecTimeToText("Total Max-WalkSAT time: ", mwsatTime))
+        logger.info(msecTimeToText("Total Max-WalkSAT time: ", mwsatTime))
       }
     }
 
@@ -230,7 +232,7 @@ final case class MCSAT(mrf: MRF, pBest: Double = 0.5, pSA: Double = 0.1, maxFlip
     val mcsatStartTime = System.currentTimeMillis()
     while (samplesCounter <= samples) {
       if ((samplesCounter % 100) == 0)
-        info("samples " + samplesCounter + msecTimeToText(" --- time: ", System.currentTimeMillis() - mcsatStartTime))
+        logger.info("samples " + samplesCounter + msecTimeToText(" --- time: ", System.currentTimeMillis() - mcsatStartTime))
 
       //-----------------------------------------------------
       state.selectSomeSatConstraints()
@@ -265,8 +267,8 @@ final case class MCSAT(mrf: MRF, pBest: Double = 0.5, pSA: Double = 0.1, maxFlip
       samplesCounter += 1
     }
     val mcsatTime = System.currentTimeMillis() - mcsatStartTime
-    info(msecTimeToText("Total MC-SAT time: ", mcsatTime))
-    info(msecTimeToText("Total inference time: ", mcsatTime + mwsatTime))
+    logger.info(msecTimeToText("Total MC-SAT time: ", mcsatTime))
+    logger.info(msecTimeToText("Total inference time: ", mcsatTime + mwsatTime))
 
     // return the best state
     state
@@ -297,7 +299,7 @@ final case class MCSAT(mrf: MRF, pBest: Double = 0.5, pSA: Double = 0.1, maxFlip
 
         atomID.decodeAtom match {
           case Success(txtAtom) => result.println(txtAtom + " " + numFormat.format(probability))
-          case _ => error(s"failed to decode id: $atomID")
+          case _ => logger.error(s"failed to decode id: $atomID")
         }
       }
     }

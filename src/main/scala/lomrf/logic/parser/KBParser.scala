@@ -17,15 +17,18 @@
 
 package lomrf.logic.parser
 
-import auxlib.log.Logging
-import lomrf.logic._
+import com.typesafe.scalalogging.LazyLogging
 import lomrf.logic.dynamic.{DynamicAtomBuilder, DynamicFunctionBuilder}
+import lomrf.logic._
+import lomrf.util.logging.Implicits._
+
+
 import scala.collection.breakOut
 
 final class KBParser(predicateSchema: Map[AtomSignature, Vector[String]],
                      functionSchema: Map[AtomSignature, (String, Vector[String])],
                      dynamicAtomBuilders: Map[AtomSignature, DynamicAtomBuilder] = predef.dynAtomBuilders,
-                     dynamicFunctionBuilders: Map[AtomSignature, DynamicFunctionBuilder] = predef.dynFunctionBuilders) extends CommonsMLNParser with Logging {
+                     dynamicFunctionBuilders: Map[AtomSignature, DynamicFunctionBuilder] = predef.dynFunctionBuilders) extends CommonsMLNParser with LazyLogging {
 
   private val minPrecedenceLevel = 1
   private val maxPrecedenceLevel = 3
@@ -276,7 +279,7 @@ final class KBParser(predicateSchema: Map[AtomSignature, Vector[String]],
       for (currentVar <- undefinedDomainVars) definedDomainVarMap.get(currentVar.symbol) match {
           case Some(domainName) => currentVar.domainName = domainName
           case None =>
-            fatal(s"Cannot determine the domain of variable '${currentVar.toText}' in (sub)formula '${formula.toText}'.")
+            logger.fatal(s"Cannot determine the domain of variable '${currentVar.toText}' in (sub)formula '${formula.toText}'.")
       }
     }
   }
@@ -318,7 +321,7 @@ final class KBParser(predicateSchema: Map[AtomSignature, Vector[String]],
     case 3 => "^" ^^^ {
       (a: FormulaConstruct, b: FormulaConstruct) => And(a, b)
     }
-    case _ => fatal(s"Wrong precedence level: $level in logical operators.")
+    case _ => logger.fatal(s"Wrong precedence level: $level in logical operators.")
   }
 
   /**
@@ -493,7 +496,7 @@ final class KBParser(predicateSchema: Map[AtomSignature, Vector[String]],
                 case upperCaseID(s, _*) => Constant(s)
                 case variableArg(v, _*) => fetchTypedVariable(v)
                 case func: TermFunction => func
-                case _ => fatal(s"Cannot parse the symbol: $element")
+                case _ => logger.fatal(s"Cannot parse the symbol: $element")
               })(breakOut)
 
           dynamicPredicates += (atomSignature -> atomBuilder.stateFunction)
@@ -503,7 +506,7 @@ final class KBParser(predicateSchema: Map[AtomSignature, Vector[String]],
           // the atomicFormula is a common used-defined predicate
           val argTypes: Vector[String] = predicateSchema.get(atomSignature) match {
             case Some(x) => x
-            case _ => fatal(s"The predicate with signature '${atomSignature.toString}' is not defined.")
+            case _ => logger.fatal(s"The predicate with signature '${atomSignature.toString}' is not defined.")
           }
 
           val termList: Vector[Term] =
@@ -527,9 +530,9 @@ final class KBParser(predicateSchema: Map[AtomSignature, Vector[String]],
                     result
                   }
                   else if (func.domain == argType) func
-                  else fatal(s"The function '${func.toText}' returns '${func.domain}', while expecting to return '$argType'.")
+                  else logger.fatal(s"The function '${func.toText}' returns '${func.domain}', while expecting to return '$argType'.")
 
-                case _ => fatal(s"Cannot parse the symbol: $element")
+                case _ => logger.fatal(s"Cannot parse the symbol: $element")
               }
             )(breakOut)
           AtomicFormula(name, termList)
@@ -614,13 +617,13 @@ final class KBParser(predicateSchema: Map[AtomSignature, Vector[String]],
               case upperCaseID(s, _*) => Constant(s)
               case variableArg(v, _*) => fetchTypedVariable(v)
               case func: TermFunction => func
-              case _ => fatal(s"Cannot parse symbol: $term")
+              case _ => logger.fatal(s"Cannot parse symbol: $term")
             })(breakOut)
 
           // store the special function to special functions HashMap
           dynamicFunctions += (functionSignature -> functionBuilder.resultFunction)
 
-          debug(s"Parsed dynamic function: $functionSignature with terms: ${termList.mkString(", ")}")
+          logger.debug(s"Parsed dynamic function: $functionSignature with terms: ${termList.mkString(", ")}")
 
           // Give the resulting function --- that is a function with UNDEFINED return type.
           // The return type will be determined later inside the method: "atomicFormula".
@@ -631,7 +634,7 @@ final class KBParser(predicateSchema: Map[AtomSignature, Vector[String]],
           // Take the function's input/output types from the functionSchema map
           val (retType, argTypes) = functionSchema.get(functionSignature) match {
             case Some(x) => x
-            case None => fatal(s"The function: $functionSignature is not defined.")
+            case None => logger.fatal(s"The function: $functionSignature is not defined.")
           }
           // fetch the function's terms that are defined in its arguments,
           // and check if their types match with the function argument types
@@ -653,12 +656,12 @@ final class KBParser(predicateSchema: Map[AtomSignature, Vector[String]],
                 // if the function is user-defined (thus it has a return type),
                 // check if its return type is the same with the corresponding argument type.
                 if (func.isDomainDefined && func.domain != argType)
-                  fatal(s"The function $func returns: ${func.domain}, while expecting: $argType")
+                  logger.fatal(s"The function $func returns: ${func.domain}, while expecting: $argType")
 
                 // Everything seems to be fine, give the function.
                 func
 
-              case _ => fatal(s"Cannot parse the symbol: $symbol")
+              case _ => logger.fatal(s"Cannot parse the symbol: $symbol")
 
             })(breakOut)
 
@@ -733,7 +736,7 @@ final class KBParser(predicateSchema: Map[AtomSignature, Vector[String]],
     */
   def parseLogicalSentence(src: String): Formula = parse(sentence, src) match {
     case Success(expr, _) if expr.isInstanceOf[Formula] => expr.asInstanceOf[Formula]
-    case x => fatal(s"Can't parse the following expression: $x")
+    case x => logger.fatal(s"Can't parse the following expression: $x")
   }
 
   /**
@@ -744,7 +747,7 @@ final class KBParser(predicateSchema: Map[AtomSignature, Vector[String]],
     */
   def parseWeightedFormula(src: String): WeightedFormula = parse(folSentence, src) match {
     case Success(expr, _) if expr.isInstanceOf[WeightedFormula] => expr.asInstanceOf[WeightedFormula]
-    case x => fatal(s"Can't parse the following expression: $x")
+    case x => logger.fatal(s"Can't parse the following expression: $x")
   }
 
   /**
@@ -755,7 +758,7 @@ final class KBParser(predicateSchema: Map[AtomSignature, Vector[String]],
    */
   def parseDefiniteClause(src: String): WeightedDefiniteClause = parse(definiteSentence, src) match {
     case Success(expr, _) if expr.isInstanceOf[WeightedDefiniteClause] => expr.asInstanceOf[WeightedDefiniteClause]
-    case x => fatal(s"Can't parse the following expression: $x")
+    case x => logger.fatal(s"Can't parse the following expression: $x")
   }
 
   /**
@@ -766,7 +769,7 @@ final class KBParser(predicateSchema: Map[AtomSignature, Vector[String]],
    */
   def parsePredicate(src: String): AtomicFormula = parse(atomicFormula, src) match {
     case Success(expr, _) if expr.isInstanceOf[AtomicFormula] => expr
-    case x => fatal(s"Can't parse the following expression as an Atomic Formula: $x")
+    case x => logger.fatal(s"Can't parse the following expression as an Atomic Formula: $x")
   }
 
   /**
@@ -777,7 +780,7 @@ final class KBParser(predicateSchema: Map[AtomSignature, Vector[String]],
     */
   def parseFunction(src: String): TermFunction = parse(functionArg, src) match {
     case Success(expr, _) if expr.isInstanceOf[TermFunction] => expr
-    case x => fatal(s"Can't parse the following expression as a Function: $x")
+    case x => logger.fatal(s"Can't parse the following expression as a Function: $x")
   }
 
   /**
@@ -791,9 +794,9 @@ final class KBParser(predicateSchema: Map[AtomSignature, Vector[String]],
       expr match {
         case Not(atom) if atom.isInstanceOf[AtomicFormula] => NegativeLiteral(atom.asInstanceOf[AtomicFormula])
         case atom: AtomicFormula => PositiveLiteral(atom)
-        case _ => fatal(s"Can't parse the following expression as a literal: $expr")
+        case _ => logger.fatal(s"Can't parse the following expression as a literal: $expr")
       }
-    case x => fatal(s"Can't parse the following expression as a literal: $x")
+    case x => logger.fatal(s"Can't parse the following expression as a literal: $x")
   }
 
   /**
@@ -805,7 +808,7 @@ final class KBParser(predicateSchema: Map[AtomSignature, Vector[String]],
   def parseTheory(theory: String): List[MLNExpression] = {
     parse(mln, theory) match {
       case Success(result, _) => result
-      case x => fatal(s"Can't parse the given theory:\n$x")
+      case x => logger.fatal(s"Can't parse the given theory:\n$x")
     }
   }
 }

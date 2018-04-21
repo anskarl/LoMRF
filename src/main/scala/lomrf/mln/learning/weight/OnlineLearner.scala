@@ -19,17 +19,18 @@ package lomrf.mln.learning.weight
 
 import java.io.PrintStream
 import java.text.DecimalFormat
-import auxlib.log.Logging
+
+import com.typesafe.scalalogging.LazyLogging
 import lomrf.app.Algorithm
 import lomrf.app.Algorithm.Algorithm
-import lomrf.logic.{TriState, FALSE, TRUE, AtomSignature}
+import lomrf.logic.{AtomSignature, FALSE, TRUE, TriState}
 import lomrf.logic.AtomSignatureOps._
-import lomrf.mln.inference.{Solver, ILP}
+import lomrf.mln.inference.{ILP, Solver}
 import lomrf.mln.inference.Solver._
 import lomrf.mln.model.{AtomEvidenceDB, MLN}
 import lomrf.mln.model.mrf.MRF
-import lomrf.util._
 import scalaxy.streams.optimize
+
 import scala.language.postfixOps
 
 /**
@@ -61,20 +62,20 @@ import scala.language.postfixOps
  */
 final class OnlineLearner(mln: MLN, algorithm: Algorithm, lossAugmented: Boolean = false, lossScale: Double = 1.0,
                           ilpSolver: Solver = Solver.LPSOLVE, sigma: Double = 1.0, lambda: Double = 0.01, eta: Double = 1.0,
-                          delta: Double = 1.0, printLearnedWeightsPerIteration: Boolean = false) extends Logging {
+                          delta: Double = 1.0, printLearnedWeightsPerIteration: Boolean = false) extends LazyLogging {
 
   algorithm match {
-    case Algorithm.ADAGRAD_FB => info("ADAGRAD method Fobos")
-    case Algorithm.COORDINATE_DUAL_ASCEND => info("Coordinate dual ascend method for strongly convex function")
+    case Algorithm.ADAGRAD_FB => logger.info("ADAGRAD method Fobos")
+    case Algorithm.COORDINATE_DUAL_ASCEND => logger.info("Coordinate dual ascend method for strongly convex function")
   }
 
   // Number of first-order CNF clauses
-  val numberOfClauses = mln.clauses.length
+  val numberOfClauses: Int = mln.clauses.length
 
   // Initialise weights of the first-order clauses to zero (useless)
-  val weights = Array.fill[Double](numberOfClauses)(0.0)
+  val weights: Array[Double] = Array.fill[Double](numberOfClauses)(0.0)
 
-  val sumSquareGradients = Array.fill[Int](numberOfClauses)(0)
+  val sumSquareGradients: Array[Int] = Array.fill[Int](numberOfClauses)(0)
 
   /**
    * Fetch annotation from database for the given atom id. Annotation
@@ -172,7 +173,7 @@ final class OnlineLearner(mln: MLN, algorithm: Algorithm, lossAugmented: Boolean
     var totalError = 0.0
     val numberOfExamples = mrf.atoms.size()
 
-    info("Calculating misclassifed loss...")
+    logger.info("Calculating misclassifed loss...")
 
     val iterator = mrf.atoms.iterator()
     while(iterator.hasNext) {
@@ -183,7 +184,7 @@ final class OnlineLearner(mln: MLN, algorithm: Algorithm, lossAugmented: Boolean
         totalError += 1.0
     }
 
-    info("Total inferred error: " + totalError + "/" + numberOfExamples)
+    logger.info("Total inferred error: " + totalError + "/" + numberOfExamples)
     totalError
   }
 
@@ -245,12 +246,12 @@ final class OnlineLearner(mln: MLN, algorithm: Algorithm, lossAugmented: Boolean
     // Set the annotated state and count true groundings
     setAnnotatedState(mrf, annotationDB)
     val trueCounts = countGroundings(mrf)
-    info("True Counts: [" + trueCounts.deep.mkString(", ") + "]")
+    logger.info("True Counts: [" + trueCounts.deep.mkString(", ") + "]")
 
     // Perform inference for the current weight vector and count true groundings
     infer(mrf, annotationDB)
     val inferredCounts = countGroundings(mrf)
-    info("Inferred Counts: [" + inferredCounts.deep.mkString(", ") + "]")
+    logger.info("Inferred Counts: [" + inferredCounts.deep.mkString(", ") + "]")
 
     var weightedDeltaPhi = 0.0
 
@@ -260,7 +261,7 @@ final class OnlineLearner(mln: MLN, algorithm: Algorithm, lossAugmented: Boolean
       val defaultLearningRate = 1.0 / (sigma * t)
 
       val error = calculateError(mrf, annotationDB) * lossScale
-      info("Current loss: " + error)
+      logger.info("Current loss: " + error)
 
       // Calculate true counts minus inferred counts
       val delta = Array.fill[Int](numberOfClauses)(0)
@@ -273,9 +274,13 @@ final class OnlineLearner(mln: MLN, algorithm: Algorithm, lossAugmented: Boolean
       }
       val deltaPhi = delta.map( dif => Math.abs(dif) ).sum
 
-      info("\nDelta = [" + delta.deep.mkString(", ") + "]" +
-           "\nAbsolute delta phi: " + deltaPhi +
-           "\nWeighted delta phi: " + weightedDeltaPhi)
+      logger.info {
+        s"""
+           |Delta = ${delta.deep.mkString("[" ,", ", "]")}
+           |Absolute delta phi: $deltaPhi
+           |Weighted delta phi: $weightedDeltaPhi
+         """.stripMargin
+      }
 
       var loss = error - weightedDeltaPhi
       if(loss < 0) loss = 0.0
@@ -285,7 +290,7 @@ final class OnlineLearner(mln: MLN, algorithm: Algorithm, lossAugmented: Boolean
       val learningRate = if(square2NormDeltaPhi <= 0) 0.0
       else Math.min(defaultLearningRate, (error - ((t - 1) * weightedDeltaPhi) / t) / square2NormDeltaPhi)
 
-      info("Learning rate: " + learningRate)
+      logger.info("Learning rate: " + learningRate)
 
       // Update weights
       optimize {
@@ -335,7 +340,7 @@ final class OnlineLearner(mln: MLN, algorithm: Algorithm, lossAugmented: Boolean
     }
 
     if (printLearnedWeightsPerIteration) {
-      info("Learned weights on step " + t + ":\n" + "[" + weights.deep.mkString(", ") + "]")
+      logger.info("Learned weights on step " + t + ":\n" +  weights.deep.mkString("[", ", ", "]"))
     }
   }
 
@@ -345,9 +350,9 @@ final class OnlineLearner(mln: MLN, algorithm: Algorithm, lossAugmented: Boolean
    *
    * @param out Selected output stream (default is console)
    */
-  def writeResults(out: PrintStream = System.out) = {
+  def writeResults(out: PrintStream = System.out): Unit = {
 
-    implicit val numFormat = new DecimalFormat("0.############")
+    implicit val numFormat: DecimalFormat = new DecimalFormat("0.############")
 
     out.println("// Predicate definitions")
     for ((signature, args) <- mln.schema.predicates) {

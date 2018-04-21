@@ -26,6 +26,8 @@ import org.scalatest.{FunSpec, Matchers}
 import lomrf.tests.TestData
 import lomrf.util.io._
 
+import scala.language.implicitConversions
+
 final class AtomIdentityFunctionSpecTest extends FunSpec with Matchers {
 
 

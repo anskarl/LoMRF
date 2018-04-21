@@ -17,31 +17,33 @@
 
 package lomrf.app
 
-import java.io.{FileWriter, BufferedWriter}
+import java.io.{BufferedWriter, FileWriter}
 import java.text.DecimalFormat
-import auxlib.log.Logging
+
 import auxlib.opt.OptionParser
 import lomrf.logic._
 import lomrf.logic.AtomSignatureOps._
 import lomrf.mln.model.AtomIdentityFunctionOps
 import AtomIdentityFunctionOps._
+import com.typesafe.scalalogging.LazyLogging
 import lomrf.logic.PredicateCompletionMode._
-import lomrf.logic.dynamic.{DynamicFunctionBuilder, DynamicAtomBuilder}
+import lomrf.logic.dynamic.{DynamicAtomBuilder, DynamicFunctionBuilder}
 import lomrf.mln.grounding.MRFBuilder
 import lomrf.mln.model.MLN
 import lomrf.mln.model.mrf.MRF
 import lomrf.util._
+import lomrf.util.logging.Implicits._
 
 import scala.collection.mutable.ArrayBuffer
 
 /**
  * Command line tool for exporting ground MRF into various formats.
  */
-object MRFWriterCLI extends Logging {
+object MRFWriterCLI extends LazyLogging {
 
   private lazy val numFormat = new DecimalFormat("0.#########")
 
-  def main(args: Array[String]) {
+  def main(args: Array[String]): Unit = {
     println(lomrf.ASCIILogo)
     println(lomrf.BuildVersion)
 
@@ -49,16 +51,20 @@ object MRFWriterCLI extends Logging {
     if (args.length == 0) print(opt.usage)
     else if (opt.parse(args)) {
 
-      val strMLNFileName = opt.mlnFileName.getOrElse(fatal("Please specify an input MLN file."))
-      val strEvidenceFileName = opt.evidenceFileName.getOrElse(fatal("Please specify an input evidence file."))
+      val strMLNFileName = opt.mlnFileName.getOrElse(logger.fatal("Please specify an input MLN file."))
+      val strEvidenceFileName = opt.evidenceFileName.getOrElse(logger.fatal("Please specify an input evidence file."))
 
-      info("Parameters:"
-        + "\n\t(q) Query predicate(s): " + opt.query.map(_.toString).reduceLeft((left, right) => left + "," + right)
-        + "\n\t(cwa) Closed-world assumption predicate(s): " + (if (opt.cwa.isEmpty) "empty" else opt.cwa.map(_.toString).mkString(","))
-        + "\n\t(owa) Open-world assumption predicate(s): " + (if (opt.owa.isEmpty) "empty" else opt.owa.map(_.toString).mkString(","))
-        + "\n\t(noNegWeights) Eliminate negative weights: " + opt._noNeg
-        + "\n\t(noNegatedUnit) Eliminate negated ground unit clauses: " + opt._eliminateNegatedUnit
-      )
+      logger.info{
+        s"""
+           |Parameters:
+           |\t(q) Query predicate(s):  ${opt.query.map(_.toString).reduceLeft((left, right) => left + "," + right)}
+           |\t(cwa) Closed-world assumption predicate(s):  ${if (opt.cwa.isEmpty) "empty" else opt.cwa.map(_.toString).mkString(",")}
+           |\t(owa) Open-world assumption predicate(s):  ${if (opt.owa.isEmpty) "empty" else opt.owa.map(_.toString).mkString(",")}
+           |\t(noNegWeights) Eliminate negative weights:  ${opt._noNeg}
+           |\t(noNegatedUnit) Eliminate negated ground unit clauses:  ${opt._eliminateNegatedUnit}
+         """.stripMargin
+      }
+
 
       val mln = opt.implPaths match {
         case Some(paths) =>
@@ -68,10 +74,10 @@ object MRFWriterCLI extends Logging {
         case None => MLN.fromFile(strMLNFileName, opt.query, strEvidenceFileName, opt.cwa, opt.owa, pcm = Decomposed)
       }
 
-      info(mln.toString)
-      debug(mln.clauses.map(_.toText(weighted = true)).mkString("\n"))
+      logger.info(mln.toString)
+      logger.debug(mln.clauses.map(_.toText(weighted = true)).mkString("\n"))
 
-      val outputFilePath = opt.outputFileName.getOrElse(fatal("Please specify an output file"))
+      val outputFilePath = opt.outputFileName.getOrElse(logger.fatal("Please specify an output file"))
       val builder = new MRFBuilder(mln = mln, noNegWeights = opt._noNeg, eliminateNegatedUnit = opt._eliminateNegatedUnit)
       val mrf = builder.buildNetwork
       opt.outputType match {
@@ -131,9 +137,9 @@ object MRFWriterCLI extends Logging {
    * @param mrf input ground Markov Network
    * @param filePath the output path
    */
-  def writeNetwork(mrf: MRF, filePath: String) {
+  def writeNetwork(mrf: MRF, filePath: String): Unit = {
 
-    implicit val mln = mrf.mln
+    implicit val mln: MLN = mrf.mln
     val out = new BufferedWriter(new FileWriter(filePath))
     out.write("// weighted ground clauses\n")
     out.newLine()
@@ -168,9 +174,9 @@ object MRFWriterCLI extends Logging {
    *
    * @see https://staff.fnwi.uva.nl/j.m.mooij/libDAI/doc/fileformats.html
    */
-  def writeFactorGraph(mrf: MRF, filePath: String) {
+  def writeFactorGraph(mrf: MRF, filePath: String): Unit = {
 
-    implicit val mln = mrf.mln
+    implicit val mln: MLN = mrf.mln
     val fgOutput = new BufferedWriter(new FileWriter(filePath))
     fgOutput.write("# Factor graph")
     fgOutput.newLine()
@@ -289,13 +295,13 @@ object MRFWriterCLI extends Logging {
     var outputType: OutputFormatType = DIMACS
 
     // The set of query atoms (in the form of AtomName/Arity)
-    var query = Set[AtomSignature]()
+    var query: Set[AtomSignature] = Set[AtomSignature]()
 
     //  The set of open-world assumption atoms (in the form of AtomName/Arity)
-    var owa = Set[AtomSignature]()
+    var owa: Set[AtomSignature] = Set[AtomSignature]()
 
     // The set of closed-world assumption atoms (in the form of AtomName/Arity)
-    var cwa = Set[AtomSignature]()
+    var cwa: Set[AtomSignature] = Set[AtomSignature]()
 
     // Eliminate negative weights, i.e. convert the clause:
     // -2 A(x) v B(x)
@@ -336,7 +342,7 @@ object MRFWriterCLI extends Logging {
         case "DIMACS" => DIMACS
         case "GROUND_CNF" => GROUND_CNF
         case "FACTOR_GRAPH" => FACTOR_GRAPH
-        case _ => fatal("Unknown output format type")
+        case _ => logger.fatal("Unknown output format type")
       }
     })
 
@@ -357,16 +363,16 @@ object MRFWriterCLI extends Logging {
       sys.exit(0)
     })
 
-    private def addQueryAtom(atom: String) {
-      query += atom.signature.getOrElse(fatal("Cannot parse the arity of query atom: " + atom))
+    private def addQueryAtom(atom: String): Unit = {
+      query += atom.signature.getOrElse(logger.fatal("Cannot parse the arity of query atom: " + atom))
     }
 
-    private def addCWA(atom: String) {
-      cwa += atom.signature.getOrElse(fatal("Cannot parse the arity of CWA atom: " + atom))
+    private def addCWA(atom: String): Unit = {
+      cwa += atom.signature.getOrElse(logger.fatal("Cannot parse the arity of CWA atom: " + atom))
     }
 
-    private def addOWA(atom: String) {
-      owa += atom.signature.getOrElse(fatal("Cannot parse the arity of OWA atom: " + atom))
+    private def addOWA(atom: String): Unit = {
+      owa += atom.signature.getOrElse(logger.fatal("Cannot parse the arity of OWA atom: " + atom))
     }
   }
 

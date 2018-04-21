@@ -17,13 +17,16 @@
 
 package lomrf.logic
 
-import auxlib.log.Logging
 import lomrf.logic.Unify.ThetaOpt
 import lomrf.mln.model.{ConstantsDomain, FunctionSchema, PredicateSchema}
 import lomrf.util.Cartesian.CartesianIterator
 import lomrf.util.collectByKey
+import lomrf.util.logging.Implicits._
+
 import collection.mutable
 import LogicOps._
+import com.typesafe.scalalogging.LazyLogging
+
 import scala.util.{Failure, Success}
 
 /**
@@ -67,7 +70,7 @@ import scala.util.{Failure, Success}
  * </p>
  *
  */
-object PredicateCompletion extends Logging {
+object PredicateCompletion extends LazyLogging {
 
   import PredicateCompletionMode._
 
@@ -175,20 +178,20 @@ object PredicateCompletion extends Logging {
             constants: ConstantsDomain): Set[WeightedFormula] = {
 
     if (definiteClauses.isEmpty) {
-      info("No definite clauses found in the given MLN.")
+      logger.info("No definite clauses found in the given MLN.")
       return formulas
     }
 
-    info("Predicate completion")
+    logger.info("Predicate completion")
     // --- Step 1 --- Grouping definite clauses with similar head predicate
-    info("\tStep 1: Grouping definite clauses with similar head predicate.")
+    logger.info("\tStep 1: Grouping definite clauses with similar head predicate.")
 
     definiteClauses.collectAndMerge match {
       case Success((canBeDecomposed, dcDB)) =>
         if (dcDB.isEmpty)
-          fatal("Failed to parse definite clauses in the given MLN (possible bug?).")
+          logger.fatal("Failed to parse definite clauses in the given MLN (possible bug?).")
 
-        debug {
+        logger.debug {
           val buffer = new StringBuilder("Collected/merged the following definitions:")
           for ((signature, entries) <- dcDB) {
             buffer.append("\nSignature: " + signature)
@@ -202,13 +205,13 @@ object PredicateCompletion extends Logging {
         }
 
         // --- Step 2 --- Predicate completion
-        info(s"\tStep 2: Performing predicate completion for predicates: ${dcDB.keySet.map("\"" + _.toString + "\"").mkString(",")}" )
+        logger.info(s"\tStep 2: Performing predicate completion for predicates: ${dcDB.keySet.map("\"" + _.toString + "\"").mkString(",")}" )
 
         mode match {
           case Simplification => applyPCSimplification(formulas, dcDB)
           case Decomposed =>
             if (canBeDecomposed) applyPCDecomposed(formulas, definiteClauses, dcDB, constants)
-            else fatal("I'm sorry but the result of the predicate completion cannot be decomposed, " +
+            else logger.fatal("I'm sorry but the result of the predicate completion cannot be decomposed, " +
               "as the created equivalences appear to be more general from the heads of the given definite clauses. " +
               "Please use standard predicate completion or with simplification.")
 
@@ -216,7 +219,7 @@ object PredicateCompletion extends Logging {
         }
 
       case Failure(ex) =>
-        fatal("Failed to group definite clauses with similar head predicates.", ex)
+        logger.fatal("Failed to group definite clauses with similar head predicates.", ex)
     }
 
   }
@@ -240,13 +243,13 @@ object PredicateCompletion extends Logging {
           for ((headPredicate, bodies) <- dcDB(signature)) {
             val replacement = bodies.map(_.boundVarsNotIn(headPredicate)).reduceLeft((left, right) => Or(left, right))
 
-            debug(s"Predicates like '${headPredicate.toText}' will be replaced with following sentence: '${replacement.toText}'")
+            logger.debug(s"Predicates like '${headPredicate.toText}' will be replaced with following sentence: '${replacement.toText}'")
 
             val resultOpt = formula.replace(headPredicate, replacement)
 
             resultOpt match {
               case Some(result) => lambdaPrime += result
-              case None => fatal("Predicate replacement failed (possible bug?)")
+              case None => logger.fatal("Predicate replacement failed (possible bug?)")
             }
           }
         }
@@ -314,7 +317,7 @@ object PredicateCompletion extends Logging {
         pcResultingKB += WeightedFormula.asHard(Implies(head, completionBody))
       }
 
-      info(s"\t\tProduced ${entries.size} completion formulas for '$signature'")
+      logger.info(s"\t\tProduced ${entries.size} completion formulas for '$signature'")
 
       // 2. Find which partial-grounded heads are missing, in order to introduce them
       // as negated unit clauses to the theory (= complementary clauses)
@@ -338,9 +341,9 @@ object PredicateCompletion extends Logging {
 
       pcResultingKB = pcResultingKB ++ complementaryClauses
 
-      info(s"\t\tAdded ${complementaryClauses.size} complementary negated unit clause(s) for '$signature'")
+      logger.info(s"\t\tAdded ${complementaryClauses.size} complementary negated unit clause(s) for '$signature'")
 
-      debug{
+      logger.debug{
           s"""
             |Head predicate: ${headPredicate.toText}
             |Complementary domains: ${complementaryDomains.mkString(", ")}

@@ -20,13 +20,13 @@ package lomrf.mln.grounding
 import java.{util => jutil}
 
 import akka.actor.{Actor, ActorRef}
-import auxlib.log.Logging
+import com.typesafe.scalalogging.LazyLogging
 import gnu.trove.list.array.TIntArrayList
 import gnu.trove.map.TIntFloatMap
 import gnu.trove.map.hash.{TIntFloatHashMap, TIntObjectHashMap}
 import lomrf._
 import lomrf.util.collection.IndexPartitioned
-
+import lomrf.util.logging.Implicits._
 import scala.language.postfixOps
 import scalaxy.streams.optimize
 
@@ -44,7 +44,7 @@ import scalaxy.streams.optimize
 final class CliqueRegisterWorker private(val index: Int,
                                          master: ActorRef,
                                          atomRegisters: IndexPartitioned[ActorRef],
-                                         createDependencyMap: Boolean) extends Actor with Logging {
+                                         createDependencyMap: Boolean) extends Actor with LazyLogging {
 
   import messages._
   import context._
@@ -98,7 +98,7 @@ final class CliqueRegisterWorker private(val index: Int,
      */
     case ce: CliqueEntry =>
 
-      debug(s"CliqueRegister[$index] received '$ce' message.")
+      logger.debug(s"CliqueRegister[$index] received '$ce' message.")
 
       // (1) Clause with some weight value, store the clause.
       // (2) Unit clause with zero weight is a query ground atom, thus forward to the corresponding atom register.
@@ -120,7 +120,7 @@ final class CliqueRegisterWorker private(val index: Int,
      * collected ground clauses to master.
      */
     case GROUNDING_COMPLETED =>
-      debug(s"CliqueRegister[$index] collected total ${cliques.size} cliques.")
+      logger.debug(s"CliqueRegister[$index] collected total ${cliques.size} cliques.")
       become(results) //change the actor logic
       sender ! NumberOfCliques(index, cliques.size())
 
@@ -133,7 +133,7 @@ final class CliqueRegisterWorker private(val index: Int,
    */
   def results = ({
     case StartID(offset: Int) =>
-      debug("CliqueRegister[" + index + "] received 'StartID(" + offset + ")' message.")
+      logger.debug("CliqueRegister[" + index + "] received 'StartID(" + offset + ")' message.")
 
       val collectedCliques =
         if (offset == 0) {
@@ -177,7 +177,7 @@ final class CliqueRegisterWorker private(val index: Int,
           CollectedCliques(index, resultingCliques, resultingDependencyMap)
         }
 
-      debug(s"CliqueRegister[$index] sending to master the CollectedCliques message, " +
+      logger.debug(s"CliqueRegister[$index] sending to master the CollectedCliques message, " +
             s"containing ${collectedCliques.cliques.size} cliques.")
 
       // send the collected and re-indexed partition of ground clauses to master.
@@ -192,7 +192,7 @@ final class CliqueRegisterWorker private(val index: Int,
    */
   private def handleUnknownMessage: Receive = {
     case msg =>
-      error(s"CliqueRegister[$index] received an unknown message '$msg' from ${sender()}")
+      logger.error(s"CliqueRegister[$index] received an unknown message '$msg' from ${sender()}")
   }
 
 
@@ -263,7 +263,7 @@ final class CliqueRegisterWorker private(val index: Int,
               else storedClique.weight + current.weight
           }
           else if(storedClique.weight.isInfinite && storedClique.weight != storedClique.weight )
-            fatal(
+            logger.fatal(
               "Cannot merge hard-constrained ground clauses with opposite infinite weights (-Inf with +Inf). " +
                 "Something may wrong in the given MLN theory.")
 

@@ -18,7 +18,7 @@
 package lomrf.mln.grounding
 
 import akka.actor.{Actor, ActorRef}
-import auxlib.log.Logging
+import com.typesafe.scalalogging.LazyLogging
 import lomrf.mln.model.MLN
 import lomrf.util.collection.IndexPartitioned
 
@@ -35,7 +35,7 @@ import lomrf.util.collection.IndexPartitioned
 final class GroundingWorker private(mln: MLN,
                                     cliqueRegisters: IndexPartitioned[ActorRef],
                                     noNegWeights: Boolean,
-                                    eliminateNegatedUnit: Boolean) extends Actor with Logging {
+                                    eliminateNegatedUnit: Boolean) extends Actor with LazyLogging {
 
   import messages._
 
@@ -47,11 +47,11 @@ final class GroundingWorker private(mln: MLN,
     case Ground(clause, clauseIndex, atomSignatures, atomsDB) =>
       val grounder = new ClauseGrounderImpl(clause, clauseIndex, mln, cliqueRegisters, atomSignatures, atomsDB, noNegWeights, eliminateNegatedUnit)
       grounder.computeGroundings()
-      debug("Grounding completed for clause " + clause)
+      logger.debug("Grounding completed for clause " + clause)
       sender ! Signatures(grounder.collectedSignatures)
 
     case msg =>
-      error(s"GroundingWorker --- Received an unknown message '$msg' from ${sender().toString()}")
+      logger.error(s"GroundingWorker --- Received an unknown message '$msg' from ${sender().toString()}")
   }
 
 }

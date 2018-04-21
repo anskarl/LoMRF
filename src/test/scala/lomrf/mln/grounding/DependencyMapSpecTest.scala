@@ -21,9 +21,11 @@ import lomrf.logic._
 import lomrf.mln.model.{AtomIdentityFunctionOps, MLN}
 import lomrf.mln.model.mrf.MRF
 import AtomIdentityFunctionOps._
-import org.scalatest.{Matchers, FunSpec}
+import org.scalatest.{FunSpec, Matchers}
 import lomrf.tests.TestData
 import lomrf.util.io._
+
+import scala.language.implicitConversions
 
 /**
  * Specification test for dependency map produced by grounding procedure. It is used by learning algorithms in order to

@@ -17,23 +17,27 @@
 
 package lomrf.mln.inference
 
-import lomrf.logic.{TRUE, TriState, AtomSignature}
+import lomrf.logic.{AtomSignature, TRUE, TriState}
 import java.io.PrintStream
-import auxlib.log.Logging
+
 import lomrf.mln.inference.RoundingScheme.RoundingScheme
 import lomrf.mln.inference.Solver.Solver
-import lomrf.mln.model.{AtomIdentityFunctionOps, AtomEvidenceDB}
+import lomrf.mln.model.{AtomEvidenceDB, AtomIdentityFunctionOps, MLN}
 import lomrf.mln.model.mrf._
 import lomrf.util.time._
+import lomrf.util.logging.Implicits._
 import AtomIdentityFunctionOps._
 import lomrf.logic.AtomSignatureOps._
 import gnu.trove.map.hash.TIntObjectHashMap
 import optimus.algebra._
 import optimus.optimization._
+
 import scala.util.{Failure, Success}
 import scalaxy.streams.optimize
+
 import scala.language.postfixOps
 import auxlib.trove.TroveConversions._
+import com.typesafe.scalalogging.LazyLogging
 
 /**
  * This is an implementation of an approximate MAP inference algorithm for MLNs using Integer Linear Programming.
@@ -53,16 +57,16 @@ import auxlib.trove.TroveConversions._
  */
 final class ILP(mrf: MRF, annotationDB: Map[AtomSignature, AtomEvidenceDB] = Map.empty[AtomSignature, AtomEvidenceDB],
                 outputAll: Boolean = true, ilpRounding: RoundingScheme = RoundingScheme.ROUNDUP, ilpSolver: Solver = Solver.LPSOLVE,
-                lossAugmented: Boolean = false) extends Logging {
+                lossAugmented: Boolean = false) extends LazyLogging {
 
   // Select the appropriate mathematical programming solver
-  implicit val problem = ilpSolver match {
+  implicit val problem: LQProblem = ilpSolver match {
     case Solver.GUROBI => LQProblem(SolverLib.gurobi)
     case Solver.LPSOLVE => LQProblem(SolverLib.lp_solve)
     case Solver.OJALGO => LQProblem(SolverLib.ojalgo)
   }
 
-  implicit val mln = mrf.mln
+  implicit val mln: MLN = mrf.mln
 
   /**
    * Fetch atom given its id.
@@ -88,7 +92,7 @@ final class ILP(mrf: MRF, annotationDB: Map[AtomSignature, AtomEvidenceDB] = Map
 
     if(lossAugmented) {
       assert(annotationDB.nonEmpty, "Annotation database does not exist!")
-      info("Running loss augmented inference...")
+      logger.info("Running loss augmented inference...")
     }
 
     val sTranslation = System.currentTimeMillis()
@@ -137,9 +141,9 @@ final class ILP(mrf: MRF, annotationDB: Map[AtomSignature, AtomEvidenceDB] = Map
       // fetch the current constraint, i.e., current weighted ground clause or clique
       val constraint = constraintsIterator.value()
 
-      whenDebug{
-        val decodedConstraint = constraint.decodeFeature(mrf.weightHard).getOrElse(fatal(s"Cannot decode constraint $constraint"))
-        debug(s"Ground Clause: ${constraint.getWeight} $decodedConstraint")
+      logger.whenDebugEnabled{
+        val decodedConstraint = constraint.decodeFeature(mrf.weightHard).getOrElse(logger.fatal(s"Cannot decode constraint $constraint"))
+        logger.debug(s"Ground Clause: ${constraint.getWeight} $decodedConstraint")
       }
 
       // Step 1: Introduce variables for each ground atom and create possible constraints
@@ -159,7 +163,7 @@ final class ILP(mrf: MRF, annotationDB: Map[AtomSignature, AtomEvidenceDB] = Map
           constraints ::= (1 - floatVar)
       }
 
-      debug("Possible Constraints: [" + constraints.mkString(", ") + "]")
+      logger.debug("Possible Constraints: [" + constraints.mkString(", ") + "]")
 
       val cid = constraint.id
 
@@ -179,32 +183,32 @@ final class ILP(mrf: MRF, annotationDB: Map[AtomSignature, AtomEvidenceDB] = Map
 
       }
 
-      debug("Expressions: [" + expressions.mkString(", ") + "]")
+      logger.debug("Expressions: [" + expressions.mkString(", ") + "]")
 
       // Step 3: Add constraints to the solver (don't introduce constraint for zero weighted constraints)
       if (constraint.isHardConstraint) {
         add(sum(constraints) >:= 1)
-        debug(constraints.mkString(" + ") + " >= 1")
+        logger.debug(constraints.mkString(" + ") + " >= 1")
       }
       else if (!constraint.isUnit && constraint.getWeight != 0.0) {
         val clauseVar = clauseLPVars.get(cid)
         if (constraint.getWeight > 0) {
           add(sum(constraints) >:= clauseVar)
-          debug(constraints.mkString(" + ") + " >= " + clauseVar.symbol)
+          logger.debug(constraints.mkString(" + ") + " >= " + clauseVar.symbol)
         }
         else {
           for (c <- constraints) {
             add(c >:= clauseVar)
-            debug(c + " >= " + clauseVar.symbol)
+            logger.debug(c + " >= " + clauseVar.symbol)
           }
         }
       }
     }
 
     val eTranslation = System.currentTimeMillis()
-    info(msecTimeToText("Translation time: ", eTranslation - sTranslation))
+    logger.info(msecTimeToText("Translation time: ", eTranslation - sTranslation))
 
-    info(
+    logger.info(
         "\nGround Atoms: " + mrf.numberOfAtoms +
         "\nAtom Variables: " + literalLPVars.size + " + Clauses Variables: " + clauseLPVars.size +
         " = " + (literalLPVars.size + clauseLPVars.size))
@@ -217,21 +221,21 @@ final class ILP(mrf: MRF, annotationDB: Map[AtomSignature, AtomEvidenceDB] = Map
     release()
 
     val eSolver = System.currentTimeMillis()
-    info(msecTimeToText("Solver time: ", eSolver - sSolver))
+    logger.info(msecTimeToText("Solver time: ", eSolver - sSolver))
 
-    info(
+    logger.info(
         "\n=========================== Solution ===========================" +
         "\nAre constraints satisfied: " + checkConstraints() +
         "\nSolution status: " + status.toString +
         "\nObjective = " + objectiveValue)
 
 
-    whenDebug {
+    logger.whenDebugEnabled {
       literalLPVars.iterator.foreach { case (k: Int, v: MPFloatVar) =>
-        debug(v.symbol + " = " + v.value.getOrElse("Value does not exist for this ground atom variable!"))
+        logger.debug(v.symbol + " = " + v.value.getOrElse("Value does not exist for this ground atom variable!"))
       }
       clauseLPVars.iterator.foreach { case (k: Int, v: MPFloatVar) =>
-        debug(v.symbol + " = " + v.value.getOrElse("Value does not exist for this constraint variable"))
+        logger.debug(v.symbol + " = " + v.value.getOrElse("Value does not exist for this constraint variable"))
       }
     }
 
@@ -244,7 +248,7 @@ final class ILP(mrf: MRF, annotationDB: Map[AtomSignature, AtomEvidenceDB] = Map
     var fractionalSolutions = Vector[Int]()
 
     for ( (id, lpVar) <- literalLPVars.iterator() ) {
-      val value = lpVar.value.getOrElse(fatal(s"There is no solution for variable '${lpVar.symbol}'"))
+      val value = lpVar.value.getOrElse(logger.fatal(s"There is no solution for variable '${lpVar.symbol}'"))
 
       /*
        * Round values very close to 0 and 1 in using this naive approach because they
@@ -264,7 +268,7 @@ final class ILP(mrf: MRF, annotationDB: Map[AtomSignature, AtomEvidenceDB] = Map
       }
     }
 
-    info("Number of non-integral solutions: " + nonIntegralSolutionsCounter)
+    logger.info("Number of non-integral solutions: " + nonIntegralSolutionsCounter)
     assert(state.countUnfixAtoms() == nonIntegralSolutionsCounter, "Variables introduced are less than actual ground atoms!")
 
     val sRoundUp = System.currentTimeMillis()
@@ -307,15 +311,14 @@ final class ILP(mrf: MRF, annotationDB: Map[AtomSignature, AtomEvidenceDB] = Map
       else MaxWalkSAT(mrf).infer(state)
     }
 
-    debug("Unfixed atoms: " + state.countUnfixAtoms())
+    logger.debug("Unfixed atoms: " + state.countUnfixAtoms())
 
     val eRoundUp = System.currentTimeMillis()
-    info(msecTimeToText("Roundup time: ", eRoundUp - sRoundUp))
+    logger.info(msecTimeToText("Roundup time: ", eRoundUp - sRoundUp))
 
     state.printStatistics()
-    info(msecTimeToText("Total ILP time: ", (eTranslation - sTranslation) +
-                                                      (eSolver - sSolver) +
-                                                      (eRoundUp - sRoundUp)
+    logger.info(msecTimeToText("Total ILP time: ",
+      (eTranslation - sTranslation) + (eSolver - sSolver) + (eRoundUp - sRoundUp)
     ))
 
     state
@@ -344,7 +347,7 @@ final class ILP(mrf: MRF, annotationDB: Map[AtomSignature, AtomEvidenceDB] = Map
 
         atomID.decodeAtom match {
           case Success(txtAtom) if outputAll || state == 1 => out.println(txtAtom + " " + state)
-          case Failure(f) => error(s"failed to decode id: $atomID", f)
+          case Failure(f) => logger.error(s"failed to decode id: $atomID", f)
         }
 
       }
@@ -359,7 +362,7 @@ final class ILP(mrf: MRF, annotationDB: Map[AtomSignature, AtomEvidenceDB] = Map
 object RoundingScheme extends Enumeration {
   type RoundingScheme = Value
 
-  val ROUNDUP= Value(0, "RoundUp")
+  val ROUNDUP = Value(0, "RoundUp")
 
   val MWS = Value(1, "MaxWalkSAT")
 }

@@ -17,11 +17,13 @@
 
 package lomrf.mln.learning.structure.hypergraph
 
-import auxlib.log.{Logger, Logging}
+import com.typesafe.scalalogging.{LazyLogging, Logger}
 import lomrf.logic.AtomSignatureOps._
 import lomrf.logic._
+import lomrf.util.logging.Implicits._
 import lomrf.mln.model.{EvidenceDB, MLN}
 import lomrf.util.collection.mutable.TuplesDB
+
 import scala.util.{Failure, Success, Try}
 
 /**
@@ -32,7 +34,7 @@ import scala.util.{Failure, Success, Try}
  *
  * @param schema the domains combination of the template atoms. For example (Person, Location)
  */
-final class PathTemplate private[hypergraph](val schema: Seq[String]) extends Logging {
+final class PathTemplate private[hypergraph](val schema: Seq[String]) extends LazyLogging {
 
   private var templatePreds = Vector[AtomSignature]()
   private var axioms = Vector[Clause]()
@@ -98,7 +100,7 @@ final class PathTemplate private[hypergraph](val schema: Seq[String]) extends Lo
 
           var tempQueries = Vector[Vector[Vector[String]]]()
           val constantSet = mln.getConstantValuesOf(variable.domain)
-            .getOrElse(fatal(s"Constant set does not exist for domain ${variable.domain}"))
+            .getOrElse(logger.fatal(s"Constant set does not exist for domain ${variable.domain}"))
 
           if(templateAtomVariables.contains(variable)) variablesPositions :+= idx
 
@@ -110,7 +112,7 @@ final class PathTemplate private[hypergraph](val schema: Seq[String]) extends Lo
           }
           queries = tempQueries.flatMap(x => x)
 
-        case function: TermFunction => fatal("Functions are not supported!")
+        case function: TermFunction => logger.fatal("Functions are not supported!")
       }
     }
 
@@ -180,7 +182,7 @@ final class PathTemplate private[hypergraph](val schema: Seq[String]) extends Lo
         val lit = axiom.literals.find(lit => lit.sentence.signature == signature).get
         val theta: Theta = (lit.sentence.variables zip constants).toMap
         val substitutedAxiom = axiom.substitute(theta)
-        debug(s"Substituted axiom ${substitutedAxiom.toText()}")
+        logger.debug(s"Substituted axiom ${substitutedAxiom.toText()}")
 
         // add theta to database
         val templateBeforeSub = axiom.literals.find(_.sentence.signature == templateSignature).get.sentence
@@ -194,7 +196,7 @@ final class PathTemplate private[hypergraph](val schema: Seq[String]) extends Lo
 
         if (templateAtom.variables.nonEmpty) templateAtom.variables.foreach { v =>
           val dependencyLits = substitutedAxiom.literals.filter(l => l.sentence.signature != templateSignature && l.sentence.variables.contains(v))
-          debug("Dependency literals: " + dependencyLits.map(_.toText).mkString(", "))
+          logger.debug("Dependency literals: " + dependencyLits.map(_.toText).mkString(", "))
 
           initialTemplateAtomsIds ++=
             findValidTuples(dependencyLits, templateAtom.variables, templateBeforeSub.terms.asInstanceOf[Vector[Variable]]).map(constants => templateIdf.encode(constants))
@@ -205,7 +207,7 @@ final class PathTemplate private[hypergraph](val schema: Seq[String]) extends Lo
 
         //info(s"$initialConstants")
         import lomrf.mln.model.AtomIdentityFunctionOps._
-        debug(s"${initialTemplateAtomsIds.map(_.decodeAtom).mkString(", ")}")
+        logger.debug(s"${initialTemplateAtomsIds.map(_.decodeAtom).mkString(", ")}")
       }
 
     initialTemplateAtomsIds
@@ -215,19 +217,19 @@ final class PathTemplate private[hypergraph](val schema: Seq[String]) extends Lo
   /**
    * @return true if the specified template signature is contained in the path template, otherwise false
    */
-  def contains(template: AtomSignature) = templatePreds.contains(template)
+  def contains(template: AtomSignature): Boolean = templatePreds.contains(template)
 
   /**
    * Check for equality of path templates using their schema. Also allows equality checking
    * of a path template directly with a given schema.
    */
-  override def equals(other: Any) = other match {
+  override def equals(other: Any): Boolean = other match {
     case schema: Seq[String] => schema == this.schema
     case obj: PathTemplate => obj.schema == this.schema
     case _ => false
   }
 
-  override def toString = s"[ ${schema.mkString(" | ")} ] :\n\t" +
+  override def toString: String = s"[ ${schema.mkString(" | ")} ] :\n\t" +
                           s"${(axioms.map(_.toText(weighted = false)) zip templatePreds)
                             .map{ case (axiom, template) => s"$axiom -> $template" }.mkString("\n\t")}"
 }
@@ -237,8 +239,7 @@ final class PathTemplate private[hypergraph](val schema: Seq[String]) extends Lo
  */
 object PathTemplate {
 
-  private lazy val log = Logger(this.getClass)
-  import log._
+  private lazy val logger = Logger(this.getClass)
 
   /**
    * Create path templates from a set of axioms given the template atoms and the
@@ -301,7 +302,7 @@ object PathTemplate {
 
     }
 
-    info(s"Path templates extracted:\n\t${pathTemplates.mkString("\n\t")}")
+    logger.info(s"Path templates extracted:\n\t${pathTemplates.mkString("\n\t")}")
     Success(Some(pathTemplates))
   }
 

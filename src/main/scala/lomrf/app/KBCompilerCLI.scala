@@ -19,26 +19,28 @@ package lomrf.app
 
 import java.io.FileWriter
 import java.text.DecimalFormat
-import auxlib.log.Logging
+
 import auxlib.opt.OptionParser
+import com.typesafe.scalalogging.LazyLogging
 import lomrf.logic._
 import lomrf.logic.PredicateCompletionMode._
-import lomrf.logic.dynamic.{DynamicFunctionBuilder, DynamicAtomBuilder}
-import lomrf.mln.model.{MLNSchema, KB}
+import lomrf.logic.dynamic.{DynamicAtomBuilder, DynamicFunctionBuilder}
+import lomrf.mln.model.{KB, MLNSchema}
 import lomrf.util.ImplFinder
+import lomrf.util.logging.Implicits._
 import scala.annotation.tailrec
 
 /**
  * Command line tool for knowledge compilation. In particular using this tool we can perform
  * predicate completion, CNF transformation, FOL function transformation, as well as weights elimination.
  */
-object KBCompilerCLI extends Logging {
+object KBCompilerCLI extends LazyLogging {
 
   import WeightsMode._
 
   private val numFormat = new DecimalFormat("0.############")
 
-  def main(args: Array[String]) {
+  def main(args: Array[String]): Unit = {
 
     println(lomrf.ASCIILogo)
     println(lomrf.BuildVersion)
@@ -48,23 +50,23 @@ object KBCompilerCLI extends Logging {
     else if (opt.parse(args)) {
       
       if(opt.eliminateFunctions && opt.introduceFunctions)
-        fatal("Simultaneous elimination and introduction of functions in not possible!")
+        logger.fatal("Simultaneous elimination and introduction of functions in not possible!")
 
       // In order to eliminate or introduce function CNF must be enabled, otherwise is not possible.
       if(opt.eliminateFunctions && !opt.cnf) {
-        warn("Function elimination enables CNF compilation")
+        logger.warn("Function elimination enables CNF compilation")
         opt.cnf = true
       }
 
       if(opt.introduceFunctions && !opt.cnf){
-        warn("Function introduction enables CNF compilation")
+        logger.warn("Function introduction enables CNF compilation")
         opt.cnf = true
       }
 
       compile(
-        opt.mlnFileName.getOrElse(fatal("Please define the input MLN file.")),
+        opt.mlnFileName.getOrElse(logger.fatal("Please define the input MLN file.")),
         opt.evidenceFileName, //.getOrElse(""),
-        opt.outputMLNFileName.getOrElse(fatal("Please define the output MLN file.")),
+        opt.outputMLNFileName.getOrElse(logger.fatal("Please define the output MLN file.")),
         opt.functionPrefix,
         opt.includeDomain,
         opt.removePredicateDefinitions,
@@ -91,26 +93,26 @@ object KBCompilerCLI extends Logging {
               weightsMode: WeightsMode,
               pcm: PredicateCompletionMode,
               cnf: Boolean,
-              dynamicDefinitionPaths: Option[Array[String]]) {
+              dynamicDefinitionPaths: Option[Array[String]]): Unit = {
 
-    info("Parameters:"
-      + "\n\t(cnf) Convert formulas into CNF: " + cnf
-      + "\n\t(includeDomain) Include domain definitions : " + includeDomain
-      + "\n\t(removePredicateDefinitions) Remove predicate definitions : " + removePredicateDefinitions
-      + "\n\t(removeFunctionDefinitions) Remove function definitions : " + removeFunctionDefinitions
-      + "\n\t(functionPrefix) Function prefix used for elimination : " + functionPrefix
-      + "\n\t(eliminateFunctions) Eliminate functions : " + eliminateFunctions
-      + "\n\t(introduceFunctions) Introduce functions : " + introduceFunctions
-      + "\n\t(weightsMode) Weights mode for output : " + (if (weightsMode == KEEP) "Keep"
-                                                          else if (weightsMode == RM_SOFT) "Remove soft"
-                                                          else "Remove all")
-      + "\n\t(pcm) Predicate completion mode : " + (if (pcm == Standard) "Standard"
-                                                    else if (pcm == Simplification) "Simplification"
-                                                    else "Decomposed")
-    )
+    logger.info{
+      s"""
+         |Parameters:
+         |\t(cnf) Convert formulas into CNF:  $cnf
+         |\t(includeDomain) Include domain definitions: $includeDomain
+         |\t(removePredicateDefinitions) Remove predicate definitions:  $removePredicateDefinitions
+         |\t(removeFunctionDefinitions) Remove function definitions: $removeFunctionDefinitions
+         |\t(functionPrefix) Function prefix used for elimination:  $functionPrefix
+         |\t(eliminateFunctions) Eliminate functions: $eliminateFunctions
+         |\t(introduceFunctions) Introduce functions: $introduceFunctions
+         |\t(weightsMode) Weights mode for output: ${if (weightsMode == KEEP) "Keep" else if (weightsMode == RM_SOFT) "Remove soft" else "Remove all"}
+         |\t(pcm) Predicate completion mode: ${if (pcm == Standard) "Standard" else if (pcm == Simplification) "Simplification" else "Decomposed"}
+       """.stripMargin
+    }
+
 
     if (source == target)
-      fatal("Target file cannot be the same with source file.")
+      logger.fatal("Target file cannot be the same with source file.")
 
     val (kb, constants) = dynamicDefinitionPaths match {
       case Some(paths) =>
@@ -129,7 +131,7 @@ object KBCompilerCLI extends Logging {
         val resultingFormulas = kb.predicateSchema -- kb.definiteClauses.map(_.clause.head.signature)
 
         if(resultingFormulas.isEmpty)
-          warn("The given theory is empty (i.e., contains empty set of non-zeroed formulas).")
+          logger.warn("The given theory is empty (i.e., contains empty set of non-zeroed formulas).")
 
         resultingFormulas
       case _ => kb.predicateSchema
@@ -137,12 +139,15 @@ object KBCompilerCLI extends Logging {
 
     //lazy val mlnSchema = MLNSchema(resultingPredicateSchema, kb.functionSchema, kb.dynamicPredicates, kb.dynamicFunctions)
 
-    info(
-      "\nSource MLN: " + source + "\n" +
-        "\tFound " + kb.formulas.size + " formulas.\n" +
-        "\tFound " + kb.definiteClauses.size + " definite clauses.\n" +
-        "\tFound " + kb.predicateSchema.size + " predicates.\n" +
-        "\tFound " + kb.functionSchema.size + " functions.")
+    logger.info{
+      s"""
+         |Source MLN: $source
+         |\tFound ${kb.formulas.size} formulas
+         |tFound ${kb.definiteClauses.size} definite clauses
+         |tFound ${kb.predicateSchema.size} predicates
+         |tFound ${kb.functionSchema.size} functions
+       """.stripMargin
+    }
 
     val fileWriter = new FileWriter(target)
     import fileWriter.write
@@ -207,7 +212,7 @@ object KBCompilerCLI extends Logging {
           write("\n")
         }
       }
-      info("Total " + clauseCounter + " clauses are written in '" + target + "'")
+      logger.info("Total " + clauseCounter + " clauses are written in '" + target + "'")
     }
     else {
       write("\n\n// Formulas\n")

@@ -19,9 +19,10 @@ package lomrf.mln.model
 
 import java.io.{BufferedReader, File, FileReader}
 
-import auxlib.log.Logger
+import com.typesafe.scalalogging.Logger
 import lomrf.logic._
 import lomrf.logic.parser.EvidenceParser
+import lomrf.util.logging.Implicits._
 
 import scala.util.Try
 import scala.collection.breakOut
@@ -43,13 +44,13 @@ class Evidence(val constants: ConstantsDomain,
   lazy val cwaAtoms: Set[AtomSignature] =
     (for((signature, edb) <- db; if edb.numberOfUnknown == 0) yield signature)(breakOut)
 
-  lazy val owaAtoms = db.keySet -- cwaAtoms
+  lazy val owaAtoms: Set[AtomSignature] = db.keySet -- cwaAtoms
 
 }
 
 object Evidence {
 
-  private lazy val log = Logger(this.getClass)
+  private lazy val logger = Logger(this.getClass)
 
   def apply(constants: ConstantsDomain, db: EvidenceDB, fm: FunctionMappers): Evidence = {
     new Evidence(constants, db, fm)
@@ -103,16 +104,14 @@ object Evidence {
                 forceCWAForAll: Boolean): Evidence = {
 
 
-    import log._
-
 
     val inputFiles =
       if(files.isEmpty) {
-        log.warn("Loading from empty evidence")
+        logger.warn("Loading from empty evidence")
         List(createTempEmptyDBFile)
       } else {
         // check if we can read the specified files
-        files.foreach(f => if(!f.exists() || !f.isFile || !f.canRead) fatal(s"Cannot read input evidence file '${f.getPath}'"))
+        files.foreach(f => if(!f.exists() || !f.isFile || !f.canRead) logger.fatal(s"Cannot read input evidence file '${f.getPath}'"))
 
         files
       }
@@ -122,10 +121,10 @@ object Evidence {
       for (file <- inputFiles; fileReader = new BufferedReader(new FileReader(file)))
         yield evidenceParser.parseAll(evidenceParser.evidence, fileReader) match {
           case evidenceParser.Success(expr, _) => expr
-          case x => fatal(s"Can't parse the following expression: '$x' in file: '${file.getPath}'")
+          case x => logger.fatal(s"Can't parse the following expression: '$x' in file: '${file.getPath}'")
         }
 
-    info("--- Stage 1: Parsing constants")
+    logger.info("--- Stage 1: Parsing constants")
     val constantsDomainBuilder = ConstantsDomainBuilder.from(constantsDomain)
 
     var evidenceSignatures = cwaPredicates
@@ -135,24 +134,24 @@ object Evidence {
         //Collect information for functionMappings
         val (returnType, argTypes) = functionSchema.getOrElse(
           f.signature,
-          fatal(s"The function definition of '${f.signature}' does not appear in the knowledge base."))
+          logger.fatal(s"The function definition of '${f.signature}' does not appear in the knowledge base."))
 
         val builder = constantsDomainBuilder.getOrElse(
           returnType,
-          fatal(s"Type '$returnType' in function '${f.signature}' is not defined."))
+          logger.fatal(s"Type '$returnType' in function '${f.signature}' is not defined."))
 
         builder += f.retValue
 
         for ((argType, argValue) <- argTypes.zip(f.values)){
           val currBuilder = constantsDomainBuilder.getOrElse(
             argType,
-            fatal(s"Type '$argType' in function '${f.signature}' is not defined."))
+            logger.fatal(s"Type '$argType' in function '${f.signature}' is not defined."))
 
           currBuilder += argValue //.symbol
         }
 
       case atom: EvidenceAtom =>
-        val argTypes = predicateSchema.getOrElse(atom.signature, fatal(s"Unknown predicate '$atom' in the given input evidence file(s)."))
+        val argTypes = predicateSchema.getOrElse(atom.signature, logger.fatal(s"Unknown predicate '$atom' in the given input evidence file(s)."))
 
         evidenceSignatures += atom.signature
 
@@ -171,7 +170,7 @@ object Evidence {
 
     val constants: Map[String, ConstantsSet] = constantsDomainBuilder.result()
 
-    info("--- Stage 2: Inferring predicate open/closed-world assumptions.")
+    logger.info("--- Stage 2: Inferring predicate open/closed-world assumptions.")
     val allSignatures = predicateSchema.keySet
     val userDefinedOWA = queryPredicates ++ owaPredicates
 
@@ -180,13 +179,13 @@ object Evidence {
 
     val inferredHiddenSignatures = inferredOWASignatures -- queryPredicates
 
-    info(
+    logger.info(
       s"""
         |\t\tOWA predicate signatures: ${inferredOWASignatures.mkString(", ")}
         |\t\tCWA predicate signatures: ${inferredCWASignatures.mkString(", ")}
       """.stripMargin)
-    
-    info("--- Stage 3: Creating function mappings, and evidence database.")
+
+    logger.info("--- Stage 3: Creating function mappings, and evidence database.")
 
     val builder =
       EvidenceBuilder(predicateSchema, functionSchema, queryPredicates, inferredHiddenSignatures, constants, convertFunctions).
@@ -202,7 +201,7 @@ object Evidence {
   }
 
   private def createTempEmptyDBFile: File = {
-    import log._
+
     val filePrefix = s".mlnc_empty_${System.currentTimeMillis()}"
 
     Try[File](File.createTempFile(filePrefix, ".db")) map {
@@ -210,7 +209,7 @@ object Evidence {
         tmpFile.deleteOnExit()
         tmpFile
     } getOrElse{
-      fatal(s"Cannot create temporary file '$filePrefix.db' in the default JVM temporary file directory '${sys.props.get("java.io.tmpdir")}' (see JVM parameter 'java.io.tmpdir').")
+      logger.fatal(s"Cannot create temporary file '$filePrefix.db' in the default JVM temporary file directory '${sys.props.get("java.io.tmpdir")}' (see JVM parameter 'java.io.tmpdir').")
     }
 
   }

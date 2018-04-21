@@ -17,20 +17,20 @@
 
 package lomrf.mln.learning.structure
 
-import auxlib.log.Logger
+
+import com.typesafe.scalalogging.Logger
 import lomrf.logic.LogicOps._
 import lomrf.logic.{Clause, NormalForm, WeightedDefiniteClause, WeightedFormula}
 import lomrf.mln.grounding.MRFBuilder
 import lomrf.mln.model._
 import lomrf.mln.model.mrf.MRFState
-
+import lomrf.util.logging.Implicits._
 /**
  * Evaluator provides various methods for evaluating clauses and definite clauses.
  */
 object Evaluator {
 
-  private lazy val log = Logger(this.getClass)
-  import log._
+  private lazy val logger = Logger(this.getClass)
 
   /**
    * Evaluates a vector of clauses with respect to another MRF state. It calculates
@@ -67,14 +67,14 @@ object Evaluator {
 
     // Calculate true and inferred counts for the given clauses
     val trueCounts = state.countTrueGroundings
-    debug("True Counts: [" + trueCounts.deep.mkString(", ") + "]")
+    logger.debug("True Counts: [" + trueCounts.deep.mkString(", ") + "]")
 
     val inferredCounts = state.countTrueGroundings(previousState)
-    debug("Inferred Counts: [" + inferredCounts.deep.mkString(", ") + "]")
+    logger.debug("Inferred Counts: [" + inferredCounts.deep.mkString(", ") + "]")
 
     // For each clause compute the difference between inferred and true counts and compare it to the given threshold
     for (clauseIdx <- clauses.indices) {
-      debug(s"${clauses(clauseIdx).toText()} T: ${trueCounts(clauseIdx)} I: ${inferredCounts(clauseIdx)}")
+      logger.debug(s"${clauses(clauseIdx).toText()} T: ${trueCounts(clauseIdx)} I: ${inferredCounts(clauseIdx)}")
       val value = inferredCounts(clauseIdx) - trueCounts(clauseIdx)
       if(-value >= threshold) {
         scores :+= value
@@ -130,13 +130,13 @@ object Evaluator {
 
     // Calculate true and inferred counts for the given clauses
     val trueCounts = state.countTrueGroundings
-    debug("True Counts: [" + trueCounts.deep.mkString(", ") + "]")
+    logger.debug("True Counts: [" + trueCounts.deep.mkString(", ") + "]")
 
     val inferredCounts = state.countTrueGroundings(previousState)
-    debug("Inferred Counts: [" + inferredCounts.deep.mkString(", ") + "]")
+    logger.debug("Inferred Counts: [" + inferredCounts.deep.mkString(", ") + "]")
 
     for (clauseIdx <- clauses.indices) {
-      debug(s"${clauses(clauseIdx).toText()} T: ${trueCounts(clauseIdx)} I: ${inferredCounts(clauseIdx)}")
+      logger.debug(s"${clauses(clauseIdx).toText()} T: ${trueCounts(clauseIdx)} I: ${inferredCounts(clauseIdx)}")
       scores :+= inferredCounts(clauseIdx) - trueCounts(clauseIdx)
     }
 
@@ -170,7 +170,7 @@ object Evaluator {
 
           resultOpt match {
             case Some(result) => lambdaPrime += result
-            case None => fatal("Predicate replacement failed (possible bug?)")
+            case None => logger.fatal("Predicate replacement failed (possible bug?)")
           }
         }
       }

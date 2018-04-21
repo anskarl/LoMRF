@@ -27,6 +27,7 @@ import lomrf.mln.model.{AtomEvidenceDB, Evidence, KB, MLN}
 import lomrf.util.NaturalComparator
 import lomrf.util.evaluation.{Evaluate, Metrics}
 import lomrf.util.time._
+import lomrf.util.logging.Implicits._
 import scala.io.Source
 import java.io.{File, FileOutputStream, PrintStream}
 import scala.util.{Failure, Success}
@@ -99,7 +100,7 @@ object SemiSupervisionCLI extends CLIApp {
   opt("ne", "non-evidence atoms", "<string>", "Comma separated non-evidence atoms. "
     + "Each atom must be defined using its identity (i.e. Name/arity). "
     + "For example the identity of NonEvidenceAtom(arg1,arg2) is NonEvidenceAtom/2", {
-    _nonEvidenceAtoms ++= _.split(',').map(s => s.signature.getOrElse(fatal(s"Cannot parse the arity of atom signature: $s")))
+    _nonEvidenceAtoms ++= _.split(',').map(s => s.signature.getOrElse(logger.fatal(s"Cannot parse the arity of atom signature: $s")))
   })
 
   opt("m", "modes", "<mode file>", "Mode declarations file.", {
@@ -118,16 +119,16 @@ object SemiSupervisionCLI extends CLIApp {
     v: String => v.trim.toLowerCase match {
       case "knn" => _kNNConnector = true
       case "enn" => _kNNConnector = false
-      case _ => fatal(s"Unknown connector of type '$v'.")
+      case _ => logger.fatal(s"Unknown connector of type '$v'.")
     }
   })
 
   intOpt("k", "kappa", "Kappa parameter for the kNN connector (default is "+ _k +")", {
-    v: Int => if (v < 1) fatal("k value must be any integer greater than zero, but you gave: " + v) else _k = v
+    v: Int => if (v < 1) logger.fatal("k value must be any integer greater than zero, but you gave: " + v) else _k = v
   })
 
   doubleOpt("e", "epsilon", "Epsilon parameter for eNN connector (default is " + _epsilon + ").", {
-    v: Double => if (v < 0 || v > 1) fatal("Epsilon value must be any number greater or equal to zero and less or equal to one, but you gave: " + v) else _epsilon = v
+    v: Double => if (v < 0 || v > 1) logger.fatal("Epsilon value must be any number greater or equal to zero and less or equal to one, but you gave: " + v) else _epsilon = v
   })
 
   flagOpt("cache", "cache-labels", "Cache labels for online supervision completion.", {
@@ -143,11 +144,11 @@ object SemiSupervisionCLI extends CLIApp {
 
   private def completer(): Unit = {
 
-    val strMLNFileName = _mlnFileName.getOrElse(fatal("Please specify an input MLN file."))
+    val strMLNFileName = _mlnFileName.getOrElse(logger.fatal("Please specify an input MLN file."))
 
     val strTrainingFileNames = _trainingFileNames
       .map(_.sortWith(NaturalComparator.compareBool))
-      .getOrElse(fatal("Please specify input training file(s)."))
+      .getOrElse(logger.fatal("Please specify input training file(s)."))
 
     // Annotation files are optional
     val strAnnotationFileNames = _annotationFileNames
@@ -159,13 +160,13 @@ object SemiSupervisionCLI extends CLIApp {
       case None => System.out
     }
 
-    val strModeFileName = _modesFileName.getOrElse(fatal("Please specify an input mode declaration file."))
+    val strModeFileName = _modesFileName.getOrElse(logger.fatal("Please specify an input mode declaration file."))
 
     // Parse all mode declarations from file
     val modes = ModeParser.parseFrom(new File(strModeFileName))
-    info("Modes Declarations: \n" + modes.map { case (signature, mode) => "\t" + signature + " -> " + mode }.mkString("\n"))
+    logger.info("Modes Declarations: \n" + modes.map { case (signature, mode) => "\t" + signature + " -> " + mode }.mkString("\n"))
 
-    info("Parameters:"
+    logger.info("Parameters:"
       + "\n\t(ne) Non-evidence predicate(s): " + _nonEvidenceAtoms.map(_.toString).mkString(", ")
       + "\n\t(gD) GroupBy domains: " + _groupByDomains.getOrElse(Set("None")).mkString(", ")
       + "\n\t(nD) Numerical domains: " + _numericalDomains.getOrElse(Set("None")).mkString(", ")
@@ -186,7 +187,7 @@ object SemiSupervisionCLI extends CLIApp {
     val start = System.currentTimeMillis
     for (step <- strTrainingFileNames.indices) {
 
-      info(s"Step ${step + 1} / ${strTrainingFileNames.length}. Processing chunk ${strTrainingFileNames(step)}")
+      logger.info(s"Step ${step + 1} / ${strTrainingFileNames.length}. Processing chunk ${strTrainingFileNames(step)}")
 
       val currentTrainingFile = new File(strTrainingFileNames(step))
 
@@ -238,7 +239,7 @@ object SemiSupervisionCLI extends CLIApp {
           case ((atoms, evidenceSet), tuple) => (atoms ++ tuple._1, evidenceSet + tuple._2)
         }
 
-      info(msecTimeToTextUntilNow("Supervision completion time until now: ", start))
+      logger.info(msecTimeToTextUntilNow("Supervision completion time until now: ", start))
 
       /*
        * OK, lets store the resulted completed supervision
@@ -335,7 +336,7 @@ object SemiSupervisionCLI extends CLIApp {
       resultsStream.println(msecTimeToTextUntilNow("Total supervision completion time: ", start))
       resultsStream.close()
     }
-    info(msecTimeToTextUntilNow("Total supervision completion time: ", start))
+    logger.info(msecTimeToTextUntilNow("Total supervision completion time: ", start))
   }
 
   // Main:

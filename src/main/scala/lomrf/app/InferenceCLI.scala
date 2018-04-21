@@ -26,6 +26,7 @@ import lomrf.mln.grounding.MRFBuilder
 import lomrf.mln.inference._
 import lomrf.mln.model.MLN
 import lomrf.util.ImplFinder
+import lomrf.util.logging.Implicits._
 
 /**
  * Command line tool for inference.
@@ -124,15 +125,15 @@ object InferenceCLI extends CLIApp {
 
 
   private def addQueryAtom(atom: String) {
-    _queryAtoms += atom.signature.getOrElse(fatal(s"Cannot parse the arity of query atom: $atom"))
+    _queryAtoms += atom.signature.getOrElse(logger.fatal(s"Cannot parse the arity of query atom: $atom"))
   }
 
   private def addCWA(atom: String) {
-    _cwa += atom.signature.getOrElse(fatal(s"Cannot parse the arity of CWA atom: $atom"))
+    _cwa += atom.signature.getOrElse(logger.fatal(s"Cannot parse the arity of CWA atom: $atom"))
   }
 
   private def addOWA(atom: String) {
-    _owa += atom.signature.getOrElse(fatal(s"Cannot parse the arity of OWA atom: $atom"))
+    _owa += atom.signature.getOrElse(logger.fatal(s"Cannot parse the arity of OWA atom: $atom"))
   }
 
   opt("i", "input", "<path to mln file>", "Specify the path to the input knowledge base file", { v: String => _mlnFileName = Some(v) })
@@ -159,7 +160,7 @@ object InferenceCLI extends CLIApp {
     v: String => v.trim.toLowerCase match {
       case "map" => _marginalInference = false
       case "marginal" => _marginalInference = true
-      case _ => fatal("Unknown parameter for inference type '" + v + "'.")
+      case _ => logger.fatal("Unknown parameter for inference type '" + v + "'.")
     }
   })
 
@@ -167,7 +168,7 @@ object InferenceCLI extends CLIApp {
     v: String => v.trim.toLowerCase match {
       case "ilp" => _mws = false
       case "mws" => _mws = true
-      case _ => fatal("Unknown parameter for inference type '" + v + "'.")
+      case _ => logger.fatal("Unknown parameter for inference type '" + v + "'.")
     }
   })
 
@@ -176,7 +177,7 @@ object InferenceCLI extends CLIApp {
     v: String => v.trim.toLowerCase match {
       case "all" => _mapOutputAll = true
       case "positive" => _mapOutputAll = false
-      case _ => fatal("Unknown parameter for inference type '" + v + "'.")
+      case _ => logger.fatal("Unknown parameter for inference type '" + v + "'.")
     }
   })
 
@@ -193,7 +194,7 @@ object InferenceCLI extends CLIApp {
     v: String => v.trim.toLowerCase match {
       case "roundup" => _ilpRounding = RoundingScheme.ROUNDUP
       case "mws" => _ilpRounding = RoundingScheme.MWS
-      case _ => fatal("Unknown parameter for ILP rounding type '" + v + "'.")
+      case _ => logger.fatal("Unknown parameter for ILP rounding type '" + v + "'.")
     }
   })
 
@@ -202,7 +203,7 @@ object InferenceCLI extends CLIApp {
       case "gurobi" => _ilpSolver = Solver.GUROBI
       case "lpsolve" => _ilpSolver = Solver.LPSOLVE
       case "ojalgo" => _ilpSolver = Solver.OJALGO
-      case _ => fatal(s"Unknown parameter for ILP solver type '$v'.")
+      case _ => logger.fatal(s"Unknown parameter for ILP solver type '$v'.")
     }
   })
 
@@ -210,41 +211,41 @@ object InferenceCLI extends CLIApp {
 
   doubleOpt("pSA", "probability-simulated-annealing", "Specify the probability to perform a simulated annealing step (default is " + _pSA + "), " +
     "when using MC-SAT for marginal inference.", {
-    v: Double => if (v >= 1.0 || v <= 0.0) fatal("The pLocalSearch value must be between [0,1], but you gave: " + v) else _pSA = v
+    v: Double => if (v >= 1.0 || v <= 0.0) logger.fatal("The pLocalSearch value must be between [0,1], but you gave: " + v) else _pSA = v
   })
 
   doubleOpt("pBest", "probability-best-search", "The probability to perform a greedy search (default is " + _pBest + "), " +
     "when using  MaxWalkSAT or MC-SAT.", {
-    v: Double => if (v >= 1.0 || v <= 0.0) fatal("The pBest value must be between [0,1], but you gave: " + v) else _pBest = v
+    v: Double => if (v >= 1.0 || v <= 0.0) logger.fatal("The pBest value must be between [0,1], but you gave: " + v) else _pBest = v
   })
 
   doubleOpt("saTemperature", "simulated-annealing-temperature", "Temperature (take values in (0,1]) for the simulated " +
     "annealing step in MC-SAT (default is " + _saTemperature + ").", {
-    v: Double => if (v >= 1.0 || v <= 0.0) fatal("The saTemperature value must be between [0,1], but you gave: " + v) else _saTemperature = v
+    v: Double => if (v >= 1.0 || v <= 0.0) logger.fatal("The saTemperature value must be between [0,1], but you gave: " + v) else _saTemperature = v
   })
 
   intOpt("maxFlips", "maximum-flips", "The maximum number of flips taken to reach a solution in MaxWalkSAT or MC-SAT (default is " + _maxFlips + ").", {
-    v: Int => if (v < 0) fatal("The maxFlips value must be any integer above zero, but you gave: " + v) else _maxFlips = v
+    v: Int => if (v < 0) logger.fatal("The maxFlips value must be any integer above zero, but you gave: " + v) else _maxFlips = v
   })
 
   doubleOpt("targetCost", "target-cost", "In MaxWalkSAT and MC-SAT, any possible world having cost below this threshold " +
     "is considered as a solution (default is " + _targetCost + ").", {
-    v: Double => if (v < 0) fatal("The targetCost value cannot be negative, you gave: " + v) else _targetCost = v
+    v: Double => if (v < 0) logger.fatal("The targetCost value cannot be negative, you gave: " + v) else _targetCost = v
   })
 
 
   intOpt("maxTries", "maximum-tries", "The maximum number of attempts, in order to find a solution in MaxWalkSAT and " +
     "MC-SAT (default is " + _maxTries + ")", {
-    v: Int => if (v < 0) fatal("The maxTries value must be any integer above zero, but you gave: " + v) else _maxTries = v
+    v: Int => if (v < 0) logger.fatal("The maxTries value must be any integer above zero, but you gave: " + v) else _maxTries = v
   })
 
   intOpt("numSolutions", "number-of-solutions", "Give the n-th solution in MC-SAT (default is " + _numSolutions + ").", {
-    v: Int => if (v <= 0) fatal("The numSolutions value must be an integer above zero, but you gave: " + v) else _numSolutions = v
+    v: Int => if (v <= 0) logger.fatal("The numSolutions value must be an integer above zero, but you gave: " + v) else _numSolutions = v
   })
 
   intOpt("tabuLength", "tabu-length", "Minimum number of flips between flipping the same ground atom in successive steps " +
     "in MaxWalkSAT and MC-SAT (default is " + _tabuLength + ").", {
-    v: Int => if (v <= 0) fatal("The tabuLength value must be an integer above zero, but you gave: " + v) else _tabuLength = v
+    v: Int => if (v <= 0) logger.fatal("The tabuLength value must be an integer above zero, but you gave: " + v) else _tabuLength = v
   })
 
   booleanOpt("unitProp", "use-unit-propagation", "Enable/disable unit propagation (default is " + _unitProp + ") in MC-SAT. " +
@@ -285,11 +286,11 @@ object InferenceCLI extends CLIApp {
 
     // Check for query predicates
     if (_queryAtoms.isEmpty)
-      fatal("You haven't specified any query predicates (see '-q' parameter).")
+      logger.fatal("You haven't specified any query predicates (see '-q' parameter).")
 
     // First load the KB and the evidence files
-    val strMLNFileName = _mlnFileName.getOrElse(fatal("Please specify an input MLN file."))
-    if (_evidenceFileNames.isEmpty) warn("You haven't specified any evidence file.")
+    val strMLNFileName = _mlnFileName.getOrElse(logger.fatal("Please specify an input MLN file."))
+    if (_evidenceFileNames.isEmpty) logger.warn("You haven't specified any evidence file.")
 
 
     val resultsWriter = _resultsFileName match {
@@ -297,7 +298,7 @@ object InferenceCLI extends CLIApp {
       case None => System.out
     }
 
-    info{
+    logger.info{
       s"""
          |Parameters:
          |  (q) Query predicate(s):  ${_queryAtoms.map(_.toString).mkString(", ")}
@@ -334,19 +335,19 @@ object InferenceCLI extends CLIApp {
 
     val mln = MLN.fromFile(strMLNFileName, _evidenceFileNames, _queryAtoms, _cwa, _owa, pcm = Decomposed, dynamicDefinitionsOpt)
 
-    info(mln.toString)
+    logger.info(mln.toString)
 
-    whenDebug {
-      debug("List of CNF clauses: ")
-      mln.clauses.zipWithIndex.foreach { case (c, idx) => debug(idx + ": " + c) }
+    logger.whenDebugEnabled {
+      logger.debug("List of CNF clauses: ")
+      mln.clauses.zipWithIndex.foreach { case (c, idx) => logger.debug(idx + ": " + c) }
     }
 
     if(mln.clauses.exists(_.weight.isNaN))
-      fatal("Cannot perform inference, soft-constrained clauses with undefined weights found in the specified theory. " +
+      logger.fatal("Cannot perform inference, soft-constrained clauses with undefined weights found in the specified theory. " +
         "Please check the given MLN file(s) for soft-constrained formulas with missing weight values.")
 
 
-    info("Creating MRF...")
+    logger.info("Creating MRF...")
     val mrfBuilder = new MRFBuilder(mln, noNegWeights = _noNeg, eliminateNegatedUnit = _eliminateNegatedUnit)
     val mrf = mrfBuilder.buildNetwork
 

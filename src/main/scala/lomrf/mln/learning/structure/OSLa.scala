@@ -27,6 +27,7 @@ import lomrf.logic.LogicOps._
 import lomrf.logic.AtomSignatureOps._
 import lomrf.mln.model.mrf.{MRFState, MRF}
 import lomrf.util.time._
+import lomrf.util.logging.Implicits._
 import scala.util.{Failure, Success}
 import scala.language.existentials
 
@@ -92,7 +93,7 @@ final class OSLa private(kb: KB, constants: ConstantsDomain, evidenceAtoms: Set[
   private val templateAtoms = pathTemplates.flatMap(_.templateAtoms)
 
   // Knowledge base definition used for learning clauses
-  override protected val knowledgeBase = kb
+  override protected val knowledgeBase: KB = kb
 
   // Tolerance threshold for discarding poor clauses at the end of learning
   override protected val tolerance: Double = theta
@@ -100,12 +101,12 @@ final class OSLa private(kb: KB, constants: ConstantsDomain, evidenceAtoms: Set[
   /**
    * @return a vector of learned clauses
    */
-  override def getLearnedClauses = learnedClauses
+  override def getLearnedClauses: Vector[Clause] = learnedClauses
 
   /**
    * @return a vector of learned weights
    */
-  override def getLearnedWeights = weights
+  override def getLearnedWeights: Array[Double] = weights
 
   /**
    * Find and return all misclassified ground atoms in the previous inferred
@@ -122,7 +123,7 @@ final class OSLa private(kb: KB, constants: ConstantsDomain, evidenceAtoms: Set[
     var misclassifiedAtomIDs = Vector[Int]()
     val numberOfExamples = annotationDB.values.map(db => db.identity.indices.length).sum
 
-    info("Calculating misclassified loss...")
+    logger.info("Calculating misclassified loss...")
 
     previousMRFState match {
 
@@ -147,7 +148,7 @@ final class OSLa private(kb: KB, constants: ConstantsDomain, evidenceAtoms: Set[
         totalError = misclassifiedAtomIDs.length
     }
 
-    info("Total inferred error: " + totalError + "/" + numberOfExamples)
+    logger.info("Total inferred error: " + totalError + "/" + numberOfExamples)
     misclassifiedAtomIDs
   }
 
@@ -177,11 +178,11 @@ final class OSLa private(kb: KB, constants: ConstantsDomain, evidenceAtoms: Set[
     val mln = MLN(kb.schema, trainingEvidence.getEvidence, nonEvidenceAtoms, learnedClauses)
     val annotationDB = trainingEvidence.getAnnotation
 
-    info(s"AnnotationDB: \n\tAtoms with annotations: ${annotationDB.keys.mkString(",")}")
-    info(mln.toString)
+    logger.info(s"AnnotationDB: \n\tAtoms with annotations: ${annotationDB.keys.mkString(",")}")
+    logger.info(mln.toString)
 
     // In case there is no initial set of clauses
-    info("Creating MRF...")
+    logger.info("Creating MRF...")
     previousMRFState =
       if (mln.clauses.nonEmpty) {
         val mrf = new MRFBuilder(mln, createDependencyMap = true).buildNetwork
@@ -189,27 +190,26 @@ final class OSLa private(kb: KB, constants: ConstantsDomain, evidenceAtoms: Set[
         Some(inferredState)
       }
       else {
-        warn("MRF cannot be created, because no clauses were found!")
+        logger.warn("MRF cannot be created, because no clauses were found!")
         None
       }
 
     val misclassifiedAtomIDs = calculateError(annotationDB)
-    info(s"Total misclassified ground atoms as true or false: ${misclassifiedAtomIDs.length}")
+    logger.info(s"Total misclassified ground atoms as true or false: ${misclassifiedAtomIDs.length}")
 
-    val evidence = trainingEvidence.getConvertedEvidence match {
-      case Some(obj) => obj
-      case None => trainingEvidence.getEvidence
-    }
+    val evidence = trainingEvidence
+      .getConvertedEvidence
+      .getOrElse(trainingEvidence.getEvidence)
 
     // Construct HyperGraph
     val HG = HyperGraph(mln, evidence.db, annotationDB, modes, Some(pathTemplates))
-    info(s"HyperGraph has ${HG.numberOfNodes} nodes (constants) and ${HG.numberOfEdges} edges (true ground atoms)")
-    debug(s"HyperGraph Structure:\n$HG")
+    logger.info(s"HyperGraph has ${HG.numberOfNodes} nodes (constants) and ${HG.numberOfEdges} edges (true ground atoms)")
+    logger.debug(s"HyperGraph Structure:\n$HG")
 
     // Search for paths using relational path finding
     val (pathFindingRuntime, paths) = measureTime { HG.findPaths(misclassifiedAtomIDs, maxLength, allowFreeVariables) }
-    info(s"'Relational PathFinding': ${paths.size} paths found in ${msecTimeToText(pathFindingRuntime)}")
-    debug(s"Paths:\n${paths.map(_.toText(mln)).mkString("\n")}")
+    logger.info(s"'Relational PathFinding': ${paths.size} paths found in ${msecTimeToText(pathFindingRuntime)}")
+    logger.debug(s"Paths:\n${paths.map(_.toText(mln)).mkString("\n")}")
 
     val (createClausesRuntime, resultedDefiniteClauses) = measureTime {
       ClauseConstructor.definiteClauses(paths, mln.schema.predicates, modes, evidence, learnedDefiniteClauses)
@@ -217,10 +217,10 @@ final class OSLa private(kb: KB, constants: ConstantsDomain, evidenceAtoms: Set[
 
     val definiteClauses = resultedDefiniteClauses match {
       case Success(result) =>
-        info(s"'Clause Creation': ${result.size} clause(s) extracted from paths in ${msecTimeToText(createClausesRuntime)}")
-        debug(s"Extracted Clauses:\n${result.map(_.clause.toText).mkString("\n")}")
+        logger.info(s"'Clause Creation': ${result.size} clause(s) extracted from paths in ${msecTimeToText(createClausesRuntime)}")
+        logger.debug(s"Extracted Clauses:\n${result.map(_.clause.toText).mkString("\n")}")
         result
-      case Failure(exception) => fatal(exception.getMessage)
+      case Failure(exception) => logger.fatal(exception.getMessage)
     }
 
     /*
@@ -234,17 +234,17 @@ final class OSLa private(kb: KB, constants: ConstantsDomain, evidenceAtoms: Set[
 
     if (goodClauses.nonEmpty) {
 
-      info(s"'Clause Evaluation': ${goodClauses.size} clause(s) remained")
-      debug(s"Remained Clauses:\n${goodClauses.map(_.clause.toText).mkString("\n")}")
+      logger.info(s"'Clause Evaluation': ${goodClauses.size} clause(s) remained")
+      logger.debug(s"Remained Clauses:\n${goodClauses.map(_.clause.toText).mkString("\n")}")
 
       learnedDefiniteClauses ++= goodClauses
 
-      debug(s"All learned definite clauses so far:\n${learnedDefiniteClauses.map(_.clause.toText).mkString("\n")}")
+      logger.debug(s"All learned definite clauses so far:\n${learnedDefiniteClauses.map(_.clause.toText).mkString("\n")}")
 
       val completedFormulas =
         PredicateCompletion(axioms, learnedDefiniteClauses)(kb.predicateSchema, kb.functionSchema, trainingEvidence.getEvidence.constants)
 
-      info("Done predicate completion")
+      logger.info("Done predicate completion")
 
       // Perform CNF and filter out any remained axioms
       val currentClauses = ClauseConstructor.makeCNF(completedFormulas)(trainingEvidence.getEvidence.constants)
@@ -253,7 +253,7 @@ final class OSLa private(kb: KB, constants: ConstantsDomain, evidenceAtoms: Set[
       findTheoryDependencies(currentClauses)
     }
     else
-      info(s"No good clauses were found in iteration $step.")
+      logger.info(s"No good clauses were found in iteration $step.")
 
     /*
      * Compute subgradients for all learned clauses. We must ground the MLN because the resulted CNF
@@ -268,11 +268,11 @@ final class OSLa private(kb: KB, constants: ConstantsDomain, evidenceAtoms: Set[
 
     finalState.setAnnotatedState(annotationDB)
     trueCounts = finalState.countTrueGroundings
-    debug("True Counts: [" + trueCounts.deep.mkString(", ") + "]")
+    logger.debug("True Counts: [" + trueCounts.deep.mkString(", ") + "]")
 
     val inferredState = infer(finalMRF, annotationDB)
     inferredCounts = inferredState.countTrueGroundings
-    debug("Inferred Counts: [" + inferredCounts.deep.mkString(", ") + "]")
+    logger.debug("Inferred Counts: [" + inferredCounts.deep.mkString(", ") + "]")
 
     val subgradientsOfLearnedClauses = Array.fill[Int](finalMLN.clauses.size)(0)
     for (clauseIdx <- finalMLN.clauses.indices) if (!finalMLN.clauses(clauseIdx).isHard) {
@@ -299,7 +299,7 @@ final class OSLa private(kb: KB, constants: ConstantsDomain, evidenceAtoms: Set[
     }
 
     if (printLearnedWeightsPerIteration)
-      info("Learned weights on step " + (step + 1) + ":\n" +
+      logger.info("Learned weights on step " + (step + 1) + ":\n" +
         "\t[" + weights.deep.mkString(", ") + "]")
 
 
@@ -307,16 +307,16 @@ final class OSLa private(kb: KB, constants: ConstantsDomain, evidenceAtoms: Set[
   }
 
   @inline
-  private def findTheoryDependencies(clauses: Set[Clause]) = {
+  private def findTheoryDependencies(clauses: Set[Clause]): Unit = {
 
     var currentTheory = clauses
-    info(s"Current theory has ${currentTheory.size} clauses.")
+    logger.info(s"Current theory has ${currentTheory.size} clauses.")
 
     val (backgroundTheory, previousLearnedTheory) = learnedClauses.splitAt(backgroundClauses.length)
     val (backgroundWeights, previousLearnedWeights) = weights.splitAt(backgroundClauses.length)
     val (backgroundSubGradients, previousSubGradients) = sumSquareGradients.splitAt(backgroundClauses.length)
 
-    info(s"Previous learned theory has ${previousLearnedTheory.size} clauses.")
+    logger.info(s"Previous learned theory has ${previousLearnedTheory.size} clauses.")
 
     /*
      * In case previous learned theory exists, then we must find dependencies
@@ -329,7 +329,7 @@ final class OSLa private(kb: KB, constants: ConstantsDomain, evidenceAtoms: Set[
       var resultedSubgradients = Array[Int]()
       var usedIds = Set[Int]()
 
-      info("Searching for identical clauses...")
+      logger.info("Searching for identical clauses...")
 
       // Find all identical clauses
       for (clauseIdx <- previousLearnedTheory.indices)
@@ -343,10 +343,10 @@ final class OSLa private(kb: KB, constants: ConstantsDomain, evidenceAtoms: Set[
           case None => // proceed to the next
         }
 
-      info(s"Found ${resultedTheory.size} identical clauses")
-      info(s"Current theory has ${currentTheory.size} clauses.")
-      info(s"Previous learned theory has ${previousLearnedTheory.size - usedIds.size} clauses.")
-      info(s"Searching for subsumed clauses...")
+      logger.info(s"Found ${resultedTheory.size} identical clauses")
+      logger.info(s"Current theory has ${currentTheory.size} clauses.")
+      logger.info(s"Previous learned theory has ${previousLearnedTheory.size - usedIds.size} clauses.")
+      logger.info("Searching for subsumed clauses...")
 
       for (clauseIdx <- previousLearnedTheory.indices if !usedIds.contains(clauseIdx))
         currentTheory.filter(c => previousLearnedTheory(clauseIdx) subsumes c) match {
@@ -358,10 +358,10 @@ final class OSLa private(kb: KB, constants: ConstantsDomain, evidenceAtoms: Set[
               resultedSubgradients :+= previousSubGradients(clauseIdx)
             }
           case _ => // there is no current clause subsumed by this older one
-            info(s"Ignore ${previousLearnedTheory(clauseIdx).toText(weighted = false)}")
+            logger.info(s"Ignore ${previousLearnedTheory(clauseIdx).toText(weighted = false)}")
         }
 
-      info(s"Current theory has ${currentTheory.size} clauses.")
+      logger.info(s"Current theory has ${currentTheory.size} clauses.")
 
       learnedClauses = backgroundTheory ++ resultedTheory ++ currentTheory
       weights = backgroundWeights ++ resultedWeights ++ currentTheory.toArray.map(c => if (c.isHard) 0.0 else initialWeightValue)

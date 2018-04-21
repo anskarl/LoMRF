@@ -17,27 +17,27 @@
 
 package lomrf.util
 
-import java.io.{IOException, FilenameFilter, File}
-import java.util.jar.{JarFile, JarEntry}
-import auxlib.log.Logging
-import scala.Predef._
+import java.io.{File, FilenameFilter, IOException}
+import java.util.jar.{JarEntry, JarFile}
+import lomrf.util.logging.Implicits._
+import com.typesafe.scalalogging.LazyLogging
 import scala.collection.mutable
 
 /**
  * Implementations finder.
  */
-final class ImplFinder(traitSet: Set[Class[_]]) extends Logging {
+final class ImplFinder(traitSet: Set[Class[_]]) extends LazyLogging {
 
   private val classFF = new FilenameFilter() {
-    def accept(dir: File, name: String) = dir != null && name.toLowerCase.endsWith("class")
+    def accept(dir: File, name: String): Boolean = dir != null && name.toLowerCase.endsWith("class")
   }
 
   private val jarFF = new FilenameFilter() {
-    def accept(dir: File, name: String) = dir != null && name.toLowerCase.endsWith("jar")
+    def accept(dir: File, name: String): Boolean = dir != null && name.toLowerCase.endsWith("jar")
   }
 
   private val dirFF = new FilenameFilter() {
-    def accept(dir: File, name: String) = dir != null && new File(dir.getPath + File.separator + name).isDirectory
+    def accept(dir: File, name: String): Boolean = dir != null && new File(dir.getPath + File.separator + name).isDirectory
   }
 
   private var map = mutable.Map[Class[_], mutable.HashSet[Class[_]]]()
@@ -71,7 +71,7 @@ final class ImplFinder(traitSet: Set[Class[_]]) extends Logging {
 
   private def loadDir(basePath: String, dirPath: String, clazzLoader: ClassLoader) {
     val dirFile = new File(dirPath)
-    if (!dirFile.isDirectory) fatal(dirPath + " it's not a directory!")
+    if (!dirFile.isDirectory) logger.fatal(dirPath + " it's not a directory!")
 
     val classFiles = dirFile.listFiles(classFF)
     val jarFiles = dirFile.listFiles(jarFF)
@@ -85,12 +85,12 @@ final class ImplFinder(traitSet: Set[Class[_]]) extends Logging {
   private def loadJar(jarFilePath: String) {
     val file = new File(jarFilePath)
 
-    if (!file.isFile || !file.getName.endsWith(".jar")) fatal(jarFilePath + " it's not a jar file!")
+    if (!file.isFile || !file.getName.endsWith(".jar")) logger.fatal(jarFilePath + " it's not a jar file!")
 
     try {
       addJarFile(new JarFile(file), getClass.getClassLoader)
     } catch {
-      case e: IOException => fatal("Cannot open jar file: " + file.getName)
+      case e: IOException => logger.fatal("Cannot open jar file: " + file.getName)
     }
   }
 

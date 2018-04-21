@@ -22,20 +22,20 @@ import java.util.concurrent.CountDownLatch
 import akka.actor._
 import akka.pattern._
 import akka.util.Timeout
-import auxlib.log.Logging
 import auxlib.trove.TroveConversions._
+import com.typesafe.scalalogging.LazyLogging
 import gnu.trove.map.TIntFloatMap
 import gnu.trove.map.hash.TIntObjectHashMap
 import lomrf.mln.model.MLN
 import lomrf.mln.model.mrf.{Constraint, GroundAtom, MRF}
 import lomrf.util.time._
+import lomrf.util.logging.Implicits._
 import lomrf.{DEFAULT_CAPACITY, DEFAULT_LOAD_FACTOR, NO_ENTRY_KEY}
 
-import scala.concurrent.{Await, Future}
+import scala.concurrent.{Await, ExecutionContextExecutor, Future}
 import scala.concurrent.duration._
 import scala.language.postfixOps
 import scalaxy.streams.optimize
-import scala.concurrent.ExecutionContext.Implicits.global
 
 
 /**
@@ -85,15 +85,15 @@ import scala.concurrent.ExecutionContext.Implicits.global
 final class MRFBuilder(val mln: MLN,
                        noNegWeights: Boolean = false,
                        eliminateNegatedUnit: Boolean = false,
-                       createDependencyMap: Boolean = false) extends Logging {
+                       createDependencyMap: Boolean = false) extends LazyLogging {
 
   import messages._
 
   private val mcSatParam = 1
 
   private val system = ActorSystem.create("MRFBuilder")
-
-  private implicit val timeout = Timeout(214748363 seconds)
+  private implicit val executionContext: ExecutionContextExecutor = system.dispatcher
+  private implicit val timeout: Timeout = Timeout(214748363 seconds)
 
   def buildNetwork: MRF = {
     val latch = new CountDownLatch(1)
@@ -107,7 +107,7 @@ final class MRFBuilder(val mln: MLN,
 
 
     system.terminate().foreach{ _ =>
-      info("Actor system was shut down")
+      logger.info("Actor system was shut down")
     }
 
 
@@ -118,14 +118,14 @@ final class MRFBuilder(val mln: MLN,
 
       weightHard += (math.abs(clause.weight) * productOfVarDomains.getOrElse(0) * productOfFuncDomains.getOrElse(1))
     }
-    info("Hard weight value is set to: " + weightHard)
+    logger.info("Hard weight value is set to: " + weightHard)
 
     // Conversion to flat version
     val numConstraints = if (result.cliques ne null) result.cliques.partitions.map(fs => if (fs ne null) fs.size() else 0).sum else 0
     var numAtoms = if (result.cliques ne null) result.atom2Cliques.partitions.map(as => if (as ne null) as.size() else 0).sum else 0
     if (numAtoms == 0) numAtoms = if (result.queryAtomIDs ne null) result.queryAtomIDs.partitions.map(qas => if (qas ne null) qas.size() else 0).sum else 0
 
-    if (numAtoms == 0) fatal("The ground MRF is empty.")
+    if (numAtoms == 0) logger.fatal("The ground MRF is empty.")
 
 
     val constraints = new TIntObjectHashMap[Constraint](
@@ -144,7 +144,7 @@ final class MRFBuilder(val mln: MLN,
         // When a clause has negative a negative weight and the 'noNegWeights' is True:
         //    - adjust the frequency value by dividing with the size of the corresponding FOL clause.
 
-        val dependencyMapPartitions = result.dependencyMap.getOrElse(fatal("DependencyMap is not computed."))
+        val dependencyMapPartitions = result.dependencyMap.getOrElse(logger.fatal("DependencyMap is not computed."))
 
         if (noNegWeights) for {
           partition <- dependencyMapPartitions.partitions.par
@@ -205,7 +205,7 @@ final class MRFBuilder(val mln: MLN,
       }
     }
 
-    info("Grounding completed:" +
+    logger.info("Grounding completed:" +
       "\n\tTotal grounding time: " + msecTimeToText(endTime - startTime)
       + "\n\tTotal ground clauses: " + constraints.size()
       + "\n\tTotal ground atoms: " + atoms.size())

@@ -18,12 +18,14 @@
 package lomrf.mln.learning.supervision.graphs
 
 import lomrf.logic._
-import auxlib.log.{Logger, Logging}
+import lomrf.util.logging.Implicits._
 import breeze.linalg.{DenseMatrix, DenseVector, pinv, sum}
+import com.typesafe.scalalogging.LazyLogging
 import lomrf.mln.learning.supervision.metric._
 import lomrf.mln.model._
 import lomrf.util.time._
 import lomrf.{AUX_PRED_PREFIX => PREFIX}
+
 import scala.util.{Failure, Success, Try}
 
 /**
@@ -86,7 +88,7 @@ final class SupervisionGraph private(nodes: IndexedSeq[Node],
                                      groupByDomains: Option[Set[String]],
                                      numericalDomains: Option[Set[String]],
                                      supervisionBuilder: EvidenceBuilder,
-                                     nodeCache: Set[(Clause, Int)] = Set.empty) extends Logging {
+                                     nodeCache: Set[(Clause, Int)] = Set.empty) extends LazyLogging {
 
   private val (labeledNodes, unlabeledNodes) = nodes.span(_.isLabeled)
 
@@ -121,11 +123,11 @@ final class SupervisionGraph private(nodes: IndexedSeq[Node],
     */
   def completeSupervision: (Set[EvidenceAtom], Evidence) = {
     if (unlabeledNodes.isEmpty) {
-      warn("No unlabeled query atoms found!")
+      logger.warn("No unlabeled query atoms found!")
       (Set.empty[EvidenceAtom], supervisionBuilder.result())
     }
     else if (labeledNodes.isEmpty || nonEmptyLabeledNodes.isEmpty) {
-      warn("No labeled query atoms found or labeled nodes are empty. " +
+      logger.warn("No labeled query atoms found or labeled nodes are empty. " +
            "Setting all unlabeled to FALSE due to close world assumption!")
       val unlabeledAtoms = unlabeledNodes.map { node =>
         EvidenceAtom.asFalse(node.query.symbol, node.query.terms)
@@ -134,7 +136,7 @@ final class SupervisionGraph private(nodes: IndexedSeq[Node],
       (unlabeledAtoms, supervisionBuilder.result())
     }
     else if (nonEmptyUnlabeledNodes.isEmpty) {
-      warn("All unlabeled nodes are empty. Setting all unlabeled to FALSE!")
+      logger.warn("All unlabeled nodes are empty. Setting all unlabeled to FALSE!")
       val unlabeledAtoms =  emptyNodes.filter(_.isUnlabeled).map {
         n => EvidenceAtom.asFalse(n.query.symbol, n.query.terms)
       }.toSet
@@ -152,7 +154,7 @@ final class SupervisionGraph private(nodes: IndexedSeq[Node],
     // Cost degree diagonal matrix
     val D = DenseMatrix.zeros[Double](numberOfNonEmptyNodes, numberOfNonEmptyNodes)
 
-    info(
+    logger.info(
       s"Supervision graph has $numberOfNodes nodes. Nodes have varying size sequences " +
         s"of evidence atoms [${nodes.map(_.size).distinct.mkString(", ")}].\n" +
         s"\t\t- Labeled Nodes: $numberOfLabeled\n" +
@@ -185,9 +187,9 @@ final class SupervisionGraph private(nodes: IndexedSeq[Node],
               math.max(nonEmptyNodes(i).size, nonEmptyNodes(j).size)
           }
 
-        whenDebug {
+        logger.whenDebugEnabled {
           if (i <= j)
-            debug(s"${nonEmptyNodes(i).query.toText} - ${nonEmptyNodes(j).query.toText} = ${neighborCosts(j)}")
+            logger.debug(s"${nonEmptyNodes(i).query.toText} - ${nonEmptyNodes(j).query.toText} = ${neighborCosts(j)}")
         }
       }
 
@@ -195,7 +197,7 @@ final class SupervisionGraph private(nodes: IndexedSeq[Node],
       D(i, i) = sum(W(i, ::))
     }
 
-    info(msecTimeToTextUntilNow(s"Graph connected in: ", startGraphConnection))
+    logger.info(msecTimeToTextUntilNow(s"Graph connected in: ", startGraphConnection))
 
     // Vector holding the labeled values
     val fl = DenseVector(nonEmptyLabeledNodes.map(_.label.value.toDouble).toArray)
@@ -213,13 +215,13 @@ final class SupervisionGraph private(nodes: IndexedSeq[Node],
       case Success(res) =>
         res.map( value => if (value <= UNCONNECTED) FALSE else TRUE )
       case Failure(_) =>
-        warn("Not Converged. Setting everything to FALSE.")
+        logger.warn("Not Converged. Setting everything to FALSE.")
         DenseVector.fill(numberOfNonEmptyUnlabeled)(FALSE)
     }
 
-    info(msecTimeToTextUntilNow(s"Labeling solution found in: ", startSolution))
+    logger.info(msecTimeToTextUntilNow(s"Labeling solution found in: ", startSolution))
 
-    whenDebug {
+    logger.whenDebugEnabled {
       (nonEmptyUnlabeledNodes.map(_.query) zip solution.toArray)
         .map { case (atom, state) => s"$atom = $state" }.mkString("\n")
     }
@@ -303,7 +305,7 @@ final class SupervisionGraph private(nodes: IndexedSeq[Node],
         labeled.foldLeft(labeledNodes -> nodeCache) {
           case ((unique, cache), node) =>
 
-            val pattern = node.clause.getOrElse(fatal("Cannot construct a pattern!"))
+            val pattern = node.clause.getOrElse(logger.fatal("Cannot construct a pattern!"))
 
             if (!unique.flatMap(_.clause).exists(_ =~= pattern))
               cache.find { case (c, _) => c =~= pattern } match {
@@ -312,14 +314,14 @@ final class SupervisionGraph private(nodes: IndexedSeq[Node],
               }
             else cache.find { case (c, _) => c =~= pattern } match {
               case Some(entry) => (unique, (cache - entry) + (pattern -> (entry._2 + 1)))
-              case None => fatal(s"Pattern ${pattern.toText()} is not unique, but it does not exist in the frequency set.")
+              case None => logger.fatal(s"Pattern ${pattern.toText()} is not unique, but it does not exist in the frequency set.")
             }
         }
 
-      info(s"${uniqueLabeled.length}/${labeledNodes.length + labeled.length} unique labeled nodes kept.")
+      logger.info(s"${uniqueLabeled.length}/${labeledNodes.length + labeled.length} unique labeled nodes kept.")
 
-      whenDebug {
-        updatedNodeCache.foreach { case (clause, freq) => debug(s"${clause.toText()} -> $freq") }
+      logger.whenDebugEnabled {
+        updatedNodeCache.foreach { case (clause, freq) => logger.debug(s"${clause.toText()} -> $freq") }
       }
 
       /*
@@ -330,12 +332,12 @@ final class SupervisionGraph private(nodes: IndexedSeq[Node],
       val cleanedUniqueLabeled = uniqueLabeled.foldLeft(IndexedSeq.empty[Node]) {
         case (result, node) =>
 
-          val nodeBody = node.body.getOrElse(fatal("Cannot construct a pattern!"))
-          val nodeClause = node.clause.getOrElse(fatal("Cannot construct a pattern!"))
+          val nodeBody = node.body.getOrElse(logger.fatal("Cannot construct a pattern!"))
+          val nodeClause = node.clause.getOrElse(logger.fatal("Cannot construct a pattern!"))
 
           val nodeFrequency = updatedNodeCache.find { case (c, _) => c =~= nodeClause } match {
             case Some((_, freq)) => freq
-            case None => fatal(s"Pattern ${nodeClause.toText()} does not exist in the frequency set.")
+            case None => logger.fatal(s"Pattern ${nodeClause.toText()} does not exist in the frequency set.")
           }
 
           updatedNodeCache.find { case (c, _) =>
@@ -352,7 +354,7 @@ final class SupervisionGraph private(nodes: IndexedSeq[Node],
           }
       }
 
-      info(msecTimeToTextUntilNow(s"Cache updated in: ", startCacheUpdate))
+      logger.info(msecTimeToTextUntilNow(s"Cache updated in: ", startCacheUpdate))
 
       // Labeled nodes MUST appear before unlabeled!
       new SupervisionGraph(
@@ -375,9 +377,8 @@ final class SupervisionGraph private(nodes: IndexedSeq[Node],
   * graphs given an MLN, an annotation database, a query atom signature of interest and
   * a list of domains to group the data.
   */
-object SupervisionGraph {
+object SupervisionGraph extends LazyLogging {
 
-  private lazy val log = Logger(this.getClass)
 
   /**
     * Combine maps into a single map by merging their values for shared keys.
@@ -418,7 +419,6 @@ object SupervisionGraph {
                         annotationDB: EvidenceDB,
                         querySignature: AtomSignature,
                         groupByDomains: Option[Set[String]]): IndexedSeq[Node] = {
-    import log._
 
     val predicateSchema = mln.schema.predicates
     val auxPredicateSchema = predicateSchema.filter { case (signature, _) => signature.symbol.contains(PREFIX) }
@@ -426,7 +426,7 @@ object SupervisionGraph {
     // Check if the given annotation database contains the query signature of interest.
     val queryAnnotationDB =
       annotationDB.getOrElse(querySignature,
-        fatal(s"Query signature '$querySignature' does not exist in the given annotation database."))
+        logger.fatal(s"Query signature '$querySignature' does not exist in the given annotation database."))
 
     // Collect all auxiliary predicates
     val auxiliary = for {
@@ -436,7 +436,7 @@ object SupervisionGraph {
     } yield Constant(constants.head) -> (signature, constants.tail.map(Constant))
 
     if (auxiliary.isEmpty)
-      warn(s"No auxiliary predicates found in the evidence database.")
+      logger.warn(s"No auxiliary predicates found in the evidence database.")
 
     /**
       * Recursively constructs a map of domains to constants by flattening all given pairs
@@ -486,7 +486,7 @@ object SupervisionGraph {
     groupByDomains match {
 
       case None =>
-        info(s"No group domains are given! Group evidence atoms by all domains of the query '$querySignature'")
+        logger.info(s"No group domains are given! Group evidence atoms by all domains of the query '$querySignature'")
 
       // Check if the given domain for partitioning exists in the given query predicate schema
       case Some(domains) =>
@@ -494,7 +494,7 @@ object SupervisionGraph {
         flattenDomains(predicateSchema(querySignature))
           .ensuring(
             s => domains.forall(s.contains),
-            fatal(s"Given domains [ ${domains.mkString(", ")} ] does not exist for any possible function!")
+            logger.fatal(s"Given domains [ ${domains.mkString(", ")} ] does not exist for any possible function!")
           )
     }
 
@@ -534,7 +534,7 @@ object SupervisionGraph {
     val (unlabeled, labeled) = queryAtoms.partition(_.state == UNKNOWN)
 
     if (labeled.isEmpty)
-      warn("There are no labeled query atoms in the annotation database!")
+      logger.warn("There are no labeled query atoms in the annotation database!")
 
     val start = System.currentTimeMillis()
 
@@ -564,7 +564,7 @@ object SupervisionGraph {
       }
     }
 
-    info(s"Nodes constructed in ${msecTimeToTextUntilNow(start)}")
+    logger.info(s"Nodes constructed in ${msecTimeToTextUntilNow(start)}")
     nodes.toIndexedSeq
   }
 

@@ -17,12 +17,14 @@
 
 package lomrf.mln.learning.structure.hypergraph
 
-import auxlib.log.Logger
+import com.typesafe.scalalogging.Logger
 import lomrf.logic.AtomSignatureOps._
 import lomrf.logic.{AtomSignature, TRUE}
 import lomrf.mln.learning.structure.ModeDeclaration
 import lomrf.mln.model.AtomIdentityFunctionOps._
 import lomrf.mln.model._
+import lomrf.util.logging.Implicits._
+
 import scala.language.implicitConversions
 import lomrf.{AUX_PRED_PREFIX => PREFIX}
 
@@ -87,9 +89,9 @@ final class HyperGraph private(annotationDB: EvidenceDB, modes: ModeDeclarations
     * @return a set of paths
     */
   def findPaths(searchSet: Vector[Int], maxLength: Int, allowFreeVariables: Boolean = false): Set[HPath] = {
-    implicit val modes = this.modes
-    implicit val identities = this.mln.space.identities
-    implicit val auxiliary = this.auxiliary
+    implicit val modes: ModeDeclarations = this.modes
+    implicit val identities: Identities = this.mln.space.identities
+    implicit val auxiliary: Map[String, Int] = this.auxiliary
 
     var paths = Set[HPath]()
 
@@ -110,13 +112,13 @@ final class HyperGraph private(annotationDB: EvidenceDB, modes: ModeDeclarations
        * is the function return values appearing as its arguments (if any) to satisfy
        * their place marker dependencies.
        */
-      val currentPath = canAdd(HPath.empty, tid, signature, mode, identity) match {
-
-        case true => HPath.head(addAuxPredicates(HPath.empty + (tid, signature), constants))
-        case _ =>
+      val currentPath =
+        if (canAdd(HPath.empty, tid, signature, mode, identity))
+          HPath.head(addAuxPredicates(HPath.empty + (tid, signature), constants))
+        else
           sys.error(s"Ground atom ${AtomIdentityFunction.decodeAtom(tid).get} cannot be added to an empty path." +
             s" Please check mode declarations for this ground atom and its corresponding functions!")
-      }
+
 
       /*
        * Pass as an initial constant set only the constants appearing in the path
@@ -144,13 +146,12 @@ final class HyperGraph private(annotationDB: EvidenceDB, modes: ModeDeclarations
        * is the function return values appearing as its arguments (if any) to satisfy
        * their place marker dependencies.
        */
-      val currentPath = canAdd(HPath.empty, id, signature, mode, identity) match {
-
-        case true => HPath.head(addAuxPredicates(HPath.empty + (id, signature), constants))
-        case _ =>
+      val currentPath =
+        if (canAdd(HPath.empty, id, signature, mode, identity))
+          HPath.head(addAuxPredicates(HPath.empty + (id, signature), constants))
+        else
           sys.error(s"Ground atom ${AtomIdentityFunction.decodeAtom(id).get} cannot be added to an empty path." +
             s" Please check mode declarations for this ground atom and its corresponding functions!")
-      }
 
       /*
        * Pass as an initial constant set only the constants appearing in the path
@@ -199,7 +200,7 @@ final class HyperGraph private(annotationDB: EvidenceDB, modes: ModeDeclarations
                         maxLength: Int, allowFreeVariables: Boolean,
                         paths: Set[HPath]): Set[HPath] = {
 
-    implicit val identities = this.mln.space.identities
+    implicit val identities: Identities = this.mln.space.identities
 
     // don't go deeper when the current path has reached the maximum length (functions does not count)
     if (currentPath.length - currentPath.auxiliary >= maxLength) return paths
@@ -297,7 +298,7 @@ final class HyperGraph private(annotationDB: EvidenceDB, modes: ModeDeclarations
     }
   }
 
-  def toText =
+  def toText: String =
     if(network.nonEmpty) network.map {
       case (node, edges) =>
         node + " -> " + edges.map{ atomID =>
@@ -306,7 +307,7 @@ final class HyperGraph private(annotationDB: EvidenceDB, modes: ModeDeclarations
     }.mkString("\n")
     else "HyperGraph is empty!"
 
-  override def toString = network.map{ case (node, edges) => node + " -> [" + edges.mkString(", ") + "]" }.mkString("\n")
+  override def toString: String = network.map{ case (node, edges) => node + " -> " + edges.mkString("[", ", ", "]") }.mkString("\n")
 }
 
 /**
@@ -314,11 +315,9 @@ final class HyperGraph private(annotationDB: EvidenceDB, modes: ModeDeclarations
   */
 object HyperGraph {
 
-  private lazy val log = Logger(this.getClass)
+  private lazy val logger = Logger(this.getClass)
 
-  def apply(mln: MLN, evidenceDB: EvidenceDB, annotationDB: EvidenceDB, modes: ModeDeclarations, pathTemplates: Option[Set[PathTemplate]] = None) = {
-
-    import log._
+  def apply(mln: MLN, evidenceDB: EvidenceDB, annotationDB: EvidenceDB, modes: ModeDeclarations, pathTemplates: Option[Set[PathTemplate]] = None): HyperGraph = {
 
     // Network map from constants to ground atom ids
     var network = Map[String, Vector[Int]]()
@@ -334,12 +333,12 @@ object HyperGraph {
       *
       * @param evidenceDB the evidence database
       */
-    def processDBFor(evidenceDB: EvidenceDB) = {
+    def processDBFor(evidenceDB: EvidenceDB): Unit = {
 
       for {
         (signature, db) <- evidenceDB.filter{ case (signature, _) => signature.symbol.contains(PREFIX) }
         mode = modes.getOrElse(signature,
-          fatal(s"Mode declaration for function signature '${signature.symbol.replaceFirst(PREFIX, "")}/${signature.arity - 1}' does not exist!"))
+          logger.fatal(s"Mode declaration for function signature '${signature.symbol.replaceFirst(PREFIX, "")}/${signature.arity - 1}' does not exist!"))
         if mode.recall > 0 // consider only auxiliary predicates having positive recall
         id <- db.identity.indices
         if db(id) == TRUE // consider only auxiliary atoms being TRUE
@@ -350,7 +349,7 @@ object HyperGraph {
 
       for {
         (signature, db) <- evidenceDB.filterNot{ case (signature, _) => signature.symbol.contains(PREFIX) }
-        mode = modes.getOrElse(signature, fatal(s"Mode declaration for signature '$signature' does not exist!"))
+        mode = modes.getOrElse(signature, logger.fatal(s"Mode declaration for signature '$signature' does not exist!"))
         if mode.recall > 0 // consider only predicates having positive recall in their mode declaration
         placeMarkers = mode.placeMarkers
         id <- db.identity.indices.filter(db(_) == TRUE) // consider only ground atoms being TRUE
@@ -375,10 +374,10 @@ object HyperGraph {
     processDBFor(annotationDB)
 
     // Check if network is empty
-    if (network.isEmpty) warn("HyperGraph is empty (i.e., evidence and annotation sets is empty).")
+    if (network.isEmpty) logger.warn("HyperGraph is empty (i.e., evidence and annotation sets is empty).")
 
     // Check if auxiliary predicates (functions) exist.
-    if (auxiliary.isEmpty) warn("There are no given functions (as auxiliary predicates) in the evidence database.")
+    if (auxiliary.isEmpty) logger.warn("There are no given functions (as auxiliary predicates) in the evidence database.")
 
     // Check if path templates exist and constructs the hyperGraph in proportion
     pathTemplates match {
@@ -446,7 +445,7 @@ class HPath private(val groundAtomIDs: Set[Int],
       _constantAppearance.get(constant) match {
         // Keep track of constant appearances in the path along with the number of times that will remain as a variable
         case Some(times) if !placeMarker.constant => _constantAppearance += constant -> (times + 1)
-        case Some(times) if placeMarker.constant => // do nothing
+        case Some(_) if placeMarker.constant => // do nothing
         case None => _constantAppearance += constant -> !placeMarker.constant
       }
     }
@@ -469,7 +468,7 @@ class HPath private(val groundAtomIDs: Set[Int],
     * @param atomID the atom id to search for in the path
     * @return true if the given ground atom id exists in the path, false otherwise
     */
-  def contains(atomID: Int) = groundAtomIDs.contains(atomID)
+  def contains(atomID: Int): Boolean = groundAtomIDs.contains(atomID)
 
   /**
     * Checks if a ground atom exists in the path having the given signature.
@@ -477,7 +476,7 @@ class HPath private(val groundAtomIDs: Set[Int],
     * @param signature the signature of the predicate to search for in the path
     * @return true if a ground atom exists having the given signature, false otherwise
     */
-  def contains(signature: AtomSignature) = predicateAppearance.contains(signature)
+  def contains(signature: AtomSignature): Boolean = predicateAppearance.contains(signature)
 
   /**
     * Checks if a constant exists in the path.
@@ -485,7 +484,7 @@ class HPath private(val groundAtomIDs: Set[Int],
     * @param constant the constant to search for in the path
     * @return true if the constant exists, false otherwise
     */
-  def contains(constant: String) = constantAppearance.contains(constant)
+  def contains(constant: String): Boolean = constantAppearance.contains(constant)
 
   /**
     * @return a set of constants appearing in the path
@@ -500,7 +499,7 @@ class HPath private(val groundAtomIDs: Set[Int],
   /**
     * @return the number of ground atoms (including auxiliary) in the path
     */
-  def length = groundAtomIDs.size
+  def length: Int = groundAtomIDs.size
 
   /**
     * Equality checking method for paths.
@@ -508,7 +507,7 @@ class HPath private(val groundAtomIDs: Set[Int],
     * @param other another object
     * @return true if paths contain exactly identical ids, false otherwise
     */
-  override def equals(other: Any) = other match {
+  override def equals(other: Any): Boolean = other match {
     case obj: HPath => groundAtomIDs == obj.groundAtomIDs
     case _ => false
   }

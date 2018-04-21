@@ -20,6 +20,7 @@ package lomrf.app
 import lomrf.mln.model.MLN
 import lomrf.logic.AtomSignature
 import java.io.FileWriter
+import lomrf.util.logging.Implicits._
 
 /**
  * Command line tool for knowledge base difference checking. In particular using this tool we can perform
@@ -30,7 +31,7 @@ object KBDifferenceCLI extends CLIApp {
   private def compare(source: IndexedSeq[String], evidence: IndexedSeq[String], prefixOpt: Option[String]) {
 
     if (source.size != evidence.size)
-      fatal("The number of input files and evidence files must be the same.")
+      logger.fatal("The number of input files and evidence files must be the same.")
 
     val combinations = source.view.zip(evidence).combinations(2).zipWithIndex
 
@@ -48,7 +49,7 @@ object KBDifferenceCLI extends CLIApp {
       mlnAlpha = MLN.fromFile(sourceAlpha, queryAtoms, evidenceAlpha)
       mlnBeta = MLN.fromFile(sourceBeta, queryAtoms, evidenceBeta)} {
 
-      info(
+      logger.info(
         "\nSource KB 1: " + sourceAlpha + "\n" +
           "\tFound " + mlnAlpha.clauses.size + " clauses.\n" +
           "\tFound " + mlnAlpha.schema.predicates.size + " predicates.\n" +
@@ -77,7 +78,7 @@ object KBDifferenceCLI extends CLIApp {
         diff2.seq.foreach(clause => fileWriter.write(clause.toString + "\n"))
       }
 
-      if (diff1.isEmpty && diff2.isEmpty) info("KBs are exactly the same!")
+      if (diff1.isEmpty && diff2.isEmpty) logger.info("KBs are exactly the same!")
 
       fileWriter.flush()
       fileWriter.close()
@@ -99,7 +100,7 @@ object KBDifferenceCLI extends CLIApp {
       val fileNames = v.split(',').map(_.trim)
 
       if (fileNames.length < 2)
-        fatal("At least two input files are required, in order to perform difference operation.")
+        logger.fatal("At least two input files are required, in order to perform difference operation.")
 
       inputFileName = Some(fileNames)
     }
@@ -110,7 +111,7 @@ object KBDifferenceCLI extends CLIApp {
       val fileNames = v.split(',').map(_.trim)
 
       if (fileNames.length < 2)
-        fatal("At least two evidence files are required, in order to perform difference operation.")
+        logger.fatal("At least two evidence files are required, in order to perform difference operation.")
 
       evidenceFileName = Some(fileNames)
     }
@@ -129,8 +130,8 @@ object KBDifferenceCLI extends CLIApp {
   if (args.length == 0) println(usage)
   else if (parse(args)) {
     compare(
-      inputFileName.getOrElse(fatal("Please define the input files.")),
-      evidenceFileName.getOrElse(fatal("Please define the evidence files.")),
+      inputFileName.getOrElse(logger.fatal("Please define the input files.")),
+      evidenceFileName.getOrElse(logger.fatal("Please define the evidence files.")),
       prefixOpt
     )
   }

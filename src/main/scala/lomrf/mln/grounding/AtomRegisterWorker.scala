@@ -17,14 +17,12 @@
 
 package lomrf.mln.grounding
 
-import java.io.{FileWriter, File}
 
 import akka.actor.{Actor, ActorRef}
-import auxlib.log.Logging
 import gnu.trove.map.hash.TIntObjectHashMap
 import gnu.trove.set.hash.TIntHashSet
-import auxlib.trove.Implicits._
-import auxlib.trove.TroveConversions._
+import com.typesafe.scalalogging.LazyLogging
+
 
 /**
  * AtomRegisterWorker collects a partition of ground atoms, represented by integer values, as well as in which ground
@@ -34,7 +32,7 @@ import auxlib.trove.TroveConversions._
  *              partition index.
  * @param master reference to master actor, it is required in order to send the results back to master actor.
  */
-final class AtomRegisterWorker private(val index: Int, master: ActorRef) extends Actor with Logging {
+final class AtomRegisterWorker private(val index: Int, master: ActorRef) extends Actor with LazyLogging {
 
   import messages._
 
@@ -109,7 +107,7 @@ final class AtomRegisterWorker private(val index: Int, master: ActorRef) extends
 
 
     case msg =>
-      error("AtomRegister[" + index + "] --- Received an unknown message: " + msg)
+      logger.error("AtomRegister[" + index + "] --- Received an unknown message: " + msg)
   }
 
   /**

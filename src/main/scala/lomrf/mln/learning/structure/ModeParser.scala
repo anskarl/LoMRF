@@ -18,9 +18,12 @@
 package lomrf.mln.learning.structure
 
 import java.io.{BufferedReader, File, FileReader}
-import auxlib.log.{Logger, Logging}
+
+import lomrf.util.logging.Implicits._
+import com.typesafe.scalalogging.LazyLogging
 import lomrf.logic.AtomSignature
 import lomrf.mln.model.ModeDeclarations
+import scala.language.postfixOps
 
 /**
   * Parser for mode declarations. Mode declarations can be either function modes declared
@@ -48,7 +51,7 @@ import lomrf.mln.model.ModeDeclarations
   *   modeP(1, R(-, +) body~/> foo)
   * }}}
   */
-class ModeParser extends CommonModeParser with Logging {
+class ModeParser extends CommonModeParser with LazyLogging {
 
   private def mode: Parser[(AtomSignature, ModeDeclaration)] = modePredicate | modeFunction
 
@@ -118,7 +121,7 @@ class ModeParser extends CommonModeParser with Logging {
     */
   private def parseMode(src: String): (AtomSignature, ModeDeclaration) = parse(mode, src) match {
     case Success(expr: (AtomSignature, ModeDeclaration), _) => expr
-    case x => fatal("Can't parse the following expression: " + x)
+    case x => logger.fatal("Can't parse the following expression: " + x)
   }
 }
 
@@ -126,11 +129,9 @@ class ModeParser extends CommonModeParser with Logging {
  * Mode parser object used to parse mode declarations from a given source. The source can
  * be a simple string, a file or an iterable of strings.
  */
-object ModeParser {
+object ModeParser extends LazyLogging {
 
   private lazy val parser = new ModeParser
-  private lazy val log = Logger(this.getClass)
-  import log._
 
   /**
     * Parses an individual mode declaration from a given string.
@@ -163,7 +164,7 @@ object ModeParser {
 
     parser.parseAll(parser.modeDeclarations, fileReader) match {
       case parser.Success(expr: ModeDeclarations, _) => expr
-      case x => fatal("Can't parse the following expression: " + x +" in file: " + modesFile.getPath)
+      case x => logger.fatal("Can't parse the following expression: " + x +" in file: " + modesFile.getPath)
     }
   }
 }

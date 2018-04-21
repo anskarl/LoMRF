@@ -20,7 +20,7 @@ package lomrf.mln.grounding
 import java.util.concurrent.CountDownLatch
 
 import akka.actor.{Actor, PoisonPill, Props}
-import auxlib.log.Logging
+import com.typesafe.scalalogging.LazyLogging
 import gnu.trove.map.TIntObjectMap
 import gnu.trove.set.TIntSet
 import gnu.trove.set.hash.TIntHashSet
@@ -28,6 +28,7 @@ import lomrf._
 import lomrf.logic.{AtomSignature, AtomicFormula, Clause, Variable}
 import lomrf.mln.model.MLN
 import lomrf.util.collection.IndexPartitioned
+import lomrf.util.logging.Implicits._
 import lomrf.util.collection.mutable.{IndexPartitioned => MPartitionedData}
 import scalaxy.streams.optimize
 
@@ -48,7 +49,7 @@ final class GroundingMaster(mln: MLN,
                             noNegWeights: Boolean = false,
                             eliminateNegatedUnit: Boolean = false,
                             createDependencyMap: Boolean = false,
-                            parRatio: Float = 2f) extends Actor with Logging {
+                            parRatio: Float = 2f) extends Actor with LazyLogging {
 
   import messages._
   import context._
@@ -195,11 +196,15 @@ final class GroundingMaster(mln: MLN,
    */
   override def preStart() {
 
-    info("Number of processors: " + lomrf.processors
-      + "\n\t\tParallelization ratio is set to: " + parRatio
-      + "\n\t\tTotal number of atom registry workers: " + atomRegisters.size
-      + "\n\t\tTotal number of clique registry workers: " + cliqueRegisters.size
-      + "\n\t\tTotal number of grounding workers: " + clauseGroundingWorkers.size)
+    logger.info {
+      s"""
+         |Number of processors: ${lomrf.processors}
+         |\t\tParallelization ratio is set to:  $parRatio
+         |\t\tTotal number of atom registry workers: ${atomRegisters.size}
+         |\t\tTotal number of clique registry workers: ${cliqueRegisters.size}
+         |\t\tTotal number of grounding workers:  ${clauseGroundingWorkers.size}
+       """.stripMargin
+    }
 
     val numberOfClauses = remainingClauses.size
 
@@ -271,7 +276,7 @@ final class GroundingMaster(mln: MLN,
       }
     }
 
-    debug(s"(MASTER) Grounding iteration $groundingIterations --- total $counter clause(s) selected to ground.")
+    logger.debug(s"(MASTER) Grounding iteration $groundingIterations --- total $counter clause(s) selected to ground.")
 
     // increment by one the global counter of grounding iterations.
     groundingIterations += 1
@@ -360,7 +365,7 @@ final class GroundingMaster(mln: MLN,
           atomIDBatchesCounter = 0
           if (remainingClauses.nonEmpty) {
             //continue with the remaining clauses
-            debug(
+            logger.debug(
               "(MASTER) Continue with the remaining clauses..." +
                 "\n(MASTER) AtomSignatures to focus grounding: " + atomSignatures.mkString(", ") +
                 "\n(MASTER) Remaining clauses to ground: " + remainingClauses.size + " {" +
@@ -401,7 +406,7 @@ final class GroundingMaster(mln: MLN,
 
       // store partition of createDependencyMap, when the creation of dependency map is enabled.
       if (createDependencyMap)
-        partitioned.dependencyMap(partitionIndex) = dependencyMapPart.getOrElse(fatal("dependencyMap is note defined."))
+        partitioned.dependencyMap(partitionIndex) = dependencyMapPart.getOrElse(logger.fatal("dependencyMap is note defined."))
 
       cliqueBatchesCounter += 1 // we have stored the partition, increase the counter by one.
 
@@ -468,7 +473,7 @@ final class GroundingMaster(mln: MLN,
     optimize {
       remainingClauses.foreach {
         case (clause, idx) =>
-          warn(s"Clause '$clause' is being ignored, since is not associated directly or indirectly with query atoms.")
+          logger.warn(s"Clause '$clause' is being ignored, since is not associated directly or indirectly with query atoms.")
       }
 
       cliqueRegisters.partitions.foreach(_ ! GROUNDING_COMPLETED)

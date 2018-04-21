@@ -17,10 +17,13 @@
 
 package lomrf.mln.learning.structure.hypergraph
 
-import auxlib.log.Logger
+
+import com.typesafe.scalalogging.Logger
 import lomrf.logic._
+import lomrf.util.logging.Implicits._
 import lomrf.mln.model.{ConstantsDomain, KB}
 import lomrf.logic.LogicOps._
+
 import scala.util.{Failure, Success, Try}
 
 /**
@@ -32,8 +35,8 @@ import scala.util.{Failure, Success, Try}
  */
 object TemplateExtractor {
 
-  private val logger = Logger(getClass)
-  import logger._
+  private lazy val logger = Logger(getClass)
+
 
   /**
    * Extracts a Markov Logic network, a annotation database for non evidence atoms and optionally a set of axioms and a
@@ -63,9 +66,9 @@ object TemplateExtractor {
     }
 
     if (axiomFormulas.exists(f => !f.weight.isNaN && !f.weight.isInfinity))
-        fatal(s"There is a weighted formula (axiom) containing template atoms! Please remove the weight to proceed.")
+        logger.fatal(s"There is a weighted formula (axiom) containing template atoms! Please remove the weight to proceed.")
 
-    info(s"Axioms having template atoms:\n ${axiomFormulas.map(a => s"\t${a.toText}").mkString("\n")}")
+    logger.info(s"Axioms having template atoms:\n ${axiomFormulas.map(a => s"\t${a.toText}").mkString("\n")}")
 
     // Partition the knowledge base into clauses having template atoms and the rest background clauses
     val (axioms, clauses) = kb.formulas.flatMap(_.toCNF(constants)).
@@ -73,18 +76,18 @@ object TemplateExtractor {
 
     val completedFormulas =
       PredicateCompletion(
-        axiomFormulas.map(a => if (a.weight.isNaN) a.copy(weight = 1.0) else a),
+        axiomFormulas.map(a => if(a.weight.isNaN) a.copy(weight = 1.0) else a),
         kb.definiteClauses)(kb.predicateSchema, kb.functionSchema, constants)
         .filterNot(_.formula.signatures.exists(templateAtoms.contains))
 
     // In case template atoms are given, but there is no hard-constraint formula defined containing them -> warn or error???
     if (axioms.isEmpty && templateAtoms.nonEmpty)
-      warn(s"There is no formulas (axioms) containing the template" +
+      logger.warn(s"There is no formulas (axioms) containing the template" +
            s" atoms ${templateAtoms.mkString(" ,")}. Ignoring template atoms!")
 
     val pathTemplates = PathTemplate.create(axioms, templateAtoms, nonEvidenceAtoms) match {
       case Success(templates) => templates
-      case Failure(exception) => fatal(exception.getMessage)
+      case Failure(exception) => logger.fatal(exception.getMessage)
     }
 
     // We pass copy of each axiom formula having unit weight in order to be able to perform inference during evaluation

@@ -17,10 +17,9 @@
 
 package lomrf.app
 
-import auxlib.log.Logging
 import auxlib.opt.MasterOptionParser
 
-object LoMRF extends App with Logging with MasterOptionParser {
+object LoMRF extends App with MasterOptionParser {
 
   if(args.isEmpty) {
     println(lomrf.ASCIILogo)

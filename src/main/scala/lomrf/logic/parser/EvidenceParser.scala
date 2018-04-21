@@ -17,15 +17,17 @@
 
 package lomrf.logic.parser
 
-import auxlib.log.Logging
+import com.typesafe.scalalogging.LazyLogging
 import lomrf.logic._
+import lomrf.util.logging.Implicits._
+import scala.language.implicitConversions
 
 /**
   * Parser for evidence expressions.
   *
   * @see [[lomrf.logic.EvidenceExpression]]
   */
-final class EvidenceParser extends CommonsMLNParser with Logging {
+final class EvidenceParser extends CommonsMLNParser with LazyLogging {
 
   private implicit def list2Vector[T](src: List[T]): Vector[T] = src.toVector
 
@@ -248,22 +250,22 @@ final class EvidenceParser extends CommonsMLNParser with Logging {
 
   def parseFunctionMapping(src: String): FunctionMapping = parse(functionMapping, src) match {
     case Success(result, _) => result
-    case x => fatal(s"Can't parse the following expression: $x")
+    case x => logger.fatal(s"Can't parse the following expression: $x")
   }
 
   def parseEvidenceAtom(src: String): EvidenceAtom =
     parse(positiveAtom | positiveAtom0 | negativeAtom | negativeAtom0 | unkAtom | unkAtom0, src) match {
       case Success(result, _) => result
-      case x => fatal(s"Can't parse the following expression: $x")
+      case x => logger.fatal(s"Can't parse the following expression: $x")
     }
 
   def parseEvidenceExpression(src: String): EvidenceExpression = parse(evidenceExpression, src) match {
     case Success(result, _) => result
-    case x => fatal(s"Can't parse the following expression: $x")
+    case x => logger.fatal(s"Can't parse the following expression: $x")
   }
 
   def parseEvidence(src: String): List[EvidenceExpression] = parse(evidence, src) match {
     case Success(result, _) => result
-    case x => fatal(s"Can't parse the following expression: $x")
+    case x => logger.fatal(s"Can't parse the following expression: $x")
   }
 }

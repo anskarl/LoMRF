@@ -17,7 +17,8 @@
 
 package lomrf.mln.model
 
-import auxlib.log.Logger
+import com.typesafe.scalalogging.Logger
+import lomrf.util.logging.Implicits._
 import lomrf.logic.AtomSignature
 import lomrf.mln.model.AtomIdentityFunction
 
@@ -42,7 +43,7 @@ final class PredicateSpace private(
   /**
    * Total number of ground query atoms
    */
-  val numberOfQueryIDs = queryStartID - queryEndID
+  val numberOfQueryIDs: Int = queryStartID - queryEndID
 
   def isOWA(signature: AtomSignature): Boolean = owa.contains(signature)
 
@@ -142,7 +143,7 @@ object PredicateSpace {
       logger.debug(s"$signature {[${idFunction.startID}, ${idFunction.length + idFunction.startID}], length: ${idFunction.length}}")
     }
 
-    logger.whenDebug {
+    logger.whenDebugEnabled {
       orderedAtomSignatures.zip(orderedStartIDs).foreach{case (sig, startid) => logger.debug(s"$sig -> $startid") }
     }
 

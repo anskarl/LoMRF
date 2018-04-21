@@ -17,6 +17,8 @@
 
 package lomrf.logic
 
+import scala.language.implicitConversions
+
 object LogicImplicits {
 
   implicit def str2Constant(symbol: String): Constant = Constant(symbol)

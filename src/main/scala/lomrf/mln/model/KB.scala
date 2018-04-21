@@ -17,14 +17,13 @@
 
 package lomrf.mln.model
 
-
-import auxlib.log.Logger
-
 import scala.collection.mutable
 import java.io.{BufferedReader, File, FileReader}
 import java.util.regex.Pattern
 
+import com.typesafe.scalalogging.Logger
 import lomrf.logic._
+import lomrf.util.logging.Implicits._
 import lomrf.logic.dynamic.{DynamicAtomBuilder, DynamicFunctionBuilder}
 import lomrf.logic.parser.{DomainParser, KBParser}
 import lomrf.util.ImplFinder
@@ -55,16 +54,16 @@ class KB(val predicateSchema: PredicateSchema,
   object signatures {
 
     @transient
-    lazy val predicates = predicateSchema.keySet
+    lazy val predicates: Set[AtomSignature] = predicateSchema.keySet
 
     @transient
-    lazy val function = functionSchema.keySet
+    lazy val function: Set[AtomSignature] = functionSchema.keySet
 
     @transient
-    lazy val dynamicPredicates = self.dynamicPredicates.keySet
+    lazy val dynamicPredicates: Set[AtomSignature] = self.dynamicPredicates.keySet
 
     @transient
-    lazy val dynamicFunction = self.dynamicFunctions.keySet
+    lazy val dynamicFunction: Set[AtomSignature] = self.dynamicFunctions.keySet
   }
 
 
@@ -85,7 +84,7 @@ object KB {
 
   private lazy val formulaRegex = Pattern.compile("^[^(//)](.*\\s=>\\s.*|.*\\s<=>\\s.*|.*\\s:-\\s.*|.*\\s^\\s.*|.*\\sv\\s.*|.*\\s!\\s.*|\\d.*|.*\\.)")
   private lazy val ignoreRegex = Pattern.compile("(\\s*\\*.*|/\\*.*|//.*|\\s+)+")
-  private lazy val log = Logger(this.getClass)
+  private lazy val logger = Logger(this.getClass)
 
   def apply(predicateSchema: PredicateSchema,
             functionSchema: FunctionSchema,
@@ -102,12 +101,12 @@ object KB {
   def fromFile(filename: String,
                dynamicDefinitions: Option[ImplFinder.ImplementationsMap] = None,
                convertFunctions: Boolean = false): (KB, ConstantsDomain) = {
-    import log._
+
 
 
     val kbFile = new File(filename)
     if(!kbFile.exists() || !kbFile.isFile || !kbFile.canRead)
-      fatal(s"Cannot read input MLN file '${kbFile.getPath}'.")
+      logger.fatal(s"Cannot read input MLN file '${kbFile.getPath}'.")
 
     val fileReader = new BufferedReader(new FileReader(kbFile))
     val formulaMatcher = formulaRegex.matcher("")
@@ -150,7 +149,7 @@ object KB {
      * @param formula source formula
      */
     def storeUndefinedConstants(formula: Formula): Unit= {
-      debug(s"Looking for constants in formula: '${formula.toText}'")
+      logger.debug(s"Looking for constants in formula: '${formula.toText}'")
 
       def parseTerm(term: Term, key: String): Unit = term match {
         case Constant(symbol) => constantsBuilder(key) += symbol
@@ -232,10 +231,10 @@ object KB {
 
     val kbExpressions = Try(kbParser.parseAll(kbParser.mln, fileReader)).map {
       case kbParser.Success(exprs, _) => exprs.asInstanceOf[Iterable[MLNExpression]]
-      case x => fatal(s"Can't parse the following expression: '$x' in file: '$kbFile'")
+      case x => logger.fatal(s"Can't parse the following expression: '$x' in file: '$kbFile'")
     } match {
       case Success(expressions) => expressions
-      case Failure(ex) => fatal(ex.getMessage)
+      case Failure(ex) => logger.fatal(ex.getMessage)
     }
 
     /*val kbExpressions: Iterable[MLNExpression] = kbParser.parseAll(kbParser.mln, fileReader) match {
@@ -246,21 +245,21 @@ object KB {
     def processMLNExpression(expr: MLNExpression): Unit = expr match {
       case f: WeightedFormula =>
         if(f.weight == 0.0)
-          warn(s"Ignoring zero weighted formula '${f.toText}'")
+          logger.warn(s"Ignoring zero weighted formula '${f.toText}'")
         else {
           formulas += f
           storeUndefinedConstants(f)
         }
       case c: WeightedDefiniteClause =>
         if (c.weight == 0.0)
-          warn(s"Ignoring zero weighted definite clause '${c.toText}'")
+          logger.warn(s"Ignoring zero weighted definite clause '${c.toText}'")
         else {
           definiteClauses += c
           storeUndefinedConstants(c.clause.body)
           storeUndefinedConstants(c.clause.head)
         }
       case inc: IncludeFile => queue += inc
-      case _ => warn(s"Ignoring expression: '$expr'")
+      case _ => logger.warn(s"Ignoring expression: '$expr'")
     }
 
     kbExpressions.foreach(processMLNExpression)
@@ -275,13 +274,13 @@ object KB {
         else {
           tmp = new File(kbFile.getParent + sep + inc.filename)
           if (tmp.exists) tmp
-          else fatal(s"Cannot find file '${inc.filename}'")
+          else logger.fatal(s"Cannot find file '${inc.filename}'")
         }
       }
 
       val curr_expressions: Iterable[MLNExpression] = kbParser.parseAll(kbParser.mln, new FileReader(incFile)) match {
         case kbParser.Success(exprs, _) => exprs.asInstanceOf[Iterable[MLNExpression]]
-        case x => fatal(s"Can't parse the following expression: '$x' in file: '$incFile'")
+        case x => logger.fatal(s"Can't parse the following expression: '$x' in file: '$incFile'")
       }
 
       curr_expressions.foreach(processMLNExpression)
@@ -306,8 +305,8 @@ object KB {
       }
     }*/
 
-    whenDebug {
-      constantsBuilder().foreach(entry => debug(s"|${entry._1}|=${entry._2.size}"))
+    logger.whenDebugEnabled {
+      constantsBuilder().foreach(entry => logger.debug(s"|${entry._1}|=${entry._2.size}"))
     }
 
     val kb = kbBuilder
@@ -319,7 +318,7 @@ object KB {
       .withDynamicFunctions(kbParser.getDynamicFunctions)
       .result()
 
-    info(s"Total formulas: ${kb.formulas.size}")
+    logger.info(s"Total formulas: ${kb.formulas.size}")
 
     (kb, constantsBuilder.result())
   }

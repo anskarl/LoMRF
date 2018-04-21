@@ -17,9 +17,11 @@
 
 package lomrf.util.collection.mutable
 
-import auxlib.log.Logging
+import com.typesafe.scalalogging.LazyLogging
+
 import scala.annotation.tailrec
 import scala.collection.immutable._
+import lomrf.util.logging.Implicits._
 
 /**
  * <p>This class implements a specialized database for managing Cartesian products over tuples. The implementation,
@@ -54,7 +56,7 @@ import scala.collection.immutable._
  * @tparam V is the value type, used for storing or generating the products of constants
  *
  */
-final class TuplesDB[@specialized K, @specialized V] extends Logging {
+final class TuplesDB[@specialized K, @specialized V] extends LazyLogging {
 
   type IndexType = collection.mutable.HashMap[K, HashMap[V, HashSet[Int]]]
 
@@ -67,7 +69,7 @@ final class TuplesDB[@specialized K, @specialized V] extends Logging {
   /**
    * Remove the specified variable key from the index.
    */
-  private def removeKey(key: K) = {
+  private def removeKey(key: K): Unit = {
     index.remove(key)
     keys = keys.filterNot(k => k == key)
     lockedVariables = lockedVariables.filterNot(k => k == key)
@@ -77,7 +79,7 @@ final class TuplesDB[@specialized K, @specialized V] extends Logging {
    * @param key the specified key to search for
    * @return a map of values to tuples identifiers
    */
-  def apply(key: K) = index.get(key)
+  def apply(key: K): Option[HashMap[V, HashSet[Int]]] = index.get(key)
 
   /**
    * <p>Insert the specified key (of type K), that takes one constant value (of type V), and performs
@@ -217,9 +219,9 @@ final class TuplesDB[@specialized K, @specialized V] extends Logging {
           index(key) = values - value // delete this value from index
 
         // if this is the last value of the key, then delete the key
-        case Some(ids) if values.size == 1 => removeKey(key)
+        case Some(_) if values.size == 1 => removeKey(key)
 
-        case None => // there is nothing to delete, because this value does not exist
+        case _ => // there is nothing to delete, because this value does not exist
       }
 
       case None => // there is nothing to delete, because this key does not exist
@@ -244,7 +246,7 @@ final class TuplesDB[@specialized K, @specialized V] extends Logging {
    *
    * @param tuple a tuple or subset of a tuple
    */
-  def deleteMatchedTuples(tuple: Map[K, V]) = getMatchedTupleIDs(tuple) match {
+  def deleteMatchedTuples(tuple: Map[K, V]): Unit = getMatchedTupleIDs(tuple) match {
     case Some(ids) => ids.foreach { id =>
       tupleIDs -= id
 
@@ -275,7 +277,7 @@ final class TuplesDB[@specialized K, @specialized V] extends Logging {
    *
    * @param tuple a tuple or subset of a tuple
    */
-  def deleteNotMatchedTuples(tuple: Map[K, V]) = getMatchedTupleIDs(tuple) match {
+  def deleteNotMatchedTuples(tuple: Map[K, V]): Unit = getMatchedTupleIDs(tuple) match {
     case Some(ids) =>
 
       val notMatchedIDs = tupleIDs diff ids
@@ -304,7 +306,7 @@ final class TuplesDB[@specialized K, @specialized V] extends Logging {
   /**
    * Unlocks all keys, in order to be able to insert any combination.
    */
-  def allowEverything() = {
+  def allowEverything(): Unit = {
     lockedVariables = HashSet[K]()
   }
 
@@ -316,10 +318,10 @@ final class TuplesDB[@specialized K, @specialized V] extends Logging {
    *
    * @param tuples a set of tuples, therefore each sequence must have the same size
    */
-  def allowOnly(tuples: Map[K, Seq[V]]) = {
+  def allowOnly(tuples: Map[K, Seq[V]]): Unit = {
 
     val sizes = tuples.values.map(seq => seq.length)
-    require(sizes.forall(size => sizes.head == size), fatal("Uneven tuples!"))
+    require(sizes.forall(size => sizes.head == size), logger.fatal("Uneven tuples!"))
 
     // Insert each constant of each variable in the database and lock the variable
     tuples.foreach { case (key, values) =>
@@ -378,7 +380,7 @@ final class TuplesDB[@specialized K, @specialized V] extends Logging {
    * @param mapping the mapping of keys to values
    * @return the number of tuples matching the mapping
    */
-  def countTuples(mapping: Map[K, V]) = getMatchedTupleIDs(mapping) match {
+  def countTuples(mapping: Map[K, V]): Int = getMatchedTupleIDs(mapping) match {
     case Some(ids) => ids.size
     case None => 0
   }
@@ -391,27 +393,27 @@ final class TuplesDB[@specialized K, @specialized V] extends Logging {
   /**
    * @return true if the specified key is locked
    */
-  def isLocked(v: K) = lockedVariables.contains(v)
+  def isLocked(v: K): Boolean = lockedVariables.contains(v)
 
   /**
    * @return the number of stored keys
    */
-  def numberOfKeys = keys.length
+  def numberOfKeys: Int = keys.length
 
   /**
    * @return the number of values for the specified key
    */
-  def numberOfValues(key: K) = index.getOrElse(key, fatal("Key not found!")).size
+  def numberOfValues(key: K): Int = index.getOrElse(key, logger.fatal("Key not found!")).size
 
   /**
    * @return the number of tuples in the database
    */
-  def size = tupleIDs.size
+  def size: Int = tupleIDs.size
 
   /**
    * Clear everything in the database
    */
-  def clear() = {
+  def clear(): Unit = {
     tupleIDs = HashSet[Int]()
     index.clear()
     tID = Integer.MIN_VALUE
@@ -513,7 +515,7 @@ final class TuplesDB[@specialized K, @specialized V] extends Logging {
    * 1 : 5   4   8 <br/>
    * 2 : 1   0   5 <br/>
    */
-  override def toString = {
+  override def toString: String = {
     val columns = "tid : " + index.keySet.mkString(" | ")
     var tuples = Vector[Vector[V]]()
     val orderedIDs = tupleIDs.toVector.sorted

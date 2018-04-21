@@ -15,16 +15,31 @@
  * Logical Markov Random Fields LoMRF (LoMRF).
  */
 
-package lomrf.app
+package lomrf.util.logging
 
-import auxlib.opt.OptionParser
-import com.typesafe.scalalogging.LazyLogging
+import com.typesafe.scalalogging.Logger
+import org.slf4j.MarkerFactory
 
-/**
- * Command line basic functionality shared across all command line interfaces. Should
- * be extended by any command line interface.
- */
-trait CLIApp extends App with LazyLogging with OptionParser {
-  println(lomrf.ASCIILogo)
-  println(lomrf.BuildVersion)
+object Implicits {
+
+  final val FATAL_ERROR_MARKER = MarkerFactory.getMarker("FATAL")
+
+  implicit class RichLogger(val instance: Logger) extends AnyVal {
+
+    def fatal(message: => String): Nothing ={
+      instance.whenErrorEnabled{
+        instance.error(Implicits.FATAL_ERROR_MARKER, message)
+      }
+      sys.exit(1)
+    }
+
+    final def fatal(message: => String, ex: => Throwable, exitCode: Int = 1): Nothing = {
+      instance.whenErrorEnabled{
+        instance.error(Implicits.FATAL_ERROR_MARKER, message)
+      }
+      sys.exit(exitCode)
+    }
+  }
 }
+
+

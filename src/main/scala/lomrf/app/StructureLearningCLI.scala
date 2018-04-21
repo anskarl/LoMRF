@@ -27,6 +27,7 @@ import lomrf.mln.learning.structure._
 import lomrf.logic.AtomSignatureOps._
 import lomrf.util.NaturalComparator
 import lomrf.util.time._
+import lomrf.util.logging.Implicits._
 
 /**
  * Command line tool for structure learning
@@ -122,27 +123,27 @@ object StructureLearningCLI extends CLIApp {
   opt("ne", "non-evidence atoms", "<string>", "Comma separated non-evidence atoms. "
     + "Each atom must be defined using its identity (i.e. Name/arity). "
     + "For example the identity of NonEvidenceAtom(arg1,arg2) is NonEvidenceAtom/2", {
-    _nonEvidenceAtoms ++= _.split(',').map(s => s.signature.getOrElse(fatal(s"Cannot parse the arity of atom signature: $s")))
+    _nonEvidenceAtoms ++= _.split(',').map(s => s.signature.getOrElse(logger.fatal(s"Cannot parse the arity of atom signature: $s")))
   })
 
   opt("template", "template-atoms", "<string>", "Comma separated template atoms. "
     + "Each atom must be defined using its identity (i.e. Name/arity). "
     + "For example the identity of TemplateAtom(arg1,arg2) is TemplateAtom/2", {
-    _templateAtoms ++= _.split(',').map(s => s.signature.getOrElse(fatal(s"Cannot parse the arity of atom signature: $s")))
+    _templateAtoms ++= _.split(',').map(s => s.signature.getOrElse(logger.fatal(s"Cannot parse the arity of atom signature: $s")))
   })
 
   intOpt("maxLength", "max-length", "The maximum length of literals for each clause produced (default is " + _maxLength + ").", {
-    v: Int => if (v < 0) fatal("The maximum length of literals must be any integer above zero, but you gave: " + v) else _maxLength = v
+    v: Int => if (v < 0) logger.fatal("The maximum length of literals must be any integer above zero, but you gave: " + v) else _maxLength = v
   })
 
   flagOpt("allowFreeVariables", "allow-free-variables", "Allow clauses to have free variables.", {_allowFreeVariables = true})
 
   intOpt("threshold", "threshold", "Evaluation threshold for each new clause produced (default is " + _threshold + ").", {
-    v: Int => if (v < 0) fatal("The evaluation threshold must be any integer above zero, but you gave: " + v) else _threshold = v
+    v: Int => if (v < 0) logger.fatal("The evaluation threshold must be any integer above zero, but you gave: " + v) else _threshold = v
   })
 
   doubleOpt("theta", "tolerance-theta", "Tolerance theta threshold for discarding clauses having poor weights at the end of learning (default is " + _theta + ").", {
-    v: Double => if (v < 0) fatal("Theta threshold must be any integer above zero, but you gave: " + v) else _theta = v
+    v: Double => if (v < 0) logger.fatal("Theta threshold must be any integer above zero, but you gave: " + v) else _theta = v
   })
 
   opt("clauseType", "clause-type", "<horn | conjunction | both>", "Type of clauses to be produced (default is both).", {
@@ -150,7 +151,7 @@ object StructureLearningCLI extends CLIApp {
       case "horn" => _clauseType = ClauseType.HORN
       case "conjunction" => _clauseType = ClauseType.CONJUNCTION
       case "both" => _clauseType = ClauseType.BOTH
-      case _ => fatal(s"Unknown parameter for clause type '$v'.")
+      case _ => logger.fatal(s"Unknown parameter for clause type '$v'.")
     }
   })
 
@@ -159,7 +160,7 @@ object StructureLearningCLI extends CLIApp {
       case "gurobi" => _ilpSolver = Solver.GUROBI
       case "lpsolve" => _ilpSolver = Solver.LPSOLVE
       case "ojalgo" => _ilpSolver = Solver.OJALGO
-      case _ => fatal(s"Unknown parameter for ILP solver type '$v'.")
+      case _ => logger.fatal(s"Unknown parameter for ILP solver type '$v'.")
     }
   })
 
@@ -178,7 +179,7 @@ object StructureLearningCLI extends CLIApp {
   })
 
   doubleOpt("delta", "delta", "Delta parameter for ADAGRAD (default is " + _delta + ").", {
-    v: Double => if(v < 0) fatal("Delta value must be any number greater or equal to zero, but you gave: " + v) else _delta = v
+    v: Double => if(v < 0) logger.fatal("Delta value must be any number greater or equal to zero, but you gave: " + v) else _delta = v
   })
 
   flagOpt("printLearnedWeightsPerIteration", "print-learned-weights-per-iteration", "Print the learned weights for each iteration.", {
@@ -195,25 +196,25 @@ object StructureLearningCLI extends CLIApp {
     sys.exit(0)
   })
 
-  private def structLearn() = {
+  private def structLearn(): Unit = {
 
     // Clauses found across all learning steps
     var learnedClauses = Vector[Clause]()
 
-    val strMLNFileName = _mlnFileName.getOrElse(fatal("Please specify an input MLN file."))
+    val strMLNFileName = _mlnFileName.getOrElse(logger.fatal("Please specify an input MLN file."))
 
     val strTrainingFileNames = _trainingFileNames
       .map(_.sortWith(NaturalComparator.compareBool))
-      .getOrElse(fatal("Please specify input training file(s)."))
+      .getOrElse(logger.fatal("Please specify input training file(s)."))
 
-    val strModeFileName = _modesFileName.getOrElse(fatal("Please specify an input mode declaration file."))
+    val strModeFileName = _modesFileName.getOrElse(logger.fatal("Please specify an input mode declaration file."))
 
     val outputWriter = _outputFileName match {
       case Some(fileName) => new PrintStream(new FileOutputStream(fileName), true)
       case None => System.out
     }
 
-    info("Parameters:"
+    logger.info("Parameters:"
       + "\n\t(ne) Non-evidence predicate(s): " + _nonEvidenceAtoms.map(_.toString).reduceLeft((left, right) => left + "," + right)
       + "\n\t(maxLength) Maximum length of literals for each clause produced: " + _maxLength
       + "\n\t(allowFreeVariables) Allow clauses to have free variables: " + _allowFreeVariables
@@ -232,7 +233,7 @@ object StructureLearningCLI extends CLIApp {
 
     // Parse all mode declarations from file
     val modes = ModeParser.parseFrom(new File(strModeFileName))
-    info("Modes Declarations: \n" + modes.map(pair => "\t" + pair._1 + " -> " + pair._2).reduce(_ + "\n" + _))
+    logger.info("Modes Declarations: \n" + modes.map(pair => "\t" + pair._1 + " -> " + pair._2).reduce(_ + "\n" + _))
 
     if(_templateAtoms.isEmpty) {
 
@@ -248,16 +249,16 @@ object StructureLearningCLI extends CLIApp {
 
       for (step <- strTrainingFileNames.indices) {
 
-        info(s"Step ${step + 1} / ${strTrainingFileNames.length}: Processing chunk ${strTrainingFileNames(step)}")
+        logger.info(s"Step ${step + 1} / ${strTrainingFileNames.length}: Processing chunk ${strTrainingFileNames(step)}")
 
         val trainingEvidence = TrainingEvidence.fromFiles(kb, constants, _nonEvidenceAtoms, List(strTrainingFileNames(step)))
 
         learnedClauses ++= learner.reviseTheory(trainingEvidence)
 
-        info(s"At the end of step ${step + 1}, we have learned ${learnedClauses.length} clauses")
+        logger.info(s"At the end of step ${step + 1}, we have learned ${learnedClauses.length} clauses")
       }
 
-      info(msecTimeToTextUntilNow("Total learning time: ", start))
+      logger.info(msecTimeToTextUntilNow("Total learning time: ", start))
       learner.writeResults(outputWriter)
     }
     else {
@@ -274,16 +275,16 @@ object StructureLearningCLI extends CLIApp {
 
       for (step <- strTrainingFileNames.indices) {
 
-        info(s"Step ${step + 1} / ${strTrainingFileNames.length}: Processing chunk ${strTrainingFileNames(step)}")
+        logger.info(s"Step ${step + 1} / ${strTrainingFileNames.length}: Processing chunk ${strTrainingFileNames(step)}")
 
         val trainingEvidence = TrainingEvidence.fromFiles(kb, constants, _nonEvidenceAtoms, List(strTrainingFileNames(step)))
 
         learnedClauses = learner.reviseTheory(trainingEvidence)
 
-        info(s"At the end of step ${step + 1}, we have learned ${learnedClauses.length} clauses")
+        logger.info(s"At the end of step ${step + 1}, we have learned ${learnedClauses.length} clauses")
       }
 
-      info(msecTimeToTextUntilNow("Total learning time: ", start))
+      logger.info(msecTimeToTextUntilNow("Total learning time: ", start))
       learner.writeResults(outputWriter)
     }
   }

@@ -19,7 +19,8 @@ package lomrf.mln.learning.structure
 
 import java.io.PrintStream
 import java.text.DecimalFormat
-import auxlib.log.Logging
+
+import com.typesafe.scalalogging.LazyLogging
 import lomrf.logic.Clause
 import lomrf.mln.model._
 
@@ -27,7 +28,7 @@ import lomrf.mln.model._
  * Structure learner describes the specification of structure learning procedure
  * and should be extended by any structure learning algorithm implementation.
  */
-trait StructureLearner extends Logging {
+trait StructureLearner extends LazyLogging {
 
   // tolerance threshold for discarding poor clauses
   protected val tolerance: Double
@@ -61,7 +62,7 @@ trait StructureLearner extends Logging {
    *
    * @param out the selected output stream (default is console)
    */
-  def writeResults(out: PrintStream = System.out) = {
+  def writeResults(out: PrintStream = System.out): Unit = {
 
     val numFormat = new DecimalFormat("0.############")
 

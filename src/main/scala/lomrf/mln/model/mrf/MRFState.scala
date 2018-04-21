@@ -20,11 +20,13 @@ package lomrf.mln.model.mrf
 import java.util
 import java.util.concurrent.ThreadLocalRandom
 import java.util.concurrent.atomic.AtomicBoolean
-import auxlib.log.Logging
+
+import com.typesafe.scalalogging.LazyLogging
 import gnu.trove.list.array.TIntArrayList
 import gnu.trove.map.hash.TIntIntHashMap
 import lomrf.logic.TRUE
 import lomrf.mln.model._
+
 import scala.collection.mutable.ArrayBuffer
 import scala.collection.mutable
 import scala.collection.parallel.mutable.ParArray
@@ -44,7 +46,7 @@ import scalaxy.streams.optimize
 final class MRFState private(val mrf: MRF,
                              parAtoms: ParArray[GroundAtom],
                              parConstraints: ParArray[Constraint],
-                             satHardPriority: Boolean = false) extends Logging {
+                             satHardPriority: Boolean = false) extends LazyLogging {
 
   import lomrf.util.LongDoubleConversions._
 
@@ -74,7 +76,7 @@ final class MRFState private(val mrf: MRF,
    *
    * @param annotationDB the evidence db containing the query atom annotation
    */
-  def setAnnotatedState(annotationDB: EvidenceDB) = {
+  def setAnnotatedState(annotationDB: EvidenceDB): Unit = {
     require(annotationDB.keySet == mrf.mln.queryAtoms, "Annotation should exist only for non evidence atoms")
     val atomsIterator = atoms.iterator()
 
@@ -269,15 +271,17 @@ final class MRFState private(val mrf: MRF,
       if(c.getWeight > 0 || c.isHardConstraint) likelihoodUB += c.hpWeight
     }
 
-    info {
-        "MRF state statistics: \n" +
-        "\tUnsatisfied clauses: " + unsatisfied + "/" + totalActive + "\n" +
-        "\tUnsatisfied negative constraints: " + countNeg + "/" + unsatisfied + "\n" +
-        "\tUnsatisfied positive constraints: " + (unsatisfied - Unsatisfied.numOfHard - countNeg) + "/" + unsatisfied + "\n" +
-        "\tUnsatisfied hard constraints: " + Unsatisfied.numOfHard + "/" + unsatisfied + "\n" +
-        "\tTotal cost: " + totalCost + "\n" +
-        "\tLikelihood is e^" + likelihood + "\n" +
-        "\tLikelihood upper bound is e^" + likelihoodUB
+    logger.info {
+      s"""
+         |MRF state statistics:
+         |\tUnsatisfied clauses: $unsatisfied / $totalActive
+         |\tUnsatisfied negative constraints:  $countNeg / $unsatisfied
+         |\tUnsatisfied positive constraints:  ${unsatisfied - Unsatisfied.numOfHard - countNeg} /  $unsatisfied
+         |\tUnsatisfied hard constraints: ${Unsatisfied.numOfHard} / $unsatisfied
+         |\tTotal cost: $totalCost
+         |\tLikelihood is e^$likelihood
+         |\tLikelihood upper bound is e^$likelihoodUB
+       """.stripMargin
     }
   }
 
@@ -287,7 +291,7 @@ final class MRFState private(val mrf: MRF,
    * @param tabuLength the tabu length used for tabu search heuristic
    * @param withUnitPropagation enables/disables unit propagation
    */
-  def reset(tabuLength: Int = 10, withUnitPropagation: Boolean = false) {
+  def reset(tabuLength: Int = 10, withUnitPropagation: Boolean = false): Unit = {
     if (withUnitPropagation) unitPropagation()
 
     parAtoms.foreach {
@@ -308,9 +312,11 @@ final class MRFState private(val mrf: MRF,
     dirtyAtoms = new mutable.HashSet[GroundAtom]()
     priorityBuffer = new ArrayBuffer[Constraint]()
 
-    debug{
-        "[Reset] Total cost: " + lowCost + "\n" +
-        "[Reset] Unsatisfied: " + lowUnsat
+    logger.debug{
+      s"""
+         |[Reset] Total cost: $lowCost
+         |[Reset] Unsatisfied: $lowUnsat
+       """.stripMargin
     }
   }
 
@@ -344,7 +350,7 @@ final class MRFState private(val mrf: MRF,
   /**
    * Unfix all atoms and constraints satisfied by them.
    */
-  def unfixAll() {
+  def unfixAll(): Unit = {
     parAtoms.foreach(_.fixedValue = 0)
     parConstraints.foreach(_.isSatisfiedByFixed = false)
   }
@@ -355,7 +361,7 @@ final class MRFState private(val mrf: MRF,
    * satisfy as many as possible. It is required by MCSAT in order to minimize
    * the search space and increase sampling performance and accuracy.
    */
-  private def unitPropagation() {
+  private def unitPropagation(): Unit = {
 
     /**
      * Fixes an atom to the given state, if the atom is currently unfixed.
@@ -363,7 +369,7 @@ final class MRFState private(val mrf: MRF,
      * @param atomID the atom id
      * @param state the desired state
      */
-    @inline def fixAtom(atomID: Int, state: Boolean) {
+    @inline def fixAtom(atomID: Int, state: Boolean): Unit= {
       val atom = atoms.get(atomID)
       //check for contradiction
       if (atom.fixedValue == 1 && !state || atom.fixedValue == -1 && state)
@@ -383,7 +389,7 @@ final class MRFState private(val mrf: MRF,
      *
      * @param atomID the fixed atom id
      */
-    @inline def updateSatisfiedByFix(atomID: Int) {
+    @inline def updateSatisfiedByFix(atomID: Int): Unit= {
 
       val state = mrf.atoms.get(atomID).state
       val constants = if(state) mrf.pLit2Constraints.get(atomID) else mrf.nLit2Constraints.get(atomID)
@@ -679,14 +685,14 @@ final class MRFState private(val mrf: MRF,
 
     val pickedID = atom.id
 
-    whenDebug {
+    logger.whenDebugEnabled {
       AtomIdentityFunction.decodeAtom(pickedID)(mrf.mln) match{
-        case Success(atomStr) => debug(s"Flipping atom: '$atomStr'")
-        case Failure(t) => error(s"Cannot decode atom with atomID = '$pickedID'", t)
+        case Success(atomStr) => logger.debug(s"Flipping atom: '$atomStr'")
+        case Failure(t) => logger.error(s"Cannot decode atom with atomID = '$pickedID'", t)
       }
     }
 
-    debug("= = = =\nTotal cost: " + totalCost + "\nbreakCost: "+atom.breakCost + " makeCost: "+atom.makeCost)
+    logger.debug("= = = =\nTotal cost: " + totalCost + "\nbreakCost: "+atom.breakCost + " makeCost: "+atom.makeCost)
 
     // --- Flip that atom.
     atom.state = !atom.state
@@ -899,7 +905,7 @@ final class MRFState private(val mrf: MRF,
     //     store this state as low-state.
     if (totalCost < lowCost) saveLowState(totalCost)
 
-    debug("breakCost: "+atom.breakCost + " makeCost: "+atom.makeCost + "\nTotal cost: " + totalCost + "\n= = = =")
+    logger.debug("breakCost: "+atom.breakCost + " makeCost: "+atom.makeCost + "\nTotal cost: " + totalCost + "\n= = = =")
   }
 
   /**
@@ -999,9 +1005,9 @@ final class MRFState private(val mrf: MRF,
    */
   def getRandomUnsatConstraint: Constraint = {
 
-    whenDebug {
+    logger.whenDebugEnabled {
       if (Unsatisfied.isEmpty)
-        assert(priorityBuffer.isEmpty)
+        require(priorityBuffer.isEmpty)
     }
 
     if(Unsatisfied.isEmpty) MRF.NO_CONSTRAINT
@@ -1077,13 +1083,13 @@ final class MRFState private(val mrf: MRF,
       }
     }
 
-    def size = _size
+    def size: Int = _size
 
-    def elements = _constraintIds
+    def elements: TIntArrayList = _constraintIds
 
-    def indices = _indices
+    def indices: TIntIntHashMap = _indices
 
-    def numOfHard = _numOfHard
+    def numOfHard: Int = _numOfHard
   }
 }
 

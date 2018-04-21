@@ -28,6 +28,7 @@ import lomrf.mln.model.mrf.{MRFState, MRF}
 import lomrf.mln.model._
 import lomrf.logic.AtomSignatureOps._
 import lomrf.util.time._
+import lomrf.util.logging.Implicits._
 import scala.util.{Failure, Success}
 
 /**
@@ -79,7 +80,7 @@ final class OSL private(kb: KB, constants: ConstantsDomain, nonEvidenceAtoms: Se
   private var previousMRFState: Option[MRFState] = None
 
   // Knowledge base definition used for learning clauses
-  override protected val knowledgeBase = kb
+  override protected val knowledgeBase: KB = kb
 
   // Tolerance threshold for discarding poor clauses at the end of learning
   override protected val tolerance: Double = 0.0
@@ -87,12 +88,12 @@ final class OSL private(kb: KB, constants: ConstantsDomain, nonEvidenceAtoms: Se
   /**
    * @return a vector of learned clauses
    */
-  override def getLearnedClauses = learnedClauses
+  override def getLearnedClauses: Vector[Clause] = learnedClauses
 
   /**
    * @return a vector of learned weights
    */
-  override def getLearnedWeights = weights
+  override def getLearnedWeights: Array[Double] = weights
 
   /**
    * Find and return all misclassified true ground atoms as false in the previous
@@ -109,7 +110,7 @@ final class OSL private(kb: KB, constants: ConstantsDomain, nonEvidenceAtoms: Se
     var misclassifiedTrueAtomIDs = Vector[Int]()
     val numberOfExamples = annotationDB.values.map(db => db.identity.indices.length).sum
 
-    info("Calculating misclassified loss...")
+    logger.info("Calculating misclassified loss...")
 
     previousMRFState match {
       case Some(state) =>
@@ -134,7 +135,7 @@ final class OSL private(kb: KB, constants: ConstantsDomain, nonEvidenceAtoms: Se
         totalError = misclassifiedTrueAtomIDs.length
     }
 
-    info("Total inferred error: " + totalError + "/" + numberOfExamples)
+    logger.info("Total inferred error: " + totalError + "/" + numberOfExamples)
     misclassifiedTrueAtomIDs
   }
 
@@ -155,7 +156,7 @@ final class OSL private(kb: KB, constants: ConstantsDomain, nonEvidenceAtoms: Se
    *
    * @return a vector of learned clauses for the given training evidence
    */
-  override def reviseTheory(trainingEvidence: TrainingEvidence) = {
+  override def reviseTheory(trainingEvidence: TrainingEvidence): Vector[Clause] = {
 
     // Increment training step
     step += 1
@@ -167,11 +168,11 @@ final class OSL private(kb: KB, constants: ConstantsDomain, nonEvidenceAtoms: Se
     val mln = MLN(kb.schema, trainingEvidence.getEvidence, nonEvidenceAtoms, learnedClauses)
     val annotationDB = trainingEvidence.getAnnotation
 
-    info(s"AnnotationDB: \n\tAtoms with annotations: ${annotationDB.keys.mkString(",")}")
-    info(mln.toString)
+    logger.info(s"AnnotationDB: \n\tAtoms with annotations: ${annotationDB.keys.mkString(",")}")
+    logger.info(mln.toString)
 
     // In case there is no initial set of clauses
-    info("Creating MRF...")
+    logger.info("Creating MRF...")
     previousMRFState =
       if (mln.clauses.nonEmpty) {
 
@@ -180,31 +181,31 @@ final class OSL private(kb: KB, constants: ConstantsDomain, nonEvidenceAtoms: Se
 
       state.setAnnotatedState(annotationDB)
       trueCounts ++= state.countTrueGroundings
-      debug("True Counts: [" + trueCounts.deep.mkString(", ") + "]")
+        logger.debug("True Counts: [" + trueCounts.deep.mkString(", ") + "]")
 
       val inferredState = infer(mrf, annotationDB)
       inferredCounts ++= inferredState.countTrueGroundings
-      debug("Inferred Counts: [" + inferredCounts.deep.mkString(", ") + "]")
+        logger.debug("Inferred Counts: [" + inferredCounts.deep.mkString(", ") + "]")
 
       Some(inferredState)
     }
     else {
-      warn("MRF cannot be created, because no clauses were found!")
-      None
+        logger.warn("MRF cannot be created, because no clauses were found!")
+        None
     }
 
     val misclassifiedTrueAtomIDs = calculateError(annotationDB)
-    info(s"Total misclassified true ground atoms as false: ${misclassifiedTrueAtomIDs.length}")
+    logger.info(s"Total misclassified true ground atoms as false: ${misclassifiedTrueAtomIDs.length}")
 
     // Construct hypergraph
     val HG = HyperGraph(mln, mln.evidence.db, annotationDB, modes)
-    info(s"Hypergraph has ${HG.numberOfNodes} nodes (constants) and ${HG.numberOfEdges} edges (true ground atoms)")
-    debug(s"Hypergraph Structure:\n$HG")
+    logger.info(s"Hypergraph has ${HG.numberOfNodes} nodes (constants) and ${HG.numberOfEdges} edges (true ground atoms)")
+    logger.debug(s"Hypergraph Structure:\n$HG")
 
     // Search for paths using relational pathfinding
     val (pathFindingRuntime, paths) = measureTime { HG.findPaths(misclassifiedTrueAtomIDs, maxLength, allowFreeVariables) }
-    info(s"'Relational Pathfinding': ${paths.size} paths found in ${msecTimeToText(pathFindingRuntime)}")
-    debug(s"Paths:\n${paths.map(_.toText(mln)).mkString("\n")}")
+    logger.info(s"'Relational Pathfinding': ${paths.size} paths found in ${msecTimeToText(pathFindingRuntime)}")
+    logger.debug(s"Paths:\n${paths.map(_.toText(mln)).mkString("\n")}")
 
     // Create clauses from paths
     val (createClausesRuntime, resultedClauses) = measureTime {
@@ -213,18 +214,18 @@ final class OSL private(kb: KB, constants: ConstantsDomain, nonEvidenceAtoms: Se
 
     val clauses = resultedClauses match {
       case Success(result) =>
-        info(s"'Clause Creation': ${result.size} clause(s) extracted from paths in ${msecTimeToText(createClausesRuntime)}")
-        info(s"Extracted Clauses:\n${result.map(_.toText()).mkString("\n")}")
+        logger.info(s"'Clause Creation': ${result.size} clause(s) extracted from paths in ${msecTimeToText(createClausesRuntime)}")
+        logger.info(s"Extracted Clauses:\n${result.map(_.toText()).mkString("\n")}")
         result
-      case Failure(exception) => fatal(exception.getMessage)
+      case Failure(exception) => logger.fatal(exception.getMessage)
     }
 
     // Evaluate clauses
     val (goodClauses, subgradientsOfGoodClauses) =
       Evaluator.evaluateClauses(clauses, mln.schema, mln.space, mln.evidence, annotationDB, threshold, previousMRFState)
 
-    info(s"'Clause Evaluation': ${goodClauses.size} clause(s) remained")
-    info(s"Remained Clauses:\n${goodClauses.map(_.toText()).mkString("\n")}")
+    logger.info(s"'Clause Evaluation': ${goodClauses.size} clause(s) remained")
+    logger.info(s"Remained Clauses:\n${goodClauses.map(_.toText()).mkString("\n")}")
 
     /*
      * Update weights of the already learned clauses
@@ -273,8 +274,8 @@ final class OSL private(kb: KB, constants: ConstantsDomain, nonEvidenceAtoms: Se
     learnedClauses ++= goodClauses
 
     if (printLearnedWeightsPerIteration) {
-      info("Learned weights on step " + (step + 1) + ":\n" +
-        "\t[" + weights.deep.mkString(", ") + "]")
+      logger.info("Learned weights on step " + (step + 1) + ":\n" +
+        "\t" + weights.deep.mkString("[", ", ", "]"))
     }
 
     goodClauses

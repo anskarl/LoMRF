@@ -20,11 +20,11 @@ package lomrf.mln.grounding
 import java.{util => jutil}
 
 import akka.actor.ActorRef
-import auxlib.log.Logging
 import gnu.trove.set.TIntSet
 import lomrf.logic._
 import lomrf.mln.model.{AtomIdentityFunction, FunctionMapper, MLN}
 import AtomIdentityFunction.IDENTITY_NOT_EXIST
+import com.typesafe.scalalogging.LazyLogging
 import lomrf.util.collection.IndexPartitioned
 import lomrf.util.Cartesian
 
@@ -32,6 +32,7 @@ import scala.collection._
 import scala.language.postfixOps
 import scalaxy.streams.optimize
 import lomrf.mln.model.AtomIdentityFunctionOps._
+import lomrf.util.logging.Implicits._
 
 class ClauseGrounderImpl(val clause: Clause,
                          clauseIndex: Int,
@@ -40,7 +41,7 @@ class ClauseGrounderImpl(val clause: Clause,
                          atomSignatures: Set[AtomSignature],
                          atomsDB: IndexPartitioned[TIntSet],
                          noNegWeights: Boolean = false,
-                         eliminateNegatedUnit: Boolean = false) extends ClauseGrounder with Logging {
+                         eliminateNegatedUnit: Boolean = false) extends ClauseGrounder with LazyLogging {
 
   require(!clause.weight.isNaN, "Found a clause with not a valid weight value (NaN).")
 
@@ -57,7 +58,7 @@ class ClauseGrounderImpl(val clause: Clause,
       Cartesian.CartesianIterator(variableDomains)
     } catch {
       case ex: NoSuchElementException =>
-        fatal(s"Failed to initialise CartesianIterator for clause '${clause.toText()}' with domain '$variableDomains'")
+        logger.fatal(s"Failed to initialise CartesianIterator for clause '${clause.toText()}' with domain '$variableDomains'")
     }
 
 
@@ -89,7 +90,7 @@ class ClauseGrounderImpl(val clause: Clause,
 
   def computeGroundings() {
 
-    debug(s"The ordering of literals in clause: ${clause.toText(weighted = true)}\n\t changed to: ${orderedLiterals.map(_.toString()).mkString(" v ")}")
+    logger.debug(s"The ordering of literals in clause: ${clause.toText(weighted = true)}\n\t changed to: ${orderedLiterals.map(_.toString()).mkString(" v ")}")
 
     def performGrounding(theta: Map[Variable, String] = Map.empty[Variable, String]): Int = {
 
@@ -263,7 +264,7 @@ class ClauseGrounderImpl(val clause: Clause,
             .map { case (k, v) => s"${k.toText} -> $v" }
             .mkString(", ")
 
-          fatal(s"Cannot apply substitution using theta '[$thetaStr]' in function '${f.signature.toString}'")
+          logger.fatal(s"Cannot apply substitution using theta '[$thetaStr]' in function '${f.signature.toString}'")
       }
   }
 

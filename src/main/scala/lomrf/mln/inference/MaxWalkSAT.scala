@@ -17,14 +17,16 @@
 
 package lomrf.mln.inference
 
-import auxlib.log.Logging
-import lomrf.mln.model.AtomIdentityFunctionOps
-import lomrf.mln.model.mrf.{GroundAtom, MRFState, MRF}
+import lomrf.mln.model.{AtomIdentityFunctionOps, MLN}
+import lomrf.mln.model.mrf.{GroundAtom, MRF, MRFState}
 import MRF.{NO_ATOM, NO_ATOM_ID}
 import java.io.PrintStream
 import java.util.concurrent.ThreadLocalRandom
+
+import com.typesafe.scalalogging.LazyLogging
 import lomrf.util.time._
 import lomrf.util.LongDoubleConversions._
+
 import scala.util.{Failure, Success}
 
 /**
@@ -57,7 +59,7 @@ import scala.util.{Failure, Success}
  */
 final case class MaxWalkSAT(mrf: MRF, pBest: Double = 0.5, maxFlips: Int = 1000000, maxTries: Int = 1, targetCost: Double = 0.001,
                        outputAll: Boolean = true, satHardUnit: Boolean = false, satHardPriority: Boolean = false,
-                       tabuLength: Int = 10) extends Logging {
+                       tabuLength: Int = 10) extends LazyLogging {
 
   private val TARGET_COST = new LongDouble(targetCost + 0.0001)
 
@@ -80,7 +82,7 @@ final case class MaxWalkSAT(mrf: MRF, pBest: Double = 0.5, maxFlips: Int = 10000
     val endTime = System.currentTimeMillis()
     state.evaluateState()
     state.printStatistics()
-    info(msecTimeToText("Total Max-WalkSAT time: ", endTime - startTime))
+    logger.info(msecTimeToText("Total Max-WalkSAT time: ", endTime - startTime))
 
     // return the best state
     state
@@ -212,7 +214,7 @@ final case class MaxWalkSAT(mrf: MRF, pBest: Double = 0.5, maxFlips: Int = 10000
         iteration += 1
 
         if (state.getCost <= TARGET_COST) {
-          info("A solution is found after " + (iteration * (numTry + 1)) + " iterations.")
+          logger.info("A solution is found after " + (iteration * (numTry + 1)) + " iterations.")
           iteration = maxFlips //force stop
         }
         else {
@@ -238,7 +240,7 @@ final case class MaxWalkSAT(mrf: MRF, pBest: Double = 0.5, maxFlips: Int = 10000
   def writeResults(out: PrintStream = System.out) {
     import AtomIdentityFunctionOps._
 
-    implicit val mln = mrf.mln
+    implicit val mln: MLN = mrf.mln
 
     val queryStartID = mln.space.queryStartID
     val queryEndID = mln.space.queryEndID
@@ -255,7 +257,7 @@ final case class MaxWalkSAT(mrf: MRF, pBest: Double = 0.5, maxFlips: Int = 10000
 
         atomID.decodeAtom match {
           case Success(txtAtom) if outputAll || state == 1 => out.println(txtAtom + " " + state)
-          case Failure(f) => error(s"failed to decode id: $atomID", f)
+          case Failure(f) => logger.error(s"failed to decode id: $atomID", f)
         }
 
       }

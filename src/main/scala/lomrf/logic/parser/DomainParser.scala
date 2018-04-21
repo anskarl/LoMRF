@@ -17,14 +17,15 @@
 
 package lomrf.logic.parser
 
-import auxlib.log.Logging
+import com.typesafe.scalalogging.LazyLogging
 import lomrf.logic._
+import lomrf.util.logging.Implicits._
 
 /**
   * Parser for MLN domain definitions. Definition can be of constant type,
   * integer type, atomic type or function type.
   */
-final class DomainParser extends CommonsMLNParser with Logging {
+final class DomainParser extends CommonsMLNParser with LazyLogging {
 
   /**
     * Parses MLN domain definitions.
@@ -131,31 +132,31 @@ final class DomainParser extends CommonsMLNParser with Logging {
 
   def parseConstantType(src: String): ConstantTypeDefinition = parse(constantTypeDefinition, src) match {
     case Success(result, _) => result
-    case x => fatal(s"Can't parse the following expression: $x")
+    case x => logger.fatal(s"Can't parse the following expression: $x")
   }
 
   def parseIntegerType(src: String): IntegerTypeDefinition = parse(integerTypeDefinition, src) match {
     case Success(result, _) => result
-    case x => fatal(s"Can't parse the following expression: $x")
+    case x => logger.fatal(s"Can't parse the following expression: $x")
   }
 
   def parseAtomicType(src: String): AtomicType = parse(atomicTypeDefinition, src) match {
     case Success(result, _) => result
-    case x => fatal(s"Can't parse the following expression: $x")
+    case x => logger.fatal(s"Can't parse the following expression: $x")
   }
 
   def parseFunctionType(src: String): FunctionType = parse(functionTypeDefinition, src) match {
     case Success(result, _) => result
-    case x => fatal(s"Can't parse the following expression: $x")
+    case x => logger.fatal(s"Can't parse the following expression: $x")
   }
 
   def parseSingleDefinition(src: String): MLNDomainExpression = parse(definition, src) match {
     case Success(result, _) => result
-    case x => fatal(s"Can't parse the following expression: $x")
+    case x => logger.fatal(s"Can't parse the following expression: $x")
   }
 
   def parseDefinitions(src: String): List[MLNDomainExpression] = parse(definitions, src) match {
     case Success(result, _) => result
-    case x => fatal(s"Can't parse the given definitions:\n$x")
+    case x => logger.fatal(s"Can't parse the given definitions:\n$x")
   }
 }
