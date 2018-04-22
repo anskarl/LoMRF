@@ -70,9 +70,6 @@ object Dependencies {
     // Optimized Range foreach loops
     "com.nativelibs4java" %% "scalaxy-streams" % v.Scalaxy % "provided",
 
-    // Adding auxlib library requires local publishing (for details see https://github.com/anskarl/auxlib)
-    "com.github.anskarl" %% "auxlib-opt" % v.AuxLib,
-
     "org.fusesource.jansi" % "jansi" % v.JANSI,
 
     // Breeze library for efficient numerical processing

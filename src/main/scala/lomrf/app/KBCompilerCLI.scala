@@ -20,7 +20,7 @@ package lomrf.app
 import java.io.FileWriter
 import java.text.DecimalFormat
 
-import auxlib.opt.OptionParser
+import lomrf.util.opt.OptionParser
 import com.typesafe.scalalogging.LazyLogging
 import lomrf.logic._
 import lomrf.logic.PredicateCompletionMode._

@@ -17,7 +17,7 @@
 
 package lomrf.app
 
-import auxlib.opt.OptionParser
+import lomrf.util.opt.OptionParser
 import com.typesafe.scalalogging.LazyLogging
 
 /**

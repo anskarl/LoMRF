@@ -17,7 +17,7 @@
 
 package lomrf.app
 
-import auxlib.opt.MasterOptionParser
+import lomrf.util.opt.MasterOptionParser
 
 object LoMRF extends App with MasterOptionParser {
 
