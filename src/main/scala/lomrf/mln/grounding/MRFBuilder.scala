@@ -22,7 +22,7 @@ import java.util.concurrent.CountDownLatch
 import akka.actor._
 import akka.pattern._
 import akka.util.Timeout
-import auxlib.trove.TroveConversions._
+import lomrf.util.collection.trove.TroveConversions._
 import com.typesafe.scalalogging.LazyLogging
 import gnu.trove.map.TIntFloatMap
 import gnu.trove.map.hash.TIntObjectHashMap

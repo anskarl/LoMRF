@@ -36,7 +36,7 @@ import scala.util.{Failure, Success}
 import scalaxy.streams.optimize
 
 import scala.language.postfixOps
-import auxlib.trove.TroveConversions._
+import lomrf.util.collection.trove.TroveConversions._
 import com.typesafe.scalalogging.LazyLogging
 
 /**

@@ -23,7 +23,7 @@ import gnu.trove.map.hash.TIntObjectHashMap
 import lomrf.logic.{Constant, FunctionMapping}
 
 import scala.collection.mutable
-import auxlib.trove.TroveConversions._
+import lomrf.util.collection.trove.TroveConversions._
 
 import scala.collection.breakOut
 import scala.language.implicitConversions

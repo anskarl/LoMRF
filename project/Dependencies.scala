@@ -71,9 +71,7 @@ object Dependencies {
     "com.nativelibs4java" %% "scalaxy-streams" % v.Scalaxy % "provided",
 
     // Adding auxlib library requires local publishing (for details see https://github.com/anskarl/auxlib)
-    //"com.github.anskarl" %% "auxlib-log" % v.AuxLib,
     "com.github.anskarl" %% "auxlib-opt" % v.AuxLib,
-    "com.github.anskarl" %% "auxlib-trove" % v.AuxLib,
 
     "org.fusesource.jansi" % "jansi" % v.JANSI,
 
