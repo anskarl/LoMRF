@@ -18,13 +18,16 @@
 package lomrf.mln.inference
 
 import java.io.{File, FileOutputStream, PrintStream}
+
 import lomrf.logic.AtomSignature
 import lomrf.mln.grounding.MRFBuilder
 import lomrf.mln.model.MLN
-import org.scalatest.{Matchers, FunSpec}
+import org.scalatest.{FunSpec, Matchers}
+
 import scala.io.Source
 import lomrf.tests.TestData
 import lomrf.util.io._
+import optimus.optimization.enums.SolverLib
 
 /**
  * Specification test for ILP algorithm used for MAP inference.

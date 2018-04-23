@@ -17,18 +17,18 @@
 
 package lomrf.mln.learning.structure
 
-import lomrf.logic.{AtomSignature, FALSE, TRUE, Clause}
+import lomrf.logic.{AtomSignature, Clause, FALSE, TRUE}
 import lomrf.mln.grounding.MRFBuilder
-import lomrf.mln.inference.{Solver, ILP}
-import lomrf.mln.inference.Solver._
+import lomrf.mln.inference.ILP
 import lomrf.mln.learning.structure.ClauseConstructor.ClauseType
 import lomrf.mln.learning.structure.ClauseConstructor.ClauseType._
 import lomrf.mln.learning.structure.hypergraph.HyperGraph
-import lomrf.mln.model.mrf.{MRFState, MRF}
+import lomrf.mln.model.mrf.{MRF, MRFState}
 import lomrf.mln.model._
 import lomrf.logic.AtomSignatureOps._
 import lomrf.util.time._
 import lomrf.util.logging.Implicits._
+import optimus.optimization.enums.SolverLib
 import scala.util.{Failure, Success}
 
 /**
@@ -50,7 +50,7 @@ import scala.util.{Failure, Success}
  * @param allowFreeVariables allow learned clauses to have free variables e.g. variables appearing only once
  * @param threshold evaluation threshold for each new clause produced
  * @param clauseType types of clauses to be produced [[lomrf.mln.learning.structure.ClauseConstructor.ClauseType]]
- * @param ilpSolver solver type selection option for ILP inference [[lomrf.mln.inference.Solver]]
+ * @param ilpSolver solver type selection option for ILP inference
  * @param lossAugmented use loss augmented inference
  * @param lambda regularization parameter for AdaGrad online learner
  * @param eta learning rate parameter for AdaGrad online learner
@@ -60,7 +60,7 @@ import scala.util.{Failure, Success}
  */
 final class OSL private(kb: KB, constants: ConstantsDomain, nonEvidenceAtoms: Set[AtomSignature],
                         modes: ModeDeclarations, maxLength: Int, allowFreeVariables: Boolean,
-                        threshold: Int, clauseType: ClauseType, ilpSolver: Solver, lossAugmented: Boolean,
+                        threshold: Int, clauseType: ClauseType, ilpSolver: SolverLib, lossAugmented: Boolean,
                         lambda: Double, eta: Double, delta: Double, printLearnedWeightsPerIteration: Boolean,
                         backgroundClauses: Vector[Clause]) extends StructureLearner {
 
@@ -298,7 +298,7 @@ object OSL {
    * @param allowFreeVariables allow learned clauses to have free variables e.g. variables appearing only once
    * @param threshold evaluation threshold for each new clause produced
    * @param clauseType types of clauses to be produced [[lomrf.mln.learning.structure.ClauseConstructor.ClauseType]]
-   * @param ilpSolver solver type selection option for ILP inference (default is LPSolve) [[lomrf.mln.inference.Solver]]
+   * @param ilpSolver solver type selection option for ILP inference (default is LpSolve)
    * @param lossAugmented use loss augmented inference (default is false)
    * @param lambda regularization parameter for AdaGrad online learner (default is 0.01)
    * @param eta learning rate parameter for AdaGrad online learner (default is 1.0)
@@ -309,7 +309,7 @@ object OSL {
    */
   def apply(kb: KB, constants: ConstantsDomain, nonEvidenceAtoms: Set[AtomSignature], modes: ModeDeclarations,
             maxLength: Int, allowFreeVariables: Boolean, threshold: Int, clauseType: ClauseType = ClauseType.BOTH,
-            ilpSolver: Solver = Solver.LPSOLVE, lossAugmented: Boolean = false, lambda: Double = 0.01,
+            ilpSolver: SolverLib = SolverLib.LpSolve, lossAugmented: Boolean = false, lambda: Double = 0.01,
             eta: Double = 1.0, delta: Double = 1.0, printLearnedWeightsPerIteration: Boolean = false): OSL = {
 
     new OSL(kb, constants, nonEvidenceAtoms, modes, maxLength, allowFreeVariables,

@@ -21,12 +21,13 @@ import java.io.{FileOutputStream, PrintStream}
 import lomrf.logic._
 import lomrf.logic.AtomSignatureOps._
 import lomrf.logic.PredicateCompletionMode._
-import lomrf.logic.dynamic.{DynamicFunctionBuilder, DynamicAtomBuilder}
+import lomrf.logic.dynamic.{DynamicAtomBuilder, DynamicFunctionBuilder}
 import lomrf.mln.grounding.MRFBuilder
 import lomrf.mln.inference._
 import lomrf.mln.model.MLN
 import lomrf.util.ImplFinder
 import lomrf.util.logging.Implicits._
+import optimus.optimization.enums.SolverLib
 
 /**
  * Command line tool for inference.
@@ -70,7 +71,7 @@ object InferenceCLI extends CLIApp {
   private var _ilpRounding = RoundingScheme.ROUNDUP
 
   // Solver used by ILP map inference
-  private var _ilpSolver = Solver.LPSOLVE
+  private var _ilpSolver: SolverLib = SolverLib.LpSolve
 
   // Maximum number of samples to take
   private var _samples = 1000
@@ -198,11 +199,12 @@ object InferenceCLI extends CLIApp {
     }
   })
 
-  opt("ilpSolver", "ilp-solver", "<lpsolve | ojalgo | gurobi>", "Specify which ILP solver use (default is LPSolve).", {
+  opt("ilpSolver", "ilp-solver", "<lpsolve | ojalgo | gurobi | mosek>", "Specify which ILP solver use (default is LPSolve).", {
     v: String => v.trim.toLowerCase match {
-      case "gurobi" => _ilpSolver = Solver.GUROBI
-      case "lpsolve" => _ilpSolver = Solver.LPSOLVE
-      case "ojalgo" => _ilpSolver = Solver.OJALGO
+      case "gurobi" => _ilpSolver = SolverLib.Gurobi
+      case "lpsolve" => _ilpSolver = SolverLib.LpSolve
+      case "ojalgo" => _ilpSolver = SolverLib.oJSolver
+      case "mosek" => _ilpSolver = SolverLib.Mosek
       case _ => logger.fatal(s"Unknown parameter for ILP solver type '$v'.")
     }
   })

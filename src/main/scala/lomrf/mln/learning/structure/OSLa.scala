@@ -19,15 +19,15 @@ package lomrf.mln.learning.structure
 
 import lomrf.logic._
 import lomrf.mln.grounding.MRFBuilder
-import lomrf.mln.inference.{ILP, Solver}
-import lomrf.mln.inference.Solver._
-import lomrf.mln.learning.structure.hypergraph.{TemplateExtractor, HyperGraph, PathTemplate}
+import lomrf.mln.inference.ILP
+import lomrf.mln.learning.structure.hypergraph.{HyperGraph, PathTemplate, TemplateExtractor}
 import lomrf.mln.model._
 import lomrf.logic.LogicOps._
 import lomrf.logic.AtomSignatureOps._
-import lomrf.mln.model.mrf.{MRFState, MRF}
+import lomrf.mln.model.mrf.{MRF, MRFState}
 import lomrf.util.time._
 import lomrf.util.logging.Implicits._
+import optimus.optimization.enums.SolverLib
 import scala.util.{Failure, Success}
 import scala.language.existentials
 
@@ -54,7 +54,7 @@ import scala.language.existentials
   * @param maxLength maximum length of a path
   * @param allowFreeVariables allow learned clauses to have free variables e.g. variables appearing only once
   * @param threshold evaluation threshold for each new clause produced
-  * @param ilpSolver solver type selection option for ILP inference (default is LPSolve) [[lomrf.mln.inference.Solver]]
+  * @param ilpSolver solver type selection option for ILP inference
   * @param lossAugmented use loss augmented inference (default is false)
   * @param lambda regularization parameter for AdaGrad online learner (default is 0.01)
   * @param eta learning rate parameter for AdaGrad online learner (default is 1.0)
@@ -67,7 +67,7 @@ import scala.language.existentials
   */
 final class OSLa private(kb: KB, constants: ConstantsDomain, evidenceAtoms: Set[AtomSignature], nonEvidenceAtoms: Set[AtomSignature],
                          modes: ModeDeclarations, maxLength: Int, allowFreeVariables: Boolean, threshold: Int, theta: Double,
-                         ilpSolver: Solver, lossAugmented: Boolean, initialWeightValue: Double, lambda: Double, eta: Double, delta: Double,
+                         ilpSolver: SolverLib, lossAugmented: Boolean, initialWeightValue: Double, lambda: Double, eta: Double, delta: Double,
                          printLearnedWeightsPerIteration: Boolean, axioms: Set[WeightedFormula], pathTemplates: Set[PathTemplate],
                          backgroundDefiniteClauses: Set[WeightedDefiniteClause], backgroundClauses: Vector[Clause]) extends StructureLearner {
 
@@ -397,7 +397,7 @@ object OSLa {
    * @param maxLength maximum length of a path
    * @param allowFreeVariables allow learned clauses to have free variables e.g. variables appearing only once
    * @param threshold evaluation threshold for each new clause produced
-   * @param ilpSolver solver type selection option for ILP inference (default is LPSolve) [[lomrf.mln.inference.Solver]]
+   * @param ilpSolver solver type selection option for ILP inference (default is LpSolve)
    * @param lossAugmented use loss augmented inference (default is false)
    * @param lambda regularization parameter for AdaGrad online learner (default is 0.01)
    * @param eta learning rate parameter for AdaGrad online learner (default is 1.0)
@@ -408,7 +408,7 @@ object OSLa {
    */
   def apply(kb: KB, constants: ConstantsDomain, nonEvidenceAtoms: Set[AtomSignature],
             templateAtoms: Set[AtomSignature], modes: ModeDeclarations, maxLength: Int, allowFreeVariables: Boolean,
-            threshold: Int, theta: Double = 0.0, ilpSolver: Solver = Solver.LPSOLVE, lossAugmented: Boolean = false,
+            threshold: Int, theta: Double = 0.0, ilpSolver: SolverLib = SolverLib.LpSolve, lossAugmented: Boolean = false,
             initialWeightValue: Double = 0.01, lambda: Double = 0.01, eta: Double = 1.0, delta: Double = 1.0,
             printLearnedWeightsPerIteration: Boolean = false): OSLa = {
 

@@ -19,7 +19,6 @@ package lomrf.app
 
 import java.io._
 import lomrf.logic.{AtomSignature, Clause}
-import lomrf.mln.inference.Solver
 import lomrf.mln.learning.structure.ClauseConstructor.ClauseType
 import lomrf.mln.learning.structure.ModeParser
 import lomrf.mln.model.KB
@@ -28,6 +27,7 @@ import lomrf.logic.AtomSignatureOps._
 import lomrf.util.NaturalComparator
 import lomrf.util.time._
 import lomrf.util.logging.Implicits._
+import optimus.optimization.enums.SolverLib
 
 /**
  * Command line tool for structure learning
@@ -68,7 +68,7 @@ object StructureLearningCLI extends CLIApp {
   private var _clauseType = ClauseType.BOTH
 
   // Solver used by ILP map inference
-  private var _ilpSolver = Solver.LPSOLVE
+  private var _ilpSolver: SolverLib = SolverLib.LpSolve
 
   // Perform loss augmented inference
   private var _lossAugmented = false
@@ -155,11 +155,12 @@ object StructureLearningCLI extends CLIApp {
     }
   })
 
-  opt("ilpSolver", "ilp-solver", "<lpsolve | ojalgo | gurobi>", "Solver used by ILP (default is LPSolve).", {
+  opt("ilpSolver", "ilp-solver", "<lpsolve | ojalgo | gurobi | mosek>", "Solver used by ILP (default is LPSolve).", {
     v: String => v.trim.toLowerCase match {
-      case "gurobi" => _ilpSolver = Solver.GUROBI
-      case "lpsolve" => _ilpSolver = Solver.LPSOLVE
-      case "ojalgo" => _ilpSolver = Solver.OJALGO
+      case "gurobi" => _ilpSolver = SolverLib.Gurobi
+      case "lpsolve" => _ilpSolver = SolverLib.LpSolve
+      case "ojalgo" => _ilpSolver = SolverLib.oJSolver
+      case "mosek" => _ilpSolver = SolverLib.Mosek
       case _ => logger.fatal(s"Unknown parameter for ILP solver type '$v'.")
     }
   })
@@ -221,7 +222,7 @@ object StructureLearningCLI extends CLIApp {
       + "\n\t(threshold) Evaluation threshold for each new clause produced: " + _threshold
       + "\n\t(theta) Tolerance threshold for discarding clauses having poor weights: " + _theta
       + "\n\t(clauseType) Type of clauses to be produced: " + ( if(_clauseType == ClauseType.HORN) "Horn" else if(_clauseType == ClauseType.CONJUNCTION) "Conjunction" else "Both")
-      + "\n\t(ilpSolver) Solver used by ILP map inference: " + ( if(_ilpSolver == Solver.GUROBI) "Gurobi" else if(_ilpSolver == Solver.LPSOLVE) "LPSolve" else "oJalgo")
+      + "\n\t(ilpSolver) Solver used by ILP map inference: " + _ilpSolver
       + "\n\t(lossAugmented) Perform loss augmented inference: " + _lossAugmented
       + "\n\t(initialWeight) Initial weight value for discovered clauses: " + _initialWeight
       + "\n\t(lambda) Regularization parameter for AdaGrad: " + _lambda

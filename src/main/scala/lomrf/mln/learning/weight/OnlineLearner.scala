@@ -19,18 +19,16 @@ package lomrf.mln.learning.weight
 
 import java.io.PrintStream
 import java.text.DecimalFormat
-
 import com.typesafe.scalalogging.LazyLogging
 import lomrf.app.Algorithm
 import lomrf.app.Algorithm.Algorithm
 import lomrf.logic.{AtomSignature, FALSE, TRUE, TriState}
 import lomrf.logic.AtomSignatureOps._
-import lomrf.mln.inference.{ILP, Solver}
-import lomrf.mln.inference.Solver._
+import lomrf.mln.inference.ILP
 import lomrf.mln.model.{AtomEvidenceDB, MLN}
 import lomrf.mln.model.mrf.MRF
+import optimus.optimization.enums.SolverLib
 import scalaxy.streams.optimize
-
 import scala.language.postfixOps
 
 /**
@@ -61,7 +59,7 @@ import scala.language.postfixOps
  *
  */
 final class OnlineLearner(mln: MLN, algorithm: Algorithm, lossAugmented: Boolean = false, lossScale: Double = 1.0,
-                          ilpSolver: Solver = Solver.LPSOLVE, sigma: Double = 1.0, lambda: Double = 0.01, eta: Double = 1.0,
+                          ilpSolver: SolverLib = SolverLib.LpSolve, sigma: Double = 1.0, lambda: Double = 0.01, eta: Double = 1.0,
                           delta: Double = 1.0, printLearnedWeightsPerIteration: Boolean = false) extends LazyLogging {
 
   algorithm match {

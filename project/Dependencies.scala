@@ -35,7 +35,7 @@ object Dependencies {
     final val JTS = "1.14.0"
     final val Scalaxy = "0.3.4"
 
-    final val Optimus = "2.0.0"
+    final val Optimus = "3.0.0"
     final val Breeze = "0.12"
 
     final val AuxLib = "0.3.0"
@@ -83,7 +83,8 @@ object Dependencies {
     "com.github.vagmcs" %% "optimus" % v.Optimus,
     "com.github.vagmcs" %% "optimus-solver-oj" % v.Optimus,
     "com.github.vagmcs" %% "optimus-solver-lp" % v.Optimus,
-    "com.github.vagmcs" %% "optimus-solver-gurobi" % v.Optimus
+    "com.github.vagmcs" %% "optimus-solver-gurobi" % v.Optimus,
+    "com.github.vagmcs" %% "optimus-solver-mosek" % v.Optimus
   )
 
 }

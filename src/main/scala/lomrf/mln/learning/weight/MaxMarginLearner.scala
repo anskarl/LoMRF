@@ -18,25 +18,23 @@
 package lomrf.mln.learning.weight
 
 import java.text.DecimalFormat
-
 import lomrf.mln.learning.weight.LossFunction.LossFunction
-import lomrf.mln.inference.Solver._
 import lomrf.mln.inference.ILP
 import lomrf.mln.model.{AtomEvidenceDB, PredicateSpace}
 import lomrf.util.time._
 import java.io.PrintStream
-
 import com.typesafe.scalalogging.LazyLogging
 import gnu.trove.map.hash.TIntObjectHashMap
 import lomrf.logic.{FALSE, TRUE, TriState}
 import lomrf.logic.AtomSignature
 import lomrf.mln.grounding.DependencyMap
-import lomrf.mln.learning.weight
 import lomrf.mln.model.mrf._
 import optimus.optimization._
 import optimus.algebra._
+import optimus.algebra.AlgebraOps._
+import optimus.optimization.enums.{PreSolve, SolverLib}
+import optimus.optimization.model.MPFloatVar
 import scalaxy.streams.optimize
-
 import scala.language.postfixOps
 
 /**
@@ -70,27 +68,24 @@ import scala.language.postfixOps
 final class MaxMarginLearner(mrf: MRF, annotationDB: Map[AtomSignature, AtomEvidenceDB],
                              nonEvidenceAtoms: Set[AtomSignature], iterations: Int = 1000, C: Double = 1e+3, epsilon: Double = 0.001,
                              lossFunction: LossFunction = LossFunction.HAMMING, lossScale: Double = 1.0, nonMarginRescaling: Boolean = false,
-                             lossAugmented: Boolean = false, ilpSolver: Solver = OJALGO, L1Regularization: Boolean = false,
+                             lossAugmented: Boolean = false, ilpSolver: SolverLib = SolverLib.oJSolver, L1Regularization: Boolean = false,
                              printLearnedWeightsPerIteration: Boolean = false) extends LazyLogging {
 
   private val _ilpSolver = ilpSolver match {
-    case LPSOLVE =>
+    case SolverLib.LpSolve =>
       logger.warn{
         s"""
-           |MAX_MARGIN training is supported only by GUROBI and OJALGO solvers.
-           |Switching to OJALGO. In case you have a license, use GUROBI for better performance.
+           |MAX_MARGIN training is supported only by GUROBI, MOSEK and OJALGO solvers.
+           |Switching to OJALGO. In case you have a license, use GUROBI or MOSEK for better performance.
          """.stripMargin
       }
 
-      OJALGO
+      SolverLib.oJSolver
     case _ => ilpSolver
   }
 
   // Select the appropriate mathematical programming solver
-  implicit val problem: LQProblem = _ilpSolver match {
-    case OJALGO => LQProblem(SolverLib.ojalgo)
-    case _ => LQProblem(SolverLib.gurobi)
-  }
+  implicit val model: MPModel = MPModel(_ilpSolver)
 
   // Number of first-order CNF clauses
   val numberOfClauses: Int = mrf.mln.clauses.length
@@ -318,11 +313,11 @@ final class MaxMarginLearner(mrf: MRF, annotationDB: Map[AtomSignature, AtomEvid
        */
       optimize{
         for(clauseIdx <- 0 until 2 * numberOfClauses) {
-          LPVars.putIfAbsent(clauseIdx, MPFloatVar("w" + clauseIdx)) // bounds are [0.0, inf] because L1 norm has absolute values
+          LPVars.putIfAbsent(clauseIdx, MPFloatVar("w" + clauseIdx, 0)) // bounds are [0.0, inf] because L1 norm has absolute values
           expressions :+= LPVars.get(clauseIdx)
         }
       }
-      LPVars.putIfAbsent(2 * numberOfClauses, MPFloatVar("slack")) // bounds are by default [0.0, inf]
+      LPVars.putIfAbsent(2 * numberOfClauses, MPFloatVar("slack", 0)) // bounds are [0.0, inf]
       expressions ::= ( C * LPVars.get(numberOfClauses) )
     }
     else {
@@ -338,11 +333,11 @@ final class MaxMarginLearner(mrf: MRF, annotationDB: Map[AtomSignature, AtomEvid
        */
       optimize{
         for (clauseIdx <- 0 until numberOfClauses) {
-          LPVars.putIfAbsent(clauseIdx, MPFloatVar("w" + clauseIdx, Double.NegativeInfinity, Double.PositiveInfinity))
+          LPVars.putIfAbsent(clauseIdx, MPFloatVar("w" + clauseIdx))
           expressions :+= (0.5 * LPVars.get(clauseIdx) * LPVars.get(clauseIdx))
         }
       }
-      LPVars.putIfAbsent(numberOfClauses, MPFloatVar("slack")) // bounds are by default [0.0, inf]
+      LPVars.putIfAbsent(numberOfClauses, MPFloatVar("slack", 0)) // bounds are [0.0, inf]
       expressions ::= (C * LPVars.get(numberOfClauses))
     }
 

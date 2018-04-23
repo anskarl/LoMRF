@@ -21,12 +21,12 @@ import java.io.{FileOutputStream, PrintStream}
 import lomrf.logic.AtomSignature
 import lomrf.logic.AtomSignatureOps._
 import lomrf.mln.grounding.MRFBuilder
-import lomrf.mln.inference.Solver
 import lomrf.mln.learning.weight.{LossFunction, MaxMarginLearner, OnlineLearner}
 import lomrf.mln.model.MLN
 import lomrf.util.NaturalComparator
 import lomrf.util.time._
 import lomrf.util.logging.Implicits._
+import optimus.optimization.enums.SolverLib
 
 /**
  * Command line tool for weight learning.
@@ -49,7 +49,7 @@ object WeightLearningCLI extends CLIApp {
   private var _algorithm = Algorithm.MAX_MARGIN
 
   // Solver used by ILP map inference
-  private var _ilpSolver = Solver.LPSOLVE
+  private var _ilpSolver: SolverLib = SolverLib.LpSolve
 
   // Add unit clauses to the MLN output file
   private var _addUnitClauses = false
@@ -177,11 +177,12 @@ object WeightLearningCLI extends CLIApp {
 
   flagOpt("printLearnedWeightsPerIteration", "print-learned-weights-per-iteration", "Print the learned weights for each iteration.", { _printLearnedWeightsPerIteration = true})
 
-  opt("ilpSolver", "ilp-solver", "<lpsolve | ojalgo | gurobi >", "Solver used by ILP (default is lpsolve).", {
+  opt("ilpSolver", "ilp-solver", "<lpsolve | ojalgo | gurobi | mosek>", "Solver used by ILP (default is lpsolve).", {
     v: String => v.trim.toLowerCase match {
-      case "gurobi" => _ilpSolver = Solver.GUROBI
-      case "lpsolve" => _ilpSolver = Solver.LPSOLVE
-      case "ojalgo" => _ilpSolver = Solver.OJALGO
+      case "gurobi" => _ilpSolver = SolverLib.Gurobi
+      case "lpsolve" => _ilpSolver = SolverLib.LpSolve
+      case "ojalgo" => _ilpSolver = SolverLib.oJSolver
+      case "mosek" => _ilpSolver = SolverLib.Mosek
       case _ => logger.fatal("Unknown parameter for ILP solver type '" + v + "'.")
     }
   })
@@ -230,7 +231,7 @@ object WeightLearningCLI extends CLIApp {
       + "\n\t(iterations) Number of iterations for learning: " + _iterations
       + "\n\t(L1Regularization) Use L1 regularization instead of L2: " + _L1Regularization
       + "\n\t(printLearnedWeightsPerIteration) Print learned weights for each iteration: " + _printLearnedWeightsPerIteration
-      + "\n\t(ilpSolver) Solver used by ILP map inference: " + ( if(_ilpSolver == Solver.GUROBI) "Gurobi" else "LPSolve")
+      + "\n\t(ilpSolver) ILP solver used for learning and map inference: " + _ilpSolver
       + "\n\t(algorithm) Algorithm used to perform learning: " + ( if(_algorithm == Algorithm.MAX_MARGIN) "Max-Margin"
                                                                    else if(_algorithm == Algorithm.COORDINATE_DUAL_ASCEND) "Cordinate Dual Ascent"
                                                                    else "ADAGRAD_FB" )
@@ -242,9 +243,9 @@ object WeightLearningCLI extends CLIApp {
 
     if(_algorithm == Algorithm.MAX_MARGIN) {
 
-      if(_ilpSolver != Solver.GUROBI) {
+      if(_ilpSolver != SolverLib.Gurobi) {
         logger.warn("For MAX_MARGIN training, only GUROBI solver is supported. Switching to GUROBI.")
-        _ilpSolver = Solver.GUROBI
+        _ilpSolver = SolverLib.Gurobi
       }
 
       val (mln, annotationDB) = MLN.forLearning(strMLNFileName, strTrainingFileNames.toList, _nonEvidenceAtoms, addUnitClauses = _addUnitClauses)

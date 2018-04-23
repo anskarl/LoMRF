@@ -19,9 +19,7 @@ package lomrf.mln.inference
 
 import lomrf.logic.{AtomSignature, TRUE, TriState}
 import java.io.PrintStream
-
 import lomrf.mln.inference.RoundingScheme.RoundingScheme
-import lomrf.mln.inference.Solver.Solver
 import lomrf.mln.model.{AtomEvidenceDB, AtomIdentityFunctionOps, MLN}
 import lomrf.mln.model.mrf._
 import lomrf.util.time._
@@ -31,13 +29,14 @@ import lomrf.logic.AtomSignatureOps._
 import gnu.trove.map.hash.TIntObjectHashMap
 import optimus.algebra._
 import optimus.optimization._
-
+import optimus.algebra.AlgebraOps._
 import scala.util.{Failure, Success}
 import scalaxy.streams.optimize
-
 import scala.language.postfixOps
 import lomrf.util.collection.trove.TroveConversions._
 import com.typesafe.scalalogging.LazyLogging
+import optimus.optimization.enums.{PreSolve, SolverLib}
+import optimus.optimization.model.MPFloatVar
 
 /**
  * This is an implementation of an approximate MAP inference algorithm for MLNs using Integer Linear Programming.
@@ -56,15 +55,11 @@ import com.typesafe.scalalogging.LazyLogging
  *
  */
 final class ILP(mrf: MRF, annotationDB: Map[AtomSignature, AtomEvidenceDB] = Map.empty[AtomSignature, AtomEvidenceDB],
-                outputAll: Boolean = true, ilpRounding: RoundingScheme = RoundingScheme.ROUNDUP, ilpSolver: Solver = Solver.LPSOLVE,
+                outputAll: Boolean = true, ilpRounding: RoundingScheme = RoundingScheme.ROUNDUP, ilpSolver: SolverLib = SolverLib.LpSolve,
                 lossAugmented: Boolean = false) extends LazyLogging {
 
   // Select the appropriate mathematical programming solver
-  implicit val problem: LQProblem = ilpSolver match {
-    case Solver.GUROBI => LQProblem(SolverLib.gurobi)
-    case Solver.LPSOLVE => LQProblem(SolverLib.lp_solve)
-    case Solver.OJALGO => LQProblem(SolverLib.ojalgo)
-  }
+  implicit val model: MPModel = MPModel(ilpSolver)
 
   implicit val mln: MLN = mrf.mln
 
@@ -365,15 +360,4 @@ object RoundingScheme extends Enumeration {
   val ROUNDUP = Value(0, "RoundUp")
 
   val MWS = Value(1, "MaxWalkSAT")
-}
-
-/**
- * Object holding constants for solver type.
- */
-object Solver extends Enumeration {
-  type Solver = Value
-
-  val GUROBI = Value(0,"Gurobi")
-  val LPSOLVE = Value(1, "lp_solve")
-  val OJALGO = Value(2, "ojAlgo")
 }
