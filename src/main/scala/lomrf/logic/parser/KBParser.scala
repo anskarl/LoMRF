@@ -21,8 +21,6 @@ import com.typesafe.scalalogging.LazyLogging
 import lomrf.logic.dynamic.{DynamicAtomBuilder, DynamicFunctionBuilder}
 import lomrf.logic._
 import lomrf.util.logging.Implicits._
-
-
 import scala.collection.breakOut
 
 final class KBParser(predicateSchema: Map[AtomSignature, Vector[String]],
@@ -42,12 +40,12 @@ final class KBParser(predicateSchema: Map[AtomSignature, Vector[String]],
   /**
     * @return the dynamic predicate definitions
     */
-  def getDynamicPredicates: Map[AtomSignature, (Vector[String]) => Boolean] = dynamicPredicates
+  def getDynamicPredicates: Map[AtomSignature, Vector[String] => Boolean] = dynamicPredicates
 
   /**
     * @return the dynamic function definitions
     */
-  def getDynamicFunctions: Map[AtomSignature, (Vector[String]) => String] = dynamicFunctions
+  def getDynamicFunctions: Map[AtomSignature, Vector[String] => String] = dynamicFunctions
 
   /**
     * @return the ground dynamic functions
@@ -492,12 +490,14 @@ final class KBParser(predicateSchema: Map[AtomSignature, Vector[String]],
       dynamicAtomBuilders.get(atomSignature) match {
         case Some(atomBuilder) =>
           val termList: Vector[Term] =
-            (for (element <- arguments) yield element match {
+            (for (term <- arguments) yield term match {
+              case symbol: String => symbol match {
                 case upperCaseID(s, _*) => Constant(s)
                 case variableArg(v, _*) => fetchTypedVariable(v)
-                case func: TermFunction => func
-                case _ => logger.fatal(s"Cannot parse the symbol: $element")
-              })(breakOut)
+              }
+              case func: TermFunction => func
+              case _ => logger.fatal(s"Cannot parse the symbol: $term")
+            })(breakOut)
 
           dynamicPredicates += (atomSignature -> atomBuilder.stateFunction)
           atomBuilder(termList)
@@ -512,29 +512,31 @@ final class KBParser(predicateSchema: Map[AtomSignature, Vector[String]],
           val termList: Vector[Term] =
             (for ((element, argType: String) <- arguments.zip(argTypes)) yield element match {
 
+              case symbol: String => symbol match {
                 case upperCaseID(s, _*) => Constant(s)
 
                 case variableArg(v, _*) =>
                   val (isFlaggedGroundPerConstant, variableSymbol) =
-                    if(v.startsWith("+")) (true, v.drop(1))
+                    if (v.startsWith("+")) (true, v.drop(1))
                     else (false, v)
 
                   val variable = Variable(variableSymbol, argType, groundPerConstant = isFlaggedGroundPerConstant)
                   currentTypes = Vector(variable) ++: currentTypes
                   variable
 
-                case func: TermFunction =>
-                  if (!func.isDomainDefined) {
-                    val result = TermFunction(func.symbol, func.terms, argType)
-                    dynamicFunctionsInstances += result
-                    result
-                  }
-                  else if (func.domain == argType) func
-                  else logger.fatal(s"The function '${func.toText}' returns '${func.domain}', while expecting to return '$argType'.")
-
-                case _ => logger.fatal(s"Cannot parse the symbol: $element")
               }
-            )(breakOut)
+              case func: TermFunction =>
+                if (!func.isDomainDefined) {
+                  val result = TermFunction(func.symbol, func.terms, argType)
+                  dynamicFunctionsInstances += result
+                  result
+                }
+                else if (func.domain == argType) func
+                else logger.fatal(s"The function '${func.toText}' returns '${func.domain}', while expecting to return '$argType'.")
+
+              case _ => logger.fatal(s"Cannot parse the symbol: $element")
+            })(breakOut)
+
           AtomicFormula(name, termList)
       }
   }
@@ -614,8 +616,10 @@ final class KBParser(predicateSchema: Map[AtomSignature, Vector[String]],
         case Some(functionBuilder) =>
           // fetch the function's terms that are defined in its arguments
           val termList: Vector[Term] = (for (term <- arguments) yield term match {
-              case upperCaseID(s, _*) => Constant(s)
-              case variableArg(v, _*) => fetchTypedVariable(v)
+              case symbol: String => symbol match {
+                case upperCaseID(s, _*) => Constant(s)
+                case variableArg(v, _*) => fetchTypedVariable(v)
+              }
               case func: TermFunction => func
               case _ => logger.fatal(s"Cannot parse symbol: $term")
             })(breakOut)
@@ -640,18 +644,18 @@ final class KBParser(predicateSchema: Map[AtomSignature, Vector[String]],
           // and check if their types match with the function argument types
           val termList: Vector[Term] =
             (for ((symbol, argType: String) <- arguments.zip(argTypes)) yield symbol match {
-              case upperCaseID(s, _*) => Constant(s)
+              case x: String => x match {
+                case upperCaseID(s, _*) => Constant(s)
 
-              case variableArg(v, _*) =>
-                val (isFlaggedGroundPerConstant, variableSymbol) =
-                  if(v.startsWith("+")) (true, v.drop(1))
-                  else (false, v)
+                case variableArg(v, _*) =>
+                  val (isFlaggedGroundPerConstant, variableSymbol) =
+                    if (v.startsWith("+")) (true, v.drop(1))
+                    else (false, v)
 
-
-                val variable = Variable(variableSymbol, argType, groundPerConstant = isFlaggedGroundPerConstant)
-                currentTypes = Vector(variable) ++: currentTypes //NEW
-                variable
-
+                  val variable = Variable(variableSymbol, argType, groundPerConstant = isFlaggedGroundPerConstant)
+                  currentTypes = Vector(variable) ++: currentTypes
+                  variable
+              }
               case func: TermFunction =>
                 // if the function is user-defined (thus it has a return type),
                 // check if its return type is the same with the corresponding argument type.
