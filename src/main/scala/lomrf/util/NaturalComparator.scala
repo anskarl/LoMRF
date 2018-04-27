@@ -22,8 +22,9 @@ object NaturalComparator {
   private def isDigit(ch: Char) = ch >= 48 && ch <= 57
 
   private def getChunkOffset(s: String, length: Int, mark: Int): Int = {
-    var marker = mark + 1
+    var marker = mark
     var c = s.charAt(marker)
+    marker += 1
 
     if (isDigit(c)) while (marker < length) {
       c = s.charAt(marker)
