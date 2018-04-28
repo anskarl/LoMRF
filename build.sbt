@@ -1,9 +1,8 @@
-addCommandAlias("build", ";createHeaders;compile;test;package")
+addCommandAlias("build", ";headerCreate;compile;test;package")
 addCommandAlias("rebuild", ";clean;build")
 
 lazy val lomrf = Project("LoMRF", file("."))
-  .enablePlugins(JavaAppPackaging, AutomateHeaderPlugin, sbtdocker.DockerPlugin)
-	.settings(headers := LoMRFBuild.projectHeaders)
+  .enablePlugins(JavaAppPackaging, sbtdocker.DockerPlugin, AutomateHeaderPlugin)
 	.settings(logLevel in Test := Level.Info)
 	.settings(logLevel in Compile := Level.Error)
 	.settings(libraryDependencies ++= Dependencies.Akka)

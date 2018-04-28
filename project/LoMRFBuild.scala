@@ -19,8 +19,8 @@
 import sbt._
 import sbt.Keys._
 import sbt.plugins.JvmPlugin
-import de.heikoseeberger.sbtheader._
-import de.heikoseeberger.sbtheader.HeaderPlugin.autoImport.headers
+import de.heikoseeberger.sbtheader.HeaderPlugin
+import de.heikoseeberger.sbtheader.HeaderPlugin.autoImport._
 import com.typesafe.sbt.SbtNativePackager.Universal
 import com.typesafe.sbt.SbtNativePackager.autoImport._
 import com.typesafe.sbt.packager.archetypes.JavaAppPackaging
@@ -33,7 +33,7 @@ object LoMRFBuild extends AutoPlugin {
 
   val logger = ConsoleLogger()
 
-  logger info {
+  final val logo =
     """
       | o                        o     o   o         o
       | |             o          |     |\ /|         | /
@@ -50,12 +50,13 @@ object LoMRFBuild extends AutoPlugin {
       |
       | Logical Markov Random Fields (LoMRF).
     """.stripMargin
-  }
+
+  logger.info(logo)
 
   private final val javaVersion: Double = sys.props("java.specification.version").toDouble
 
   override def requires: Plugins = {
-    JvmPlugin && JavaAppPackaging && HeaderPlugin && AutomateHeaderPlugin
+    JvmPlugin && JavaAppPackaging && HeaderPlugin
   }
 
   override def projectSettings: Seq[Setting[_]] = settings
@@ -82,8 +83,9 @@ object LoMRFBuild extends AutoPlugin {
     organization := "com.github.anskarl",
     scalaVersion := "2.11.12",
     name := "LoMRF",
-    headers := projectHeaders,
-
+    //headers := projectHeaders,
+    headerMappings := headerMappings.value + (HeaderFileType.scala -> HeaderCommentStyle.cStyleBlockComment),
+    headerLicense := Some(HeaderLicense.Custom(logo + "\n\n")),
     autoScalaLibrary := false,
     managedScalaInstance := true,
 
@@ -109,7 +111,7 @@ object LoMRFBuild extends AutoPlugin {
       "org.scala-lang.modules" %% "scala-parser-combinators" % "1.0.6"
     ),
 
-    dependencyOverrides ++= Set(
+    dependencyOverrides ++= Seq(
       "org.scala-lang" % "scala-compiler" % scalaVersion.value,
       "org.scala-lang" % "scala-library" % scalaVersion.value,
       "org.scala-lang" % "scala-reflect" % scalaVersion.value,
@@ -234,30 +236,6 @@ object LoMRFBuild extends AutoPlugin {
     },
 
     buildOptions in docker := BuildOptions(cache = false)
-  )
-
-  lazy val projectHeaders = Map(
-    "scala" -> (
-      HeaderPattern.cStyleBlockComment,
-      """
-        |/*
-        | * o                        o     o   o         o
-        | * |             o          |     |\ /|         | /
-        | * |    o-o o--o    o-o  oo |     | O |  oo o-o OO   o-o o   o
-        | * |    | | |  | | |    | | |     |   | | | |   | \  | |  \ /
-        | * O---oo-o o--O |  o-o o-o-o     o   o o-o-o   o  o o-o   o
-        | *             |
-        | *          o--o
-        | * o--o              o               o--o       o    o
-        | * |   |             |               |    o     |    |
-        | * O-Oo   oo o-o   o-O o-o o-O-o     O-o    o-o |  o-O o-o
-        | * |  \  | | |  | |  | | | | | |     |    | |-' | |  |  \
-        | * o   o o-o-o  o  o-o o-o o o o     o    | o-o o  o-o o-o
-        | *
-        | * Logical Markov Random Fields LoMRF (LoMRF).
-        | */
-      """.stripMargin.trim + "\n\n"
-    )
   )
 
 }

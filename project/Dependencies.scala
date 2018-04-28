@@ -37,8 +37,6 @@ object Dependencies {
 
     final val Optimus = "3.0.0"
     final val Breeze = "0.12"
-
-    final val AuxLib = "0.3.0"
   }
 
   // Akka.io
