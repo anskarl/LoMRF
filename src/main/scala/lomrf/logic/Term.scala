@@ -14,12 +14,11 @@
  *  o   o o-o-o  o  o-o o-o o o o     o    | o-o o  o-o o-o
  *
  *  Logical Markov Random Fields (LoMRF).
- *     
+ *
  *
  */
 
 package lomrf.logic
-
 
 /**
   * In ''First-Order Logic'' a `Term` is any expression representing an object
@@ -29,7 +28,7 @@ package lomrf.logic
   *
   * @see [[lomrf.logic.Substitutable]] <br> [[lomrf.logic.MLNExpression]]
   */
-sealed trait Term extends MLNExpression with Substitutable[Term]{
+sealed trait Term extends MLNExpression with Substitutable[Term] {
 
   val symbol: String
 
@@ -88,11 +87,11 @@ sealed trait Term extends MLNExpression with Substitutable[Term]{
   * @param index the variable index in a ''First Order Logic'' expression (default is '0')
   * @param groundPerConstant grounds the variable appearances by replacing them
   */
-sealed case class Variable(override val symbol: String,
-                           private[logic] var domainName: String = Variable.UNDEFINED_DOMAIN,
-                           index: Int = Variable.DEFAULT_INDEX,
-                           groundPerConstant: Boolean = false) extends Term {
-
+sealed case class Variable(
+    override val symbol: String,
+    private[logic] var domainName: String = Variable.UNDEFINED_DOMAIN,
+    index: Int = Variable.DEFAULT_INDEX,
+    groundPerConstant: Boolean = false) extends Term {
 
   /**
     * @inheritdoc
@@ -117,7 +116,7 @@ sealed case class Variable(override val symbol: String,
   def toText = {
     val txtSymbol = if (index > 0) symbol + "_" + index else symbol
 
-    if(groundPerConstant) "+"+txtSymbol else txtSymbol
+    if (groundPerConstant) "+" + txtSymbol else txtSymbol
   }
 
   /**
@@ -163,8 +162,8 @@ sealed case class Variable(override val symbol: String,
 object Variable {
 
   /**
-   * If the domain of a variable is not specified, then by default is '0' (i.e., unassigned domain).
-   */
+    * If the domain of a variable is not specified, then by default is '0' (i.e., unassigned domain).
+    */
   val UNDEFINED_DOMAIN = "0"
 
   /**
@@ -186,11 +185,11 @@ object Variable {
 }
 
 /**
- * Represents a constant symbol.
- *
- * @param symbol constant value
- */
-sealed case class Constant(override val symbol: String) extends Term{
+  * Represents a constant symbol.
+  *
+  * @param symbol constant value
+  */
+sealed case class Constant(override val symbol: String) extends Term {
 
   /**
     * @inheritdoc
@@ -233,10 +232,11 @@ sealed case class Constant(override val symbol: String) extends Term{
   * @param terms function's arguments (Terms, i.e. constants, variables or other functions)
   * @param domain the domain of resulting constant (e.g. persons, object, numbers, etc.)
   */
-sealed case class TermFunction(override val symbol: String,
-                               terms: Vector[_ <: Term],
-                               domain: String) extends Term with TermIterable{
-  
+sealed case class TermFunction(
+    override val symbol: String,
+    terms: Vector[_ <: Term],
+    domain: String) extends Term with TermIterable {
+
   def this(symbol: String, terms: Vector[Term]) = this(symbol, terms, "_?")
 
   lazy val signature = AtomSignature(symbol, terms.size)

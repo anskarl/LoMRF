@@ -14,16 +14,16 @@
  *  o   o o-o-o  o  o-o o-o o o o     o    | o-o o  o-o o-o
  *
  *  Logical Markov Random Fields (LoMRF).
- *     
+ *
  *
  */
 
 package lomrf.mln.learning.supervision
 
 import lomrf.logic._
-import lomrf.mln.model.{LogicFormatter, MLN, ModeDeclarations}
-import scala.util.{Failure, Success, Try}
-import lomrf.{AUX_PRED_PREFIX => PREFIX}
+import lomrf.mln.model.{ LogicFormatter, MLN, ModeDeclarations }
+import scala.util.{ Failure, Success, Try }
+import lomrf.{ AUX_PRED_PREFIX => PREFIX }
 
 package object graphs {
 
@@ -58,9 +58,10 @@ package object graphs {
     * @param modes mode declarations
     * @return a clause
     */
-  private[graphs] def asPattern(querySignature: AtomSignature,
-                                atoms: IndexedSeq[EvidenceAtom],
-                                mln: MLN, modes: ModeDeclarations): Try[Clause] = {
+  private[graphs] def asPattern(
+      querySignature: AtomSignature,
+      atoms: IndexedSeq[EvidenceAtom],
+      mln: MLN, modes: ModeDeclarations): Try[Clause] = {
 
     // Collect all auxiliary predicates
     val auxiliary = for {
@@ -71,11 +72,12 @@ package object graphs {
 
     // flatten evidence atoms by adding auxiliary predicates
     val flattenEvidence = atoms
-      .foldLeft(Set.empty[EvidenceAtom]) { case (result, atom) =>
-        val functionPairs = atom.terms.flatMap(auxiliary.get)
-        result ++ functionPairs.map {
-          case (sig, constants) => EvidenceAtom.asTrue(sig.symbol, constants.toVector)
-        } + atom
+      .foldLeft(Set.empty[EvidenceAtom]) {
+        case (result, atom) =>
+          val functionPairs = atom.terms.flatMap(auxiliary.get)
+          result ++ functionPairs.map {
+            case (sig, constants) => EvidenceAtom.asTrue(sig.symbol, constants.toVector)
+          } + atom
       }
 
     // Map constants to variable symbols in order to reuse the variable symbols for the same constants
@@ -87,8 +89,7 @@ package object graphs {
       val schema = mln.schema.predicates.get(atom.signature) match {
         case Some(existingSchema) => existingSchema
         case None => return Failure(
-          new NoSuchElementException(s"There is no predicate schema defined for signature '${atom.signature}'")
-        )
+          new NoSuchElementException(s"There is no predicate schema defined for signature '${atom.signature}'"))
       }
 
       val placeMarkers = modes(atom.signature).placeMarkers

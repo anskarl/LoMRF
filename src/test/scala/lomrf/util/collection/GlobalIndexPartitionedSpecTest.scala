@@ -14,15 +14,14 @@
  *  o   o o-o-o  o  o-o o-o o o o     o    | o-o o  o-o o-o
  *
  *  Logical Markov Random Fields (LoMRF).
- *     
+ *
  *
  */
 
 package lomrf.util.collection
 
-import lomrf.mln.model.{ConstantsSet, ConstantsDomainBuilder}
-import org.scalatest.{Matchers, FunSpec}
-
+import lomrf.mln.model.{ ConstantsSet, ConstantsDomainBuilder }
+import org.scalatest.{ Matchers, FunSpec }
 
 class GlobalIndexPartitionedSpecTest extends FunSpec with Matchers {
 
@@ -48,8 +47,7 @@ class GlobalIndexPartitionedSpecTest extends FunSpec with Matchers {
 
       ("A globally indexed partitioned collection of integers (1 to 400), using five unequal sized partitions and a PartitionFetcher function:",
         Array(11, 102, 167, 101, 19),
-        Some(arrayPartitionFetcher))
-    )
+        Some(arrayPartitionFetcher)))
 
     for ((message, partitionSizes, fetcherOpt) <- scenarios) describe(message) {
 
@@ -66,7 +64,6 @@ class GlobalIndexPartitionedSpecTest extends FunSpec with Matchers {
           val data: Array[IndexedSeq[Int]] = partitionSizes.scanLeft(0)(_ + _).sliding(2).map(x => (x(0) + 1 to x(1)).toIndexedSeq).toArray
           GlobalIndexPartitioned[IndexedSeq[Int], Int](data)
       }
-
 
       it(s"should contain ${partitionSizes.length} partitions") {
         ipart.numberOfPartitions shouldEqual partitionSizes.length
@@ -107,13 +104,12 @@ class GlobalIndexPartitionedSpecTest extends FunSpec with Matchers {
 
   }
 
-  describe("ConstantsDomain-based tests"){
+  describe("ConstantsDomain-based tests") {
 
-    val domainA = (1 to 100).map(n => "A"+n)
-    val domainB = (1 to 10).map(n => "B"+n)
-    val domainC = (1 to 299).map(n => "C"+n)
-    val domainD = (1 to 541).map(n => "D"+n)
-
+    val domainA = (1 to 100).map(n => "A" + n)
+    val domainB = (1 to 10).map(n => "B" + n)
+    val domainC = (1 to 299).map(n => "C" + n)
+    val domainD = (1 to 541).map(n => "D" + n)
 
     val builder = ConstantsDomainBuilder()
 
@@ -127,7 +123,7 @@ class GlobalIndexPartitionedSpecTest extends FunSpec with Matchers {
     val domainNames = new Array[String](constants.size)
     val domainsValues = new Array[ConstantsSet](constants.size)
 
-    for( ((k, v), idx) <- constants.zipWithIndex ){
+    for (((k, v), idx) <- constants.zipWithIndex) {
       domainNames(idx) = k
       domainsValues(idx) = v
     }
@@ -135,19 +131,16 @@ class GlobalIndexPartitionedSpecTest extends FunSpec with Matchers {
     val partitionSizes = domainsValues.map(_.size)
     val numberOfElements = partitionSizes.sum
 
-
     val scenarios =
-      List[(String,GlobalIndexPartitioned[ConstantsSet, String])](
+      List[(String, GlobalIndexPartitioned[ConstantsSet, String])](
 
         ("With partition fetcher",
           GlobalIndexPartitioned[ConstantsSet, String](domainsValues, partitionSizes, PartitionFetcher.create[ConstantsSet, String])),
 
         ("Without partition fetcher",
-          GlobalIndexPartitioned[ConstantsSet, String](domainsValues))
-      )
+          GlobalIndexPartitioned[ConstantsSet, String](domainsValues)))
 
-    for ((message, collection) <- scenarios ) describe(message) {
-
+    for ((message, collection) <- scenarios) describe(message) {
 
       it(s"contains total '$numberOfElements' elements") {
         collection.size shouldEqual numberOfElements
@@ -158,9 +151,10 @@ class GlobalIndexPartitionedSpecTest extends FunSpec with Matchers {
         var offset = 0
         for {
           partNumber <- 0 until collection.numberOfPartitions
-          domain = domainsValues(partNumber) } {
+          domain = domainsValues(partNumber)
+        } {
 
-          for((element, localIndex) <- domain.zipWithIndex; globalIndex = offset + localIndex) {
+          for ((element, localIndex) <- domain.zipWithIndex; globalIndex = offset + localIndex) {
             collection(globalIndex) shouldEqual element
           }
 
@@ -172,6 +166,5 @@ class GlobalIndexPartitionedSpecTest extends FunSpec with Matchers {
     }
 
   }
-
 
 }

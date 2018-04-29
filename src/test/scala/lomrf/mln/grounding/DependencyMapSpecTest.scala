@@ -14,26 +14,26 @@
  *  o   o o-o-o  o  o-o o-o o o o     o    | o-o o  o-o o-o
  *
  *  Logical Markov Random Fields (LoMRF).
- *     
+ *
  *
  */
 
 package lomrf.mln.grounding
 
 import lomrf.logic._
-import lomrf.mln.model.{AtomIdentityFunctionOps, MLN}
+import lomrf.mln.model.{ AtomIdentityFunctionOps, MLN }
 import lomrf.mln.model.mrf.MRF
 import AtomIdentityFunctionOps._
-import org.scalatest.{FunSpec, Matchers}
+import org.scalatest.{ FunSpec, Matchers }
 import lomrf.tests.TestData
 import lomrf.util.io._
 
 import scala.language.implicitConversions
 
 /**
- * Specification test for dependency map produced by grounding procedure. It is used by learning algorithms in order to
- * reconstruct the ground network without rerunning the grounding procedure in each iteration.
- */
+  * Specification test for dependency map produced by grounding procedure. It is used by learning algorithms in order to
+  * reconstruct the ground network without rerunning the grounding procedure in each iteration.
+  */
 class DependencyMapSpecTest extends FunSpec with Matchers {
 
   private implicit def str2AtomSignature(txt: String): AtomSignature = {
@@ -43,15 +43,14 @@ class DependencyMapSpecTest extends FunSpec with Matchers {
   }
 
   private val sep = System.getProperty("file.separator")
-  private val prefix = TestData.TestFilesPath / "DependencyMap"  //System.getProperty("user.dir") + sep + "Examples" + sep + "data" + sep + "tests" + sep + "DependencyMap" + sep
+  private val prefix = TestData.TestFilesPath / "DependencyMap" //System.getProperty("user.dir") + sep + "Examples" + sep + "data" + sep + "tests" + sep + "DependencyMap" + sep
 
   private val mlnFile = prefix / "DependencyMap.mln"
   private val evidenceFile = prefix / "Empty.db"
 
-
   implicit val mln = MLN.fromFile(mlnFile, queryAtoms = Set("S/1", "C/1", "K/1", "M/1", "F/2"), evidenceFile)
 
-  describe(s"The MLN theory in '$mlnFile'"){
+  describe(s"The MLN theory in '$mlnFile'") {
 
     /*it("should contain 7 formulas") {
       mln.formulas.size shouldBe 7
@@ -70,17 +69,15 @@ class DependencyMapSpecTest extends FunSpec with Matchers {
     }
   }
 
-
   describe(s"The produced MRF when negative weights are allowed") {
-    checkScenario(noNegWeights = true, expectedNumberOfAtoms = 12, expectedNumberOfConstraints = 19 )
+    checkScenario(noNegWeights                = true, expectedNumberOfAtoms = 12, expectedNumberOfConstraints = 19)
   }
 
   describe(s"The produced MRF when negative weights are not allowed") {
-    checkScenario(noNegWeights = false, expectedNumberOfAtoms = 12, expectedNumberOfConstraints = 17 )
+    checkScenario(noNegWeights                = false, expectedNumberOfAtoms = 12, expectedNumberOfConstraints = 17)
   }
 
-
-  private def checkScenario(noNegWeights: Boolean, expectedNumberOfAtoms: Int, expectedNumberOfConstraints: Int ): Unit ={
+  private def checkScenario(noNegWeights: Boolean, expectedNumberOfAtoms: Int, expectedNumberOfConstraints: Int): Unit = {
 
     val mrf = MRF.build(mln, noNegWeights, createDependencyMap = true)
 
@@ -94,7 +91,7 @@ class DependencyMapSpecTest extends FunSpec with Matchers {
 
     val dependencyMap = mrf.dependencyMap.getOrElse(sys.error("Dependency map does not exists."))
 
-    describe("The produced dependency map"){
+    describe("The produced dependency map") {
       val dmIterator = dependencyMap.iterator()
 
       while (dmIterator.hasNext) {

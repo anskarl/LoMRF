@@ -14,13 +14,13 @@
  *  o   o o-o-o  o  o-o o-o o o o     o    | o-o o  o-o o-o
  *
  *  Logical Markov Random Fields (LoMRF).
- *     
+ *
  *
  */
 
 package lomrf.logic.dynamic
 
-import lomrf.logic.{Term, AtomSignature, TermFunction}
+import lomrf.logic.{ Term, AtomSignature, TermFunction }
 
 trait DynamicFunctionBuilder {
   def signature: AtomSignature
@@ -45,7 +45,6 @@ final class DynSuccFunctionBuilder extends DynamicFunctionBuilder {
     new TermFunction("succ", terms)
   }
 
-
   def apply(term: Term, resultDomain: String) = {
     new TermFunction("succ", Vector(term), resultDomain)
   }
@@ -56,7 +55,7 @@ final class DynSuccFunctionBuilder extends DynamicFunctionBuilder {
 
 }
 
-object DynSuccFunctionBuilder{
+object DynSuccFunctionBuilder {
   def apply() = new DynSuccFunctionBuilder
 }
 
@@ -64,7 +63,7 @@ final class DynPrecFunctionBuilder extends DynamicFunctionBuilder {
 
   def signature = AtomSignature("prec", 1)
 
-  def resultFunction = (constants: Vector[String]) => (constants.head.toInt - 1).toString  //preceding  (n-1)
+  def resultFunction = (constants: Vector[String]) => (constants.head.toInt - 1).toString //preceding  (n-1)
 
   def apply(terms: Vector[Term], resultDomain: String) = {
     require(terms.size == 1)
@@ -115,10 +114,9 @@ final class DynPlusFunctionBuilder extends DynamicFunctionBuilder {
   }
 }
 
-object DynPlusFunctionBuilder{
+object DynPlusFunctionBuilder {
   def apply() = new DynPlusFunctionBuilder
 }
-
 
 final class DynMinusFunctionBuilder extends DynamicFunctionBuilder {
 
@@ -145,10 +143,9 @@ final class DynMinusFunctionBuilder extends DynamicFunctionBuilder {
   }
 }
 
-object DynMinusFunctionBuilder{
+object DynMinusFunctionBuilder {
   def apply() = new DynMinusFunctionBuilder
 }
-
 
 final class DynTimesFunctionBuilder extends DynamicFunctionBuilder {
 
@@ -175,7 +172,7 @@ final class DynTimesFunctionBuilder extends DynamicFunctionBuilder {
   }
 }
 
-object DynTimesFunctionBuilder{
+object DynTimesFunctionBuilder {
   def apply() = new DynTimesFunctionBuilder
 }
 
@@ -204,7 +201,7 @@ final class DynDividedByFunctionBuilder extends DynamicFunctionBuilder {
   }
 }
 
-object DynDividedByFunctionBuilder{
+object DynDividedByFunctionBuilder {
   def apply() = new DynDividedByFunctionBuilder
 }
 
@@ -233,10 +230,9 @@ final class DynModFunctionBuilder extends DynamicFunctionBuilder {
   }
 }
 
-object DynModFunctionBuilder{
+object DynModFunctionBuilder {
   def apply() = new DynModFunctionBuilder
 }
-
 
 final class DynConcatFunctionBuilder extends DynamicFunctionBuilder {
 
@@ -263,6 +259,6 @@ final class DynConcatFunctionBuilder extends DynamicFunctionBuilder {
   }
 }
 
-object DynConcatFunctionBuilder{
+object DynConcatFunctionBuilder {
   def apply() = new DynConcatFunctionBuilder
 }

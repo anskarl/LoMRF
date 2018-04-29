@@ -14,7 +14,7 @@
  *  o   o o-o-o  o  o-o o-o o o o     o    | o-o o  o-o o-o
  *
  *  Logical Markov Random Fields (LoMRF).
- *     
+ *
  *
  */
 
@@ -54,9 +54,10 @@ trait Metric {
     * @param matcher a matcher function for the assignment problem
     * @return a distance for the given sequences of evidence atoms
     */
-  final def distance(xAtomSeq: IndexedSeq[EvidenceAtom],
-                     yAtomSeq: IndexedSeq[EvidenceAtom],
-                     matcher: Matcher[Double]): Double = matcher {
+  final def distance(
+      xAtomSeq: IndexedSeq[EvidenceAtom],
+      yAtomSeq: IndexedSeq[EvidenceAtom],
+      matcher: Matcher[Double]): Double = matcher {
     xAtomSeq map (x => yAtomSeq map (y => distance(x, y)))
   }
 }

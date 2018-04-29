@@ -14,21 +14,21 @@
  *  o   o o-o-o  o  o-o o-o o o o     o    | o-o o  o-o o-o
  *
  *  Logical Markov Random Fields (LoMRF).
- *     
+ *
  *
  */
 
 package lomrf.util
 
-import java.io.{File, FilenameFilter, IOException}
-import java.util.jar.{JarEntry, JarFile}
+import java.io.{ File, FilenameFilter, IOException }
+import java.util.jar.{ JarEntry, JarFile }
 import lomrf.util.logging.Implicits._
 import com.typesafe.scalalogging.LazyLogging
 import scala.collection.mutable
 
 /**
- * Implementations finder.
- */
+  * Implementations finder.
+  */
 final class ImplFinder(traitSet: Set[Class[_]]) extends LazyLogging {
 
   private val classFF = new FilenameFilter() {
@@ -120,14 +120,12 @@ final class ImplFinder(traitSet: Set[Class[_]]) extends LazyLogging {
       name = name.replace('\\', '.').replace('/', '.')
       while (name.startsWith(".")) name = name.substring(1)
 
-
       // check if this class implements one of the specified Interfaces
       val clazz = try {
         Class.forName(name, true, clazzLoader)
-      }
-      catch {
+      } catch {
         case e: ClassNotFoundException => null
-        case e: NoClassDefFoundError => null
+        case e: NoClassDefFoundError   => null
       }
 
       if (clazz != null && !clazz.isInterface) {
@@ -137,7 +135,7 @@ final class ImplFinder(traitSet: Set[Class[_]]) extends LazyLogging {
           case Some(entry) =>
             map.get(entry) match {
               case Some(entries) => map(entry) += clazz
-              case None => map(entry) = mutable.HashSet[Class[_]](clazz)
+              case None          => map(entry) = mutable.HashSet[Class[_]](clazz)
             }
           case _ => // ignore
         }
@@ -165,7 +163,4 @@ object ImplFinder {
 
   def apply(traitsSet: Set[Class[_]]) = new ImplFinder(traitsSet)
 }
-
-
-
 

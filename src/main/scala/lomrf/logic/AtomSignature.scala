@@ -14,7 +14,7 @@
  *  o   o o-o-o  o  o-o o-o o o o     o    | o-o o  o-o o-o
  *
  *  Logical Markov Random Fields (LoMRF).
- *     
+ *
  *
  */
 
@@ -23,7 +23,7 @@ package lomrf.logic
 import lomrf.mln.model.MLN
 
 import scala.language.implicitConversions
-import scala.util.{Failure, Try}
+import scala.util.{ Failure, Try }
 
 /**
   * Atom signature uniquely identifies an atom. A signature is composed of
@@ -52,13 +52,13 @@ import scala.util.{Failure, Try}
   * @param symbol an atom or function symbol
   * @param arity the atom's or function's arity
   */
-final class AtomSignature private(val symbol: String, val arity: Int) extends Serializable {
+final class AtomSignature private (val symbol: String, val arity: Int) extends Serializable {
 
   @transient val hash: Int = symbol.hashCode ^ arity
 
   override def equals(obj: Any): Boolean = obj match {
     case other: AtomSignature => other.arity == this.arity && other.symbol == this.symbol
-    case _ => false
+    case _                    => false
   }
 
   override def hashCode: Int = hash
@@ -103,10 +103,10 @@ object AtomSignature {
     * @return the resulting signature
     */
   def parseString(sentence: String): Try[AtomSignature] = {
-      val pos = sentence.indexOf('/')
+    val pos = sentence.indexOf('/')
 
-      if(pos < 0) Failure(new NoSuchElementException(s"Cannot find the character '/' in the specified sentence ($sentence)"))
-      else Try(AtomSignature(sentence.slice(0, pos), sentence.slice(pos + 1, sentence.length).toInt))
+    if (pos < 0) Failure(new NoSuchElementException(s"Cannot find the character '/' in the specified sentence ($sentence)"))
+    else Try(AtomSignature(sentence.slice(0, pos), sentence.slice(pos + 1, sentence.length).toInt))
   }
 }
 
@@ -114,7 +114,7 @@ object AtomSignatureOps {
 
   implicit def tuple2Signature(tuple: (String, Int)): AtomSignature = AtomSignature(tuple._1, tuple._2)
 
-  implicit class AtomSignatureString(val sentence: String) extends AnyVal{
+  implicit class AtomSignatureString(val sentence: String) extends AnyVal {
 
     /**
       * Parses an atom signature from the string. The result is a Success only
@@ -125,7 +125,7 @@ object AtomSignatureOps {
     def signature: Try[AtomSignature] = AtomSignature.parseString(sentence)
   }
 
-  implicit class AtomSignatureInt(val literal: Int) extends AnyVal{
+  implicit class AtomSignatureInt(val literal: Int) extends AnyVal {
 
     /**
       * @param mln an MLN
@@ -133,6 +133,5 @@ object AtomSignatureOps {
       */
     def signature(implicit mln: MLN): AtomSignature = mln.space.signatureOf(literal)
   }
-
 
 }

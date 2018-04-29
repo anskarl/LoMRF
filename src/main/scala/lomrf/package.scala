@@ -14,13 +14,13 @@
  *  o   o o-o-o  o  o-o o-o o o o     o    | o-o o  o-o o-o
  *
  *  Logical Markov Random Fields (LoMRF).
- *     
+ *
  *
  */
 
 /**
- * LoMRF utilities.
- */
+  * LoMRF utilities.
+  */
 package object lomrf {
 
   final val NO_ENTRY_KEY = -1
@@ -50,7 +50,6 @@ package object lomrf {
       |
       |Logical Markov Random Fields LoMRF (LoMRF).
     """.stripMargin
-
 
   final val processors = sys.runtime.availableProcessors
 

@@ -14,13 +14,13 @@
  *  o   o o-o-o  o  o-o o-o o o o     o    | o-o o  o-o o-o
  *
  *  Logical Markov Random Fields (LoMRF).
- *     
+ *
  *
  */
 
 package lomrf.mln.learning.supervision.graphs
 
-import breeze.linalg.{DenseVector, argtopk}
+import breeze.linalg.{ DenseVector, argtopk }
 
 /**
   * A GraphConnector is a higher order function that changes the number of connected
@@ -68,8 +68,7 @@ final case class kNNConnector(k: Int) extends GraphConnector {
       neighbors.map {
         cost => if (topK.contains(cost)) cost else UNCONNECTED
       }
-    }
-    else neighbors
+    } else neighbors
   }
 }
 
@@ -88,5 +87,5 @@ final case class eNNConnector(epsilon: Double) extends GraphConnector {
     *         everything else unconnected (zero)
     */
   override def apply(neighbors: DenseVector[Double]): DenseVector[Double] =
-    neighbors.map( cost => if (cost < epsilon) UNCONNECTED else cost )
+    neighbors.map(cost => if (cost < epsilon) UNCONNECTED else cost)
 }

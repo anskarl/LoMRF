@@ -14,24 +14,24 @@
  *  o   o o-o-o  o  o-o o-o o o o     o    | o-o o  o-o o-o
  *
  *  Logical Markov Random Fields (LoMRF).
- *     
+ *
  *
  */
 
 package lomrf.mln.inference
 
-import java.io.{File, FileOutputStream, PrintStream}
+import java.io.{ File, FileOutputStream, PrintStream }
 import lomrf.logic.AtomSignature
 import lomrf.mln.grounding.MRFBuilder
 import lomrf.mln.model.MLN
-import org.scalatest.{FunSpec, Matchers}
+import org.scalatest.{ FunSpec, Matchers }
 import scala.io.Source
 import lomrf.tests.TestData
 import lomrf.util.io._
 
 /**
- * Specification test for MaxWalkSAT algorithm used for MAP inference.
- */
+  * Specification test for MaxWalkSAT algorithm used for MAP inference.
+  */
 final class MaxWalkSATSpecTest extends FunSpec with Matchers {
 
   private val mainPath = TestData.TestFilesPath / "inference" / "caviar" / "DN"
@@ -51,7 +51,7 @@ final class MaxWalkSATSpecTest extends FunSpec with Matchers {
     if currentPath.exists
 
     mlnFile = findFirstFile(currentPath, _.getName.endsWith(".mln"))
-      .getOrElse(sys.error("Cannot find MLN in '"+currentPath+"'"))
+      .getOrElse(sys.error("Cannot find MLN in '" + currentPath + "'"))
 
     expectedResultFiles = findFiles(currentPath, _.getName.endsWith(".mws.golden"))
 
@@ -150,7 +150,7 @@ final class MaxWalkSATSpecTest extends FunSpec with Matchers {
 
       }
 
-      it(s"produces MAP results for ${expectedResultsMap.size} ground query predicates."){
+      it(s"produces MAP results for ${expectedResultsMap.size} ground query predicates.") {
         countedResults shouldBe expectedResultsMap.size
       }
 

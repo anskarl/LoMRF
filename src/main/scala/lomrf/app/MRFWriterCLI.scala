@@ -14,13 +14,13 @@
  *  o   o o-o-o  o  o-o o-o o o o     o    | o-o o  o-o o-o
  *
  *  Logical Markov Random Fields (LoMRF).
- *     
+ *
  *
  */
 
 package lomrf.app
 
-import java.io.{BufferedWriter, FileWriter}
+import java.io.{ BufferedWriter, FileWriter }
 import java.text.DecimalFormat
 
 import lomrf.util.opt.OptionParser
@@ -30,7 +30,7 @@ import lomrf.mln.model.AtomIdentityFunctionOps
 import AtomIdentityFunctionOps._
 import com.typesafe.scalalogging.LazyLogging
 import lomrf.logic.PredicateCompletionMode._
-import lomrf.logic.dynamic.{DynamicAtomBuilder, DynamicFunctionBuilder}
+import lomrf.logic.dynamic.{ DynamicAtomBuilder, DynamicFunctionBuilder }
 import lomrf.mln.grounding.MRFBuilder
 import lomrf.mln.model.MLN
 import lomrf.mln.model.mrf.MRF
@@ -40,8 +40,8 @@ import lomrf.util.logging.Implicits._
 import scala.collection.mutable.ArrayBuffer
 
 /**
- * Command line tool for exporting ground MRF into various formats.
- */
+  * Command line tool for exporting ground MRF into various formats.
+  */
 object MRFWriterCLI extends LazyLogging {
 
   private lazy val numFormat = new DecimalFormat("0.#########")
@@ -57,7 +57,7 @@ object MRFWriterCLI extends LazyLogging {
       val strMLNFileName = opt.mlnFileName.getOrElse(logger.fatal("Please specify an input MLN file."))
       val strEvidenceFileName = opt.evidenceFileName.getOrElse(logger.fatal("Please specify an input evidence file."))
 
-      logger.info{
+      logger.info {
         s"""
            |Parameters:
            |\t(q) Query predicate(s):  ${opt.query.map(_.toString).reduceLeft((left, right) => left + "," + right)}
@@ -67,7 +67,6 @@ object MRFWriterCLI extends LazyLogging {
            |\t(noNegatedUnit) Eliminate negated ground unit clauses:  ${opt._eliminateNegatedUnit}
          """.stripMargin
       }
-
 
       val mln = opt.implPaths match {
         case Some(paths) =>
@@ -81,11 +80,11 @@ object MRFWriterCLI extends LazyLogging {
       logger.debug(mln.clauses.map(_.toText(weighted = true)).mkString("\n"))
 
       val outputFilePath = opt.outputFileName.getOrElse(logger.fatal("Please specify an output file"))
-      val builder = new MRFBuilder(mln = mln, noNegWeights = opt._noNeg, eliminateNegatedUnit = opt._eliminateNegatedUnit)
+      val builder = new MRFBuilder(mln                  = mln, noNegWeights = opt._noNeg, eliminateNegatedUnit = opt._eliminateNegatedUnit)
       val mrf = builder.buildNetwork
       opt.outputType match {
-        case DIMACS => writeDIMACS(mrf, outputFilePath)
-        case GROUND_CNF => writeNetwork(mrf, outputFilePath)
+        case DIMACS       => writeDIMACS(mrf, outputFilePath)
+        case GROUND_CNF   => writeNetwork(mrf, outputFilePath)
         case FACTOR_GRAPH => writeFactorGraph(mrf, outputFilePath)
       }
 
@@ -93,11 +92,11 @@ object MRFWriterCLI extends LazyLogging {
   }
 
   /**
-   * Write the MRF into the DIMACS format.
-   *
-   * @param mrf input ground Markov Network
-   * @param filePath the output path
-   */
+    * Write the MRF into the DIMACS format.
+    *
+    * @param mrf input ground Markov Network
+    * @param filePath the output path
+    */
   def writeDIMACS(mrf: MRF, filePath: String) {
 
     val out = new BufferedWriter(new FileWriter(filePath))
@@ -123,9 +122,7 @@ object MRFWriterCLI extends LazyLogging {
       val constraint = constraintsIterator.value()
       out.write(
         numFormat.format(
-          if (constraint.getWeight == Double.PositiveInfinity) mrf.weightHard else constraint.getWeight
-        )
-      )
+          if (constraint.getWeight == Double.PositiveInfinity) mrf.weightHard else constraint.getWeight))
       out.write(" ")
       out.write(constraint.literals.map(_.toString).reduceLeft(_ + " " + _))
       out.newLine()
@@ -135,11 +132,11 @@ object MRFWriterCLI extends LazyLogging {
   }
 
   /**
-   * Write the MRF ground network.
-   *
-   * @param mrf input ground Markov Network
-   * @param filePath the output path
-   */
+    * Write the MRF ground network.
+    *
+    * @param mrf input ground Markov Network
+    * @param filePath the output path
+    */
   def writeNetwork(mrf: MRF, filePath: String): Unit = {
 
     implicit val mln: MLN = mrf.mln
@@ -170,13 +167,13 @@ object MRFWriterCLI extends LazyLogging {
   }
 
   /**
-   * Write the MRF as factor graph file format.
-   *
-   * @param mrf input ground Markov Network
-   * @param filePath output path
-   *
-   * @see https://staff.fnwi.uva.nl/j.m.mooij/libDAI/doc/fileformats.html
-   */
+    * Write the MRF as factor graph file format.
+    *
+    * @param mrf input ground Markov Network
+    * @param filePath output path
+    *
+    * @see https://staff.fnwi.uva.nl/j.m.mooij/libDAI/doc/fileformats.html
+    */
   def writeFactorGraph(mrf: MRF, filePath: String): Unit = {
 
     implicit val mln: MLN = mrf.mln
@@ -222,7 +219,6 @@ object MRFWriterCLI extends LazyLogging {
       var nonZeroEntriesCounter = 0
       val entries = ArrayBuffer[String]()
 
-
       val occurrence: Array[Boolean] = literals.map(lit => lit > 0)
       val cartesianIterator = Cartesian.CartesianIterator(literals.map(_ => List(false, true)))
 
@@ -241,7 +237,7 @@ object MRFWriterCLI extends LazyLogging {
               nonZeroEntriesCounter += 1
             case None =>
               entries += "#" + tableIndex + " 0.0"
-        }
+          }
         tableIndex += 1
       }
 
@@ -255,7 +251,7 @@ object MRFWriterCLI extends LazyLogging {
       fgOutput.write("# factor table:")
       fgOutput.newLine()
 
-      for(entry <- entries){
+      for (entry <- entries) {
         fgOutput.write(entry)
         fgOutput.newLine()
       }
@@ -341,12 +337,13 @@ object MRFWriterCLI extends LazyLogging {
     })
 
     opt("f", "format", "<format type>", "Output format type (DIMACS, GROUND_CNF, FACTOR_GRAPH)", {
-      v: String => outputType = v.toUpperCase match {
-        case "DIMACS" => DIMACS
-        case "GROUND_CNF" => GROUND_CNF
-        case "FACTOR_GRAPH" => FACTOR_GRAPH
-        case _ => logger.fatal("Unknown output format type")
-      }
+      v: String =>
+        outputType = v.toUpperCase match {
+          case "DIMACS"       => DIMACS
+          case "GROUND_CNF"   => GROUND_CNF
+          case "FACTOR_GRAPH" => FACTOR_GRAPH
+          case _              => logger.fatal("Unknown output format type")
+        }
     })
 
     flagOpt("noNegWeights", "eliminate-negative-weights", "Eliminate negative weight values from ground clauses.", {
@@ -382,20 +379,20 @@ object MRFWriterCLI extends LazyLogging {
   sealed trait OutputFormatType
 
   /**
-   * Exports a DIMACS file with the resulting CNF clauses.
-   */
+    * Exports a DIMACS file with the resulting CNF clauses.
+    */
   case object DIMACS extends OutputFormatType
 
   /**
-   * Exports an MLN file with the resulting ground CNF clauses.
-   */
+    * Exports an MLN file with the resulting ground CNF clauses.
+    */
   case object GROUND_CNF extends OutputFormatType
 
   /**
-   * Exports a libDAI compatible factor-graph file, that represents the resulting ground MLN.
-   *
-   * @see [[http://cs.ru.nl/~jorism/libDAI/doc/fileformats.html#fileformats-factorgraph]] for details.
-   */
+    * Exports a libDAI compatible factor-graph file, that represents the resulting ground MLN.
+    *
+    * @see [[http://cs.ru.nl/~jorism/libDAI/doc/fileformats.html#fileformats-factorgraph]] for details.
+    */
   case object FACTOR_GRAPH extends OutputFormatType
 
 }

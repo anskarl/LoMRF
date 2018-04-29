@@ -14,7 +14,7 @@
  *  o   o o-o-o  o  o-o o-o o o o     o    | o-o o  o-o o-o
  *
  *  Logical Markov Random Fields (LoMRF).
- *     
+ *
  *
  */
 
@@ -24,18 +24,17 @@ import java.io.File
 
 import lomrf.logic.AtomSignature
 import lomrf.mln.model.MLN
-import lomrf.util.time.{measureTime, msecTimeToText}
-import org.scalatest.{FunSpec, Matchers}
+import lomrf.util.time.{ measureTime, msecTimeToText }
+import org.scalatest.{ FunSpec, Matchers }
 import lomrf.tests.TestData
 import lomrf.util.io._
 
 import scala.io.Source
 
 /**
- * Specification test regarding the grounding process (i.e., the creation of MRF from an MLN)
- */
+  * Specification test regarding the grounding process (i.e., the creation of MRF from an MLN)
+  */
 final class GroundingSpecTest extends FunSpec with Matchers {
-
 
   private val mainPath = TestData.TestFilesPath / "inference" / "caviar" / "DN"
 
@@ -44,7 +43,6 @@ final class GroundingSpecTest extends FunSpec with Matchers {
   val cwa = Set(
     AtomSignature("Happens", 2), AtomSignature("Close", 4), AtomSignature("Next", 2),
     AtomSignature("OrientationMove", 3), AtomSignature("StartTime", 1))
-
 
   var totalTime = 0L
   var iterations = 0
@@ -58,7 +56,7 @@ final class GroundingSpecTest extends FunSpec with Matchers {
     if currentPath.exists
 
     mlnFile = findFirstFile(currentPath, _.getName.endsWith(".mln"))
-      .getOrElse(sys.error("Cannot find MLN in '"+currentPath+"'"))
+      .getOrElse(sys.error("Cannot find MLN in '" + currentPath + "'"))
 
     expectedResultFiles = findFiles(currentPath, _.getName.endsWith(".mws.golden"))
 
@@ -107,14 +105,14 @@ final class GroundingSpecTest extends FunSpec with Matchers {
       }
     }
 
-    it("has continuous index of ground clause ids"){
+    it("has continuous index of ground clause ids") {
       val keys = mrf.constraints.keys()
       var fail = false
       java.util.Arrays.sort(keys)
 
-      for((key,idx) <- keys.zipWithIndex) {
-        if(key != idx){
-          info(key+" != "+idx)
+      for ((key, idx) <- keys.zipWithIndex) {
+        if (key != idx) {
+          info(key + " != " + idx)
           fail = true
         }
       }

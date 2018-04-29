@@ -14,18 +14,18 @@
  *  o   o o-o-o  o  o-o o-o o o o     o    | o-o o  o-o o-o
  *
  *  Logical Markov Random Fields (LoMRF).
- *     
+ *
  *
  */
 
 package lomrf.logic.parser
 
 import scala.util.matching.Regex
-import scala.util.parsing.combinator.{JavaTokenParsers, RegexParsers}
+import scala.util.parsing.combinator.{ JavaTokenParsers, RegexParsers }
 
 /**
- * Contains common regular expressions for parsing.
- */
+  * Contains common regular expressions for parsing.
+  */
 trait CommonsMLNParser extends JavaTokenParsers with RegexParsers {
 
   protected val functionID: Regex = """[a-z]([a-zA-Z0-9]|_[a-zA-Z0-9])*\\([\w_\-,]+\\)""".r

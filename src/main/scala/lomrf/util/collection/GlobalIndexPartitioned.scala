@@ -14,14 +14,13 @@
  *  o   o o-o-o  o  o-o o-o o o o     o    | o-o o  o-o o-o
  *
  *  Logical Markov Random Fields (LoMRF).
- *     
+ *
  *
  */
 
 package lomrf.util.collection
 
-import scala.{specialized => sp}
-
+import scala.{ specialized => sp }
 
 trait GlobalIndexPartitioned[C, @sp(Byte, Short, Int, Long, Float, Double, Boolean) V] {
 
@@ -47,22 +46,21 @@ trait GlobalIndexPartitioned[C, @sp(Byte, Short, Int, Long, Float, Double, Boole
 
 }
 
-abstract class AbstractGlobalIndexPartitioned[C, @sp(Byte, Short, Int, Long, Float, Double, Boolean) V]
-(data: Array[C], partitionSizes: Array[Int]) extends GlobalIndexPartitioned[C, V] {
+abstract class AbstractGlobalIndexPartitioned[C, @sp(Byte, Short, Int, Long, Float, Double, Boolean) V](data: Array[C], partitionSizes: Array[Int]) extends GlobalIndexPartitioned[C, V] {
 
   protected val cumulativeIndices: Array[Int] = partitionSizes.scanLeft(0)(_ + _)
   protected val partitioner: Partitioner[Int] = Partitioner.indexed(cumulativeIndices)
   protected val numberOfElements = partitionSizes.sum
 
   override def apply(key: Int): V = {
-    if(key < 0 || key >= cumulativeIndices.last)
+    if (key < 0 || key >= cumulativeIndices.last)
       throw new IndexOutOfBoundsException(s"Invalid index value.")
 
     fetch(key)
   }
 
   override def get(key: Int): Option[V] = {
-    if(key < 0 || key >= cumulativeIndices.last) None
+    if (key < 0 || key >= cumulativeIndices.last) None
     else Some(fetch(key))
   }
 
@@ -71,10 +69,9 @@ abstract class AbstractGlobalIndexPartitioned[C, @sp(Byte, Short, Int, Long, Flo
   override def partition(partitionIndex: Int): C = data(partitionIndex)
 
   override def getPartition(partitionIndex: Int): Option[C] = {
-    if(partitionIndex < 0 || partitionIndex >= data.length) None
+    if (partitionIndex < 0 || partitionIndex >= data.length) None
     else Some(data(partitionIndex))
   }
-
 
   override def size: Int = numberOfElements
 
@@ -90,8 +87,7 @@ abstract class AbstractGlobalIndexPartitioned[C, @sp(Byte, Short, Int, Long, Flo
 
 object GlobalIndexPartitioned {
 
-  def apply[C <: IndexedSeq[V], @sp(Byte, Short, Int, Long, Float, Double, Boolean) V]
-  (data: Array[C]): GlobalIndexPartitioned[C, V] = {
+  def apply[C <: IndexedSeq[V], @sp(Byte, Short, Int, Long, Float, Double, Boolean) V](data: Array[C]): GlobalIndexPartitioned[C, V] = {
 
     new AbstractGlobalIndexPartitioned[C, V](data, data.map(_.size)) {
 
@@ -104,8 +100,7 @@ object GlobalIndexPartitioned {
     }
   }
 
-  def apply[C, @sp(Byte, Short, Int, Long, Float, Double, Boolean) V]
-  (data: Array[C], partitionSizes: Array[Int], partitionFetcher: PartitionFetcher[Int, C, V]): GlobalIndexPartitioned[C, V] = {
+  def apply[C, @sp(Byte, Short, Int, Long, Float, Double, Boolean) V](data: Array[C], partitionSizes: Array[Int], partitionFetcher: PartitionFetcher[Int, C, V]): GlobalIndexPartitioned[C, V] = {
 
     new AbstractGlobalIndexPartitioned[C, V](data, partitionSizes) {
 
@@ -116,6 +111,5 @@ object GlobalIndexPartitioned {
       }
     }
   }
-
 
 }

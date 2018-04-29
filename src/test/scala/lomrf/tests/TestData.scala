@@ -14,7 +14,7 @@
  *  o   o o-o-o  o  o-o o-o o o o     o    | o-o o  o-o o-o
  *
  *  Logical Markov Random Fields (LoMRF).
- *     
+ *
  *
  */
 
@@ -27,6 +27,5 @@ import scala.language.postfixOps
 object TestData {
 
   final val TestFilesPath = USER_DIR / "Data" / "Unit_Tests" /
-
 
 }

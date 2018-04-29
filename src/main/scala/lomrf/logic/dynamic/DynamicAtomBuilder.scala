@@ -14,14 +14,13 @@
  *  o   o o-o-o  o  o-o o-o o o o     o    | o-o o  o-o o-o
  *
  *  Logical Markov Random Fields (LoMRF).
- *     
+ *
  *
  */
 
 package lomrf.logic.dynamic
 
 import lomrf.logic._
-
 
 trait DynamicAtomBuilder {
 
@@ -35,12 +34,11 @@ trait DynamicAtomBuilder {
 
 }
 
-private[dynamic] final class DynInfix(prefixSymbol: String, infixSymbol:String, terms: Vector[Term]) extends DynamicAtom(prefixSymbol, terms){
+private[dynamic] final class DynInfix(prefixSymbol: String, infixSymbol: String, terms: Vector[Term]) extends DynamicAtom(prefixSymbol, terms) {
   require(terms.size == 2)
 
-  override def toText: String = terms.head.toText+" "+ infixSymbol+" "+terms.last.toText
+  override def toText: String = terms.head.toText + " " + infixSymbol + " " + terms.last.toText
 }
-
 
 final class DynEqualsBuilder extends DynamicAtomBuilder {
 
@@ -48,14 +46,13 @@ final class DynEqualsBuilder extends DynamicAtomBuilder {
 
   override def stateFunction = (constants: Vector[String]) => constants.head == constants.last
 
-  override def apply(terms: Vector[Term]) = new DynInfix("equals","=", terms)
+  override def apply(terms: Vector[Term]) = new DynInfix("equals", "=", terms)
 
 }
 
-object DynEqualsBuilder{
+object DynEqualsBuilder {
   def apply() = new DynEqualsBuilder
 }
-
 
 final class DynLessThanBuilder extends DynamicAtomBuilder {
 
@@ -63,11 +60,11 @@ final class DynLessThanBuilder extends DynamicAtomBuilder {
 
   override def stateFunction = (constants: Vector[String]) => constants.head.toInt < constants.last.toInt
 
-  override def apply(terms: Vector[Term]) = new DynInfix("lessThan","<",terms)
+  override def apply(terms: Vector[Term]) = new DynInfix("lessThan", "<", terms)
 
 }
 
-object DynLessThanBuilder{
+object DynLessThanBuilder {
   def apply() = new DynLessThanBuilder
 }
 
@@ -77,14 +74,13 @@ final class DynLessThanEqBuilder extends DynamicAtomBuilder {
 
   override def stateFunction = (constants: Vector[String]) => constants.head.toInt <= constants.last.toInt
 
-  override def apply(terms: Vector[Term]) = new DynInfix("lessThanEq","<=", terms)
+  override def apply(terms: Vector[Term]) = new DynInfix("lessThanEq", "<=", terms)
 
 }
 
-object DynLessThanEqBuilder{
+object DynLessThanEqBuilder {
   def apply() = new DynLessThanEqBuilder
 }
-
 
 final class DynGreaterThanBuilder extends DynamicAtomBuilder {
 
@@ -92,14 +88,13 @@ final class DynGreaterThanBuilder extends DynamicAtomBuilder {
 
   override def stateFunction = (constants: Vector[String]) => constants.head.toInt > constants.last.toInt
 
-  override def apply(terms: Vector[Term]) = new DynInfix("greaterThan",">", terms)
+  override def apply(terms: Vector[Term]) = new DynInfix("greaterThan", ">", terms)
 
 }
 
-object DynGreaterThanBuilder{
+object DynGreaterThanBuilder {
   def apply() = new DynGreaterThanBuilder
 }
-
 
 final class DynGreaterThanEqBuilder extends DynamicAtomBuilder {
 
@@ -107,16 +102,15 @@ final class DynGreaterThanEqBuilder extends DynamicAtomBuilder {
 
   override def stateFunction = (constants: Vector[String]) => constants.head.toInt >= constants.last.toInt
 
-  override def apply(terms: Vector[Term]) = new DynInfix("greaterThanEq",">=", terms)
+  override def apply(terms: Vector[Term]) = new DynInfix("greaterThanEq", ">=", terms)
 
 }
 
-object DynGreaterThanEqBuilder{
+object DynGreaterThanEqBuilder {
   def apply() = new DynGreaterThanEqBuilder
 }
 
-
-final class DynSubstringBuilder extends DynamicAtomBuilder{
+final class DynSubstringBuilder extends DynamicAtomBuilder {
   override def signature = AtomSignature("substr", 2)
 
   override def stateFunction = (constants: Vector[String]) => constants.last.contains(constants.head)
@@ -127,6 +121,6 @@ final class DynSubstringBuilder extends DynamicAtomBuilder{
   }
 }
 
-object DynSubstringBuilder{
+object DynSubstringBuilder {
   def apply() = new DynSubstringBuilder
 }

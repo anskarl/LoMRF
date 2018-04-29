@@ -14,7 +14,7 @@
  *  o   o o-o-o  o  o-o o-o o o o     o    | o-o o  o-o o-o
  *
  *  Logical Markov Random Fields (LoMRF).
- *     
+ *
  *
  */
 
@@ -31,14 +31,13 @@ package object opt {
   final val defaultValueName = "<value>"
 
   def wrapText(description: String, maxLength: Int): String = {
-    if(description.length < maxLength) description
-    else if(description.substring(0,maxLength).contains(NL)){
+    if (description.length < maxLength) description
+    else if (description.substring(0, maxLength).contains(NL)) {
       val idxNL = description.indexOf(NL)
-      description.substring(0, idxNL).trim() +NLTB+wrapText(description.substring(idxNL+1).trim(), maxLength)
-    }
-    else{
-      val idx = math.max(math.max(description.lastIndexOf(" ", maxLength), description.lastIndexOf(TB,maxLength)), description.lastIndexOf("-",maxLength))
-      description.substring(0, idx).trim()+NLTB+wrapText(description.substring(idx).trim(), maxLength)
+      description.substring(0, idxNL).trim() + NLTB + wrapText(description.substring(idxNL + 1).trim(), maxLength)
+    } else {
+      val idx = math.max(math.max(description.lastIndexOf(" ", maxLength), description.lastIndexOf(TB, maxLength)), description.lastIndexOf("-", maxLength))
+      description.substring(0, idx).trim() + NLTB + wrapText(description.substring(idx).trim(), maxLength)
     }
   }
 }

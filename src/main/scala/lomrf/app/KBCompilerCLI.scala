@@ -14,7 +14,7 @@
  *  o   o o-o-o  o  o-o o-o o o o     o    | o-o o  o-o o-o
  *
  *  Logical Markov Random Fields (LoMRF).
- *     
+ *
  *
  */
 
@@ -27,16 +27,16 @@ import lomrf.util.opt.OptionParser
 import com.typesafe.scalalogging.LazyLogging
 import lomrf.logic._
 import lomrf.logic.PredicateCompletionMode._
-import lomrf.logic.dynamic.{DynamicAtomBuilder, DynamicFunctionBuilder}
-import lomrf.mln.model.{KB, MLNSchema}
+import lomrf.logic.dynamic.{ DynamicAtomBuilder, DynamicFunctionBuilder }
+import lomrf.mln.model.{ KB, MLNSchema }
 import lomrf.util.ImplFinder
 import lomrf.util.logging.Implicits._
 import scala.annotation.tailrec
 
 /**
- * Command line tool for knowledge compilation. In particular using this tool we can perform
- * predicate completion, CNF transformation, FOL function transformation, as well as weights elimination.
- */
+  * Command line tool for knowledge compilation. In particular using this tool we can perform
+  * predicate completion, CNF transformation, FOL function transformation, as well as weights elimination.
+  */
 object KBCompilerCLI extends LazyLogging {
 
   import WeightsMode._
@@ -51,17 +51,17 @@ object KBCompilerCLI extends LazyLogging {
     val opt = new KBCOptions
     if (args.length == 0) println(opt.usage)
     else if (opt.parse(args)) {
-      
-      if(opt.eliminateFunctions && opt.introduceFunctions)
+
+      if (opt.eliminateFunctions && opt.introduceFunctions)
         logger.fatal("Simultaneous elimination and introduction of functions in not possible!")
 
       // In order to eliminate or introduce function CNF must be enabled, otherwise is not possible.
-      if(opt.eliminateFunctions && !opt.cnf) {
+      if (opt.eliminateFunctions && !opt.cnf) {
         logger.warn("Function elimination enables CNF compilation")
         opt.cnf = true
       }
 
-      if(opt.introduceFunctions && !opt.cnf){
+      if (opt.introduceFunctions && !opt.cnf) {
         logger.warn("Function introduction enables CNF compilation")
         opt.cnf = true
       }
@@ -79,26 +79,26 @@ object KBCompilerCLI extends LazyLogging {
         opt.weightsMode,
         opt.pcm,
         opt.cnf,
-        opt.implPaths
-      )
+        opt.implPaths)
     }
   }
 
-  def compile(source: String,
-              evidenceOpt: Option[String],
-              target: String,
-              functionPrefix: String,
-              includeDomain: Boolean,
-              removePredicateDefinitions: Boolean,
-              removeFunctionDefinitions: Boolean,
-              eliminateFunctions: Boolean,
-              introduceFunctions: Boolean,
-              weightsMode: WeightsMode,
-              pcm: PredicateCompletionMode,
-              cnf: Boolean,
-              dynamicDefinitionPaths: Option[Array[String]]): Unit = {
+  def compile(
+      source: String,
+      evidenceOpt: Option[String],
+      target: String,
+      functionPrefix: String,
+      includeDomain: Boolean,
+      removePredicateDefinitions: Boolean,
+      removeFunctionDefinitions: Boolean,
+      eliminateFunctions: Boolean,
+      introduceFunctions: Boolean,
+      weightsMode: WeightsMode,
+      pcm: PredicateCompletionMode,
+      cnf: Boolean,
+      dynamicDefinitionPaths: Option[Array[String]]): Unit = {
 
-    logger.info{
+    logger.info {
       s"""
          |Parameters:
          |\t(cnf) Convert formulas into CNF:  $cnf
@@ -112,7 +112,6 @@ object KBCompilerCLI extends LazyLogging {
          |\t(pcm) Predicate completion mode: ${if (pcm == Standard) "Standard" else if (pcm == Simplification) "Simplification" else "Decomposed"}
        """.stripMargin
     }
-
 
     if (source == target)
       logger.fatal("Target file cannot be the same with source file.")
@@ -133,7 +132,7 @@ object KBCompilerCLI extends LazyLogging {
       case Simplification =>
         val resultingFormulas = kb.predicateSchema -- kb.definiteClauses.map(_.clause.head.signature)
 
-        if(resultingFormulas.isEmpty)
+        if (resultingFormulas.isEmpty)
           logger.warn("The given theory is empty (i.e., contains empty set of non-zeroed formulas).")
 
         resultingFormulas
@@ -142,7 +141,7 @@ object KBCompilerCLI extends LazyLogging {
 
     //lazy val mlnSchema = MLNSchema(resultingPredicateSchema, kb.functionSchema, kb.dynamicPredicates, kb.dynamicFunctions)
 
-    logger.info{
+    logger.info {
       s"""
          |Source MLN: $source
          |\tFound ${kb.formulas.size} formulas
@@ -165,7 +164,7 @@ object KBCompilerCLI extends LazyLogging {
     // write predicate definitions. In case we introduce functions do not write function predicates (beginning with function prefix)
     if (!removePredicateDefinitions && resultingPredicateSchema.nonEmpty) {
       write("// Predicate definitions\n")
-      for ((signature, args) <- resultingPredicateSchema ; if !introduceFunctions || !signature.symbol.contains(functionPrefix)) {
+      for ((signature, args) <- resultingPredicateSchema; if !introduceFunctions || !signature.symbol.contains(functionPrefix)) {
         val line = signature.symbol + (
           if (args.isEmpty) "\n"
           else "(" + args.mkString(",") + ")\n")
@@ -182,18 +181,16 @@ object KBCompilerCLI extends LazyLogging {
           val predicate = functionPrefix + signature.symbol + "(" + retType + "," + args.mkString(",") + ")\n"
           write(predicate)
         }
-      }
-      else if(introduceFunctions) {
+      } else if (introduceFunctions) {
         write("// Function definitions\n")
         for ((signature, args) <- kb.predicateSchema) {
-          if(signature.symbol.contains(functionPrefix)) {
+          if (signature.symbol.contains(functionPrefix)) {
             val function = args.head + " " + signature.symbol.replace(functionPrefix, "") + "(" + args.drop(1).mkString(",") + ")\n"
             write(function)
           }
         }
         write("\n")
-      }
-      else if(kb.functionSchema.nonEmpty) { // in order to write functions definitions, functions must exist
+      } else if (kb.functionSchema.nonEmpty) { // in order to write functions definitions, functions must exist
         write("// Function definitions\n")
         for ((signature, (retType, args)) <- kb.functionSchema) {
           val line = retType + " " + signature.symbol + "(" + args.mkString(",") + ")\n"
@@ -216,8 +213,7 @@ object KBCompilerCLI extends LazyLogging {
         }
       }
       logger.info("Total " + clauseCounter + " clauses are written in '" + target + "'")
-    }
-    else {
+    } else {
       write("\n\n// Formulas\n")
       completedFormulas.foreach(f => {
         write(formulaFormatter(f, weightsMode)); write("\n\n")
@@ -229,14 +225,14 @@ object KBCompilerCLI extends LazyLogging {
   }
 
   /**
-   * Formula formatter for formatting a formula given a particular
-   * weights mode.
-   *
-   * @param formula the formula
-   * @param weightsMode the weights mode
-   *
-   * @return the formatted formula
-   */
+    * Formula formatter for formatting a formula given a particular
+    * weights mode.
+    *
+    * @param formula the formula
+    * @param weightsMode the weights mode
+    *
+    * @return the formatted formula
+    */
   private def formulaFormatter(formula: Formula, weightsMode: WeightsMode): String = {
     formula match {
       case WeightedFormula(w, f) =>
@@ -256,8 +252,8 @@ object KBCompilerCLI extends LazyLogging {
 
   @tailrec
   private def clauseFormatter(clause: Clause, weightsMode: WeightsMode, eliminateFunctions: Boolean,
-                              introduceFunctions: Boolean, functionPrefix: String): String = {
-    import lomrf.logic.{TermFunction, Variable, Term, AtomicFormula}
+      introduceFunctions: Boolean, functionPrefix: String): String = {
+    import lomrf.logic.{ TermFunction, Variable, Term, AtomicFormula }
 
     val functionVarPrefix = "funcRetVar"
 
@@ -268,106 +264,102 @@ object KBCompilerCLI extends LazyLogging {
     if (clause.isUnit && clause.weight < 0)
       clauseFormatter(Clause(Set(clause.literals.head.negate), -clause.weight), weightsMode, eliminateFunctions, introduceFunctions, functionPrefix)
     else {
-        var txtLiterals = ""
+      var txtLiterals = ""
 
-        // Just write the given clause as it is (no functions elimination or introduction)
-        if (!eliminateFunctions && !introduceFunctions)
-          txtLiterals = clause.literals.view.map(_.toText).mkString(" v ")
+      // Just write the given clause as it is (no functions elimination or introduction)
+      if (!eliminateFunctions && !introduceFunctions)
+        txtLiterals = clause.literals.view.map(_.toText).mkString(" v ")
 
-        // Replace all functions in the given clause with utility predicates
-        else if(eliminateFunctions) {
+      // Replace all functions in the given clause with utility predicates
+      else if (eliminateFunctions) {
 
-          val (literalsNoFunctions, literalsWithFunctions) = clause.literals.span(l => l.sentence.functions.isEmpty)
+        val (literalsNoFunctions, literalsWithFunctions) = clause.literals.span(l => l.sentence.functions.isEmpty)
 
-          if(literalsWithFunctions.nonEmpty) {
+        if (literalsWithFunctions.nonEmpty) {
 
-            var fMap = Map[TermFunction, (String, Literal)]()
-            var functionCounter = 0
+          var fMap = Map[TermFunction, (String, Literal)]()
+          var functionCounter = 0
 
-            for(function <- clause.functions) {
-              fMap.get(function) match {
-                case None =>
-                  val functionVar = functionVarPrefix + functionCounter
-                  val terms = Vector(Variable(functionVar, function.domain)) ++:  function.terms
-                  val functionLiteral = NegativeLiteral(AtomicFormula(functionPrefix + function.symbol, terms))
-                  fMap += (function ->(functionVar, functionLiteral))
-                  functionCounter += 1
-                case _ =>
+          for (function <- clause.functions) {
+            fMap.get(function) match {
+              case None =>
+                val functionVar = functionVarPrefix + functionCounter
+                val terms = Vector(Variable(functionVar, function.domain)) ++: function.terms
+                val functionLiteral = NegativeLiteral(AtomicFormula(functionPrefix + function.symbol, terms))
+                fMap += (function -> (functionVar, functionLiteral))
+                functionCounter += 1
+              case _ =>
+            }
+          }
+
+          val replacedLiterals =
+            for {
+              literal <- literalsWithFunctions
+              sentence = literal.sentence
+              newArgs = for (arg <- sentence.terms) yield arg match {
+                case f: TermFunction =>
+                  val varName = fMap(f)._1
+                  Variable(varName, "")
+                case t: Term => t
               }
+            } yield literal match {
+              case p: PositiveLiteral => PositiveLiteral(AtomicFormula(sentence.symbol, newArgs))
+              case n: NegativeLiteral => NegativeLiteral(AtomicFormula(sentence.symbol, newArgs))
             }
 
-            val replacedLiterals =
-              for {
-                literal <- literalsWithFunctions
-                sentence = literal.sentence
-                newArgs = for (arg <- sentence.terms) yield arg match {
-                  case f: TermFunction =>
-                    val varName = fMap(f)._1
-                    Variable(varName, "")
-                  case t: Term => t
-                }
-              } yield literal match {
-                case p: PositiveLiteral => PositiveLiteral(AtomicFormula(sentence.symbol, newArgs))
-                case n: NegativeLiteral => NegativeLiteral(AtomicFormula(sentence.symbol, newArgs))
+          var results =
+            if (literalsNoFunctions.nonEmpty)
+              List[String](literalsNoFunctions.map(_.toText).mkString(" v "))
+            else List[String]()
+
+          if (replacedLiterals.nonEmpty)
+            results = results ::: List[String](replacedLiterals.map(_.toText).mkString(" v "))
+
+          if (fMap.nonEmpty)
+            results = results ::: List[String](fMap.values.map(_._2.toText).mkString(" v "))
+
+          txtLiterals = results.mkString(" v ")
+        } else
+          txtLiterals = literalsNoFunctions.map(_.toText).mkString(" v ")
+      } // Replace all function predicates in the given clause with actual functions
+      else if (introduceFunctions) {
+        val (literalsNoFunctions, literalsFunctions) = clause.literals.partition(l => !l.sentence.symbol.contains(functionPrefix))
+
+        if (literalsFunctions.nonEmpty) {
+
+          var lMap = Map[Term, TermFunction]()
+
+          for (literal <- literalsFunctions) {
+            println(literal.toText)
+            val functionSymbol = literal.sentence.symbol.replace(functionPrefix, "")
+            val functionVar = literal.sentence.terms.head
+            val terms = literal.sentence.terms.drop(1)
+            val function = TermFunction(functionSymbol, terms)
+            lMap += (functionVar -> function)
+          }
+
+          val replacedLiterals =
+            for {
+              literal <- literalsNoFunctions
+              sentence = literal.sentence
+              newArgs = for (arg <- sentence.terms) yield arg match {
+                case t: Term =>
+                  val term = if (lMap.contains(t)) lMap(t) else t
+                  term
               }
+            } yield literal match {
+              case p: PositiveLiteral => PositiveLiteral(AtomicFormula(sentence.symbol, newArgs))
+              case n: NegativeLiteral => NegativeLiteral(AtomicFormula(sentence.symbol, newArgs))
+            }
 
-            var results =
-              if (literalsNoFunctions.nonEmpty)
-                List[String](literalsNoFunctions.map(_.toText).mkString(" v "))
-              else List[String]()
-
+          val results =
             if (replacedLiterals.nonEmpty)
-              results = results ::: List[String](replacedLiterals.map(_.toText).mkString(" v "))
+              List[String](replacedLiterals.map(_.toText).mkString(" v "))
+            else List[String]()
 
-            if (fMap.nonEmpty)
-              results = results ::: List[String](fMap.values.map(_._2.toText).mkString(" v "))
-
-            txtLiterals = results.mkString(" v ")
-          }
-          else
-            txtLiterals = literalsNoFunctions.map(_.toText).mkString(" v ")
-        }
-
-        // Replace all function predicates in the given clause with actual functions
-        else if(introduceFunctions) {
-          val (literalsNoFunctions, literalsFunctions) = clause.literals.partition(l => !l.sentence.symbol.contains(functionPrefix))
-
-          if (literalsFunctions.nonEmpty) {
-
-            var lMap = Map[Term, TermFunction]()
-
-            for(literal <- literalsFunctions) {
-              println(literal.toText)
-              val functionSymbol = literal.sentence.symbol.replace(functionPrefix, "")
-              val functionVar = literal.sentence.terms.head
-              val terms = literal.sentence.terms.drop(1)
-              val function = TermFunction(functionSymbol, terms)
-              lMap += (functionVar -> function)
-            }
-
-            val replacedLiterals =
-              for {
-                literal <- literalsNoFunctions
-                sentence = literal.sentence
-                newArgs = for (arg <- sentence.terms) yield arg match {
-                  case t: Term =>
-                    val term = if(lMap.contains(t)) lMap(t) else t
-                    term
-                }
-              } yield literal match {
-                case p: PositiveLiteral => PositiveLiteral(AtomicFormula(sentence.symbol, newArgs))
-                case n: NegativeLiteral => NegativeLiteral(AtomicFormula(sentence.symbol, newArgs))
-              }
-
-            val results =
-              if(replacedLiterals.nonEmpty)
-                List[String](replacedLiterals.map(_.toText).mkString(" v "))
-              else List[String]()
-
-            txtLiterals = results.mkString(" v ")
-          }
-          else txtLiterals = literalsNoFunctions.map(_.toText).mkString(" v ")
-        }
+          txtLiterals = results.mkString(" v ")
+        } else txtLiterals = literalsNoFunctions.map(_.toText).mkString(" v ")
+      }
 
       weightsMode match {
         case KEEP =>
@@ -440,23 +432,25 @@ object KBCompilerCLI extends LazyLogging {
 
     opt("w", "weights", "<keep | remove_soft | remove_all>",
       "(keep) Keep all given weights, " +
-      "or (remove_soft) eliminate the weighs from all soft-constrained formulas, " +
-      "or (remove_all) convert all formulas to soft-constrained without weights. Please note, that in some cases the weights cannot be kept (e.g. predicate completion with simplification).", {
-      v: String => weightsMode = v.trim.toLowerCase match {
-        case "keep" => KEEP
-        case "remove_soft" => RM_SOFT
-        case "remove_all" => RM_ALL
-        case _ => sys.error("Unknown parameter '" + v + "'.")
-      }
-    })
+        "or (remove_soft) eliminate the weighs from all soft-constrained formulas, " +
+        "or (remove_all) convert all formulas to soft-constrained without weights. Please note, that in some cases the weights cannot be kept (e.g. predicate completion with simplification).", {
+        v: String =>
+          weightsMode = v.trim.toLowerCase match {
+            case "keep"        => KEEP
+            case "remove_soft" => RM_SOFT
+            case "remove_all"  => RM_ALL
+            case _             => sys.error("Unknown parameter '" + v + "'.")
+          }
+      })
 
     opt("pcm", "predicateCompletionMode", "<standard | decomposed | simplification>", "Choose the type of predicate completion (simplification default).", {
-      pc: String => pcm = pc.trim.toLowerCase match {
-        case "simplification" => Simplification
-        case "standard" => Standard
-        case "decomposed" => Decomposed
-        case _ => sys.error("Unknown predicate completion mode '" + pc + "'.")
-      }
+      pc: String =>
+        pcm = pc.trim.toLowerCase match {
+          case "simplification" => Simplification
+          case "standard"       => Standard
+          case "decomposed"     => Decomposed
+          case _                => sys.error("Unknown predicate completion mode '" + pc + "'.")
+        }
     })
 
     flagOpt("includeDomainDef", "domain-definitions", "Include domain definitions", {

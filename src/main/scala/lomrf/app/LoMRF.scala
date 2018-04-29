@@ -14,7 +14,7 @@
  *  o   o o-o-o  o  o-o o-o o o o     o    | o-o o  o-o o-o
  *
  *  Logical Markov Random Fields (LoMRF).
- *     
+ *
  *
  */
 
@@ -24,19 +24,19 @@ import lomrf.util.opt.MasterOptionParser
 
 object LoMRF extends App with MasterOptionParser {
 
-  if(args.isEmpty) {
+  if (args.isEmpty) {
     println(lomrf.ASCIILogo)
     println(lomrf.BuildVersion)
   }
 
-  addOpt("infer",   "Perform probabilistic inference", InferenceCLI.main)
-  addOpt("wlearn",  "Perform weight learning", WeightLearningCLI.main)
-  addOpt("slearn",  "Perform structure learning", StructureLearningCLI.main)
-  addOpt("supervision",  "Perform supervision completion", SemiSupervisionCLI.main)
+  addOpt("infer", "Perform probabilistic inference", InferenceCLI.main)
+  addOpt("wlearn", "Perform weight learning", WeightLearningCLI.main)
+  addOpt("slearn", "Perform structure learning", StructureLearningCLI.main)
+  addOpt("supervision", "Perform supervision completion", SemiSupervisionCLI.main)
   addOpt("compile", "Perform knowledge base compilation", KBCompilerCLI.main)
-  addOpt("diff",    "Perform knowledge base diff", KBDifferenceCLI.main)
-  addOpt("export",  "Export a knowledge base into other supported formats", MRFWriterCLI.main)
-  addOpt("help",    "Show basic usage", _ => {
+  addOpt("diff", "Perform knowledge base diff", KBDifferenceCLI.main)
+  addOpt("export", "Export a knowledge base into other supported formats", MRFWriterCLI.main)
+  addOpt("help", "Show basic usage", _ => {
     println(lomrf.ASCIILogo)
     println(lomrf.BuildVersion)
 

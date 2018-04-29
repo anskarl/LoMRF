@@ -14,14 +14,14 @@
  *  o   o o-o-o  o  o-o o-o o o o     o    | o-o o  o-o o-o
  *
  *  Logical Markov Random Fields (LoMRF).
- *     
+ *
  *
  */
 
 package lomrf.logic.parser
 
-import lomrf.logic.{AtomicType, ConstantTypeDefinition, FunctionType, IntegerTypeDefinition}
-import org.scalatest.{FunSpec, Matchers}
+import lomrf.logic.{ AtomicType, ConstantTypeDefinition, FunctionType, IntegerTypeDefinition }
+import org.scalatest.{ FunSpec, Matchers }
 
 final class DomainParserSpecTest extends FunSpec with Matchers {
 

@@ -14,7 +14,7 @@
  *  o   o o-o-o  o  o-o o-o o o o     o    | o-o o  o-o o-o
  *
  *  Logical Markov Random Fields (LoMRF).
- *     
+ *
  *
  */
 
@@ -22,12 +22,12 @@ package lomrf.mln.model
 
 import lomrf.logic.AtomSignature
 import lomrf.logic.parser.KBParser
-import org.scalatest.{FunSpec, Matchers}
-import lomrf.logic.predef.{dynAtoms, dynFunctions}
+import org.scalatest.{ FunSpec, Matchers }
+import lomrf.logic.predef.{ dynAtoms, dynFunctions }
 
 /**
- * A series of API behaviour tests for KBBuilder
- */
+  * A series of API behaviour tests for KBBuilder
+  */
 class KBBuilderSpecTest extends FunSpec with Matchers {
 
   private val samplePredicateSchema = Map(
@@ -37,8 +37,8 @@ class KBBuilderSpecTest extends FunSpec with Matchers {
     AtomSignature("HoldsAt", 2) -> Vector("fluent", "time"))
 
   private val sampleFunctionsSchema = Map(
-    AtomSignature("walking", 1) ->("event", Vector("id")),
-    AtomSignature("move", 2) ->("fluent", Vector("id", "id")))
+    AtomSignature("walking", 1) -> ("event", Vector("id")),
+    AtomSignature("move", 2) -> ("fluent", Vector("id", "id")))
 
   private val parser = new KBParser(samplePredicateSchema, sampleFunctionsSchema)
 
@@ -48,22 +48,17 @@ class KBBuilderSpecTest extends FunSpec with Matchers {
     ("InitiatedAt", Vector("fluent", "time")),
     ("TerminatedAt", Vector("fluent", "time")),
     ("Initiates", Vector("event", "fluent", "time")),
-    ("Terminates", Vector("event", "fluent", "time"))
-  ).map(schema => AtomSignature(schema._1, schema._2.size) -> schema._2)
-
+    ("Terminates", Vector("event", "fluent", "time"))).map(schema => AtomSignature(schema._1, schema._2.size) -> schema._2)
 
   val sampleFormulas = Seq(
     "0.32 Happens(Walking, t) => InitiatedAt(Moving,t)",
     "Happens(walking(person1), t) ^ Happens(walking(person2), t) => InitiatedAt(move(person1,person2),t).",
     "1.27 InitiatedAt(f, t) => HoldsAt(f, t + 1)",
-    "InitiatedAt(f, t) => HoldsAt(f, t++)."
-  ).map(parser.parseWeightedFormula).toSet
+    "InitiatedAt(f, t) => HoldsAt(f, t++).").map(parser.parseWeightedFormula).toSet
 
   val sampleDefiniteClauses = Seq(
     "0.32 InitiatedAt(Moving, t) :- Happens(Walking, t)",
-    "InitiatedAt(move(person1,person2),t) :- Happens(walking(person1), t) ^ Happens(walking(person2), t)"
-  ).map(parser.parseDefiniteClause).toSet
-
+    "InitiatedAt(move(person1,person2),t) :- Happens(walking(person1), t) ^ Happens(walking(person2), t)").map(parser.parseDefiniteClause).toSet
 
   // --------------------------------------------------------
   // --- KB Builder (creation of empty KB)
@@ -105,7 +100,6 @@ class KBBuilderSpecTest extends FunSpec with Matchers {
       for (schema <- samplePredicateSchemas)
         builder.predicateSchema += schema
 
-
       it(s"contains ${samplePredicateSchemas.size} predicate schema definitions") {
         builder.predicateSchema().size shouldEqual samplePredicateSchemas.size
       }
@@ -130,7 +124,6 @@ class KBBuilderSpecTest extends FunSpec with Matchers {
       val builder = KBBuilder()
 
       builder.predicateSchema ++= samplePredicateSchemas
-
 
       it(s"contains ${samplePredicateSchemas.size} predicate schema definitions") {
         builder.predicateSchema().size shouldEqual samplePredicateSchemas.size
@@ -157,13 +150,11 @@ class KBBuilderSpecTest extends FunSpec with Matchers {
   // --------------------------------------------------------
   describe("KBBuilder insertion of function schemas") {
 
-
     describe("Incremental addition of function schemas") {
       val builder = KBBuilder()
 
       for (schema <- sampleFunctionsSchema)
         builder.functionSchema += schema
-
 
       it(s"contains ${sampleFunctionsSchema.size} function schema definitions") {
         builder.functionSchema().size shouldEqual sampleFunctionsSchema.size
@@ -189,7 +180,6 @@ class KBBuilderSpecTest extends FunSpec with Matchers {
       val builder = KBBuilder()
 
       builder.functionSchema ++= sampleFunctionsSchema
-
 
       it(s"contains ${sampleFunctionsSchema.size} function schema definitions") {
         builder.functionSchema().size shouldEqual sampleFunctionsSchema.size
@@ -220,7 +210,6 @@ class KBBuilderSpecTest extends FunSpec with Matchers {
 
       for (schema <- sampleFunctionsSchema)
         builder.functionSchema += schema
-
 
       it(s"contains ${sampleFunctionsSchema.size} original function schema definitions") {
         builder.functionSchema().size shouldEqual sampleFunctionsSchema.size
@@ -268,7 +257,6 @@ class KBBuilderSpecTest extends FunSpec with Matchers {
       val builder = KBBuilder(convertFunctions = true)
 
       builder.functionSchema ++= sampleFunctionsSchema
-
 
       it(s"contains ${sampleFunctionsSchema.size} original function schema definitions") {
         builder.functionSchema().size shouldEqual sampleFunctionsSchema.size
@@ -322,7 +310,6 @@ class KBBuilderSpecTest extends FunSpec with Matchers {
       for (schema <- dynAtoms)
         builder.dynamicPredicates += schema
 
-
       it(s"contains ${dynAtoms.size} dynamic predicate schema definitions") {
         builder.dynamicPredicates().size shouldEqual dynAtoms.size
       }
@@ -347,7 +334,6 @@ class KBBuilderSpecTest extends FunSpec with Matchers {
       val builder = KBBuilder()
 
       builder.dynamicPredicates ++= dynAtoms
-
 
       it(s"contains ${dynAtoms.size} dynamic predicate schema definitions") {
         builder.dynamicPredicates().size shouldEqual dynAtoms.size
@@ -380,7 +366,6 @@ class KBBuilderSpecTest extends FunSpec with Matchers {
       for (schema <- dynFunctions)
         builder.dynamicFunctions += schema
 
-
       it(s"contains ${dynFunctions.size} dynamic function schema definitions") {
         builder.dynamicFunctions().size shouldEqual dynFunctions.size
       }
@@ -406,7 +391,6 @@ class KBBuilderSpecTest extends FunSpec with Matchers {
 
       builder.dynamicFunctions ++= dynFunctions
 
-
       it(s"contains ${dynFunctions.size} dynamic function schema definitions") {
         builder.dynamicFunctions().size shouldEqual dynFunctions.size
       }
@@ -427,7 +411,6 @@ class KBBuilderSpecTest extends FunSpec with Matchers {
     }
   }
 
-
   // --------------------------------------------------------
   // --- KB Builder (insertion of formulas)
   // --------------------------------------------------------
@@ -438,7 +421,6 @@ class KBBuilderSpecTest extends FunSpec with Matchers {
 
       for (formula <- sampleFormulas)
         builder.formulas += formula
-
 
       it(s"contains ${sampleFormulas.size} formulas") {
         builder.formulas().size shouldEqual sampleFormulas.size
@@ -468,7 +450,6 @@ class KBBuilderSpecTest extends FunSpec with Matchers {
       for (clause <- sampleDefiniteClauses)
         builder.definiteClauses += clause
 
-
       it(s"contains ${sampleDefiniteClauses.size} definite clauses") {
         builder.definiteClauses().size shouldEqual sampleDefiniteClauses.size
       }
@@ -496,7 +477,6 @@ class KBBuilderSpecTest extends FunSpec with Matchers {
 
       builder.formulas ++= sampleFormulas
 
-
       it(s"contains ${sampleFormulas.size} formulas") {
         builder.formulas().size shouldEqual sampleFormulas.size
       }
@@ -522,7 +502,6 @@ class KBBuilderSpecTest extends FunSpec with Matchers {
       val builder = KBBuilder()
 
       builder.definiteClauses ++= sampleDefiniteClauses
-
 
       it(s"contains ${sampleDefiniteClauses.size} definite clauses") {
         builder.definiteClauses().size shouldEqual sampleDefiniteClauses.size
@@ -572,7 +551,7 @@ class KBBuilderSpecTest extends FunSpec with Matchers {
 
     it("contains all specified formulas") {
       assert(sampleFormulas.forall(kb.formulas.contains))
-      kb.formulas.size shouldEqual  sampleFormulas.size
+      kb.formulas.size shouldEqual sampleFormulas.size
     }
 
     it("contains all specified definite clauses") {
@@ -588,6 +567,5 @@ class KBBuilderSpecTest extends FunSpec with Matchers {
       dynAtoms shouldEqual kb.dynamicPredicates
     }
   }
-
 
 }

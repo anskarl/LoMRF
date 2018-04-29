@@ -14,13 +14,13 @@
  *  o   o o-o-o  o  o-o o-o o o o     o    | o-o o  o-o o-o
  *
  *  Logical Markov Random Fields (LoMRF).
- *     
+ *
  *
  */
 
 package lomrf.util
 
-import lomrf.logic.{FALSE, TRUE, TriState}
+import lomrf.logic.{ FALSE, TRUE, TriState }
 
 package object evaluation {
 
@@ -35,10 +35,10 @@ package object evaluation {
 
   private[evaluation] def evaluateSingle(inferredState: Boolean, annotationState: TriState): EvaluationStats = {
     (annotationState, inferredState) match {
-      case (TRUE, true) => (1, 0, 0, 0)
+      case (TRUE, true)   => (1, 0, 0, 0)
       case (FALSE, false) => (0, 1, 0, 0)
-      case (FALSE, true) => (0, 0, 1, 0)
-      case _ => (0, 0, 0, 1)
+      case (FALSE, true)  => (0, 0, 1, 0)
+      case _              => (0, 0, 0, 1)
     }
   }
 }

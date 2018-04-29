@@ -14,7 +14,7 @@
  *  o   o o-o-o  o  o-o o-o o o o     o    | o-o o  o-o o-o
  *
  *  Logical Markov Random Fields (LoMRF).
- *     
+ *
  *
  */
 
@@ -25,7 +25,7 @@ import lomrf.logic.AtomSignature
 import lomrf.util.Cartesian
 import lomrf.util.collection.GlobalIndexPartitioned
 import lomrf.util.time._
-import org.scalatest.{FunSpec, Matchers}
+import org.scalatest.{ FunSpec, Matchers }
 import lomrf.tests.TestData
 import lomrf.util.io._
 
@@ -33,11 +33,9 @@ import scala.language.implicitConversions
 
 final class AtomIdentityFunctionSpecTest extends FunSpec with Matchers {
 
-
   private val testFilesPath = TestData.TestFilesPath
   private val naiveMLN = testFilesPath / "naive.mln"
   private val emptyEvidence = testFilesPath / "Empty.db"
-
 
   // Naive example: We have two predicates: Alpha/3 and Beta/2
   // 1. query atoms:
@@ -55,7 +53,6 @@ final class AtomIdentityFunctionSpecTest extends FunSpec with Matchers {
   info("Constructing MLN from '" + naiveMLN + "' with evidence '" + emptyEvidence + "'")
   val mln = MLN.fromFile(naiveMLN, queryAtoms, emptyEvidence, cwa)
 
-
   // --------------------------------------------
   // --- Utility functions:
   // --------------------------------------------
@@ -66,18 +63,17 @@ final class AtomIdentityFunctionSpecTest extends FunSpec with Matchers {
     AtomIdentityFunction(signature, schema, mln.evidence.constants, startID)
   }
 
-
   // --------------------------------------------
   // --- Testing cases:
   // --------------------------------------------
 
   /**
-   * CASE 1 --- Test if the atom identity function is 1-1:
-   *
-   * The identity function should create a unique id from a
-   * ground atom and by decoding that id we must get the same
-   * ground atom.
-   */
+    * CASE 1 --- Test if the atom identity function is 1-1:
+    *
+    * The identity function should create a unique id from a
+    * ground atom and by decoding that id we must get the same
+    * ground atom.
+    */
   describe("An atom identity function is 1-1.") {
     import System._
 
@@ -118,7 +114,6 @@ final class AtomIdentityFunctionSpecTest extends FunSpec with Matchers {
         val startDecTime = nanoTime
         val decoded = identityFunction.decode(encodedID).getOrElse(sys.error("Cannot decode id: " + encodedID))
         totalDec += nanoTime - startDecTime
-
 
         it("can be encoded to a unique id") {
           isUnique shouldEqual true
@@ -166,7 +161,6 @@ final class AtomIdentityFunctionSpecTest extends FunSpec with Matchers {
       }
     }
 
-
     describe("Filter all instances of Alpha/3 where fluent is equal to 'F1'") {
       import scala.collection.mutable
 
@@ -206,15 +200,12 @@ final class AtomIdentityFunctionSpecTest extends FunSpec with Matchers {
       }
     }
 
-
-
     describe("Filter all instances of Alpha/3 where fluent and time are equal to 'F1' and '0' respectively") {
       import scala.collection.mutable
 
       val cartesianIterator = Cartesian.CartesianIterator(domain)
 
       val collected = mutable.HashMap[Int, Iterable[String]]()
-
 
       while (cartesianIterator.hasNext) {
         val elements = cartesianIterator.next()
@@ -250,7 +241,6 @@ final class AtomIdentityFunctionSpecTest extends FunSpec with Matchers {
         counter shouldEqual collected.size
       }
     }
-
 
     describe("Filter all instances of Alpha/3 where fluent, time and event are equal to 'F1', '0' and 'E3' respectively") {
       import scala.collection.mutable
@@ -315,7 +305,6 @@ final class AtomIdentityFunctionSpecTest extends FunSpec with Matchers {
 
     val cartesianIterator = Cartesian.CartesianIterator(domain)
 
-
     var counter = 0
 
     it("returns valid ids") {
@@ -341,7 +330,7 @@ final class AtomIdentityFunctionSpecTest extends FunSpec with Matchers {
         counter += 1
       }
 
-      info ("totalEnc= "+ totalEnc)
+      info("totalEnc= " + totalEnc)
 
       info(nsecTimeToText("Total time encoding IDs ", totalEnc))
       info(nsecTimeToText("Average time encoding ID ", totalEnc / expectedNumOfGroundings))
@@ -350,7 +339,6 @@ final class AtomIdentityFunctionSpecTest extends FunSpec with Matchers {
       info(nsecTimeToText("Average time decoding ID ", totalDec / expectedNumOfGroundings))
 
     }
-
 
     describe("The total number of Cartesian products") {
       it("should be equal to the number of expected groundings ( = " + expectedNumOfGroundings + ")") {
@@ -409,8 +397,6 @@ final class AtomIdentityFunctionSpecTest extends FunSpec with Matchers {
       info(nsecTimeToText("Average time decoding ID ", totalDec / expectedNumOfGroundings))
     }
 
-
-
     describe("The total number of Cartesian products") {
       it("should be equal to the number of expected groundings ( = " + expectedNumOfGroundings + ")") {
         counter shouldEqual expectedNumOfGroundings
@@ -458,7 +444,6 @@ final class AtomIdentityFunctionSpecTest extends FunSpec with Matchers {
         val product = cartesianIterator.next() // get the next collection of Constants
         allProductsStr += product.toSeq
 
-
         val startEncTime = System.nanoTime
         val encodedID = identityFunction.encode(product)
         totalEnc += System.nanoTime - startEncTime
@@ -473,8 +458,6 @@ final class AtomIdentityFunctionSpecTest extends FunSpec with Matchers {
 
         decoded shouldEqual product
       }
-
-
 
       info(nsecTimeToText("Total time encoding IDs ", totalEnc))
       info(nsecTimeToText("Average time encoding ID ", totalEnc / expectedNumOfGroundings))

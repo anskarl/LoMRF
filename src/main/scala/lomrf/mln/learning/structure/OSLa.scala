@@ -14,7 +14,7 @@
  *  o   o o-o-o  o  o-o o-o o o o     o    | o-o o  o-o o-o
  *
  *  Logical Markov Random Fields (LoMRF).
- *     
+ *
  *
  */
 
@@ -23,15 +23,15 @@ package lomrf.mln.learning.structure
 import lomrf.logic._
 import lomrf.mln.grounding.MRFBuilder
 import lomrf.mln.inference.ILP
-import lomrf.mln.learning.structure.hypergraph.{HyperGraph, PathTemplate, TemplateExtractor}
+import lomrf.mln.learning.structure.hypergraph.{ HyperGraph, PathTemplate, TemplateExtractor }
 import lomrf.mln.model._
 import lomrf.logic.LogicOps._
 import lomrf.logic.AtomSignatureOps._
-import lomrf.mln.model.mrf.{MRF, MRFState}
+import lomrf.mln.model.mrf.{ MRF, MRFState }
 import lomrf.util.time._
 import lomrf.util.logging.Implicits._
 import optimus.optimization.enums.SolverLib
-import scala.util.{Failure, Success}
+import scala.util.{ Failure, Success }
 import scala.language.existentials
 
 /**
@@ -68,11 +68,11 @@ import scala.language.existentials
   * @param backgroundDefiniteClauses a set of background definite clauses
   * @param backgroundClauses a set of background clauses (other clauses given as background knowledge)
   */
-final class OSLa private(kb: KB, constants: ConstantsDomain, evidenceAtoms: Set[AtomSignature], nonEvidenceAtoms: Set[AtomSignature],
-                         modes: ModeDeclarations, maxLength: Int, allowFreeVariables: Boolean, threshold: Int, theta: Double,
-                         ilpSolver: SolverLib, lossAugmented: Boolean, initialWeightValue: Double, lambda: Double, eta: Double, delta: Double,
-                         printLearnedWeightsPerIteration: Boolean, axioms: Set[WeightedFormula], pathTemplates: Set[PathTemplate],
-                         backgroundDefiniteClauses: Set[WeightedDefiniteClause], backgroundClauses: Vector[Clause]) extends StructureLearner {
+final class OSLa private (kb: KB, constants: ConstantsDomain, evidenceAtoms: Set[AtomSignature], nonEvidenceAtoms: Set[AtomSignature],
+    modes: ModeDeclarations, maxLength: Int, allowFreeVariables: Boolean, threshold: Int, theta: Double,
+    ilpSolver: SolverLib, lossAugmented: Boolean, initialWeightValue: Double, lambda: Double, eta: Double, delta: Double,
+    printLearnedWeightsPerIteration: Boolean, axioms: Set[WeightedFormula], pathTemplates: Set[PathTemplate],
+    backgroundDefiniteClauses: Set[WeightedDefiniteClause], backgroundClauses: Vector[Clause]) extends StructureLearner {
 
   // Current training step
   private var step: Int = 0
@@ -102,24 +102,24 @@ final class OSLa private(kb: KB, constants: ConstantsDomain, evidenceAtoms: Set[
   override protected val tolerance: Double = theta
 
   /**
-   * @return a vector of learned clauses
-   */
+    * @return a vector of learned clauses
+    */
   override def getLearnedClauses: Vector[Clause] = learnedClauses
 
   /**
-   * @return a vector of learned weights
-   */
+    * @return a vector of learned weights
+    */
   override def getLearnedWeights: Array[Double] = weights
 
   /**
-   * Find and return all misclassified ground atoms in the previous inferred
-   * state. At the initial step of the algorithm assume that everything is
-   * is misclassified.
-   *
-   * @param annotationDB annotation over the non evidence atoms
-   *
-   * @return all misclassified ground atoms
-   */
+    * Find and return all misclassified ground atoms in the previous inferred
+    * state. At the initial step of the algorithm assume that everything is
+    * is misclassified.
+    *
+    * @param annotationDB annotation over the non evidence atoms
+    *
+    * @return all misclassified ground atoms
+    */
   private def calculateError(annotationDB: EvidenceDB): Vector[Int] = {
 
     var totalError = 0.0
@@ -136,11 +136,11 @@ final class OSLa private(kb: KB, constants: ConstantsDomain, evidenceAtoms: Set[
         assert(numberOfExamples == atoms.size)
 
         val iterator = atoms.iterator()
-        while(iterator.hasNext) {
+        while (iterator.hasNext) {
           iterator.advance()
           val atom = iterator.value()
           val annotation = annotationDB(atom.id.signature(state.mrf.mln))(atom.id)
-          if( (atom.state && annotation == FALSE) || (!atom.state && annotation == TRUE) ) {
+          if ((atom.state && annotation == FALSE) || (!atom.state && annotation == TRUE)) {
             misclassifiedAtomIDs :+= atom.id
             totalError += 1.0
           }
@@ -156,8 +156,8 @@ final class OSLa private(kb: KB, constants: ConstantsDomain, evidenceAtoms: Set[
   }
 
   /**
-   * Perform inference using the ILP solver and return the inferred state.
-   */
+    * Perform inference using the ILP solver and return the inferred state.
+    */
   @inline private def infer(mrf: MRF, annotationDB: EvidenceDB): MRFState = {
     mrf.updateConstraintWeights(weights)
     val solver = new ILP(mrf, annotationDB = annotationDB, lossAugmented = lossAugmented, ilpSolver = ilpSolver)
@@ -165,13 +165,13 @@ final class OSLa private(kb: KB, constants: ConstantsDomain, evidenceAtoms: Set[
   }
 
   /**
-   * Should revise the current theory and return clauses learned for this
-   * training evidence as a vector of clauses.
-   *
-   * @param trainingEvidence the training evidence (includes annotation)
-   *
-   * @return a vector of learned clauses for the given training evidence
-   */
+    * Should revise the current theory and return clauses learned for this
+    * training evidence as a vector of clauses.
+    *
+    * @param trainingEvidence the training evidence (includes annotation)
+    *
+    * @return a vector of learned clauses for the given training evidence
+    */
   override def reviseTheory(trainingEvidence: TrainingEvidence): Vector[Clause] = {
 
     // Increment training step
@@ -191,8 +191,7 @@ final class OSLa private(kb: KB, constants: ConstantsDomain, evidenceAtoms: Set[
         val mrf = new MRFBuilder(mln, createDependencyMap = true).buildNetwork
         val inferredState = infer(mrf, annotationDB)
         Some(inferredState)
-      }
-      else {
+      } else {
         logger.warn("MRF cannot be created, because no clauses were found!")
         None
       }
@@ -254,8 +253,7 @@ final class OSLa private(kb: KB, constants: ConstantsDomain, evidenceAtoms: Set[
         .filter(!_.literals.map(_.sentence.signature).exists(s => templateAtoms.contains(s)))
 
       findTheoryDependencies(currentClauses)
-    }
-    else
+    } else
       logger.info(s"No good clauses were found in iteration $step.")
 
     /*
@@ -304,7 +302,6 @@ final class OSLa private(kb: KB, constants: ConstantsDomain, evidenceAtoms: Set[
     if (printLearnedWeightsPerIteration)
       logger.info("Learned weights on step " + (step + 1) + ":\n" +
         "\t[" + weights.deep.mkString(", ") + "]")
-
 
     learnedClauses
   }
@@ -369,12 +366,9 @@ final class OSLa private(kb: KB, constants: ConstantsDomain, evidenceAtoms: Set[
       learnedClauses = backgroundTheory ++ resultedTheory ++ currentTheory
       weights = backgroundWeights ++ resultedWeights ++ currentTheory.toArray.map(c => if (c.isHard) 0.0 else initialWeightValue)
       sumSquareGradients = backgroundSubGradients ++ resultedSubgradients ++ Array.fill[Int](currentTheory.size)(0)
-    }
-
-    /*
+    } /*
      * In case previous learned theory was empty, then append current
-     */
-    else {
+     */ else {
       learnedClauses = backgroundTheory ++ currentTheory
       weights = backgroundWeights ++ currentTheory.toArray.map(c => if (c.isHard) 0.0 else initialWeightValue)
       sumSquareGradients = backgroundSubGradients ++ Array.fill[Int](currentTheory.size)(0)
@@ -385,38 +379,38 @@ final class OSLa private(kb: KB, constants: ConstantsDomain, evidenceAtoms: Set[
 }
 
 /**
- * Factory for the OSLa algorithm.
- */
+  * Factory for the OSLa algorithm.
+  */
 object OSLa {
 
   /**
-   * Create and OSLa object given an initial knowledge base, non evidence atoms and OSLa parameters.
-   *
-   * @param kb knowledge base definition used for learning clauses
-   * @param constants constant domain of the knowledge base
-   * @param nonEvidenceAtoms a set of non evidence atoms
-   * @param templateAtoms a set of template atoms
-   * @param modes mode declarations to guide the search
-   * @param maxLength maximum length of a path
-   * @param allowFreeVariables allow learned clauses to have free variables e.g. variables appearing only once
-   * @param threshold evaluation threshold for each new clause produced
-   * @param ilpSolver solver type selection option for ILP inference (default is LpSolve)
-   * @param lossAugmented use loss augmented inference (default is false)
-   * @param lambda regularization parameter for AdaGrad online learner (default is 0.01)
-   * @param eta learning rate parameter for AdaGrad online learner (default is 1.0)
-   * @param delta delta parameter for AdaGrad (should be positive or equal zero, default is 1.0)
-   * @param printLearnedWeightsPerIteration print learned weights for each iteration (default is false)
-   *
-   * @return an instance of OSLa learner
-   */
+    * Create and OSLa object given an initial knowledge base, non evidence atoms and OSLa parameters.
+    *
+    * @param kb knowledge base definition used for learning clauses
+    * @param constants constant domain of the knowledge base
+    * @param nonEvidenceAtoms a set of non evidence atoms
+    * @param templateAtoms a set of template atoms
+    * @param modes mode declarations to guide the search
+    * @param maxLength maximum length of a path
+    * @param allowFreeVariables allow learned clauses to have free variables e.g. variables appearing only once
+    * @param threshold evaluation threshold for each new clause produced
+    * @param ilpSolver solver type selection option for ILP inference (default is LpSolve)
+    * @param lossAugmented use loss augmented inference (default is false)
+    * @param lambda regularization parameter for AdaGrad online learner (default is 0.01)
+    * @param eta learning rate parameter for AdaGrad online learner (default is 1.0)
+    * @param delta delta parameter for AdaGrad (should be positive or equal zero, default is 1.0)
+    * @param printLearnedWeightsPerIteration print learned weights for each iteration (default is false)
+    *
+    * @return an instance of OSLa learner
+    */
   def apply(kb: KB, constants: ConstantsDomain, nonEvidenceAtoms: Set[AtomSignature],
-            templateAtoms: Set[AtomSignature], modes: ModeDeclarations, maxLength: Int, allowFreeVariables: Boolean,
-            threshold: Int, theta: Double = 0.0, ilpSolver: SolverLib = SolverLib.LpSolve, lossAugmented: Boolean = false,
-            initialWeightValue: Double = 0.01, lambda: Double = 0.01, eta: Double = 1.0, delta: Double = 1.0,
-            printLearnedWeightsPerIteration: Boolean = false): OSLa = {
+      templateAtoms: Set[AtomSignature], modes: ModeDeclarations, maxLength: Int, allowFreeVariables: Boolean,
+      threshold: Int, theta: Double = 0.0, ilpSolver: SolverLib = SolverLib.LpSolve, lossAugmented: Boolean = false,
+      initialWeightValue: Double = 0.01, lambda: Double = 0.01, eta: Double = 1.0, delta: Double = 1.0,
+      printLearnedWeightsPerIteration: Boolean = false): OSLa = {
 
     val (axioms, definiteClauses, clauses, pathTemplates) = TemplateExtractor(kb, constants, nonEvidenceAtoms, templateAtoms) match {
-      case Success(tuple) => tuple
+      case Success(tuple)     => tuple
       case Failure(exception) => throw exception
     }
 
@@ -428,7 +422,7 @@ object OSLa {
     val evidenceAtoms = kb.predicateSchema.keySet -- nonEvidenceAtoms
 
     new OSLa(kb, constants, evidenceAtoms, nonEvidenceAtoms, modes, maxLength, allowFreeVariables, threshold, theta,
-      ilpSolver, lossAugmented, initialWeightValue, lambda, eta, delta, printLearnedWeightsPerIteration, axioms,
-      pathTemplates, definiteClauses, clauses.toVector)
+             ilpSolver, lossAugmented, initialWeightValue, lambda, eta, delta, printLearnedWeightsPerIteration, axioms,
+             pathTemplates, definiteClauses, clauses.toVector)
   }
 }

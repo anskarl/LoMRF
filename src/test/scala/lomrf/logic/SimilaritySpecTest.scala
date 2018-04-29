@@ -14,27 +14,28 @@
  *  o   o o-o-o  o  o-o o-o o o o     o    | o-o o  o-o o-o
  *
  *  Logical Markov Random Fields (LoMRF).
- *     
+ *
  *
  */
 
 package lomrf.logic
 
-import org.scalatest.{Matchers, FunSpec}
+import org.scalatest.{ Matchers, FunSpec }
 
 /**
- * Similarity specification test. It tests the similarity operation between atomic formulas
- * and between clauses.
- */
+  * Similarity specification test. It tests the similarity operation between atomic formulas
+  * and between clauses.
+  */
 class SimilaritySpecTest extends FunSpec with Matchers {
 
-  val atomicFormulasA = Set(AtomicFormula("PredA", Vector(Variable("x"), Variable("y"))),
-                            AtomicFormula("PredA", Vector(Variable("x"), Variable("t"))),
-                            AtomicFormula("PredA", Vector(Variable("z"), Variable("x"))) )
+  val atomicFormulasA = Set(
+    AtomicFormula("PredA", Vector(Variable("x"), Variable("y"))),
+    AtomicFormula("PredA", Vector(Variable("x"), Variable("t"))),
+    AtomicFormula("PredA", Vector(Variable("z"), Variable("x"))))
 
-  val atomicFormulasB = Set(AtomicFormula("PredB", Vector(Variable("p"), Constant("A"), Variable("q"))),
-                            AtomicFormula("PredB", Vector(Variable("q"), Constant("A"), Variable("p"))) )
-
+  val atomicFormulasB = Set(
+    AtomicFormula("PredB", Vector(Variable("p"), Constant("A"), Variable("q"))),
+    AtomicFormula("PredB", Vector(Variable("q"), Constant("A"), Variable("p"))))
 
   describe("Similarity check between atomic formulas") {
 
@@ -93,21 +94,25 @@ class SimilaritySpecTest extends FunSpec with Matchers {
 
   describe("Similarity check between clauses having atoms from both sets, but different sense") {
 
-    val clauseA = Clause(Set( Literal.asNegative(atomicFormulasB.head),
-                              Literal.asNegative(atomicFormulasA.head),
-                              Literal.asNegative(atomicFormulasB.last)) )
+    val clauseA = Clause(Set(
+      Literal.asNegative(atomicFormulasB.head),
+      Literal.asNegative(atomicFormulasA.head),
+      Literal.asNegative(atomicFormulasB.last)))
 
-    val clauseB = Clause(Set( Literal.asNegative(atomicFormulasB.head),
-                              Literal.asNegative(atomicFormulasA.last),
-                              Literal.asPositive(atomicFormulasB.last)) )
+    val clauseB = Clause(Set(
+      Literal.asNegative(atomicFormulasB.head),
+      Literal.asNegative(atomicFormulasA.last),
+      Literal.asPositive(atomicFormulasB.last)))
 
-    val clauseC = Clause(Set( Literal.asNegative(atomicFormulasB.last),
-                              Literal.asNegative(atomicFormulasA.head),
-                              Literal.asPositive(atomicFormulasB.head)) )
+    val clauseC = Clause(Set(
+      Literal.asNegative(atomicFormulasB.last),
+      Literal.asNegative(atomicFormulasA.head),
+      Literal.asPositive(atomicFormulasB.head)))
 
-    val clauseD = Clause(Set( Literal.asNegative(atomicFormulasB.last),
-                              Literal.asPositive(atomicFormulasA.head),
-                              Literal.asNegative(atomicFormulasB.head)) )
+    val clauseD = Clause(Set(
+      Literal.asNegative(atomicFormulasB.last),
+      Literal.asPositive(atomicFormulasA.head),
+      Literal.asNegative(atomicFormulasB.head)))
 
     it("Each clause should be similar to itself") {
       clauseA =~= clauseA shouldBe true
@@ -131,13 +136,16 @@ class SimilaritySpecTest extends FunSpec with Matchers {
 
   describe("Similarity check between definite clauses having atoms from both sets, but different sense") {
 
-    val definiteClauseA = DefiniteClause(atomicFormulasA.head,
+    val definiteClauseA = DefiniteClause(
+      atomicFormulasA.head,
       And(atomicFormulasA.last, atomicFormulasB.head))
 
-    val definiteClauseB = DefiniteClause(atomicFormulasA.last,
+    val definiteClauseB = DefiniteClause(
+      atomicFormulasA.last,
       And(atomicFormulasA.head, atomicFormulasB.last))
 
-    val definiteClauseC = DefiniteClause(atomicFormulasA.last,
+    val definiteClauseC = DefiniteClause(
+      atomicFormulasA.last,
       And(Not(atomicFormulasA.head), atomicFormulasB.last))
 
     it("Each definite clause should be similar to itself") {

@@ -14,13 +14,13 @@
  *  o   o o-o-o  o  o-o o-o o o o     o    | o-o o  o-o o-o
  *
  *  Logical Markov Random Fields (LoMRF).
- *     
+ *
  *
  */
 
 package lomrf.util.collection
 
-import scala.{specialized => sp}
+import scala.{ specialized => sp }
 
 trait Partitioner[@sp(Byte, Short, Int, Long) K] {
 
@@ -29,7 +29,6 @@ trait Partitioner[@sp(Byte, Short, Int, Long) K] {
   def numPartitions: Int
 
 }
-
 
 object Partitioner {
 
@@ -41,13 +40,13 @@ object Partitioner {
 
       (typeOf[K] match {
 
-        case TypeTag.Int => new FixedSizePartitionerInt(size)
+        case TypeTag.Int   => new FixedSizePartitionerInt(size)
 
-        case TypeTag.Long => new FixedSizePartitionerLong(size)
+        case TypeTag.Long  => new FixedSizePartitionerLong(size)
 
         case TypeTag.Short => new FixedSizePartitionerShort(size)
 
-        case TypeTag.Byte => new FixedSizePartitionerByte(size)
+        case TypeTag.Byte  => new FixedSizePartitionerByte(size)
 
         case t => new FixedSizePartitioner[K](size) {
           override def apply(key: K): Int = {
@@ -59,7 +58,6 @@ object Partitioner {
     }
 
   }
-
 
   object indexed {
 
@@ -90,16 +88,17 @@ object Partitioner {
       }
     }
 
-
     def fromRanges(ranges: Iterable[Range]): Partitioner[Int] = {
-      require(ranges.forall(_.step == 1),
+      require(
+        ranges.forall(_.step == 1),
         "Only ranges with successive values supported, i.e., ranges having step size equal to one.")
 
       apply(ranges.map(_.size).scanLeft(0)(_ + _).toArray)
     }
 
     def fromRanges[@sp(Byte, Short, Int, Long) K](ranges: Iterable[Range], f: K => Int): Partitioner[K] = {
-      require(ranges.forall(_.step == 1),
+      require(
+        ranges.forall(_.step == 1),
         "Only ranges with successive values supported, i.e., ranges having step size equal to one.")
 
       apply(ranges.map(_.size).scanLeft(0)(_ + _).toArray, f)
@@ -109,28 +108,26 @@ object Partitioner {
 
     def fromSizes[@sp(Byte, Short, Int, Long) K](sizes: Iterable[Int], f: K => Int): Partitioner[K] = apply(sizes.scanLeft(0)(_ + _).toArray, f)
 
-
   }
 
   private abstract class FixedSizePartitioner[@sp(Byte, Short, Int, Long) K](size: Int) extends Partitioner[K] {
     override def numPartitions: Int = size
   }
 
-  private class FixedSizePartitionerByte(size: Int) extends FixedSizePartitioner[Byte](size){
-      override def apply(key: Byte): Int = (key & Int.MaxValue) % size
+  private class FixedSizePartitionerByte(size: Int) extends FixedSizePartitioner[Byte](size) {
+    override def apply(key: Byte): Int = (key & Int.MaxValue) % size
   }
 
-  private class FixedSizePartitionerShort(size: Int) extends FixedSizePartitioner[Short](size){
+  private class FixedSizePartitionerShort(size: Int) extends FixedSizePartitioner[Short](size) {
     override def apply(key: Short): Int = (key & Int.MaxValue) % size
   }
 
-  private class FixedSizePartitionerInt(size: Int) extends FixedSizePartitioner[Int](size){
+  private class FixedSizePartitionerInt(size: Int) extends FixedSizePartitioner[Int](size) {
     override def apply(key: Int): Int = (key & Int.MaxValue) % size
   }
 
-  private class FixedSizePartitionerLong(size: Int) extends FixedSizePartitioner[Long](size){
+  private class FixedSizePartitionerLong(size: Int) extends FixedSizePartitioner[Long](size) {
     override def apply(key: Long): Int = (key.toInt & Int.MaxValue) % size
   }
-
 
 }

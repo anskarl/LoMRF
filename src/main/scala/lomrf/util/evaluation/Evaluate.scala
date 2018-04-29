@@ -14,15 +14,15 @@
  *  o   o o-o-o  o  o-o o-o o o o     o    | o-o o  o-o o-o
  *
  *  Logical Markov Random Fields (LoMRF).
- *     
+ *
  *
  */
 
 package lomrf.util.evaluation
 
 import scala.collection.parallel.ParSeq
-import lomrf.logic.{AtomSignature, EvidenceAtom, UNKNOWN}
-import lomrf.mln.model.{AtomEvidenceDB, MLN}
+import lomrf.logic.{ AtomSignature, EvidenceAtom, UNKNOWN }
+import lomrf.mln.model.{ AtomEvidenceDB, MLN }
 import lomrf.mln.model.mrf.GroundAtom
 
 object Evaluate {
@@ -30,7 +30,7 @@ object Evaluate {
   /**
     * @return an empty evaluation tuple
     */
-  def empty: EvaluationStats  = (0, 0, 0, 0)
+  def empty: EvaluationStats = (0, 0, 0, 0)
 
   /**
     * Count the number of true positives, true negatives, false positives and false negatives in the given evidence atoms,
@@ -42,27 +42,28 @@ object Evaluate {
     *
     * @return the counted true positives, true negatives, false positives and false negatives
     */
-  def apply(atoms: ParSeq[EvidenceAtom],
-            annotationDB: Map[AtomSignature, AtomEvidenceDB],
-            previousEvaluation: Option[EvaluationStats]): EvaluationStats = {
+  def apply(
+      atoms: ParSeq[EvidenceAtom],
+      annotationDB: Map[AtomSignature, AtomEvidenceDB],
+      previousEvaluation: Option[EvaluationStats]): EvaluationStats = {
 
     if (atoms.isEmpty) previousEvaluation match {
       case Some(previousStats) => return previousStats
-      case None => return empty
+      case None                => return empty
     }
 
-    require(atoms.forall(_.state != UNKNOWN) , "All evidence atoms should have known truth values.")
+    require(atoms.forall(_.state != UNKNOWN), "All evidence atoms should have known truth values.")
 
     val currentStats = atoms.map { evidenceAtom =>
-        val truthValue = evidenceAtom.state.value
-        val db = annotationDB(evidenceAtom.signature)
-        val annotation = db(evidenceAtom.terms.map(_.toString))
-        evaluateSingle(truthValue > 0, annotation)
-      }.reduce(combine)
+      val truthValue = evidenceAtom.state.value
+      val db = annotationDB(evidenceAtom.signature)
+      val annotation = db(evidenceAtom.terms.map(_.toString))
+      evaluateSingle(truthValue > 0, annotation)
+    }.reduce(combine)
 
     previousEvaluation match {
       case Some(previousStats) => combine(previousStats, currentStats)
-      case None => currentStats
+      case None                => currentStats
     }
   }
 
@@ -76,22 +77,23 @@ object Evaluate {
     *
     * @return the counted true positives, true negatives, false positives and false negatives
     */
-  def apply(atoms: ParSeq[GroundAtom],
-            annotationDB: Map[AtomSignature, AtomEvidenceDB],
-            previousEvaluation: Option[EvaluationStats])(implicit mln: MLN): EvaluationStats = {
+  def apply(
+      atoms: ParSeq[GroundAtom],
+      annotationDB: Map[AtomSignature, AtomEvidenceDB],
+      previousEvaluation: Option[EvaluationStats])(implicit mln: MLN): EvaluationStats = {
 
-    val currentStats = atoms.map{ groundAtom =>
-        val inferredState = groundAtom.getState
-        val gid = groundAtom.id
-        val signature = mln.space.signatureOf(gid)
-        val annotationState = annotationDB(signature)(gid)
-        evaluateSingle(inferredState, annotationState)
-      }
+    val currentStats = atoms.map { groundAtom =>
+      val inferredState = groundAtom.getState
+      val gid = groundAtom.id
+      val signature = mln.space.signatureOf(gid)
+      val annotationState = annotationDB(signature)(gid)
+      evaluateSingle(inferredState, annotationState)
+    }
       .reduce(combine)
 
     previousEvaluation match {
       case Some(previousStats) => combine(previousStats, currentStats)
-      case None => currentStats
+      case None                => currentStats
     }
   }
 
@@ -107,27 +109,28 @@ object Evaluate {
     *
     * @return the counted true positives, true negatives, false positives and false negatives
     */
-  def apply(atoms: ParSeq[GroundAtom],
-            annotationDB: Map[AtomSignature, AtomEvidenceDB],
-            samples: Int, threshold: Double = 0.5,
-            previousEvaluation: Option[EvaluationStats])(implicit mln: MLN): EvaluationStats = {
+  def apply(
+      atoms: ParSeq[GroundAtom],
+      annotationDB: Map[AtomSignature, AtomEvidenceDB],
+      samples: Int, threshold: Double = 0.5,
+      previousEvaluation: Option[EvaluationStats])(implicit mln: MLN): EvaluationStats = {
 
     require(threshold > 0.0 && threshold < 1.0, "Threshold value should be between 0 and 1.")
     require(samples > 0, "Number of samples should be great than zero.")
 
-    val currentStats = atoms.map{ groundAtom =>
-        val inferredProbability = groundAtom.getTruesCount * 1.0 / samples
-        val state = inferredProbability >= threshold
-        val gid = groundAtom.id
-        val signature = mln.space.signatureOf(gid)
-        val annotationState = annotationDB(signature)(gid)
-        evaluateSingle(state, annotationState)
-      }
+    val currentStats = atoms.map { groundAtom =>
+      val inferredProbability = groundAtom.getTruesCount * 1.0 / samples
+      val state = inferredProbability >= threshold
+      val gid = groundAtom.id
+      val signature = mln.space.signatureOf(gid)
+      val annotationState = annotationDB(signature)(gid)
+      evaluateSingle(state, annotationState)
+    }
       .reduce(combine)
 
     previousEvaluation match {
       case Some(previousStats) => combine(previousStats, currentStats)
-      case None => currentStats
+      case None                => currentStats
     }
   }
 

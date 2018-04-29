@@ -14,27 +14,27 @@
  *  o   o o-o-o  o  o-o o-o o o o     o    | o-o o  o-o o-o
  *
  *  Logical Markov Random Fields (LoMRF).
- *     
+ *
  *
  */
 
 package lomrf.logic.dynamic
 
-import lomrf.logic.{Term, AtomicFormula}
+import lomrf.logic.{ Term, AtomicFormula }
 
 /**
- *
- */
-class DynamicAtom(override val symbol: String, override val terms: Vector[Term]) extends AtomicFormula(symbol,terms){
+  *
+  */
+class DynamicAtom(override val symbol: String, override val terms: Vector[Term]) extends AtomicFormula(symbol, terms) {
   override val isDynamic = true
 }
 
 object DynamicAtom {
-  def apply(symbol: String, terms: Vector[Term]) = new DynamicAtom(symbol,terms)
+  def apply(symbol: String, terms: Vector[Term]) = new DynamicAtom(symbol, terms)
 
-  def unapply(obj: DynamicAtom): Option[(String, List[Term])] = obj match{
-    case DynamicAtom(symbol, terms) => Some((symbol,terms))
-    case _ => None
+  def unapply(obj: DynamicAtom): Option[(String, List[Term])] = obj match {
+    case DynamicAtom(symbol, terms) => Some((symbol, terms))
+    case _                          => None
   }
 
 }

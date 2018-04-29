@@ -14,7 +14,7 @@
  *  o   o o-o-o  o  o-o o-o o o o     o    | o-o o  o-o o-o
  *
  *  Logical Markov Random Fields (LoMRF).
- *     
+ *
  *
  */
 
@@ -31,7 +31,7 @@ object TroveConversions {
   // Byte iterator
   implicit def asScalaIteratorByte(i: TByteIterator): Iterator[Byte] = i match {
     case TByteIteratorWrapper(wrapped) => wrapped
-    case _ => ScalaIteratorByteWrapper(i)
+    case _                             => ScalaIteratorByteWrapper(i)
   }
 
   case class TByteIteratorWrapper(underlying: Iterator[Byte]) extends TByteIterator {
@@ -51,7 +51,7 @@ object TroveConversions {
   // Byte to Byte iterator
   implicit def asScalaIteratorByteByte(i: TByteByteIterator): Iterator[(Byte, Byte)] = i match {
     case TByteByteIteratorWrapper(wrapped) => wrapped
-    case _ => ScalaIteratorByteByte(i)
+    case _                                 => ScalaIteratorByteByte(i)
   }
 
   case class TByteByteIteratorWrapper(underlying: Iterator[(Byte, Byte)]) extends TByteByteIterator {
@@ -86,7 +86,7 @@ object TroveConversions {
   // Byte to Short iterator
   implicit def asScalaIteratorByteShort(i: TByteShortIterator): Iterator[(Byte, Short)] = i match {
     case TByteShortIteratorWrapper(wrapped) => wrapped
-    case _ => ScalaIteratorByteShort(i)
+    case _                                  => ScalaIteratorByteShort(i)
   }
 
   case class TByteShortIteratorWrapper(underlying: Iterator[(Byte, Short)]) extends TByteShortIterator {
@@ -121,7 +121,7 @@ object TroveConversions {
   // Byte to Int iterator
   implicit def asScalaIteratorByteInt(i: TByteIntIterator): Iterator[(Byte, Int)] = i match {
     case TByteIntIteratorWrapper(wrapped) => wrapped
-    case _ => ScalaIteratorByteInt(i)
+    case _                                => ScalaIteratorByteInt(i)
   }
 
   case class TByteIntIteratorWrapper(underlying: Iterator[(Byte, Int)]) extends TByteIntIterator {
@@ -156,7 +156,7 @@ object TroveConversions {
   // Byte to Long iterator
   implicit def asScalaIteratorByteLong(i: TByteLongIterator): Iterator[(Byte, Long)] = i match {
     case TByteLongIteratorWrapper(wrapped) => wrapped
-    case _ => ScalaIteratorByteLong(i)
+    case _                                 => ScalaIteratorByteLong(i)
   }
 
   case class TByteLongIteratorWrapper(underlying: Iterator[(Byte, Long)]) extends TByteLongIterator {
@@ -191,7 +191,7 @@ object TroveConversions {
   // Byte to Float iterator
   implicit def asScalaIteratorByteFloat(i: TByteFloatIterator): Iterator[(Byte, Float)] = i match {
     case TByteFloatIteratorWrapper(wrapped) => wrapped
-    case _ => ScalaIteratorByteFloat(i)
+    case _                                  => ScalaIteratorByteFloat(i)
   }
 
   case class TByteFloatIteratorWrapper(underlying: Iterator[(Byte, Float)]) extends TByteFloatIterator {
@@ -226,7 +226,7 @@ object TroveConversions {
   // Byte to Double iterator
   implicit def asScalaIteratorByteDouble(i: TByteDoubleIterator): Iterator[(Byte, Double)] = i match {
     case TByteDoubleIteratorWrapper(wrapped) => wrapped
-    case _ => ScalaIteratorByteDouble(i)
+    case _                                   => ScalaIteratorByteDouble(i)
   }
 
   case class TByteDoubleIteratorWrapper(underlying: Iterator[(Byte, Double)]) extends TByteDoubleIterator {
@@ -261,7 +261,7 @@ object TroveConversions {
   // Byte to Object iterator
   implicit def asScalaIteratorByteObject[T](i: TByteObjectIterator[T]): Iterator[(Byte, T)] = i match {
     case TByteObjectIteratorWrapper(wrapped) => wrapped
-    case _ => ScalaIteratorByteObject[T](i)
+    case _                                   => ScalaIteratorByteObject[T](i)
   }
 
   case class TByteObjectIteratorWrapper[T](underlying: Iterator[(Byte, T)]) extends TByteObjectIterator[T] {
@@ -293,7 +293,6 @@ object TroveConversions {
     def hasNext: Boolean = underlying.hasNext
   }
 
-
   // iterable
   /*
   implicit def asScalaIterableByte(i: TByteCollection): Iterable[Byte] = ScalaIterableByteWrapper(i)
@@ -308,7 +307,7 @@ object TroveConversions {
 
   implicit def asScalaIteratorShort(i: TShortIterator): Iterator[Short] = i match {
     case TShortIteratorWrapper(wrapped) => wrapped
-    case _ => ScalaIteratorShortWrapper(i)
+    case _                              => ScalaIteratorShortWrapper(i)
   }
 
   case class TShortIteratorWrapper(underlying: Iterator[Short]) extends TShortIterator {
@@ -329,7 +328,7 @@ object TroveConversions {
 
   implicit def asScalaIteratorInt(i: gnu.trove.iterator.TIntIterator): Iterator[Int] = i match {
     case TIntIteratorWrapper(wrapped) => wrapped
-    case _ => ScalaIteratorIntWrapper(i)
+    case _                            => ScalaIteratorIntWrapper(i)
   }
 
   case class TIntIteratorWrapper(underlying: Iterator[Int]) extends TIntIterator {
@@ -349,7 +348,7 @@ object TroveConversions {
   //===================== (Int, Object) =====================
   implicit def asScalaIteratorIntObj[T](i: gnu.trove.iterator.TIntObjectIterator[T]): Iterator[(Int, T)] = i match {
     case TIntObjectIteratorWrapper(wrapped) => wrapped
-    case _ => ScalaIteratorIntObjectWrapper(i)
+    case _                                  => ScalaIteratorIntObjectWrapper(i)
   }
 
   implicit def tIntObjectHashMapToScalaIterator[T](i: gnu.trove.map.TIntObjectMap[T]): Iterator[(Int, T)] = i.iterator()
@@ -363,7 +362,6 @@ object TroveConversions {
   case class TIntObjectIteratorWrapper[T](underlying: Iterator[(Int, T)]) extends TIntObjectIterator[T] {
     private var _key: Int = _
     private var _value: T = _
-
 
     override def key(): Int = _key
 
@@ -393,7 +391,7 @@ object TroveConversions {
   //===================== Long =====================
   implicit def asScalaIteratorLong(i: gnu.trove.iterator.TLongIterator): Iterator[Long] = i match {
     case TLongIteratorWrapper(wrapped) => wrapped
-    case _ => ScalaIteratorLongWrapper(i)
+    case _                             => ScalaIteratorLongWrapper(i)
   }
 
   case class TLongIteratorWrapper(underlying: Iterator[Long]) extends TLongIterator {
@@ -413,7 +411,7 @@ object TroveConversions {
   //===================== Float =====================
   implicit def asScalaIteratorFloat(i: gnu.trove.iterator.TFloatIterator): Iterator[Float] = i match {
     case TFloatIteratorWrapper(wrapped) => wrapped
-    case _ => ScalaIteratorFloatWrapper(i)
+    case _                              => ScalaIteratorFloatWrapper(i)
   }
 
   case class TFloatIteratorWrapper(underlying: Iterator[Float]) extends TFloatIterator {
@@ -433,7 +431,7 @@ object TroveConversions {
   //===================== Double =====================
   implicit def asScalaIteratorDouble(i: gnu.trove.iterator.TDoubleIterator): Iterator[Double] = i match {
     case TDoubleIteratorWrapper(wrapped) => wrapped
-    case _ => ScalaIteratorDoubleWrapper(i)
+    case _                               => ScalaIteratorDoubleWrapper(i)
   }
 
   case class TDoubleIteratorWrapper(underlying: Iterator[Double]) extends TDoubleIterator {

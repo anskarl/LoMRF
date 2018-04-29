@@ -14,20 +14,20 @@
  *  o   o o-o-o  o  o-o o-o o o o     o    | o-o o  o-o o-o
  *
  *  Logical Markov Random Fields (LoMRF).
- *     
+ *
  *
  */
 
 package lomrf.mln.learning.structure.hypergraph
 
-import lomrf.logic.{AtomSignature, Constant, EvidenceAtom, TRUE}
+import lomrf.logic.{ AtomSignature, Constant, EvidenceAtom, TRUE }
 import lomrf.mln.learning.structure.ModeParser
 import lomrf.mln.model._
-import org.scalatest.{FunSpec, Matchers}
+import org.scalatest.{ FunSpec, Matchers }
 
 /**
- * Specification test for HyperGraph paths.
- */
+  * Specification test for HyperGraph paths.
+  */
 final class HPathSpecTest extends FunSpec with Matchers {
 
   private val DOMAIN_SIZE = 5
@@ -75,7 +75,7 @@ final class HPathSpecTest extends FunSpec with Matchers {
   val atomIDs = predicateSchema.keys.flatMap { signature =>
     val db = evidence.db(signature)
     val idf = db.identity
-    idf.indices filter (id => db.get(id) == TRUE) map ( id => id -> signature)
+    idf.indices filter (id => db.get(id) == TRUE) map (id => id -> signature)
   }.toMap
 
   it("should exist only 10 true ground atoms") {
@@ -91,7 +91,7 @@ final class HPathSpecTest extends FunSpec with Matchers {
     var path = HPath.empty(modes, identities)
 
     // Add all ids
-    atomIDs.foreach { case (id, signature) => path +=(id, signature) }
+    atomIDs.foreach { case (id, signature) => path += (id, signature) }
 
     it("path should have length 10") {
       path.length shouldBe 10

@@ -14,23 +14,23 @@
  *  o   o o-o-o  o  o-o o-o o o o     o    | o-o o  o-o o-o
  *
  *  Logical Markov Random Fields (LoMRF).
- *     
+ *
  *
  */
 
 package lomrf.mln.learning.structure.hypergraph
 
-import lomrf.logic.{AtomSignature, Constant, EvidenceAtom, FunctionMapping}
+import lomrf.logic.{ AtomSignature, Constant, EvidenceAtom, FunctionMapping }
 import lomrf.mln.learning.structure.ClauseConstructor.ClauseType
 import lomrf.mln.learning.structure._
 import lomrf.mln.model._
-import lomrf.{AUX_PRED_PREFIX => PREFIX}
-import org.scalatest.{FunSpec, Matchers}
-import scala.util.{Failure, Success}
+import lomrf.{ AUX_PRED_PREFIX => PREFIX }
+import org.scalatest.{ FunSpec, Matchers }
+import scala.util.{ Failure, Success }
 
 /**
- * Specification test for HyperGraph creation and search.
- */
+  * Specification test for HyperGraph creation and search.
+  */
 final class HypergraphSpecTest extends FunSpec with Matchers {
 
   // ------------------------------------------------------------------------------------------------------------------
@@ -49,8 +49,7 @@ final class HypergraphSpecTest extends FunSpec with Matchers {
       AtomSignature("Next", 2) -> Vector("time", "time"),
       AtomSignature("HoldsAt", 2) -> Vector("fluent", "time"),
       AtomSignature("Ignore", 1) -> Vector("ignore"),
-      AtomSignature("ZeroRecall", 1) -> Vector("ignore")
-    )
+      AtomSignature("ZeroRecall", 1) -> Vector("ignore"))
 
     // Query predicates
     val queryPredicates = Set[AtomSignature](AtomSignature("HoldsAt", 2))
@@ -60,8 +59,7 @@ final class HypergraphSpecTest extends FunSpec with Matchers {
       "time" -> ConstantsSet((0 to TIME_DOMAIN_SIZE).map(_.toString)),
       "fluent" -> ConstantsSet("Dead", "Alive", "Loaded"),
       "event" -> ConstantsSet("Shoot", "Load"),
-      "ignore" -> ConstantsSet("Ignore1", "Ignore2", "Ignore3", "Ignore4", "Ignore5", "Ignore6", "Ignore7", "Ignore8")
-    )
+      "ignore" -> ConstantsSet("Ignore1", "Ignore2", "Ignore3", "Ignore4", "Ignore5", "Ignore6", "Ignore7", "Ignore8"))
 
     val builder = EvidenceBuilder(predicateSchema, queryPredicates, Set.empty, constantsDomain)
 
@@ -143,8 +141,7 @@ final class HypergraphSpecTest extends FunSpec with Matchers {
       "modeP(2, HoldsAt(+,+))",
       "modeP(1, Next(-,+))",
       "modeP(*, Ignore(.))",
-      "modeP(0, ZeroRecall(+))"
-    )
+      "modeP(0, ZeroRecall(+))")
 
     val modes = ModeParser.parseFrom(modeList)
 
@@ -224,15 +221,13 @@ final class HypergraphSpecTest extends FunSpec with Matchers {
     val predicateSchema = Map(
       AtomSignature("Happens", 2) -> Vector("event", "time"),
       AtomSignature("Next", 2) -> Vector("time", "time"),
-      AtomSignature("HoldsAt", 2) -> Vector("fluent", "time")
-    )
+      AtomSignature("HoldsAt", 2) -> Vector("fluent", "time"))
 
     // Function schema
     val functionSchema = Map(
-      AtomSignature("meet", 2) ->("fluent", Vector("id", "id")),
-      AtomSignature("inactive", 1) ->("event", Vector("id")),
-      AtomSignature("walking", 1) ->("event", Vector("id"))
-    )
+      AtomSignature("meet", 2) -> ("fluent", Vector("id", "id")),
+      AtomSignature("inactive", 1) -> ("event", Vector("id")),
+      AtomSignature("walking", 1) -> ("event", Vector("id")))
 
     // Query predicates
     val queryPredicates = Set[AtomSignature](AtomSignature("HoldsAt", 2))
@@ -242,8 +237,7 @@ final class HypergraphSpecTest extends FunSpec with Matchers {
       "id" -> ConstantsSet("ID1", "ID2"),
       "time" -> ConstantsSet((0 to TIME_DOMAIN_SIZE).map(_.toString)),
       "fluent" -> ConstantsSet("Meet_ID1_ID2", "Meet_ID2_ID1", "Meet_ID1_ID1", "Meet_ID2_ID2"),
-      "event" -> ConstantsSet("Walking_ID1", "Walking_ID2", "Inactive_ID1", "Inactive_ID2")
-    )
+      "event" -> ConstantsSet("Walking_ID1", "Walking_ID2", "Inactive_ID1", "Inactive_ID2"))
 
     // Evidence Builder
     val builder = EvidenceBuilder(predicateSchema, functionSchema, queryPredicates, Set.empty, constantsDomain, convertFunctionsToPredicates = true)
@@ -306,8 +300,7 @@ final class HypergraphSpecTest extends FunSpec with Matchers {
       AtomSignature("HoldsAt", 2) -> Vector("fluent", "time"),
       AtomSignature(s"${PREFIX}meet", 3) -> Vector("fluent", "id", "id"),
       AtomSignature(s"${PREFIX}inactive", 2) -> Vector("event", "id"),
-      AtomSignature(s"${PREFIX}walking", 2) -> Vector("event", "id")
-    )
+      AtomSignature(s"${PREFIX}walking", 2) -> Vector("event", "id"))
 
     // Create MLN
     val mlnSchema = new MLNSchema(AuxPredicateSchema, Map.empty, Map.empty, Map.empty)
@@ -335,8 +328,7 @@ final class HypergraphSpecTest extends FunSpec with Matchers {
       "modeP(1, Next(-,+))",
       "modeF(2, walking(+))",
       "modeF(2, inactive(+))",
-      "modeF(1, meet(-,-))"
-    )
+      "modeF(1, meet(-,-))")
 
     val modes = ModeParser.parseFrom(modeList)
 
@@ -415,18 +407,16 @@ final class HypergraphSpecTest extends FunSpec with Matchers {
     // Predicate schema
     val predicateSchema = Map(
       AtomSignature("Evidence", 2) -> Vector("fooDomain", "id"),
-      AtomSignature("Query", 2) -> Vector("quxDomain", "id")
-    )
+      AtomSignature("Query", 2) -> Vector("quxDomain", "id"))
 
     // Function schema
     val functionSchema = Map(
-      AtomSignature("foo", 2) ->("fooDomain", Vector("barDomain", "number")),
-      AtomSignature("bar", 2) ->("barDomain", Vector("bazDomain", "character")),
-      AtomSignature("baz", 1) ->("bazDomain", Vector("symbol")),
-      AtomSignature("qux", 2) ->("quxDomain", Vector("qaxDomain", "number")),
-      AtomSignature("qax", 2) ->("qaxDomain", Vector("quzDomain", "character")),
-      AtomSignature("quz", 1) ->("quzDomain", Vector("symbol"))
-    )
+      AtomSignature("foo", 2) -> ("fooDomain", Vector("barDomain", "number")),
+      AtomSignature("bar", 2) -> ("barDomain", Vector("bazDomain", "character")),
+      AtomSignature("baz", 1) -> ("bazDomain", Vector("symbol")),
+      AtomSignature("qux", 2) -> ("quxDomain", Vector("qaxDomain", "number")),
+      AtomSignature("qax", 2) -> ("qaxDomain", Vector("quzDomain", "character")),
+      AtomSignature("quz", 1) -> ("quzDomain", Vector("symbol")))
 
     // Query predicates
     val queryPredicates = Set[AtomSignature](AtomSignature("Query", 2))
@@ -444,8 +434,7 @@ final class HypergraphSpecTest extends FunSpec with Matchers {
       "quxDomain" -> ConstantsSet("Qux_AT_A_0", "Qux_AT_B_0", "Qux_AT_A_1", "Qux_AT_B_1",
         "Qux_STAR_A_0", "Qux_STAR_B_0", "Qux_STAR_A_1", "Qux_STAR_B_1"),
       "qaxDomain" -> ConstantsSet("Qax_AT_A", "Qax_AT_B", "Qax_STAR_A", "Qax_STAR_B"),
-      "quzDomain" -> ConstantsSet("Quz_AT", "Quz_STAR")
-    )
+      "quzDomain" -> ConstantsSet("Quz_AT", "Quz_STAR"))
 
     // Evidence Builder
     val builder = EvidenceBuilder(predicateSchema, functionSchema, queryPredicates, Set.empty, constantsDomain, convertFunctionsToPredicates = true)
@@ -503,8 +492,7 @@ final class HypergraphSpecTest extends FunSpec with Matchers {
       AtomSignature(s"${PREFIX}baz", 2) -> Vector("bazDomain", "symbol"),
       AtomSignature(s"${PREFIX}qux", 3) -> Vector("quxDomain", "qaxDomain", "number"),
       AtomSignature(s"${PREFIX}qax", 3) -> Vector("qaxDomain", "quzDomain", "character"),
-      AtomSignature(s"${PREFIX}quz", 2) -> Vector("quzDomain", "symbol")
-    )
+      AtomSignature(s"${PREFIX}quz", 2) -> Vector("quzDomain", "symbol"))
 
     // Create MLN
     val mlnSchema = new MLNSchema(AuxPredicateSchema, Map.empty, Map.empty, Map.empty)
@@ -532,8 +520,7 @@ final class HypergraphSpecTest extends FunSpec with Matchers {
       "modeF(1, quz(-))",
       "modeF(1, foo(-, +))",
       "modeF(1, bar(-, +))",
-      "modeF(1, baz(-))"
-    )
+      "modeF(1, baz(-))")
 
     val modes = ModeParser.parseFrom(modeList)
 

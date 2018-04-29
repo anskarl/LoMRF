@@ -14,7 +14,7 @@
  *  o   o o-o-o  o  o-o o-o o o o     o    | o-o o  o-o o-o
  *
  *  Logical Markov Random Fields (LoMRF).
- *     
+ *
  *
  */
 
@@ -23,7 +23,7 @@ package lomrf.mln.model
 import gnu.trove.TCollections
 import gnu.trove.map.TIntObjectMap
 import gnu.trove.map.hash.TIntObjectHashMap
-import lomrf.logic.{Constant, FunctionMapping}
+import lomrf.logic.{ Constant, FunctionMapping }
 
 import scala.collection.mutable
 import lomrf.util.collection.trove.TroveConversions._
@@ -153,7 +153,6 @@ final class FunctionMapperBuilder(identityFunction: AtomIdentityFunction)
 object FunctionMapperBuilder {
 
   implicit def functionMappingConv(fm: FunctionMapping): (Vector[String], String) = (fm.values, fm.retValue)
-
 
   def apply(identityFunction: AtomIdentityFunction) = new FunctionMapperBuilder(identityFunction)
 }

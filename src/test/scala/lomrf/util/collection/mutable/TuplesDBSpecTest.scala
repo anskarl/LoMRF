@@ -14,18 +14,18 @@
  *  o   o o-o-o  o  o-o o-o o o o     o    | o-o o  o-o o-o
  *
  *  Logical Markov Random Fields (LoMRF).
- *     
+ *
  *
  */
 
 package lomrf.util.collection.mutable
 
-import org.scalatest.{Matchers, FunSpec}
+import org.scalatest.{ Matchers, FunSpec }
 
 /**
- * Specification test for TuplesDB holding tuples of cartesian products
- * over variable constants.
- */
+  * Specification test for TuplesDB holding tuples of cartesian products
+  * over variable constants.
+  */
 final class TuplesDBSpecTest extends FunSpec with Matchers {
 
   describe("Check simple insertions and deletion") {
@@ -318,7 +318,7 @@ final class TuplesDBSpecTest extends FunSpec with Matchers {
 
     val domains = variables map (vname => (1 to 10).map(vname + "_" + _).toSet)
 
-    for(i <- variables.indices) db += (variables(i), domains(i))
+    for (i <- variables.indices) db += (variables(i), domains(i))
 
     it("should contain 5 variables and 100000 tuples") {
       db.numberOfKeys shouldBe 5
@@ -760,7 +760,7 @@ final class TuplesDBSpecTest extends FunSpec with Matchers {
 
       db allowOnly Map("y" -> Vector("A"))
 
-      db allowEverything()
+      db allowEverything ()
 
       db += ("y", Set("A", "B", "C"))
       db += ("x", Set("10", "11"))

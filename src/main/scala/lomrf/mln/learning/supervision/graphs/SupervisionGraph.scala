@@ -14,7 +14,7 @@
  *  o   o o-o-o  o  o-o o-o o o o     o    | o-o o  o-o o-o
  *
  *  Logical Markov Random Fields (LoMRF).
- *     
+ *
  *
  */
 
@@ -22,14 +22,14 @@ package lomrf.mln.learning.supervision.graphs
 
 import lomrf.logic._
 import lomrf.util.logging.Implicits._
-import breeze.linalg.{DenseMatrix, DenseVector, pinv, sum}
+import breeze.linalg.{ DenseMatrix, DenseVector, pinv, sum }
 import com.typesafe.scalalogging.LazyLogging
 import lomrf.mln.learning.supervision.metric._
 import lomrf.mln.model._
 import lomrf.util.time._
-import lomrf.{AUX_PRED_PREFIX => PREFIX}
+import lomrf.{ AUX_PRED_PREFIX => PREFIX }
 
-import scala.util.{Failure, Success, Try}
+import scala.util.{ Failure, Success, Try }
 
 /**
   * Node is a collection of evidence atoms that correspond to a query atom,
@@ -40,10 +40,11 @@ import scala.util.{Failure, Success, Try}
   * @param clause a clausal representation for the node (optional)
   * @param body a disjunction of all evidence atoms present in the node (optional)
   */
-case class Node(query: EvidenceAtom,
-                evidence: IndexedSeq[EvidenceAtom],
-                clause: Option[Clause],
-                body: Option[Clause]) {
+case class Node(
+    query: EvidenceAtom,
+    evidence: IndexedSeq[EvidenceAtom],
+    clause: Option[Clause],
+    body: Option[Clause]) {
 
   def isLabeled: Boolean = query.state != UNKNOWN
 
@@ -83,15 +84,16 @@ case class Node(query: EvidenceAtom,
   * @param numericalDomains a set of domains to be considered as numerical (optional)
   * @param supervisionBuilder a supervision evidence builder that contains the completed annotation
   */
-final class SupervisionGraph private(nodes: IndexedSeq[Node],
-                                     querySignature: AtomSignature,
-                                     connector: GraphConnector,
-                                     metric: StructureMetric,
-                                     matcher: Matcher[Double],
-                                     groupByDomains: Option[Set[String]],
-                                     numericalDomains: Option[Set[String]],
-                                     supervisionBuilder: EvidenceBuilder,
-                                     nodeCache: Set[(Clause, Int)] = Set.empty) extends LazyLogging {
+final class SupervisionGraph private (
+    nodes: IndexedSeq[Node],
+    querySignature: AtomSignature,
+    connector: GraphConnector,
+    metric: StructureMetric,
+    matcher: Matcher[Double],
+    groupByDomains: Option[Set[String]],
+    numericalDomains: Option[Set[String]],
+    supervisionBuilder: EvidenceBuilder,
+    nodeCache: Set[(Clause, Int)] = Set.empty) extends LazyLogging {
 
   private val (labeledNodes, unlabeledNodes) = nodes.span(_.isLabeled)
 
@@ -117,8 +119,7 @@ final class SupervisionGraph private(nodes: IndexedSeq[Node],
     numericalDomains match {
       case None => metric
       case Some(domains) => metric.makeNumeric(
-        (x: Double, y: Double) => math.abs(x - y) / (x + y), domains
-      )
+        (x: Double, y: Double) => math.abs(x - y) / (x + y), domains)
     }
 
   /**
@@ -128,25 +129,22 @@ final class SupervisionGraph private(nodes: IndexedSeq[Node],
     if (unlabeledNodes.isEmpty) {
       logger.warn("No unlabeled query atoms found!")
       (Set.empty[EvidenceAtom], supervisionBuilder.result())
-    }
-    else if (labeledNodes.isEmpty || nonEmptyLabeledNodes.isEmpty) {
+    } else if (labeledNodes.isEmpty || nonEmptyLabeledNodes.isEmpty) {
       logger.warn("No labeled query atoms found or labeled nodes are empty. " +
-           "Setting all unlabeled to FALSE due to close world assumption!")
+        "Setting all unlabeled to FALSE due to close world assumption!")
       val unlabeledAtoms = unlabeledNodes.map { node =>
         EvidenceAtom.asFalse(node.query.symbol, node.query.terms)
       }.toSet
       supervisionBuilder.evidence ++= unlabeledAtoms
       (unlabeledAtoms, supervisionBuilder.result())
-    }
-    else if (nonEmptyUnlabeledNodes.isEmpty) {
+    } else if (nonEmptyUnlabeledNodes.isEmpty) {
       logger.warn("All unlabeled nodes are empty. Setting all unlabeled to FALSE!")
-      val unlabeledAtoms =  emptyNodes.filter(_.isUnlabeled).map {
+      val unlabeledAtoms = emptyNodes.filter(_.isUnlabeled).map {
         n => EvidenceAtom.asFalse(n.query.symbol, n.query.terms)
       }.toSet
       supervisionBuilder.evidence ++= unlabeledAtoms
       (unlabeledAtoms, supervisionBuilder.result())
-    }
-    else (solve, supervisionBuilder.result())
+    } else (solve, supervisionBuilder.result())
   }
 
   private def solve: Set[EvidenceAtom] = {
@@ -165,8 +163,7 @@ final class SupervisionGraph private(nodes: IndexedSeq[Node],
         s"\t\t- Unlabeled Nodes: $numberOfUnlabeled\n" +
         s"\t\t- Unlabeled Non-Empty Nodes: $numberOfNonEmptyUnlabeled\n" +
         s"\t\t- Numerical Domains: ${numericalDomains.getOrElse("None")}\n" +
-        s"\t\t- Query Signature: $querySignature"
-    )
+        s"\t\t- Query Signature: $querySignature")
 
     val startGraphConnection = System.currentTimeMillis()
 
@@ -214,9 +211,9 @@ final class SupervisionGraph private(nodes: IndexedSeq[Node],
     val startSolution = System.currentTimeMillis()
 
     // Map solution to actual truth values using a threshold
-    val solution = Try( (-pinv(Luu) * Lul) * fl ) match {
+    val solution = Try((-pinv(Luu) * Lul) * fl) match {
       case Success(res) =>
-        res.map( value => if (value <= UNCONNECTED) FALSE else TRUE )
+        res.map(value => if (value <= UNCONNECTED) FALSE else TRUE)
       case Failure(_) =>
         logger.warn("Not Converged. Setting everything to FALSE.")
         DenseVector.fill(numberOfNonEmptyUnlabeled)(FALSE)
@@ -233,7 +230,7 @@ final class SupervisionGraph private(nodes: IndexedSeq[Node],
       (query, value) <- nonEmptyUnlabeledNodes.map(_.query) zip solution.toArray
     } yield EvidenceAtom(query.symbol, query.terms, value)
 
-    val emptyEvidenceAtoms = emptyNodes.filter(_.isUnlabeled).map {n =>
+    val emptyEvidenceAtoms = emptyNodes.filter(_.isUnlabeled).map { n =>
       EvidenceAtom.asFalse(n.query.symbol, n.query.terms)
     }.toSet
 
@@ -277,8 +274,7 @@ final class SupervisionGraph private(nodes: IndexedSeq[Node],
         mln.schema.predicates.filter { case (sig, _) => sig == querySignature },
         Set(querySignature),
         Set.empty,
-        mln.evidence.constants
-      ).withCWAForAll().evidence ++= labeled.map(_.query)
+        mln.evidence.constants).withCWAForAll().evidence ++= labeled.map(_.query)
 
     /*
      * In case no labeled nodes exist in the given data, then reuse the old ones. In any other
@@ -295,8 +291,7 @@ final class SupervisionGraph private(nodes: IndexedSeq[Node],
         groupByDomains,
         numericalDomains,
         annotationBuilder,
-        nodeCache
-      )
+        nodeCache)
     else {
       val startCacheUpdate = System.currentTimeMillis
 
@@ -313,11 +308,11 @@ final class SupervisionGraph private(nodes: IndexedSeq[Node],
             if (!unique.flatMap(_.clause).exists(_ =~= pattern))
               cache.find { case (c, _) => c =~= pattern } match {
                 case Some(entry) => (unique :+ node, (cache - entry) + (pattern -> (entry._2 + 1)))
-                case None => (unique :+ node, cache + (pattern -> 1))
+                case None        => (unique :+ node, cache + (pattern -> 1))
               }
             else cache.find { case (c, _) => c =~= pattern } match {
               case Some(entry) => (unique, (cache - entry) + (pattern -> (entry._2 + 1)))
-              case None => logger.fatal(s"Pattern ${pattern.toText()} is not unique, but it does not exist in the frequency set.")
+              case None        => logger.fatal(s"Pattern ${pattern.toText()} is not unique, but it does not exist in the frequency set.")
             }
         }
 
@@ -340,20 +335,20 @@ final class SupervisionGraph private(nodes: IndexedSeq[Node],
 
           val nodeFrequency = updatedNodeCache.find { case (c, _) => c =~= nodeClause } match {
             case Some((_, freq)) => freq
-            case None => logger.fatal(s"Pattern ${nodeClause.toText()} does not exist in the frequency set.")
+            case None            => logger.fatal(s"Pattern ${nodeClause.toText()} does not exist in the frequency set.")
           }
 
-          updatedNodeCache.find { case (c, _) =>
-            val (headLiteral, bodyLiterals) = c.literals.partition(_.sentence.signature == querySignature)
-            headLiteral.head.positive != node.isPositive && Clause(bodyLiterals) =~= nodeBody
+          updatedNodeCache.find {
+            case (c, _) =>
+              val (headLiteral, bodyLiterals) = c.literals.partition(_.sentence.signature == querySignature)
+              headLiteral.head.positive != node.isPositive && Clause(bodyLiterals) =~= nodeBody
           } match {
-            case Some((_, inversePatternFreq))
-              if !(HoeffdingBound(
-                nodeFrequency.toDouble / (nodeFrequency + inversePatternFreq).toDouble,
-                inversePatternFreq.toDouble / (nodeFrequency + inversePatternFreq).toDouble,
-                nodeFrequency + inversePatternFreq) && nodeFrequency < inversePatternFreq) => result :+ node
+            case Some((_, inversePatternFreq)) if !(HoeffdingBound(
+              nodeFrequency.toDouble / (nodeFrequency + inversePatternFreq).toDouble,
+              inversePatternFreq.toDouble / (nodeFrequency + inversePatternFreq).toDouble,
+              nodeFrequency + inversePatternFreq) && nodeFrequency < inversePatternFreq) => result :+ node
             case None => result :+ node
-            case _ => result
+            case _    => result
           }
       }
 
@@ -369,8 +364,7 @@ final class SupervisionGraph private(nodes: IndexedSeq[Node],
         groupByDomains,
         numericalDomains,
         annotationBuilder,
-        updatedNodeCache
-      )
+        updatedNodeCache)
     }
   }
 }
@@ -382,7 +376,6 @@ final class SupervisionGraph private(nodes: IndexedSeq[Node],
   */
 object SupervisionGraph extends LazyLogging {
 
-
   /**
     * Combine maps into a single map by merging their values for shared keys.
     *
@@ -390,14 +383,14 @@ object SupervisionGraph extends LazyLogging {
     * @param mapB another map
     * @return a combination of the given maps containing all their values
     */
-  private def combine[K, V](mapA: Map[K, IndexedSeq[V]],
-                            mapB: Map[K, IndexedSeq[V]]): Map[K, IndexedSeq[V]] = {
+  private def combine[K, V](
+      mapA: Map[K, IndexedSeq[V]],
+      mapB: Map[K, IndexedSeq[V]]): Map[K, IndexedSeq[V]] = {
 
     val keySet = mapA.keySet & mapB.keySet
 
     val merged = keySet.map(key =>
-        key -> (mapA(key) ++ mapB(key))
-      ).toMap
+      key -> (mapA(key) ++ mapB(key))).toMap
 
     merged ++ mapA.filterKeys(!keySet.contains(_)) ++ mapB.filterKeys(!keySet.contains(_))
   }
@@ -417,18 +410,20 @@ object SupervisionGraph extends LazyLogging {
     * @param groupByDomains a set of domains to group by the evidence (optional)
     * @return an indexed sequence of nodes. Labeled nodes appear before unlabelled
     */
-  private def partition(mln: MLN,
-                        modes: ModeDeclarations,
-                        annotationDB: EvidenceDB,
-                        querySignature: AtomSignature,
-                        groupByDomains: Option[Set[String]]): IndexedSeq[Node] = {
+  private def partition(
+      mln: MLN,
+      modes: ModeDeclarations,
+      annotationDB: EvidenceDB,
+      querySignature: AtomSignature,
+      groupByDomains: Option[Set[String]]): IndexedSeq[Node] = {
 
     val predicateSchema = mln.schema.predicates
     val auxPredicateSchema = predicateSchema.filter { case (signature, _) => signature.symbol.contains(PREFIX) }
 
     // Check if the given annotation database contains the query signature of interest.
     val queryAnnotationDB =
-      annotationDB.getOrElse(querySignature,
+      annotationDB.getOrElse(
+        querySignature,
         logger.fatal(s"Query signature '$querySignature' does not exist in the given annotation database."))
 
     // Collect all auxiliary predicates
@@ -441,42 +436,42 @@ object SupervisionGraph extends LazyLogging {
     if (auxiliary.isEmpty)
       logger.warn(s"No auxiliary predicates found in the evidence database.")
 
-    /**
-      * Recursively constructs a map of domains to constants by flattening all given pairs
-      * of domain-constant corresponding to function return types (auxiliary predicates).
-      *
-      * @param constants an sequence of constants
-      * @param domains a sequence of domains for each constant
-      * @return a map of flattened domains to constants
-      */
-    def domain2Constants(constants: IndexedSeq[Constant], domains: Seq[String]): Map[String, IndexedSeq[Constant]] =
-      (constants zip domains).foldLeft(Map.empty[String, IndexedSeq[Constant]]) {
-        case (result, (constant, domain)) => auxiliary.get(constant) match {
-          case None => result.updated(domain, result.getOrElse(domain, Vector.empty) :+ constant)
-          case Some((signature, indexedSeq)) =>
-            combine(result, domain2Constants(indexedSeq, predicateSchema(signature).tail))
+      /**
+        * Recursively constructs a map of domains to constants by flattening all given pairs
+        * of domain-constant corresponding to function return types (auxiliary predicates).
+        *
+        * @param constants an sequence of constants
+        * @param domains a sequence of domains for each constant
+        * @return a map of flattened domains to constants
+        */
+      def domain2Constants(constants: IndexedSeq[Constant], domains: Seq[String]): Map[String, IndexedSeq[Constant]] =
+        (constants zip domains).foldLeft(Map.empty[String, IndexedSeq[Constant]]) {
+          case (result, (constant, domain)) => auxiliary.get(constant) match {
+            case None => result.updated(domain, result.getOrElse(domain, Vector.empty) :+ constant)
+            case Some((signature, indexedSeq)) =>
+              combine(result, domain2Constants(indexedSeq, predicateSchema(signature).tail))
+          }
+        }
+
+      /**
+        * Recursively find all possible flattened domain sequences that
+        * can be produced by valid function replacements.
+        *
+        * @param domains a sequence of domains
+        * @return a sequence of all possible flattened domain sequences
+        */
+      def flattenDomains(domains: Seq[String]): Seq[Seq[String]] = {
+        domains.foldLeft(Seq(Seq.empty[String])) { (result, domain) =>
+
+          val flatSeq = auxPredicateSchema
+            .filter { case (_, domainSeq) => domainSeq.head == domain }
+            .map { case (_, domainSeq) => domainSeq.tail }
+            .flatMap(flattenDomains).toSeq
+
+          if (flatSeq.nonEmpty) result.map(seq => flatSeq.flatMap(_ ++ seq))
+          else result.map(_ ++ Seq(domain))
         }
       }
-
-    /**
-      * Recursively find all possible flattened domain sequences that
-      * can be produced by valid function replacements.
-      *
-      * @param domains a sequence of domains
-      * @return a sequence of all possible flattened domain sequences
-      */
-    def flattenDomains(domains: Seq[String]): Seq[Seq[String]] = {
-      domains.foldLeft(Seq(Seq.empty[String])) { (result, domain) =>
-
-        val flatSeq = auxPredicateSchema
-          .filter { case (_, domainSeq) => domainSeq.head == domain }
-          .map { case (_, domainSeq) => domainSeq.tail}
-          .flatMap(flattenDomains).toSeq
-
-        if (flatSeq.nonEmpty) result.map(seq => flatSeq.flatMap(_ ++ seq))
-        else result.map(_ ++ Seq(domain))
-      }
-    }
 
     /*
      * Check if the given group by domains are valid. In case no domains are given notify the user that
@@ -497,30 +492,31 @@ object SupervisionGraph extends LazyLogging {
         flattenDomains(predicateSchema(querySignature))
           .ensuring(
             s => domains.forall(s.contains),
-            logger.fatal(s"Given domains [ ${domains.mkString(", ")} ] does not exist for any possible function!")
-          )
+            logger.fatal(s"Given domains [ ${domains.mkString(", ")} ] does not exist for any possible function!"))
     }
 
     // Clean the given evidence database by removing auxiliary predicates and query atoms.
-    val evidenceDB = mln.evidence.db.filterNot { case (signature, _) =>
-      modes(signature).recall == 0 || signature.symbol.contains(PREFIX) || mln.space.queryAtoms.contains(signature)
+    val evidenceDB = mln.evidence.db.filterNot {
+      case (signature, _) =>
+        modes(signature).recall == 0 || signature.symbol.contains(PREFIX) || mln.space.queryAtoms.contains(signature)
     }
 
     // Convert all TRUE ground atoms in the cleaned evidence database into evidence atoms
-    val evidenceAtoms = evidenceDB.flatMap { case (signature, db) =>
-      for {
-        id <- db.identity.indices
-        if db(id) == TRUE
-        constants <- db.identity.decode(id).toOption
-        terms = constants.map(Constant).toVector
-        if !terms.exists { c =>
-          auxiliary.get(c) match {
-            case Some((auxSignature, _)) => modes(auxSignature).recall == 0
-            case None => false
+    val evidenceAtoms = evidenceDB.flatMap {
+      case (signature, db) =>
+        for {
+          id <- db.identity.indices
+          if db(id) == TRUE
+          constants <- db.identity.decode(id).toOption
+          terms = constants.map(Constant).toVector
+          if !terms.exists { c =>
+            auxiliary.get(c) match {
+              case Some((auxSignature, _)) => modes(auxSignature).recall == 0
+              case None                    => false
+            }
           }
-        }
-      } yield EvidenceAtom(signature.symbol, terms, db(id)) ->
-        domain2Constants(terms, predicateSchema(signature))
+        } yield EvidenceAtom(signature.symbol, terms, db(id)) ->
+          domain2Constants(terms, predicateSchema(signature))
     }
 
     // Convert all query atoms in the annotation database into evidence atoms
@@ -546,14 +542,16 @@ object SupervisionGraph extends LazyLogging {
         domain2Constants(queryAtom.terms, predicateSchema(querySignature))
 
       // TODO: Check if a predicate has no common domain at all with the query atom
-      val evidence = evidenceAtoms.flatMap { case (atom, domain2Constants) =>
-        if (domain2Constants.forall { case (domain, constants) =>
-          queryDomain2Constants.get(domain) match {
-            case None => true
-            case Some(otherConstants) => constants.forall(otherConstants.contains)
-          }
-        } && domain2Constants.keys.exists(queryDomain2Constants.keySet.contains) ) Some(atom)
-        else None
+      val evidence = evidenceAtoms.flatMap {
+        case (atom, domain2Constants) =>
+          if (domain2Constants.forall {
+            case (domain, constants) =>
+              queryDomain2Constants.get(domain) match {
+                case None                 => true
+                case Some(otherConstants) => constants.forall(otherConstants.contains)
+              }
+          } && domain2Constants.keys.exists(queryDomain2Constants.keySet.contains)) Some(atom)
+          else None
       }
 
       val evidenceSeq = evidence.toIndexedSeq
@@ -590,14 +588,15 @@ object SupervisionGraph extends LazyLogging {
     * @param numericDomains a set of domains to be considered as numerical (optional)
     * @return a supervision graph instance
     */
-  private def apply(mln: MLN,
-                    modes: ModeDeclarations,
-                    annotationDB: EvidenceDB,
-                    querySignature: AtomSignature,
-                    connector: GraphConnector,
-                    matcher: Matcher[Double],
-                    groupByDomains: Option[Set[String]],
-                    numericDomains: Option[Set[String]]): SupervisionGraph = {
+  private def apply(
+      mln: MLN,
+      modes: ModeDeclarations,
+      annotationDB: EvidenceDB,
+      querySignature: AtomSignature,
+      connector: GraphConnector,
+      matcher: Matcher[Double],
+      groupByDomains: Option[Set[String]],
+      numericDomains: Option[Set[String]]): SupervisionGraph = {
 
     // Group the given data into nodes
     val nodes = partition(mln, modes, annotationDB, querySignature, groupByDomains)
@@ -611,7 +610,7 @@ object SupervisionGraph extends LazyLogging {
 
         cache.find { case (c, _) => c =~= pattern } match {
           case Some(entry) => (cache - entry) + (pattern -> (entry._2 + 1))
-          case None => cache + (pattern -> 1)
+          case None        => cache + (pattern -> 1)
         }
     }
 
@@ -624,8 +623,7 @@ object SupervisionGraph extends LazyLogging {
         mln.schema.predicates.filter { case (sig, _) => sig == querySignature },
         Set(querySignature),
         Set.empty,
-        mln.evidence.constants
-      ).withCWAForAll().evidence ++= labeledNodes.map(_.query)
+        mln.evidence.constants).withCWAForAll().evidence ++= labeledNodes.map(_.query)
 
     new SupervisionGraph(
       nodes,
@@ -636,10 +634,8 @@ object SupervisionGraph extends LazyLogging {
       groupByDomains,
       numericDomains,
       annotationBuilder,
-      nodeCache
-    )
+      nodeCache)
   }
-
 
   /**
     * Constructs a kNN connected graph. Essentially the kNN graph connects each node only to the
@@ -661,14 +657,15 @@ object SupervisionGraph extends LazyLogging {
     * @param numericalDomains a set of domains to be considered as numerical (optional)
     * @return a kNN supervision graph instance
     */
-  def kNNGraph(k: Int,
-               mln: MLN,
-               modes: ModeDeclarations,
-               annotationDB: EvidenceDB,
-               querySignature: AtomSignature,
-               matcher: Matcher[Double],
-               groupByDomains: Option[Set[String]] = None,
-               numericalDomains: Option[Set[String]] = None): SupervisionGraph =
+  def kNNGraph(
+      k: Int,
+      mln: MLN,
+      modes: ModeDeclarations,
+      annotationDB: EvidenceDB,
+      querySignature: AtomSignature,
+      matcher: Matcher[Double],
+      groupByDomains: Option[Set[String]] = None,
+      numericalDomains: Option[Set[String]] = None): SupervisionGraph =
     apply(mln, modes, annotationDB, querySignature, kNNConnector(k), matcher, groupByDomains, numericalDomains)
 
   /**
@@ -691,14 +688,15 @@ object SupervisionGraph extends LazyLogging {
     * @param numericalDomains a set of domains to be considered as numerical (optional)
     * @return a eNN supervision graph instance
     */
-  def eNNGraph(epsilon: Double,
-               mln: MLN,
-               modes: ModeDeclarations,
-               annotationDB: EvidenceDB,
-               querySignature: AtomSignature,
-               matcher: Matcher[Double],
-               groupByDomains: Option[Set[String]] = None,
-               numericalDomains: Option[Set[String]] = None): SupervisionGraph =
+  def eNNGraph(
+      epsilon: Double,
+      mln: MLN,
+      modes: ModeDeclarations,
+      annotationDB: EvidenceDB,
+      querySignature: AtomSignature,
+      matcher: Matcher[Double],
+      groupByDomains: Option[Set[String]] = None,
+      numericalDomains: Option[Set[String]] = None): SupervisionGraph =
     apply(mln, modes, annotationDB, querySignature, eNNConnector(epsilon), matcher, groupByDomains, numericalDomains)
 
   /**
@@ -719,12 +717,13 @@ object SupervisionGraph extends LazyLogging {
     * @param numericalDomains a set of domains to be considered as numerical (optional)
     * @return a fully connected supervision graph
     */
-  def fullyConnectedGraph(mln: MLN,
-                          modes: ModeDeclarations,
-                          annotationDB: EvidenceDB,
-                          querySignature: AtomSignature,
-                          matcher: Matcher[Double],
-                          groupByDomains: Option[Set[String]] = None,
-                          numericalDomains: Option[Set[String]] = None): SupervisionGraph =
+  def fullyConnectedGraph(
+      mln: MLN,
+      modes: ModeDeclarations,
+      annotationDB: EvidenceDB,
+      querySignature: AtomSignature,
+      matcher: Matcher[Double],
+      groupByDomains: Option[Set[String]] = None,
+      numericalDomains: Option[Set[String]] = None): SupervisionGraph =
     apply(mln, modes, annotationDB, querySignature, FullConnector, matcher, groupByDomains, numericalDomains)
 }

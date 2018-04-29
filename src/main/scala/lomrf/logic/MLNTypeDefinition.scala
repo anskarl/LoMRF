@@ -14,7 +14,7 @@
  *  o   o o-o-o  o  o-o o-o o o o     o    | o-o o  o-o o-o
  *
  *  Logical Markov Random Fields (LoMRF).
- *     
+ *
  *
  */
 
@@ -59,5 +59,4 @@ case class IntegerTypeDefinition(name: String, from: Int, to: Int) extends MLNTy
   * @param constants a sequence of constants
   */
 case class ConstantTypeDefinition(name: String, constants: Seq[String]) extends MLNTypeDefinition(name)
-
 

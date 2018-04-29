@@ -14,47 +14,47 @@
  *  o   o o-o-o  o  o-o o-o o o o     o    | o-o o  o-o o-o
  *
  *  Logical Markov Random Fields (LoMRF).
- *     
+ *
  *
  */
 
 package lomrf.mln.grounding
 
-import lomrf.logic.{AtomSignature, Literal}
-import lomrf.mln.model.{AtomEvidenceDB, MLN}
+import lomrf.logic.{ AtomSignature, Literal }
+import lomrf.mln.model.{ AtomEvidenceDB, MLN }
 
 /**
- *
- *
- * <p> To improve the grounding speed, we change the order of clause literals according to their type
- * (i.e. dynamic or regular predicates) and a score function.
- * </p>
- *
- * <ul>
- * <li> When both literals contain dynamic sentences (e.q. equals, lessThan, etc.), then
- * the literal with the lowest number of Variables is placed first</li>
- * <li> When only one literal contains a dynamic sentence, then there are two sub-cases:
- * (1) if the other literal contains a sentence with unknown groundings, then the dynamic one
- * is placed first. (2) Otherwise, the literal with the lowest number of Variables is placed first.</li>
- * <li>Finally, when both literals are regular (i.e. not dynamic), then the literal with the
- * lowest score is placed first:
- * <br/>
- * '''score = (number of unsatisfied - number of unknown)/(number of all groundings)'''
- * <br/>
- * In other words, this score value represents the fraction of tuples (i.e. constants replacing
- * variables in the clause)  that will remain after the literal is grounded. This heuristic score function
- * is based in the following paper:
- * <br/>
- * <br/>
- * ''Shavlik, J. and Natarajan, S. Speeding Up Inference in Markov Logic Networks by pre-processing to
- * Reduce the Size of the Resulting Grounded Network. In Proceedings of the 21th International
- * Joint Conference on Artificial Intelligence (IJCAI), 2009.''
- * </li>
- * </ul>
- *
- *
- *
- */
+  *
+  *
+  * <p> To improve the grounding speed, we change the order of clause literals according to their type
+  * (i.e. dynamic or regular predicates) and a score function.
+  * </p>
+  *
+  * <ul>
+  * <li> When both literals contain dynamic sentences (e.q. equals, lessThan, etc.), then
+  * the literal with the lowest number of Variables is placed first</li>
+  * <li> When only one literal contains a dynamic sentence, then there are two sub-cases:
+  * (1) if the other literal contains a sentence with unknown groundings, then the dynamic one
+  * is placed first. (2) Otherwise, the literal with the lowest number of Variables is placed first.</li>
+  * <li>Finally, when both literals are regular (i.e. not dynamic), then the literal with the
+  * lowest score is placed first:
+  * <br/>
+  * '''score = (number of unsatisfied - number of unknown)/(number of all groundings)'''
+  * <br/>
+  * In other words, this score value represents the fraction of tuples (i.e. constants replacing
+  * variables in the clause)  that will remain after the literal is grounded. This heuristic score function
+  * is based in the following paper:
+  * <br/>
+  * <br/>
+  * ''Shavlik, J. and Natarajan, S. Speeding Up Inference in Markov Logic Networks by pre-processing to
+  * Reduce the Size of the Resulting Grounded Network. In Proceedings of the 21th International
+  * Joint Conference on Artificial Intelligence (IJCAI), 2009.''
+  * </li>
+  * </ul>
+  *
+  *
+  *
+  */
 class ClauseLiteralsOrdering(atomStateDB: Map[AtomSignature, AtomEvidenceDB]) extends Ordering[Literal] {
 
   def compare(x: Literal, y: Literal) = {
@@ -98,7 +98,7 @@ class ClauseLiteralsOrdering(atomStateDB: Map[AtomSignature, AtomEvidenceDB]) ex
           val nVarY = y.sentence.variables.size
           nVarX.compare(nVarY)
         }
-        
+
       case _ =>
         // regular literals
         if (scoreX < scoreY) -1
@@ -107,7 +107,6 @@ class ClauseLiteralsOrdering(atomStateDB: Map[AtomSignature, AtomEvidenceDB]) ex
     }
   }
 }
-
 
 object ClauseLiteralsOrdering {
 

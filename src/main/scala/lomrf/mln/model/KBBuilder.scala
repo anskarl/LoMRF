@@ -14,17 +14,17 @@
  *  o   o o-o-o  o  o-o o-o o o o     o    | o-o o  o-o o-o
  *
  *  Logical Markov Random Fields (LoMRF).
- *     
+ *
  *
  */
 
 package lomrf.mln.model
 
-import lomrf.logic.{WeightedDefiniteClause, WeightedFormula, AtomSignature}
+import lomrf.logic.{ WeightedDefiniteClause, WeightedFormula, AtomSignature }
 
 /**
- * Knowledge base builder (fluent interface)
- */
+  * Knowledge base builder (fluent interface)
+  */
 final class KBBuilder(convertFunctions: Boolean = false) { self =>
 
   private var _predicateSchema = Map.empty[AtomSignature, Vector[String]]
@@ -39,39 +39,39 @@ final class KBBuilder(convertFunctions: Boolean = false) { self =>
 
   private var _dynamicFunctions = Map.empty[AtomSignature, Vector[String] => String]
 
-  def withPredicateSchema(input: Map[AtomSignature, Vector[String]]): self.type ={
+  def withPredicateSchema(input: Map[AtomSignature, Vector[String]]): self.type = {
     _predicateSchema = input
     self
   }
 
-  def withFunctionSchema(input: Map[AtomSignature, (String, Vector[String])]): self.type ={
+  def withFunctionSchema(input: Map[AtomSignature, (String, Vector[String])]): self.type = {
     _functionSchema = input
     self
   }
 
-  def withFormulas(input: Set[WeightedFormula]): self.type ={
+  def withFormulas(input: Set[WeightedFormula]): self.type = {
     _formulas = input
     self
   }
 
-  def withDefiniteClauses(input: Set[WeightedDefiniteClause]): self.type ={
+  def withDefiniteClauses(input: Set[WeightedDefiniteClause]): self.type = {
     _definiteClauses = input
     self
   }
 
-  def withDynamicPredicates(input: Map[AtomSignature, Vector[String] => Boolean]): self.type ={
+  def withDynamicPredicates(input: Map[AtomSignature, Vector[String] => Boolean]): self.type = {
     _dynamicPredicates = input
     self
   }
 
-  def withDynamicFunctions(input: Map[AtomSignature, Vector[String] => String]): self.type ={
+  def withDynamicFunctions(input: Map[AtomSignature, Vector[String] => String]): self.type = {
     _dynamicFunctions = input
     self
   }
-  
+
   def result(): KB = {
     val finalPredicateSchema =
-      if(convertFunctions) _functionSchema.toPredicateSchema ++ _predicateSchema
+      if (convertFunctions) _functionSchema.toPredicateSchema ++ _predicateSchema
       else _predicateSchema
 
     new KB(finalPredicateSchema, _functionSchema, _dynamicPredicates, _dynamicFunctions, _formulas, _definiteClauses)
@@ -83,22 +83,22 @@ final class KBBuilder(convertFunctions: Boolean = false) { self =>
 
     def apply() = _predicateSchema
 
-    def update(input: Map[AtomSignature, Vector[String]]): self.type ={
+    def update(input: Map[AtomSignature, Vector[String]]): self.type = {
       _predicateSchema = input
       self
     }
 
-    def += (key: AtomSignature, value: Vector[String]): self.type ={
+    def +=(key: AtomSignature, value: Vector[String]): self.type = {
       _predicateSchema += (key -> value)
       self
     }
 
-    def += (entry: (AtomSignature, Vector[String])): self.type = {
+    def +=(entry: (AtomSignature, Vector[String])): self.type = {
       _predicateSchema += entry
       self
     }
 
-    def ++= (entries: Iterable[(AtomSignature, Vector[String])]): self.type ={
+    def ++=(entries: Iterable[(AtomSignature, Vector[String])]): self.type = {
       entries.foreach(predicateSchema += _)
       self
     }
@@ -112,17 +112,17 @@ final class KBBuilder(convertFunctions: Boolean = false) { self =>
 
     def apply() = _functionSchema
 
-    def += (key: AtomSignature, value: (String, Vector[String])): self.type = {
+    def +=(key: AtomSignature, value: (String, Vector[String])): self.type = {
       _functionSchema += (key -> value)
       self
     }
 
-    def += (entry: (AtomSignature, (String, Vector[String]))): self.type = {
+    def +=(entry: (AtomSignature, (String, Vector[String]))): self.type = {
       _functionSchema += entry
       self
     }
 
-    def ++= (entries: Iterable[(AtomSignature,(String, Vector[String]))]): self.type ={
+    def ++=(entries: Iterable[(AtomSignature, (String, Vector[String]))]): self.type = {
       entries.foreach(functionSchema += _)
       self
     }
@@ -134,12 +134,12 @@ final class KBBuilder(convertFunctions: Boolean = false) { self =>
 
     def apply() = _formulas
 
-    def += (value: WeightedFormula): self.type ={
+    def +=(value: WeightedFormula): self.type = {
       _formulas += value
       self
     }
 
-    def ++= (values: Iterable[WeightedFormula]): self.type ={
+    def ++=(values: Iterable[WeightedFormula]): self.type = {
       _formulas ++= values
       self
     }
@@ -151,12 +151,12 @@ final class KBBuilder(convertFunctions: Boolean = false) { self =>
 
     def apply() = _definiteClauses
 
-    def += (value: WeightedDefiniteClause): self.type ={
+    def +=(value: WeightedDefiniteClause): self.type = {
       _definiteClauses += value
       self
     }
 
-    def ++= (values: Iterable[WeightedDefiniteClause]): self.type ={
+    def ++=(values: Iterable[WeightedDefiniteClause]): self.type = {
       _definiteClauses ++= values
       self
     }
@@ -170,17 +170,17 @@ final class KBBuilder(convertFunctions: Boolean = false) { self =>
 
     def apply() = _dynamicPredicates
 
-    def += (key: AtomSignature, value: Vector[String] => Boolean): self.type ={
+    def +=(key: AtomSignature, value: Vector[String] => Boolean): self.type = {
       _dynamicPredicates += (key -> value)
       self
     }
 
-    def += (entry: (AtomSignature, Vector[String] => Boolean)): self.type ={
+    def +=(entry: (AtomSignature, Vector[String] => Boolean)): self.type = {
       _dynamicPredicates += entry
       self
     }
 
-    def ++= (entries: Iterable[(AtomSignature, Vector[String] => Boolean)]): self.type ={
+    def ++=(entries: Iterable[(AtomSignature, Vector[String] => Boolean)]): self.type = {
       _dynamicPredicates ++= entries
       self
     }
@@ -194,17 +194,17 @@ final class KBBuilder(convertFunctions: Boolean = false) { self =>
 
     def apply() = _dynamicFunctions
 
-    def += (key: AtomSignature, value:  Vector[String] => String): self.type ={
+    def +=(key: AtomSignature, value: Vector[String] => String): self.type = {
       _dynamicFunctions += (key -> value)
       self
     }
 
-    def += (entry: (AtomSignature,  Vector[String] => String)): self.type ={
+    def +=(entry: (AtomSignature, Vector[String] => String)): self.type = {
       _dynamicFunctions += entry
       self
     }
 
-    def ++= (entries: Iterable[(AtomSignature,  Vector[String] => String)]): self.type ={
+    def ++=(entries: Iterable[(AtomSignature, Vector[String] => String)]): self.type = {
       _dynamicFunctions ++= entries
       self
     }

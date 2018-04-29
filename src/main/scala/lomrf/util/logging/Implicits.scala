@@ -14,7 +14,7 @@
  *  o   o o-o-o  o  o-o o-o o o o     o    | o-o o  o-o o-o
  *
  *  Logical Markov Random Fields (LoMRF).
- *     
+ *
  *
  */
 
@@ -29,20 +29,19 @@ object Implicits {
 
   implicit class RichLogger(val instance: Logger) extends AnyVal {
 
-    def fatal(message: => String): Nothing ={
-      instance.whenErrorEnabled{
+    def fatal(message: => String): Nothing = {
+      instance.whenErrorEnabled {
         instance.error(Implicits.FATAL_ERROR_MARKER, message)
       }
       sys.exit(1)
     }
 
     final def fatal(message: => String, ex: => Throwable, exitCode: Int = 1): Nothing = {
-      instance.whenErrorEnabled{
+      instance.whenErrorEnabled {
         instance.error(Implicits.FATAL_ERROR_MARKER, message)
       }
       sys.exit(exitCode)
     }
   }
 }
-
 

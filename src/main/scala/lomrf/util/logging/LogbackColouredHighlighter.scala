@@ -14,7 +14,7 @@
  *  o   o o-o-o  o  o-o o-o o o o     o    | o-o o  o-o o-o
  *
  *  Logical Markov Random Fields (LoMRF).
- *     
+ *
  *
  */
 
@@ -33,11 +33,11 @@ class LogbackColouredHighlighter extends ForegroundCompositeConverterBase[ILoggi
   override def getForegroundColorCode(event: ILoggingEvent): String =
     (event.getLevel.levelInt: @switch) match {
       case Level.ERROR_INT => STYLE_ERROR
-      case Level.WARN_INT => STYLE_WARN
-      case Level.INFO_INT => STYLE_INFO
+      case Level.WARN_INT  => STYLE_WARN
+      case Level.INFO_INT  => STYLE_INFO
       case Level.DEBUG_INT => STYLE_DEBUG
       case Level.TRACE_INT => STYLE_TRACE
-      case _ => DEFAULT_FG
+      case _               => DEFAULT_FG
     }
 }
 

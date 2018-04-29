@@ -14,20 +14,20 @@
  *  o   o o-o-o  o  o-o o-o o o o     o    | o-o o  o-o o-o
  *
  *  Logical Markov Random Fields (LoMRF).
- *     
+ *
  *
  */
 
 package lomrf.mln.learning.structure
 
-import scala.util.parsing.combinator.{RegexParsers, JavaTokenParsers}
+import scala.util.parsing.combinator.{ RegexParsers, JavaTokenParsers }
 
 /**
- * Regular expressions for mode declaration parser
- */
+  * Regular expressions for mode declaration parser
+  */
 trait CommonModeParser extends JavaTokenParsers with RegexParsers {
 
-  protected val arity =  """([1-9][0-9]*)""".r
+  protected val arity = """([1-9][0-9]*)""".r
   protected val recall = """([0]|[1-9][0-9]*|\*)""".r
   protected val predicate = """([A-Z0-9]([a-zA-Z0-9]|_[a-zA-Z0-9])*)""".r
   protected val function = """([a-z]([a-zA-Z0-9]|_[a-zA-Z0-9])*)""".r

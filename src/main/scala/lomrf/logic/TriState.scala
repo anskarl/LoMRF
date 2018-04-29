@@ -14,7 +14,7 @@
  *  o   o o-o-o  o  o-o o-o o o o     o    | o-o o  o-o o-o
  *
  *  Logical Markov Random Fields (LoMRF).
- *     
+ *
  *
  */
 
@@ -102,13 +102,13 @@ sealed trait TriState {
     */
   override def equals(obj: Any): Boolean = obj match {
     case other: TriState => other.value == this.value
-    case _ => false
+    case _               => false
   }
 }
 
 /**
- * This object represents a `TRUE` state.
- */
+  * This object represents a `TRUE` state.
+  */
 case object TRUE extends TriState {
 
   val value: Byte = 1
@@ -117,8 +117,8 @@ case object TRUE extends TriState {
 }
 
 /**
- * This object represents a `FALSE` state.
- */
+  * This object represents a `FALSE` state.
+  */
 case object FALSE extends TriState {
 
   val value: Byte = -1
@@ -127,11 +127,11 @@ case object FALSE extends TriState {
 }
 
 /**
- * This object represents an `UNKNOWN` state.
- */
+  * This object represents an `UNKNOWN` state.
+  */
 case object UNKNOWN extends TriState {
 
   val value: Byte = 0
-  
+
   override def toString = "Unknown"
 }

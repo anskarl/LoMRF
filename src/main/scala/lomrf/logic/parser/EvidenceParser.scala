@@ -14,7 +14,7 @@
  *  o   o o-o-o  o  o-o o-o o o o     o    | o-o o  o-o o-o
  *
  *  Logical Markov Random Fields (LoMRF).
- *     
+ *
  *
  */
 
@@ -84,14 +84,13 @@ final class EvidenceParser extends CommonsMLNParser with LazyLogging {
     case predicateName ~ "(" ~ args ~ ")" ~ None =>
       EvidenceAtom.asTrue(predicateName, args)
 
-    case atomExpression@(predicateName ~ "(" ~ args ~ ")" ~ Some(probability)) =>
+    case atomExpression @ (predicateName ~ "(" ~ args ~ ")" ~ Some(probability)) =>
       mkProbabilisticAtom(
         atomExpression.toString,
         predicateName,
         args,
         probability.toDouble,
-        isPositive = true
-      )
+        isPositive = true)
   }
 
   /**
@@ -110,14 +109,13 @@ final class EvidenceParser extends CommonsMLNParser with LazyLogging {
     case predicateName ~ None =>
       EvidenceAtom.asTrue(predicateName, Vector.empty[Constant])
 
-    case atomExpression@(predicateName ~ Some(probability)) =>
+    case atomExpression @ (predicateName ~ Some(probability)) =>
       mkProbabilisticAtom(
         atomExpression.toString,
         predicateName,
         List.empty[Constant],
         probability.toDouble,
-        isPositive = true
-      )
+        isPositive = true)
   }
 
   /**
@@ -136,14 +134,13 @@ final class EvidenceParser extends CommonsMLNParser with LazyLogging {
     case "!" ~ predicateName ~ "(" ~ args ~ ")" ~ None =>
       EvidenceAtom.asFalse(predicateName, args)
 
-    case atomExpression@("!" ~ predicateName ~ "(" ~ args ~ ")" ~ Some(probability)) =>
+    case atomExpression @ ("!" ~ predicateName ~ "(" ~ args ~ ")" ~ Some(probability)) =>
       mkProbabilisticAtom(
         atomExpression.toString,
         predicateName,
         args,
         probability.toDouble,
-        isPositive = false
-      )
+        isPositive = false)
   }
 
   /**
@@ -162,14 +159,13 @@ final class EvidenceParser extends CommonsMLNParser with LazyLogging {
     case "!" ~ predicateName ~ None =>
       EvidenceAtom.asFalse(predicateName, Vector.empty[Constant])
 
-    case atomExpression@("!" ~ predicateName ~ Some(probability)) =>
+    case atomExpression @ ("!" ~ predicateName ~ Some(probability)) =>
       mkProbabilisticAtom(
         atomExpression.toString,
         predicateName,
         List.empty[Constant],
         probability.toDouble,
-        isPositive = false
-      )
+        isPositive = false)
   }
 
   /**
@@ -198,8 +194,8 @@ final class EvidenceParser extends CommonsMLNParser with LazyLogging {
     *
     * @return an unknown evidence atom
     */
-  def unkAtom0: Parser[EvidenceAtom] = "?" ~ upperCaseID  ^^ {
-    case "?" ~ predicateName  => EvidenceAtom.asUnknown(predicateName, Vector.empty[Constant])
+  def unkAtom0: Parser[EvidenceAtom] = "?" ~ upperCaseID ^^ {
+    case "?" ~ predicateName => EvidenceAtom.asUnknown(predicateName, Vector.empty[Constant])
   }
 
   /**
@@ -216,7 +212,7 @@ final class EvidenceParser extends CommonsMLNParser with LazyLogging {
     upperCaseID ~ "=" ~ lowerCaseID ~ "(" ~ repsep(upperCaseID, ",") ~ ")" ^^ {
       case retValue ~ "=" ~ functionSymbol ~ "(" ~ values ~ ")" =>
         new FunctionMapping(retValue, functionSymbol, values)
-  }
+    }
 
   /**
     * Creates a probabilistic atom.
@@ -231,19 +227,21 @@ final class EvidenceParser extends CommonsMLNParser with LazyLogging {
     *
     * @return a probabilistic evidence atom
     */
-  private def mkProbabilisticAtom(atomString: String,
-                                  predicateName: String,
-                                  args: List[Constant],
-                                  probability: Double,
-                                  isPositive: Boolean): EvidenceAtom = {
+  private def mkProbabilisticAtom(
+      atomString: String,
+      predicateName: String,
+      args: List[Constant],
+      probability: Double,
+      isPositive: Boolean): EvidenceAtom = {
 
-    require(probability >= 0.0 && probability <= 1.0,
+    require(
+      probability >= 0.0 && probability <= 1.0,
       s"The probability of evidence atom '$atomString' must be between 0.0 and 1.0.")
 
     probability match {
       case 1.0 => EvidenceAtom.asTrue(predicateName, args)
       case 0.0 => EvidenceAtom.asFalse(predicateName, args)
-      case _ => throw new UnsupportedOperationException("Probabilistic atoms are not supported yet.")
+      case _   => throw new UnsupportedOperationException("Probabilistic atoms are not supported yet.")
     }
   }
 
@@ -253,22 +251,22 @@ final class EvidenceParser extends CommonsMLNParser with LazyLogging {
 
   def parseFunctionMapping(src: String): FunctionMapping = parse(functionMapping, src) match {
     case Success(result, _) => result
-    case x => logger.fatal(s"Can't parse the following expression: $x")
+    case x                  => logger.fatal(s"Can't parse the following expression: $x")
   }
 
   def parseEvidenceAtom(src: String): EvidenceAtom =
     parse(positiveAtom | positiveAtom0 | negativeAtom | negativeAtom0 | unkAtom | unkAtom0, src) match {
       case Success(result, _) => result
-      case x => logger.fatal(s"Can't parse the following expression: $x")
+      case x                  => logger.fatal(s"Can't parse the following expression: $x")
     }
 
   def parseEvidenceExpression(src: String): EvidenceExpression = parse(evidenceExpression, src) match {
     case Success(result, _) => result
-    case x => logger.fatal(s"Can't parse the following expression: $x")
+    case x                  => logger.fatal(s"Can't parse the following expression: $x")
   }
 
   def parseEvidence(src: String): List[EvidenceExpression] = parse(evidence, src) match {
     case Success(result, _) => result
-    case x => logger.fatal(s"Can't parse the following expression: $x")
+    case x                  => logger.fatal(s"Can't parse the following expression: $x")
   }
 }

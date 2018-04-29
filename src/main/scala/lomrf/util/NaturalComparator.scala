@@ -14,7 +14,7 @@
  *  o   o o-o-o  o  o-o o-o o o o     o    | o-o o  o-o o-o
  *
  *  Logical Markov Random Fields (LoMRF).
- *     
+ *
  *
  */
 
@@ -64,8 +64,7 @@ object NaturalComparator {
       if (s1.charAt(thisMarker) == s2.charAt(thatMarker)) {
         thisMarker += 1
         thatMarker += 1
-      }
-      else {
+      } else {
         var result = 0
         val thisChunk = getChunkOffset(s1, s1Length, thisMarker)
         val thatChunk = getChunkOffset(s2, s2Length, thatMarker)
@@ -84,8 +83,7 @@ object NaturalComparator {
               j += 1
             }
           }
-        }
-        else result =
+        } else result =
           compareRegion(s1, thisMarker, thisChunkLength, s2, thatMarker, thatChunkLength)
 
         if (result != 0) return result

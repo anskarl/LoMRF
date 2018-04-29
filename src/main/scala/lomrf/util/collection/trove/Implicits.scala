@@ -14,7 +14,7 @@
  *  o   o o-o-o  o  o-o o-o o o o     o    | o-o o  o-o o-o
  *
  *  Logical Markov Random Fields (LoMRF).
- *     
+ *
  *
  */
 
@@ -35,7 +35,6 @@ object Implicits {
 
   import gnu.trove.function._
   import gnu.trove.procedure._
-
 
   /* ----------------------------------------------------------
    * Scala functions to Trove Functions implicit definitions
@@ -66,11 +65,9 @@ object Implicits {
     def execute(p1: Double) = f(p1)
   }
 
-
   implicit def toObjectFunction[T, R](f: T => R): TObjectFunction[T, R] = new TObjectFunction[T, R] {
     def execute(p1: T): R = f(p1)
   }
-
 
   /* ----------------------------------------------------------
   * Scala functions to Trove Procedures implicit definitions
@@ -146,7 +143,6 @@ object Implicits {
   implicit def toByteObjectProcedure[O](f: (Byte, O) => Boolean): TByteObjectProcedure[O] = new TByteObjectProcedure[O]() {
     def execute(p1: Byte, p2: O): Boolean = f.asInstanceOf[ByteObjectProcedure[O, Boolean]](p1, p2)
   }
-
 
   //===================== Short =====================
 
@@ -474,7 +470,6 @@ object Implicits {
     def execute(p1: Double, p2: O): Boolean = f.asInstanceOf[DoubleObjectProcedure[O, Boolean]](p1, p2)
   }
 
-
   //===================== Object =====================
   trait ObjectProcedure[O, +R] extends ((O) => R) {
     def apply(i: O): R
@@ -507,7 +502,6 @@ object Implicits {
   trait ObjectObjectProcedure[O1, O2, +R] extends ((O1, O2) => R) {
     def apply(v1: O1, v2: O2): R
   }
-
 
   implicit def toObjectProcedure[O](f: O => Boolean): TObjectProcedure[O] = new TObjectProcedure[O]() {
     def execute(p1: O): Boolean = f.asInstanceOf[ObjectProcedure[O, Boolean]](p1)

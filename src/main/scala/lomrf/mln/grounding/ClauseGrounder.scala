@@ -14,7 +14,7 @@
  *  o   o o-o-o  o  o-o o-o o o o     o    | o-o o  o-o o-o
  *
  *  Logical Markov Random Fields (LoMRF).
- *     
+ *
  *
  */
 
@@ -23,8 +23,8 @@ package lomrf.mln.grounding
 import lomrf.logic.AtomSignature
 
 /**
- *
- */
+  *
+  */
 trait ClauseGrounder {
 
   def collectedSignatures: Set[AtomSignature]

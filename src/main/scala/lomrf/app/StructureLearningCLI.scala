@@ -14,14 +14,14 @@
  *  o   o o-o-o  o  o-o o-o o o o     o    | o-o o  o-o o-o
  *
  *  Logical Markov Random Fields (LoMRF).
- *     
+ *
  *
  */
 
 package lomrf.app
 
 import java.io._
-import lomrf.logic.{AtomSignature, Clause}
+import lomrf.logic.{ AtomSignature, Clause }
 import lomrf.mln.learning.structure.ClauseConstructor.ClauseType
 import lomrf.mln.learning.structure.ModeParser
 import lomrf.mln.model.KB
@@ -33,8 +33,8 @@ import lomrf.util.logging.Implicits._
 import optimus.optimization.enums.SolverLib
 
 /**
- * Command line tool for structure learning
- */
+  * Command line tool for structure learning
+  */
 object StructureLearningCLI extends CLIApp {
 
   // The path to the input MLN file
@@ -65,7 +65,7 @@ object StructureLearningCLI extends CLIApp {
   private var _threshold: Int = 1
 
   // Tolerance threshold for discarding clauses having poor weights at the end of learning
-  private var _theta: Double  = 0
+  private var _theta: Double = 0
 
   // Clause types to be produced in clause creation
   private var _clauseType = ClauseType.BOTH
@@ -139,7 +139,7 @@ object StructureLearningCLI extends CLIApp {
     v: Int => if (v < 0) logger.fatal("The maximum length of literals must be any integer above zero, but you gave: " + v) else _maxLength = v
   })
 
-  flagOpt("allowFreeVariables", "allow-free-variables", "Allow clauses to have free variables.", {_allowFreeVariables = true})
+  flagOpt("allowFreeVariables", "allow-free-variables", "Allow clauses to have free variables.", { _allowFreeVariables = true })
 
   intOpt("threshold", "threshold", "Evaluation threshold for each new clause produced (default is " + _threshold + ").", {
     v: Int => if (v < 0) logger.fatal("The evaluation threshold must be any integer above zero, but you gave: " + v) else _threshold = v
@@ -150,25 +150,27 @@ object StructureLearningCLI extends CLIApp {
   })
 
   opt("clauseType", "clause-type", "<horn | conjunction | both>", "Type of clauses to be produced (default is both).", {
-    v: String => v.trim.toLowerCase match {
-      case "horn" => _clauseType = ClauseType.HORN
-      case "conjunction" => _clauseType = ClauseType.CONJUNCTION
-      case "both" => _clauseType = ClauseType.BOTH
-      case _ => logger.fatal(s"Unknown parameter for clause type '$v'.")
-    }
+    v: String =>
+      v.trim.toLowerCase match {
+        case "horn"        => _clauseType = ClauseType.HORN
+        case "conjunction" => _clauseType = ClauseType.CONJUNCTION
+        case "both"        => _clauseType = ClauseType.BOTH
+        case _             => logger.fatal(s"Unknown parameter for clause type '$v'.")
+      }
   })
 
   opt("ilpSolver", "ilp-solver", "<lpsolve | ojalgo | gurobi | mosek>", "Solver used by ILP (default is LPSolve).", {
-    v: String => v.trim.toLowerCase match {
-      case "gurobi" => _ilpSolver = SolverLib.Gurobi
-      case "lpsolve" => _ilpSolver = SolverLib.LpSolve
-      case "ojalgo" => _ilpSolver = SolverLib.oJSolver
-      case "mosek" => _ilpSolver = SolverLib.Mosek
-      case _ => logger.fatal(s"Unknown parameter for ILP solver type '$v'.")
-    }
+    v: String =>
+      v.trim.toLowerCase match {
+        case "gurobi"  => _ilpSolver = SolverLib.Gurobi
+        case "lpsolve" => _ilpSolver = SolverLib.LpSolve
+        case "ojalgo"  => _ilpSolver = SolverLib.oJSolver
+        case "mosek"   => _ilpSolver = SolverLib.Mosek
+        case _         => logger.fatal(s"Unknown parameter for ILP solver type '$v'.")
+      }
   })
 
-  flagOpt("lossAugmented", "loss-augmented", "Perform loss augmented inference.", {_lossAugmented = true})
+  flagOpt("lossAugmented", "loss-augmented", "Perform loss augmented inference.", { _lossAugmented = true })
 
   doubleOpt("initialWeight", "initial-weight", "Initial weight value for discovered clauses (default is " + _initialWeight + ").", {
     v: Double => _initialWeight = v
@@ -183,15 +185,16 @@ object StructureLearningCLI extends CLIApp {
   })
 
   doubleOpt("delta", "delta", "Delta parameter for ADAGRAD (default is " + _delta + ").", {
-    v: Double => if(v < 0) logger.fatal("Delta value must be any number greater or equal to zero, but you gave: " + v) else _delta = v
+    v: Double => if (v < 0) logger.fatal("Delta value must be any number greater or equal to zero, but you gave: " + v) else _delta = v
   })
 
   flagOpt("printLearnedWeightsPerIteration", "print-learned-weights-per-iteration", "Print the learned weights for each iteration.", {
-    _printLearnedWeightsPerIteration = true})
+    _printLearnedWeightsPerIteration = true
+  })
 
-  flagOpt("noNegWeights", "eliminate-negative-weights", "Eliminate negative weight values from ground clauses.", {_noNeg = true})
+  flagOpt("noNegWeights", "eliminate-negative-weights", "Eliminate negative weight values from ground clauses.", { _noNeg = true })
 
-  flagOpt("noNegatedUnit", "eliminate-negated-unit", "Eliminate negated unit ground clauses.", {_eliminateNegatedUnit = true})
+  flagOpt("noNegatedUnit", "eliminate-negated-unit", "Eliminate negated unit ground clauses.", { _eliminateNegatedUnit = true })
 
   flagOpt("v", "version", "Print LoMRF version.", sys.exit(0))
 
@@ -215,7 +218,7 @@ object StructureLearningCLI extends CLIApp {
 
     val outputWriter = _outputFileName match {
       case Some(fileName) => new PrintStream(new FileOutputStream(fileName), true)
-      case None => System.out
+      case None           => System.out
     }
 
     logger.info("Parameters:"
@@ -224,7 +227,7 @@ object StructureLearningCLI extends CLIApp {
       + "\n\t(allowFreeVariables) Allow clauses to have free variables: " + _allowFreeVariables
       + "\n\t(threshold) Evaluation threshold for each new clause produced: " + _threshold
       + "\n\t(theta) Tolerance threshold for discarding clauses having poor weights: " + _theta
-      + "\n\t(clauseType) Type of clauses to be produced: " + ( if(_clauseType == ClauseType.HORN) "Horn" else if(_clauseType == ClauseType.CONJUNCTION) "Conjunction" else "Both")
+      + "\n\t(clauseType) Type of clauses to be produced: " + (if (_clauseType == ClauseType.HORN) "Horn" else if (_clauseType == ClauseType.CONJUNCTION) "Conjunction" else "Both")
       + "\n\t(ilpSolver) Solver used by ILP map inference: " + _ilpSolver
       + "\n\t(lossAugmented) Perform loss augmented inference: " + _lossAugmented
       + "\n\t(initialWeight) Initial weight value for discovered clauses: " + _initialWeight
@@ -232,14 +235,13 @@ object StructureLearningCLI extends CLIApp {
       + "\n\t(eta) Learning rate parameter for AdaGrad: " + _eta
       + "\n\t(delta) Delta parameter for AdaGrad: " + _delta
       + "\n\t(noNegWeights) Eliminate negative weights: " + _noNeg
-      + "\n\t(noNegatedUnit) Eliminate negated ground unit clauses: " + _eliminateNegatedUnit
-    )
+      + "\n\t(noNegatedUnit) Eliminate negated ground unit clauses: " + _eliminateNegatedUnit)
 
     // Parse all mode declarations from file
     val modes = ModeParser.parseFrom(new File(strModeFileName))
     logger.info("Modes Declarations: \n" + modes.map(pair => "\t" + pair._1 + " -> " + pair._2).reduce(_ + "\n" + _))
 
-    if(_templateAtoms.isEmpty) {
+    if (_templateAtoms.isEmpty) {
 
       val (kb, constants) = KB.fromFile(strMLNFileName)
 
@@ -264,8 +266,7 @@ object StructureLearningCLI extends CLIApp {
 
       logger.info(msecTimeToTextUntilNow("Total learning time: ", start))
       learner.writeResults(outputWriter)
-    }
-    else {
+    } else {
 
       val (kb, constants) = KB.fromFile(strMLNFileName, convertFunctions = true)
 

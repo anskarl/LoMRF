@@ -14,16 +14,16 @@
  *  o   o o-o-o  o  o-o o-o o o o     o    | o-o o  o-o o-o
  *
  *  Logical Markov Random Fields (LoMRF).
- *     
+ *
  *
  */
 
 package lomrf.mln.inference
 
-import lomrf.logic.{AtomSignature, TRUE, TriState}
+import lomrf.logic.{ AtomSignature, TRUE, TriState }
 import java.io.PrintStream
 import lomrf.mln.inference.RoundingScheme.RoundingScheme
-import lomrf.mln.model.{AtomEvidenceDB, AtomIdentityFunctionOps, MLN}
+import lomrf.mln.model.{ AtomEvidenceDB, AtomIdentityFunctionOps, MLN }
 import lomrf.mln.model.mrf._
 import lomrf.util.time._
 import lomrf.util.logging.Implicits._
@@ -33,33 +33,37 @@ import gnu.trove.map.hash.TIntObjectHashMap
 import optimus.algebra._
 import optimus.optimization._
 import optimus.algebra.AlgebraOps._
-import scala.util.{Failure, Success}
+import scala.util.{ Failure, Success }
 import scalaxy.streams.optimize
 import scala.language.postfixOps
 import lomrf.util.collection.trove.TroveConversions._
 import com.typesafe.scalalogging.LazyLogging
-import optimus.optimization.enums.{PreSolve, SolverLib}
+import optimus.optimization.enums.{ PreSolve, SolverLib }
 import optimus.optimization.model.MPFloatVar
 
 /**
- * This is an implementation of an approximate MAP inference algorithm for MLNs using Integer Linear Programming.
- * The original implementation of the algorithm can be found in: [[http://alchemy.cs.washington.edu/code/]].
- * Details about the ILP algorithm can be found in: Tuyen N. Huynh and Raymond J. Mooney. Max-Margin Weight Learning for
- * Markov Logic Networks. In Proceedings of the European Conference on Machine Learning and Principles and Practice of
- * Knowledge Discovery in Databases (ECML-PKDD 2011), Vol. 2, pp. 81-96, 2011.
- *
- * @param mrf The ground Markov network
- * @param annotationDB Annotation database holding the ground truth values for non evidence
- *                     atoms. Required when performing loss augmented inference.
- * @param outputAll Show 0/1 results for all query atoms (default is true)
- * @param ilpRounding Rounding algorithm selection option (default is RoundUp)
- * @param ilpSolver Solver type selection option (default is LPSolve)
- * @param lossAugmented Perform loss augmented inference using hamming distance (default is false)
- *
- */
-final class ILP(mrf: MRF, annotationDB: Map[AtomSignature, AtomEvidenceDB] = Map.empty[AtomSignature, AtomEvidenceDB],
-                outputAll: Boolean = true, ilpRounding: RoundingScheme = RoundingScheme.ROUNDUP, ilpSolver: SolverLib = SolverLib.LpSolve,
-                lossAugmented: Boolean = false) extends LazyLogging {
+  * This is an implementation of an approximate MAP inference algorithm for MLNs using Integer Linear Programming.
+  * The original implementation of the algorithm can be found in: [[http://alchemy.cs.washington.edu/code/]].
+  * Details about the ILP algorithm can be found in: Tuyen N. Huynh and Raymond J. Mooney. Max-Margin Weight Learning for
+  * Markov Logic Networks. In Proceedings of the European Conference on Machine Learning and Principles and Practice of
+  * Knowledge Discovery in Databases (ECML-PKDD 2011), Vol. 2, pp. 81-96, 2011.
+  *
+  * @param mrf The ground Markov network
+  * @param annotationDB Annotation database holding the ground truth values for non evidence
+  *                     atoms. Required when performing loss augmented inference.
+  * @param outputAll Show 0/1 results for all query atoms (default is true)
+  * @param ilpRounding Rounding algorithm selection option (default is RoundUp)
+  * @param ilpSolver Solver type selection option (default is LPSolve)
+  * @param lossAugmented Perform loss augmented inference using hamming distance (default is false)
+  *
+  */
+final class ILP(
+    mrf: MRF,
+    annotationDB: Map[AtomSignature, AtomEvidenceDB] = Map.empty[AtomSignature, AtomEvidenceDB],
+    outputAll: Boolean = true,
+    ilpRounding: RoundingScheme = RoundingScheme.ROUNDUP,
+    ilpSolver: SolverLib = SolverLib.LpSolve,
+    lossAugmented: Boolean = false) extends LazyLogging {
 
   // Select the appropriate mathematical programming solver
   implicit val model: MPModel = MPModel(ilpSolver)
@@ -67,20 +71,20 @@ final class ILP(mrf: MRF, annotationDB: Map[AtomSignature, AtomEvidenceDB] = Map
   implicit val mln: MLN = mrf.mln
 
   /**
-   * Fetch atom given its id.
-   *
-   * @param atomID id of the atom
-   * @return the ground atom which corresponds to the given id
-   */
+    * Fetch atom given its id.
+    *
+    * @param atomID id of the atom
+    * @return the ground atom which corresponds to the given id
+    */
   @inline private def fetchAtom(atomID: Int) = mrf.atoms.get(atomID)
 
   /**
-   * Fetch annotation from database for the given atom id. Annotation
-   * exist only for non evidence atoms.
-   *
-   * @param atomID id of the atom
-   * @return annotation TriState value (TRUE, FALSE or UNKNOWN)
-   */
+    * Fetch annotation from database for the given atom id. Annotation
+    * exist only for non evidence atoms.
+    *
+    * @param atomID id of the atom
+    * @return annotation TriState value (TRUE, FALSE or UNKNOWN)
+    */
   @inline private def getAnnotation(atomID: Int): TriState = {
     val annotation = annotationDB(atomID.signature(mrf.mln))
     annotation(atomID)
@@ -88,7 +92,7 @@ final class ILP(mrf: MRF, annotationDB: Map[AtomSignature, AtomEvidenceDB] = Map
 
   def infer(): MRFState = {
 
-    if(lossAugmented) {
+    if (lossAugmented) {
       assert(annotationDB.nonEmpty, "Annotation database does not exist!")
       logger.info("Running loss augmented inference...")
     }
@@ -102,17 +106,17 @@ final class ILP(mrf: MRF, annotationDB: Map[AtomSignature, AtomEvidenceDB] = Map
     val clauseLPVars = new TIntObjectHashMap[MPFloatVar]()
 
     /**
-     * A collection of expressions of the equation that we aim to maximize.
-     * Each expression has the following form:
-     *
-     * {{{ weight * LP variable}}}
-     */
+      * A collection of expressions of the equation that we aim to maximize.
+      * Each expression has the following form:
+      *
+      * {{{ weight * LP variable}}}
+      */
     var expressions = List[Expression]()
 
     val atomsIterator = mrf.atoms.iterator()
 
     // Step 1: Introduce variables for each ground atom
-    while(atomsIterator.hasNext) {
+    while (atomsIterator.hasNext) {
       atomsIterator.advance()
       val atomID = math.abs(atomsIterator.key())
 
@@ -123,7 +127,7 @@ final class ILP(mrf: MRF, annotationDB: Map[AtomSignature, AtomEvidenceDB] = Map
        * true (annotated) value of y is FALSE and subtracting 1 from the
        * coefficient of y if the true value of y is TRUE.
        */
-      if(lossAugmented) {
+      if (lossAugmented) {
         val loss = if (getAnnotation(atomID) == TRUE) -1.0 else 1.0
         expressions ::= loss * literalLPVars.get(atomID)
       }
@@ -139,7 +143,7 @@ final class ILP(mrf: MRF, annotationDB: Map[AtomSignature, AtomEvidenceDB] = Map
       // fetch the current constraint, i.e., current weighted ground clause or clique
       val constraint = constraintsIterator.value()
 
-      logger.whenDebugEnabled{
+      logger.whenDebugEnabled {
         val decodedConstraint = constraint.decodeFeature(mrf.weightHard).getOrElse(logger.fatal(s"Cannot decode constraint $constraint"))
         logger.debug(s"Ground Clause: ${constraint.getWeight} $decodedConstraint")
       }
@@ -173,8 +177,7 @@ final class ILP(mrf: MRF, annotationDB: Map[AtomSignature, AtomEvidenceDB] = Map
             if (constraint.literals(0) > 0) constraint.getWeight * literalLPVars.get(math.abs(constraint.literals(0)))
             else (-constraint.getWeight) * literalLPVars.get(math.abs(constraint.literals(0)))
           }
-        }
-        else { // there is no case where the same clause is going to create another z variable, so use put not putIfAbsent
+        } else { // there is no case where the same clause is going to create another z variable, so use put not putIfAbsent
           clauseLPVars.put(cid, MPFloatVar("z" + cid, 0, 1))
           expressions ::= math.abs(constraint.getWeight) * clauseLPVars.get(cid)
         }
@@ -187,14 +190,12 @@ final class ILP(mrf: MRF, annotationDB: Map[AtomSignature, AtomEvidenceDB] = Map
       if (constraint.isHardConstraint) {
         add(sum(constraints) >:= 1)
         logger.debug(constraints.mkString(" + ") + " >= 1")
-      }
-      else if (!constraint.isUnit && constraint.getWeight != 0.0) {
+      } else if (!constraint.isUnit && constraint.getWeight != 0.0) {
         val clauseVar = clauseLPVars.get(cid)
         if (constraint.getWeight > 0) {
           add(sum(constraints) >:= clauseVar)
           logger.debug(constraints.mkString(" + ") + " >= " + clauseVar.symbol)
-        }
-        else {
+        } else {
           for (c <- constraints) {
             add(c >:= clauseVar)
             logger.debug(c + " >= " + clauseVar.symbol)
@@ -207,7 +208,7 @@ final class ILP(mrf: MRF, annotationDB: Map[AtomSignature, AtomEvidenceDB] = Map
     logger.info(msecTimeToText("Translation time: ", eTranslation - sTranslation))
 
     logger.info(
-        "\nGround Atoms: " + mrf.numberOfAtoms +
+      "\nGround Atoms: " + mrf.numberOfAtoms +
         "\nAtom Variables: " + literalLPVars.size + " + Clauses Variables: " + clauseLPVars.size +
         " = " + (literalLPVars.size + clauseLPVars.size))
 
@@ -222,18 +223,19 @@ final class ILP(mrf: MRF, annotationDB: Map[AtomSignature, AtomEvidenceDB] = Map
     logger.info(msecTimeToText("Solver time: ", eSolver - sSolver))
 
     logger.info(
-        "\n=========================== Solution ===========================" +
+      "\n=========================== Solution ===========================" +
         "\nAre constraints satisfied: " + checkConstraints() +
         "\nSolution status: " + status.toString +
         "\nObjective = " + objectiveValue)
 
-
     logger.whenDebugEnabled {
-      literalLPVars.iterator.foreach { case (k: Int, v: MPFloatVar) =>
-        logger.debug(v.symbol + " = " + v.value.getOrElse("Value does not exist for this ground atom variable!"))
+      literalLPVars.iterator.foreach {
+        case (k: Int, v: MPFloatVar) =>
+          logger.debug(v.symbol + " = " + v.value.getOrElse("Value does not exist for this ground atom variable!"))
       }
-      clauseLPVars.iterator.foreach { case (k: Int, v: MPFloatVar) =>
-        logger.debug(v.symbol + " = " + v.value.getOrElse("Value does not exist for this constraint variable"))
+      clauseLPVars.iterator.foreach {
+        case (k: Int, v: MPFloatVar) =>
+          logger.debug(v.symbol + " = " + v.value.getOrElse("Value does not exist for this constraint variable"))
       }
     }
 
@@ -245,7 +247,7 @@ final class ILP(mrf: MRF, annotationDB: Map[AtomSignature, AtomEvidenceDB] = Map
     var nonIntegralSolutionsCounter = 0
     var fractionalSolutions = Vector[Int]()
 
-    for ( (id, lpVar) <- literalLPVars.iterator() ) {
+    for ((id, lpVar) <- literalLPVars.iterator()) {
       val value = lpVar.value.getOrElse(logger.fatal(s"There is no solution for variable '${lpVar.symbol}'"))
 
       /*
@@ -257,8 +259,7 @@ final class ILP(mrf: MRF, annotationDB: Map[AtomSignature, AtomEvidenceDB] = Map
       if (normalisedValue != 0.0 && normalisedValue != 1.0) {
         nonIntegralSolutionsCounter += 1
         fractionalSolutions +:= id
-      }
-      else {
+      } else {
         val currentAtom = fetchAtom(id)
         currentAtom.fixedValue = if (normalisedValue == 0.0) -1 else 1
         currentAtom.state = if (normalisedValue == 0.0) false else true
@@ -271,7 +272,7 @@ final class ILP(mrf: MRF, annotationDB: Map[AtomSignature, AtomEvidenceDB] = Map
 
     val sRoundUp = System.currentTimeMillis()
 
-    if(nonIntegralSolutionsCounter > 0) {
+    if (nonIntegralSolutionsCounter > 0) {
       /*
        * RoundUp algorithm:
        *
@@ -289,16 +290,15 @@ final class ILP(mrf: MRF, annotationDB: Map[AtomSignature, AtomEvidenceDB] = Map
        *
        * Note: Better to keep delta >= 0 for true values and < for false.
        */
-      if(ilpRounding == RoundingScheme.ROUNDUP) optimize {
+      if (ilpRounding == RoundingScheme.ROUNDUP) optimize {
 
         for (i <- fractionalSolutions.size - 1 to 0 by -1) {
           val id = fractionalSolutions(i)
           val currentAtom = fetchAtom(id)
-          if(state.computeDelta(id) >= 0) {
+          if (state.computeDelta(id) >= 0) {
             currentAtom.fixedValue = 1
             currentAtom.state = true
-          }
-          else {
+          } else {
             currentAtom.fixedValue = -1
             currentAtom.state = false
           }
@@ -315,20 +315,19 @@ final class ILP(mrf: MRF, annotationDB: Map[AtomSignature, AtomEvidenceDB] = Map
     logger.info(msecTimeToText("Roundup time: ", eRoundUp - sRoundUp))
 
     state.printStatistics()
-    logger.info(msecTimeToText("Total ILP time: ",
-      (eTranslation - sTranslation) + (eSolver - sSolver) + (eRoundUp - sRoundUp)
-    ))
+    logger.info(msecTimeToText(
+      "Total ILP time: ",
+      (eTranslation - sTranslation) + (eSolver - sSolver) + (eRoundUp - sRoundUp)))
 
     state
   }
 
   /**
-   * Write the results of inference into the selected output stream.
-   *
-   * @param out Selected output stream (default is console)
-   */
+    * Write the results of inference into the selected output stream.
+    *
+    * @param out Selected output stream (default is console)
+    */
   def writeResults(out: PrintStream = System.out) {
-
 
     val queryStartID = mln.space.queryStartID
     val queryEndID = mln.space.queryEndID
@@ -341,11 +340,11 @@ final class ILP(mrf: MRF, annotationDB: Map[AtomSignature, AtomEvidenceDB] = Map
 
       if (atomID >= queryStartID && atomID <= queryEndID) {
         val groundAtom = iterator.value()
-        val state = if(groundAtom.getState) 1 else 0
+        val state = if (groundAtom.getState) 1 else 0
 
         atomID.decodeAtom match {
           case Success(txtAtom) if outputAll || state == 1 => out.println(txtAtom + " " + state)
-          case Failure(f) => logger.error(s"failed to decode id: $atomID", f)
+          case Failure(f)                                  => logger.error(s"failed to decode id: $atomID", f)
         }
 
       }
@@ -355,8 +354,8 @@ final class ILP(mrf: MRF, annotationDB: Map[AtomSignature, AtomEvidenceDB] = Map
 }
 
 /**
- * Object holding constants for rounding type.
- */
+  * Object holding constants for rounding type.
+  */
 object RoundingScheme extends Enumeration {
   type RoundingScheme = Value
 

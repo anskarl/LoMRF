@@ -14,18 +14,18 @@
  *  o   o o-o-o  o  o-o o-o o o o     o    | o-o o  o-o o-o
  *
  *  Logical Markov Random Fields (LoMRF).
- *     
+ *
  *
  */
 
 package lomrf.util.evaluation
 
-import org.scalatest.{Matchers, FunSpec}
+import org.scalatest.{ Matchers, FunSpec }
 
 /**
- * Specification test for various metrics used for automated evaluation over
- * learning results.
- */
+  * Specification test for various metrics used for automated evaluation over
+  * learning results.
+  */
 final class MetricsSpecTest extends FunSpec with Matchers {
 
   // Precision is the fraction of retrieved instances that are relevant
@@ -74,15 +74,15 @@ final class MetricsSpecTest extends FunSpec with Matchers {
   describe("Accuracy") {
 
     it("when true positives and true negatives are zero accuracy should be 0.0") {
-      Metrics.accuracy(0, 10, 0 ,10) shouldBe 0.0
+      Metrics.accuracy(0, 10, 0, 10) shouldBe 0.0
     }
 
     it("when false positives and false negatives are zero accuracy should be 1.0") {
-      Metrics.accuracy(5, 0, 5 ,0) shouldBe 1.0
+      Metrics.accuracy(5, 0, 5, 0) shouldBe 1.0
     }
 
     it("when true positives and negatives are equal to false positives and negatives accuracy should be 0.5") {
-      Metrics.accuracy(5, 5, 5 ,5) shouldBe 0.5
+      Metrics.accuracy(5, 5, 5, 5) shouldBe 0.5
     }
   }
 

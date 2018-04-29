@@ -14,7 +14,7 @@
  *  o   o o-o-o  o  o-o o-o o o o     o    | o-o o  o-o o-o
  *
  *  Logical Markov Random Fields (LoMRF).
- *     
+ *
  *
  */
 
@@ -26,9 +26,9 @@ import java.io.FileWriter
 import lomrf.util.logging.Implicits._
 
 /**
- * Command line tool for knowledge base difference checking. In particular using this tool we can perform
- * difference checking given two knowledge bases.
- */
+  * Command line tool for knowledge base difference checking. In particular using this tool we can perform
+  * difference checking given two knowledge bases.
+  */
 object KBDifferenceCLI extends CLIApp {
 
   private def compare(source: IndexedSeq[String], evidence: IndexedSeq[String], prefixOpt: Option[String]) {
@@ -42,7 +42,7 @@ object KBDifferenceCLI extends CLIApp {
 
     val prefix = prefixOpt.map(_.trim) match {
       case Some(p) if p.nonEmpty => p + "-"
-      case _ => ""
+      case _                     => ""
     }
 
     for {
@@ -50,7 +50,8 @@ object KBDifferenceCLI extends CLIApp {
       (sourceAlpha, evidenceAlpha) = combination.head
       (sourceBeta, evidenceBeta) = combination.last
       mlnAlpha = MLN.fromFile(sourceAlpha, queryAtoms, evidenceAlpha)
-      mlnBeta = MLN.fromFile(sourceBeta, queryAtoms, evidenceBeta)} {
+      mlnBeta = MLN.fromFile(sourceBeta, queryAtoms, evidenceBeta)
+    } {
 
       logger.info(
         "\nSource KB 1: " + sourceAlpha + "\n" +
@@ -99,25 +100,27 @@ object KBDifferenceCLI extends CLIApp {
   var prefixOpt: Option[String] = None
 
   opt("i", "input", "<files>", "At least two comma separated input files", {
-    v: String => if (v.nonEmpty) {
-      val fileNames = v.split(',').map(_.trim)
+    v: String =>
+      if (v.nonEmpty) {
+        val fileNames = v.split(',').map(_.trim)
 
-      if (fileNames.length < 2)
-        logger.fatal("At least two input files are required, in order to perform difference operation.")
+        if (fileNames.length < 2)
+          logger.fatal("At least two input files are required, in order to perform difference operation.")
 
-      inputFileName = Some(fileNames)
-    }
+        inputFileName = Some(fileNames)
+      }
   })
 
   opt("e", "evidence", "<db files>", "At least two comma separated evidence database files", {
-    v: String => if (v.nonEmpty) {
-      val fileNames = v.split(',').map(_.trim)
+    v: String =>
+      if (v.nonEmpty) {
+        val fileNames = v.split(',').map(_.trim)
 
-      if (fileNames.length < 2)
-        logger.fatal("At least two evidence files are required, in order to perform difference operation.")
+        if (fileNames.length < 2)
+          logger.fatal("At least two evidence files are required, in order to perform difference operation.")
 
-      evidenceFileName = Some(fileNames)
-    }
+        evidenceFileName = Some(fileNames)
+      }
   })
 
   opt("p", "prefix", "<string>", "Prefix for the output difference files (<prefix>-input_filename_1-input_filename_2.diff)", {
@@ -135,8 +138,7 @@ object KBDifferenceCLI extends CLIApp {
     compare(
       inputFileName.getOrElse(logger.fatal("Please define the input files.")),
       evidenceFileName.getOrElse(logger.fatal("Please define the evidence files.")),
-      prefixOpt
-    )
+      prefixOpt)
   }
 
 }

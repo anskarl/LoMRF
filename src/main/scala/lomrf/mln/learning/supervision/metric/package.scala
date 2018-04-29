@@ -14,14 +14,14 @@
  *  o   o o-o-o  o  o-o o-o o o o     o    | o-o o  o-o o-o
  *
  *  Logical Markov Random Fields (LoMRF).
- *     
+ *
  *
  */
 
 package lomrf.mln.learning.supervision
 
 import lomrf.logic._
-import lomrf.{AUX_PRED_PREFIX => PREFIX}
+import lomrf.{ AUX_PRED_PREFIX => PREFIX }
 import lomrf.mln.model.EvidenceDB
 
 package object metric {

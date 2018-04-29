@@ -14,7 +14,7 @@
  *  o   o o-o-o  o  o-o o-o o o o     o    | o-o o  o-o o-o
  *
  *  Logical Markov Random Fields (LoMRF).
- *     
+ *
  *
  */
 
@@ -27,15 +27,16 @@ trait MasterOptionParser {
 
   private var optToParserExecutable: Map[OptionName, (Description, Array[String] => Unit)] = Map.empty
 
-  protected def addOpt(opt: OptionName,
-    description: Description,
-    executable: Array[String] => Unit): Unit ={
+  protected def addOpt(
+      opt: OptionName,
+      description: Description,
+      executable: Array[String] => Unit): Unit = {
     optToParserExecutable += opt -> (description, executable)
   }
 
   def parse(argz: Array[String]): Unit = {
 
-    if(argz.isEmpty) {
+    if (argz.isEmpty) {
       println(usage)
       sys.exit(1)
     }
@@ -44,7 +45,7 @@ trait MasterOptionParser {
 
     optToParserExecutable.get(firstArgument) match {
       case Some((_, executable)) =>
-        val restOptions = if(argz.length == 1) Array[String]() else argz.slice(1, argz.length)
+        val restOptions = if (argz.length == 1) Array[String]() else argz.slice(1, argz.length)
         executable(restOptions)
 
       case None =>
@@ -60,7 +61,7 @@ trait MasterOptionParser {
         case (optionName, (description, _)) =>
           val max_length = 76 - maxSizeOptName
 
-          if(max_length < 0)
+          if (max_length < 0)
             s"    $optionName$NLTB${wrapText(description, 72)}"
           else {
             val numberOfwhiteSpaces = maxSizeOptName - optionName.size

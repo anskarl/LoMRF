@@ -14,7 +14,7 @@
  *  o   o o-o-o  o  o-o o-o o o o     o    | o-o o  o-o o-o
  *
  *  Logical Markov Random Fields (LoMRF).
- *     
+ *
  *
  */
 
@@ -23,14 +23,12 @@ package lomrf.util.collection.mutable
 import scala.reflect.ClassTag
 import scalaxy.streams.optimize
 
-
 trait IndexPartitioned[T] extends lomrf.util.collection.IndexPartitioned[T] {
 
   def update(idx: Int, elem: T)
 }
 
-
-object IndexPartitioned{
+object IndexPartitioned {
   def apply[T](data: Array[T]): IndexPartitioned[T] = new IndexPartitioned[T] {
 
     private val positionOf = (idx: Int) => math.abs(idx % data.length)
@@ -46,13 +44,13 @@ object IndexPartitioned{
     override def partition(partitionIndex: Int) = data(partitionIndex)
   }
 
-  def apply[T: ClassTag](size: Int, initializer:(Int => T)): IndexPartitioned[T] = {
+  def apply[T: ClassTag](size: Int, initializer: (Int => T)): IndexPartitioned[T] = {
     val data = new Array[T](size)
 
-    optimize(for(i <- 0 until size) data(i) = initializer(i))
+    optimize(for (i <- 0 until size) data(i) = initializer(i))
 
     apply(data)
   }
 
-  def apply[T: ClassTag](size: Int): IndexPartitioned[T] = apply( new Array[T](size))
+  def apply[T: ClassTag](size: Int): IndexPartitioned[T] = apply(new Array[T](size))
 }

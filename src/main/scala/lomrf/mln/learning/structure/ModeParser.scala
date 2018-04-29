@@ -14,13 +14,13 @@
  *  o   o o-o-o  o  o-o o-o o o o     o    | o-o o  o-o o-o
  *
  *  Logical Markov Random Fields (LoMRF).
- *     
+ *
  *
  */
 
 package lomrf.mln.learning.structure
 
-import java.io.{BufferedReader, File, FileReader}
+import java.io.{ BufferedReader, File, FileReader }
 
 import lomrf.util.logging.Implicits._
 import com.typesafe.scalalogging.LazyLogging
@@ -62,49 +62,41 @@ class ModeParser extends CommonModeParser with LazyLogging {
 
   private def modePredicate =
     "modeP" ~ "(" ~ recall ~ "," ~ predicate ~ "(" ~ repsep(placeMarker, ",") ~ ")" ~
-    (("body~/>" ~> repsep(predicateSignature | functionSignature, ","))?) ~ ")" ^^ {
+      (("body~/>" ~> repsep(predicateSignature | functionSignature, ","))?) ~ ")" ^^ {
 
-    case "modeP" ~ "(" ~ "*" ~ "," ~ predicateSymbol ~ "(" ~ values ~ ")" ~ atoms ~ ")" => (
-      AtomSignature(predicateSymbol, values.length),
-      ModeDeclaration(
-        placeMarkers = values.map(symbol => PlaceMarker(symbol.contains("+"), symbol.contains("-"), symbol.contains("#"))).toVector,
-        incompatibleSignatures = atoms.getOrElse(Set.empty[AtomSignature]).toSet
-        )
-      )
+        case "modeP" ~ "(" ~ "*" ~ "," ~ predicateSymbol ~ "(" ~ values ~ ")" ~ atoms ~ ")" => (
+          AtomSignature(predicateSymbol, values.length),
+          ModeDeclaration(
+            placeMarkers           = values.map(symbol => PlaceMarker(symbol.contains("+"), symbol.contains("-"), symbol.contains("#"))).toVector,
+            incompatibleSignatures = atoms.getOrElse(Set.empty[AtomSignature]).toSet))
 
-    case "modeP" ~ "(" ~ limit ~ "," ~ predicateSymbol ~ "(" ~ values ~ ")" ~ atoms ~ ")" => (
-      AtomSignature(predicateSymbol, values.length),
-      ModeDeclaration(
-        limit.toInt,
-        values.map(symbol => PlaceMarker(symbol.contains("+"), symbol.contains("-"), symbol.contains("#"))).toVector,
-        atoms.getOrElse(Set.empty[AtomSignature]).toSet
-        )
-      )
-  }
+        case "modeP" ~ "(" ~ limit ~ "," ~ predicateSymbol ~ "(" ~ values ~ ")" ~ atoms ~ ")" => (
+          AtomSignature(predicateSymbol, values.length),
+          ModeDeclaration(
+            limit.toInt,
+            values.map(symbol => PlaceMarker(symbol.contains("+"), symbol.contains("-"), symbol.contains("#"))).toVector,
+            atoms.getOrElse(Set.empty[AtomSignature]).toSet))
+      }
 
   private def modeFunction =
     "modeF" ~ "(" ~ recall ~ "," ~ function ~ "(" ~ repsep(placeMarker, ",") ~ ")" ~
       (("body~/>" ~> repsep(predicateSignature | functionSignature, ","))?) ~ ")" ^^ {
 
-    // Function return value is always an input place marker
+        // Function return value is always an input place marker
 
-    case "modeF" ~ "(" ~ "*" ~ "," ~ functionSymbol ~ "(" ~ values ~ ")" ~ atoms ~ ")" => (
-      AtomSignature(lomrf.AUX_PRED_PREFIX + functionSymbol.trim, values.length + 1),
-      ModeDeclaration(
-        placeMarkers = (PlaceMarker.input :: values.map(symbol => PlaceMarker(symbol.contains("+"), symbol.contains("-"), symbol.contains("#")))).toVector,
-        incompatibleSignatures = atoms.getOrElse(Set.empty[AtomSignature]).toSet
-        )
-      )
+        case "modeF" ~ "(" ~ "*" ~ "," ~ functionSymbol ~ "(" ~ values ~ ")" ~ atoms ~ ")" => (
+          AtomSignature(lomrf.AUX_PRED_PREFIX + functionSymbol.trim, values.length + 1),
+          ModeDeclaration(
+            placeMarkers           = (PlaceMarker.input :: values.map(symbol => PlaceMarker(symbol.contains("+"), symbol.contains("-"), symbol.contains("#")))).toVector,
+            incompatibleSignatures = atoms.getOrElse(Set.empty[AtomSignature]).toSet))
 
-    case "modeF" ~ "(" ~ limit ~ "," ~ functionSymbol ~ "(" ~ values ~ ")" ~ atoms ~ ")" => (
-      AtomSignature(lomrf.AUX_PRED_PREFIX + functionSymbol.trim, values.length + 1),
-      ModeDeclaration(
-        limit.toInt,
-        (PlaceMarker.input :: values.map(symbol => PlaceMarker(symbol.contains("+"), symbol.contains("-"), symbol.contains("#")))).toVector,
-        atoms.getOrElse(Set.empty[AtomSignature]).toSet
-        )
-      )
-  }
+        case "modeF" ~ "(" ~ limit ~ "," ~ functionSymbol ~ "(" ~ values ~ ")" ~ atoms ~ ")" => (
+          AtomSignature(lomrf.AUX_PRED_PREFIX + functionSymbol.trim, values.length + 1),
+          ModeDeclaration(
+            limit.toInt,
+            (PlaceMarker.input :: values.map(symbol => PlaceMarker(symbol.contains("+"), symbol.contains("-"), symbol.contains("#")))).toVector,
+            atoms.getOrElse(Set.empty[AtomSignature]).toSet))
+      }
 
   private def functionSignature = function ~ "/" ~ arity ^^ {
     case functionSymbol ~ "/" ~ functionArity =>
@@ -129,9 +121,9 @@ class ModeParser extends CommonModeParser with LazyLogging {
 }
 
 /**
- * Mode parser object used to parse mode declarations from a given source. The source can
- * be a simple string, a file or an iterable of strings.
- */
+  * Mode parser object used to parse mode declarations from a given source. The source can
+  * be a simple string, a file or an iterable of strings.
+  */
 object ModeParser extends LazyLogging {
 
   private lazy val parser = new ModeParser
@@ -167,7 +159,7 @@ object ModeParser extends LazyLogging {
 
     parser.parseAll(parser.modeDeclarations, fileReader) match {
       case parser.Success(expr: ModeDeclarations, _) => expr
-      case x => logger.fatal("Can't parse the following expression: " + x +" in file: " + modesFile.getPath)
+      case x                                         => logger.fatal("Can't parse the following expression: " + x + " in file: " + modesFile.getPath)
     }
   }
 }
@@ -181,16 +173,16 @@ object ModeParser extends LazyLogging {
   */
 final case class ModeDeclaration(recall: Int = Int.MaxValue, placeMarkers: Vector[PlaceMarker], incompatibleSignatures: Set[AtomSignature]) {
   override def toString =
-    "mode(" + (if(recall == Int.MaxValue) "*" else recall) + "," + placeMarkers.mkString(",") + ", " + incompatibleSignatures.toString + ")"
+    "mode(" + (if (recall == Int.MaxValue) "*" else recall) + "," + placeMarkers.mkString(",") + ", " + incompatibleSignatures.toString + ")"
 }
 
 /**
- * Defines the place marker of a specific variable.
- *
- * @param input is input variable
- * @param output is output variable
- * @param constant the argument would remain constant
- */
+  * Defines the place marker of a specific variable.
+  *
+  * @param input is input variable
+  * @param output is output variable
+  * @param constant the argument would remain constant
+  */
 final case class PlaceMarker(input: Boolean, output: Boolean, constant: Boolean) {
 
   def isInputOrOutput: Boolean = input || output
@@ -202,13 +194,13 @@ final case class PlaceMarker(input: Boolean, output: Boolean, constant: Boolean)
   def isConstant: Boolean = constant
 
   override def toString =
-    if(input && output && constant) "#+-"
-    else if(!input && !output && constant) "#."
-    else if(input && output) "+-"
-    else if(input && constant) "#+"
-    else if(output && constant) "#-"
-    else if(input) "+"
-    else if(output) "-"
+    if (input && output && constant) "#+-"
+    else if (!input && !output && constant) "#."
+    else if (input && output) "+-"
+    else if (input && constant) "#+"
+    else if (output && constant) "#-"
+    else if (input) "+"
+    else if (output) "-"
     else "."
 }
 
@@ -218,8 +210,8 @@ final case class PlaceMarker(input: Boolean, output: Boolean, constant: Boolean)
 object PlaceMarker {
 
   /**
-   * An input place marker
-   */
+    * An input place marker
+    */
   val input = new PlaceMarker(true, false, false)
 
   /**
@@ -228,8 +220,8 @@ object PlaceMarker {
   val inputConstant = new PlaceMarker(true, false, true)
 
   /**
-   * An output place marker
-   */
+    * An output place marker
+    */
   val output = new PlaceMarker(false, true, false)
 
   /**
@@ -238,8 +230,8 @@ object PlaceMarker {
   val outputConstant = new PlaceMarker(false, true, true)
 
   /**
-   * An ignore place marker
-   */
+    * An ignore place marker
+    */
   val ignore = new PlaceMarker(false, false, false)
 
   /**

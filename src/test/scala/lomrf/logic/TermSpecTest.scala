@@ -14,13 +14,13 @@
  *  o   o o-o-o  o  o-o o-o o o o     o    | o-o o  o-o o-o
  *
  *  Logical Markov Random Fields (LoMRF).
- *     
+ *
  *
  */
 
 package lomrf.logic
 
-import org.scalatest.{Matchers, FunSpec}
+import org.scalatest.{ Matchers, FunSpec }
 
 /**
   * A series of specification tests for FOL terms.
@@ -169,18 +169,17 @@ final class TermSpecTest extends FunSpec with Matchers {
   }
 
   /**
-     * Test function terms
-     *
-     * functions description:
-     * (TermFunction instance, string representation, arity, number of constants, number of variables )
-     */
+    * Test function terms
+    *
+    * functions description:
+    * (TermFunction instance, string representation, arity, number of constants, number of variables )
+    */
   val functionsDescription = List(
     (TermFunction("Foo", Vector(Constant("Bar"))), "Foo(Bar)", 1, 1, 0),
     (TermFunction("Foo", Vector(Variable("x"), Constant("Bar"))), "Foo(x, Bar)", 2, 1, 1),
     (TermFunction("Foo", Vector(Variable("x"), Constant("Bar"), Variable("y"))), "Foo(x, Bar, y)", 3, 1, 2),
     (TermFunction("Foo", Vector(Variable("x"), Constant("Bar"), TermFunction("F", Vector(Variable("y"))))), "Foo(x, Bar, F(y))", 3, 1, 2),
-    (TermFunction("Foo", Vector(Variable("x"), Constant("Bar"), TermFunction("F", Vector(Variable("y"), Constant("G"))))), "Foo(x, Bar, F(y, G))", 3, 2, 2)
-  )
+    (TermFunction("Foo", Vector(Variable("x"), Constant("Bar"), TermFunction("F", Vector(Variable("y"), Constant("G"))))), "Foo(x, Bar, F(y, G))", 3, 2, 2))
 
   for ((termFunction, textFunction, arity, nConstant, nVariables) <- functionsDescription) {
     describe("The instance of '" + termFunction.toText + "' is a function, which") {

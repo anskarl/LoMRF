@@ -14,7 +14,7 @@
  *  o   o o-o-o  o  o-o o-o o o o     o    | o-o o  o-o o-o
  *
  *  Logical Markov Random Fields (LoMRF).
- *     
+ *
  *
  */
 
@@ -32,7 +32,7 @@ trait PartitionFetcher[Key, Collection, Value] {
 
 object PartitionFetcher {
 
-  def create[C <: IndexedSeq[V], V]: PartitionFetcher[Int, C, V] = new  PartitionFetcher[Int, C, V](){
+  def create[C <: IndexedSeq[V], V]: PartitionFetcher[Int, C, V] = new PartitionFetcher[Int, C, V]() {
     override def apply(key: Int, collection: C): V = collection(key)
 
     override def contains(key: Int, collection: C): Boolean = collection.contains(key)

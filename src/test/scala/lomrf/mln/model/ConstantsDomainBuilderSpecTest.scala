@@ -14,13 +14,13 @@
  *  o   o o-o-o  o  o-o o-o o o o     o    | o-o o  o-o o-o
  *
  *  Logical Markov Random Fields (LoMRF).
- *     
+ *
  *
  */
 
 package lomrf.mln.model
 
-import org.scalatest.{Matchers, FunSpec}
+import org.scalatest.{ Matchers, FunSpec }
 
 class ConstantsDomainBuilderSpecTest extends FunSpec with Matchers {
 
@@ -32,8 +32,7 @@ class ConstantsDomainBuilderSpecTest extends FunSpec with Matchers {
       for (timePoint <- 1 to 10)
         builder += ("time", timePoint.toString)
 
-
-      it("contain 10 constant symbols for domain 'time'"){
+      it("contain 10 constant symbols for domain 'time'") {
         builder("time").size shouldEqual 10
       }
 
@@ -44,7 +43,6 @@ class ConstantsDomainBuilderSpecTest extends FunSpec with Matchers {
 
       it("contains all the incrementally inserted constants [1, 10]") {
         val constantsDomain = builder.result()
-
 
         assert((1 to 10).forall(t => constantsDomain("time").contains(t.toString)))
       }
@@ -77,9 +75,8 @@ class ConstantsDomainBuilderSpecTest extends FunSpec with Matchers {
       for (timePoint <- 1 to 10)
         builder += ("time", timePoint.toString)
 
-      for(person <- List("Agamemnon", "Odysseus", "Achilles", "Menelaus"))
+      for (person <- List("Agamemnon", "Odysseus", "Achilles", "Menelaus"))
         builder += ("person", person)
-
 
       it("contain 10 constant symbols for domain 'time'") {
         builder("time").size shouldEqual 10
@@ -100,8 +97,6 @@ class ConstantsDomainBuilderSpecTest extends FunSpec with Matchers {
 
       it("contains all the incrementally inserted constants for both 'time' and 'person' domains") {
         val constantsDomain = builder.result()
-
-
 
         assert((1 to 10).forall(t => constantsDomain("time").contains(t.toString)))
         assert(List("Agamemnon", "Odysseus", "Achilles", "Menelaus").forall(p => constantsDomain("person").contains(p)))

@@ -14,15 +14,15 @@
  *  o   o o-o-o  o  o-o o-o o o o     o    | o-o o  o-o o-o
  *
  *  Logical Markov Random Fields (LoMRF).
- *     
+ *
  *
  */
 
 package lomrf.mln.learning.supervision.metric
 
-import lomrf.logic.{AtomSignature, Constant, EvidenceAtom, FunctionMapping}
-import lomrf.mln.model.{ConstantsSet, EvidenceBuilder}
-import org.scalatest.{FunSpec, Matchers}
+import lomrf.logic.{ AtomSignature, Constant, EvidenceAtom, FunctionMapping }
+import lomrf.mln.model.{ ConstantsSet, EvidenceBuilder }
+import org.scalatest.{ FunSpec, Matchers }
 
 final class StructureMetricSpecTest extends FunSpec with Matchers {
 
@@ -33,43 +33,35 @@ final class StructureMetricSpecTest extends FunSpec with Matchers {
     val predicateA =
       EvidenceAtom.asTrue(
         "Friends",
-        Vector("A", "B").map(Constant)
-      )
+        Vector("A", "B").map(Constant))
     val predicateB =
       EvidenceAtom.asTrue(
         "Friends",
-        Vector("B", "A").map(Constant)
-      )
+        Vector("B", "A").map(Constant))
     val predicateC =
       EvidenceAtom.asTrue(
         "Friends",
-        Vector("B", "C").map(Constant)
-      )
+        Vector("B", "C").map(Constant))
     val predicateD =
       EvidenceAtom.asFalse(
         "Friends",
-        Vector("B", "C").map(Constant)
-      )
+        Vector("B", "C").map(Constant))
     val predicateE =
       EvidenceAtom.asTrue(
         "Enemies",
-        Vector("B", "C").map(Constant)
-      )
+        Vector("B", "C").map(Constant))
     val predicateF =
       EvidenceAtom.asTrue(
         "Person",
-        Vector("George", "Tall", "Thin", "Young", "Handsome").map(Constant)
-      )
+        Vector("George", "Tall", "Thin", "Young", "Handsome").map(Constant))
     val predicateG =
       EvidenceAtom.asTrue(
         "Person",
-        Vector("Pedro", "Tall", "Thin", "Old", "Ugly").map(Constant)
-      )
+        Vector("Pedro", "Tall", "Thin", "Old", "Ugly").map(Constant))
     val predicateH =
       EvidenceAtom.asTrue(
         "Person",
-        Vector("Jason", "Short", "Thin", "Young", "Handsome").map(Constant)
-      )
+        Vector("Jason", "Short", "Thin", "Young", "Handsome").map(Constant))
 
     it("Distance of Friends(A, B) to itself should be 0") {
       metric.distance(predicateA, predicateA) shouldEqual 0
@@ -102,8 +94,8 @@ final class StructureMetricSpecTest extends FunSpec with Matchers {
     it("Associative property should hold for any distance over predicates") {
       List(predicateA, predicateB, predicateC, predicateD, predicateE, predicateF, predicateG, predicateH)
         .sliding(2).foreach { pair =>
-        metric.distance(pair.head, pair.last) shouldEqual metric.distance(pair.last, pair.head)
-      }
+          metric.distance(pair.head, pair.last) shouldEqual metric.distance(pair.last, pair.head)
+        }
     }
   }
 
@@ -111,21 +103,18 @@ final class StructureMetricSpecTest extends FunSpec with Matchers {
 
     // Predicate schema
     val predicateSchema = Map(
-      AtomSignature("Happens", 2) -> Vector("event", "time")
-    )
+      AtomSignature("Happens", 2) -> Vector("event", "time"))
 
     // Function schema
     val functionSchema = Map(
       AtomSignature("walking", 1) -> ("event", Vector("id")),
-      AtomSignature("inactive", 1) -> ("event", Vector("id"))
-    )
+      AtomSignature("inactive", 1) -> ("event", Vector("id")))
 
     // Constants domain
     val constantsDomain = Map(
       "time" -> ConstantsSet((0 to 10).map(_.toString)),
       "event" -> ConstantsSet("Walking_A", "Walking_B", "Inactive_A", "Inactive_B"),
-      "id" -> ConstantsSet("A", "B")
-    )
+      "id" -> ConstantsSet("A", "B"))
 
     val builder = EvidenceBuilder(
       predicateSchema,
@@ -133,8 +122,7 @@ final class StructureMetricSpecTest extends FunSpec with Matchers {
       Set.empty,
       Set.empty,
       constantsDomain,
-      convertFunctionsToPredicates = true
-    )
+      convertFunctionsToPredicates = true)
 
     // Append function mappings for walking/1, inactive/1 and active/1
     builder.functions += FunctionMapping("Inactive_A", "inactive", Vector(Constant("A")))
@@ -147,33 +135,27 @@ final class StructureMetricSpecTest extends FunSpec with Matchers {
     val predicateA =
       EvidenceAtom.asTrue(
         "Happens",
-        Vector("Walking_A", "5").map(Constant)
-      )
+        Vector("Walking_A", "5").map(Constant))
     val predicateB =
       EvidenceAtom.asTrue(
         "Happens",
-        Vector("Walking_A", "6").map(Constant)
-      )
+        Vector("Walking_A", "6").map(Constant))
     val predicateC =
       EvidenceAtom.asTrue(
         "Happens",
-        Vector("Walking_B", "5").map(Constant)
-      )
+        Vector("Walking_B", "5").map(Constant))
     val predicateD =
       EvidenceAtom.asTrue(
         "Happens",
-        Vector("Walking_B", "6").map(Constant)
-      )
+        Vector("Walking_B", "6").map(Constant))
     val predicateE =
       EvidenceAtom.asTrue(
         "Happens",
-        Vector("Inactive_A", "5").map(Constant)
-      )
+        Vector("Inactive_A", "5").map(Constant))
     val predicateF =
       EvidenceAtom.asTrue(
         "Happens",
-        Vector("Inactive_A", "6").map(Constant)
-      )
+        Vector("Inactive_A", "6").map(Constant))
 
     it("Distance of Happens(walking(A), 5) to itself should be 0") {
       metric.distance(predicateA, predicateA) shouldEqual 0
@@ -202,8 +184,8 @@ final class StructureMetricSpecTest extends FunSpec with Matchers {
     it("Associative property should hold for any distance over predicates") {
       List(predicateA, predicateB, predicateC, predicateD, predicateE, predicateF)
         .sliding(2).foreach { pair =>
-        metric.distance(pair.head, pair.last) shouldEqual metric.distance(pair.last, pair.head)
-      }
+          metric.distance(pair.head, pair.last) shouldEqual metric.distance(pair.last, pair.head)
+        }
     }
 
   }
@@ -212,15 +194,13 @@ final class StructureMetricSpecTest extends FunSpec with Matchers {
 
     // Predicate schema
     val predicateSchema = Map(
-      AtomSignature("HugeWoodenBox", 2) -> Vector("largeBoxDomain")
-    )
+      AtomSignature("HugeWoodenBox", 2) -> Vector("largeBoxDomain"))
 
     // Function schema
     val functionSchema = Map(
-      AtomSignature("largeBox", 2) ->("largeBoxDomain", Vector("smallBoxDomain", "color")),
-      AtomSignature("smallBox", 2) ->("smallBoxDomain", Vector("tinyBoxDomain", "color")),
-      AtomSignature("tinyBox", 1) ->("tinyBoxDomain", Vector("color"))
-    )
+      AtomSignature("largeBox", 2) -> ("largeBoxDomain", Vector("smallBoxDomain", "color")),
+      AtomSignature("smallBox", 2) -> ("smallBoxDomain", Vector("tinyBoxDomain", "color")),
+      AtomSignature("tinyBox", 1) -> ("tinyBoxDomain", Vector("color")))
 
     // Constants domain
     val constantsDomain = Map(
@@ -228,8 +208,7 @@ final class StructureMetricSpecTest extends FunSpec with Matchers {
       "largeBoxDomain" -> ConstantsSet("Large_RRR_Box", "Large_RRG_Box", "Large_RGR_Box", "Large_RGG_Box",
         "Large_GRR_Box", "Large_GRG_Box", "Large_GGR_Box", "Large_GGG_Box"),
       "smallBoxDomain" -> ConstantsSet("Small_RR_Box", "Small_RG_Box", "Small_GR_Box", "Small_GG_Box"),
-      "tinyBoxDomain" -> ConstantsSet("Tiny_R_Box", "Tiny_G_Box")
-    )
+      "tinyBoxDomain" -> ConstantsSet("Tiny_R_Box", "Tiny_G_Box"))
 
     // Evidence Builder
     val builder = EvidenceBuilder(
@@ -238,8 +217,7 @@ final class StructureMetricSpecTest extends FunSpec with Matchers {
       Set.empty,
       Set.empty,
       constantsDomain,
-      convertFunctionsToPredicates = true
-    )
+      convertFunctionsToPredicates = true)
 
     // Append function mappings for largeBox/2, smallBox/2, tinyBox/1
     builder.functions += FunctionMapping("Large_RRR_Box", "largeBox", Vector("Small_RR_Box", "R").map(Constant))
@@ -264,23 +242,19 @@ final class StructureMetricSpecTest extends FunSpec with Matchers {
     val predicateA =
       EvidenceAtom.asTrue(
         "HugeWoodenBox",
-        Vector("Large_RRR_Box").map(Constant)
-      )
+        Vector("Large_RRR_Box").map(Constant))
     val predicateB =
       EvidenceAtom.asTrue(
         "HugeWoodenBox",
-        Vector("Large_RRG_Box").map(Constant)
-      )
+        Vector("Large_RRG_Box").map(Constant))
     val predicateC =
       EvidenceAtom.asTrue(
         "HugeWoodenBox",
-        Vector("Large_GRG_Box").map(Constant)
-      )
+        Vector("Large_GRG_Box").map(Constant))
     val predicateD =
       EvidenceAtom.asTrue(
         "HugeWoodenBox",
-        Vector("Large_GGR_Box").map(Constant)
-      )
+        Vector("Large_GGR_Box").map(Constant))
 
     it("Distance of HugeWoodenBox(largeBox(smallBox(tinyBox(R), R), R)) to itself should be 0") {
       metric.distance(predicateA, predicateA) shouldEqual 0
@@ -300,21 +274,18 @@ final class StructureMetricSpecTest extends FunSpec with Matchers {
     // Predicate schema
     val predicateSchema = Map(
       AtomSignature("Happens", 2) -> Vector("event", "time"),
-      AtomSignature("AUXavg_speed", 3) -> Vector("event", "id", "speed")
-    )
+      AtomSignature("AUXavg_speed", 3) -> Vector("event", "id", "speed"))
 
     // Function schema
     val functionSchema = Map(
-      AtomSignature("avg_speed", 2) ->("event", Vector("id", "speed"))
-    )
+      AtomSignature("avg_speed", 2) -> ("event", Vector("id", "speed")))
 
     // Constants domain
     val constantsDomain = Map(
       "event" -> ConstantsSet("AvgSpeed_85_4354"),
       "id" -> ConstantsSet("4354"),
       "speed" -> ConstantsSet("85"),
-      "time" -> ConstantsSet("10", "99")
-    )
+      "time" -> ConstantsSet("10", "99"))
 
     // Evidence Builder
     val builder = EvidenceBuilder(
@@ -323,8 +294,7 @@ final class StructureMetricSpecTest extends FunSpec with Matchers {
       Set.empty,
       Set.empty,
       constantsDomain,
-      convertFunctionsToPredicates = true
-    )
+      convertFunctionsToPredicates = true)
 
     // Append function mappings for largeBox/2, smallBox/2, tinyBox/1
     builder.functions += FunctionMapping("AvgSpeed_85_4354", "avg_speed", Vector("4354", "85").map(Constant))
@@ -335,14 +305,12 @@ final class StructureMetricSpecTest extends FunSpec with Matchers {
     val predicateA =
       EvidenceAtom.asTrue(
         "Happens",
-        Vector("AvgSpeed_85_4354", "99").map(Constant)
-      )
+        Vector("AvgSpeed_85_4354", "99").map(Constant))
 
     val predicateB =
       EvidenceAtom.asTrue(
         "Happens",
-        Vector("AvgSpeed_85_4354", "26").map(Constant)
-      )
+        Vector("AvgSpeed_85_4354", "26").map(Constant))
 
     println(metric.distance(predicateA, predicateB))
 

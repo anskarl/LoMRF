@@ -14,14 +14,14 @@
  *  o   o o-o-o  o  o-o o-o o o o     o    | o-o o  o-o o-o
  *
  *  Logical Markov Random Fields (LoMRF).
- *     
+ *
  *
  */
 
 package lomrf.logic.parser
 
-import lomrf.logic.{Constant, EvidenceAtom, FunctionMapping}
-import org.scalatest.{FunSpec, Matchers}
+import lomrf.logic.{ Constant, EvidenceAtom, FunctionMapping }
+import org.scalatest.{ FunSpec, Matchers }
 
 final class EvidenceParserSpecTest extends FunSpec with Matchers {
 

@@ -14,13 +14,13 @@
  *  o   o o-o-o  o  o-o o-o o o o     o    | o-o o  o-o o-o
  *
  *  Logical Markov Random Fields (LoMRF).
- *     
+ *
  *
  */
 
 package lomrf.util.collection
 
-import scala.{specialized => sp}
+import scala.{ specialized => sp }
 
 trait KeyPartitioned[C, @sp(Byte, Short, Int, Long) K, @sp(Byte, Short, Int, Long) V] extends (K => V) {
 
@@ -38,13 +38,11 @@ trait KeyPartitioned[C, @sp(Byte, Short, Int, Long) K, @sp(Byte, Short, Int, Lon
 
 object KeyPartitioned {
 
-  def apply[C, @sp(Byte, Short, Int, Long) K, @sp(Byte, Short, Int, Long) V]
-  (data: Array[C], partitioner: Partitioner[K], partitionFetcher: PartitionFetcher[K, C, V]): KeyPartitioned[C, K, V] = {
+  def apply[C, @sp(Byte, Short, Int, Long) K, @sp(Byte, Short, Int, Long) V](data: Array[C], partitioner: Partitioner[K], partitionFetcher: PartitionFetcher[K, C, V]): KeyPartitioned[C, K, V] = {
     new KeyPartitionedImpl[C, K, V](data, partitioner, partitionFetcher)
   }
 
-  private class KeyPartitionedImpl[C, @sp(Byte, Short, Int, Long) K, @sp(Byte, Short, Int, Long) V]
-  (data: Array[C], partitioner: Partitioner[K], partitionFetcher: PartitionFetcher[K, C, V]) extends KeyPartitioned[C, K, V] {
+  private class KeyPartitionedImpl[C, @sp(Byte, Short, Int, Long) K, @sp(Byte, Short, Int, Long) V](data: Array[C], partitioner: Partitioner[K], partitionFetcher: PartitionFetcher[K, C, V]) extends KeyPartitioned[C, K, V] {
 
     override def apply(key: K): V = partitionFetcher(key, data(partitioner(key)))
 

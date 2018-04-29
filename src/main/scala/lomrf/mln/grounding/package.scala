@@ -14,19 +14,19 @@
  *  o   o o-o-o  o  o-o o-o o o o     o    | o-o o  o-o o-o
  *
  *  Logical Markov Random Fields (LoMRF).
- *     
+ *
  *
  */
 
 package lomrf.mln
 
-import java.{util => jutil}
+import java.{ util => jutil }
 
-import gnu.trove.map.{TIntFloatMap, TIntObjectMap}
+import gnu.trove.map.{ TIntFloatMap, TIntObjectMap }
 import gnu.trove.map.hash.TIntObjectHashMap
 import gnu.trove.set.TIntSet
 import gnu.trove.set.hash.TIntHashSet
-import lomrf.logic.{AtomSignature, Clause}
+import lomrf.logic.{ AtomSignature, Clause }
 import lomrf.util.collection.IndexPartitioned
 
 package object grounding {
@@ -36,7 +36,6 @@ package object grounding {
   // ----------------------------------------
   type DependencyMap = TIntObjectMap[TIntFloatMap]
 
-
   // ----------------------------------------
   // Messages
   // ----------------------------------------
@@ -44,30 +43,30 @@ package object grounding {
   private[grounding] object messages {
 
     /**
-     * Message for requesting the final ground MRF from the Master actor.
-     */
+      * Message for requesting the final ground MRF from the Master actor.
+      */
     case object REQUEST_RESULTS
 
     /**
-     * Notification for the completion of a grounding iteration
-     */
+      * Notification for the completion of a grounding iteration
+      */
     case object ITERATION_COMPLETED
 
     /**
-     * Notification for the completion of the grounding procedure
-     */
+      * Notification for the completion of the grounding procedure
+      */
     case object GROUNDING_COMPLETED
 
     /**
-     * Notification that a Clique Register have send all Atom IDs to AtomRegister workers
-     */
+      * Notification that a Clique Register have send all Atom IDs to AtomRegister workers
+      */
     case object REGISTRATION_COMPLETED
 
     case class Result(
-                       cliques: IndexPartitioned[TIntObjectMap[CliqueEntry]],
-                       atom2Cliques: IndexPartitioned[TIntObjectMap[TIntHashSet]],
-                       queryAtomIDs: IndexPartitioned[TIntSet],
-                       dependencyMap: Option[IndexPartitioned[DependencyMap]] = None)
+        cliques: IndexPartitioned[TIntObjectMap[CliqueEntry]],
+        atom2Cliques: IndexPartitioned[TIntObjectMap[TIntHashSet]],
+        queryAtomIDs: IndexPartitioned[TIntSet],
+        dependencyMap: Option[IndexPartitioned[DependencyMap]] = None)
 
     // GroundingWorker -> Master
     case class Signatures(collectedSignatures: Set[AtomSignature])
@@ -77,7 +76,6 @@ package object grounding {
 
     // GroundingWorker -> CliqueRegister
     case class CliqueEntry(hashKey: Int, var weight: Double, variables: Array[Int], clauseID: Int, freq: Int) {
-
 
       override def hashCode() = hashKey
 

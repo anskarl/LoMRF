@@ -14,7 +14,7 @@
  *  o   o o-o-o  o  o-o o-o o o o     o    | o-o o  o-o o-o
  *
  *  Logical Markov Random Fields (LoMRF).
- *     
+ *
  *
  */
 
@@ -30,65 +30,65 @@ import com.typesafe.scalalogging.LazyLogging
 import gnu.trove.map.TIntFloatMap
 import gnu.trove.map.hash.TIntObjectHashMap
 import lomrf.mln.model.MLN
-import lomrf.mln.model.mrf.{Constraint, GroundAtom, MRF}
+import lomrf.mln.model.mrf.{ Constraint, GroundAtom, MRF }
 import lomrf.util.time._
 import lomrf.util.logging.Implicits._
-import lomrf.{DEFAULT_CAPACITY, DEFAULT_LOAD_FACTOR, NO_ENTRY_KEY}
+import lomrf.{ DEFAULT_CAPACITY, DEFAULT_LOAD_FACTOR, NO_ENTRY_KEY }
 
-import scala.concurrent.{Await, ExecutionContextExecutor, Future}
+import scala.concurrent.{ Await, ExecutionContextExecutor, Future }
 import scala.concurrent.duration._
 import scala.language.postfixOps
 import scalaxy.streams.optimize
 
-
 /**
- * This is a high-performance parallel algorithm for ground MRF construction.
- *
- * <p> The implementation uses the high-performance Actor Akka framework ( [[http://akka.io]] ), in order to distribute the grounding
- * process over the available processors/threads. Additionally, for memory and speed efficiency local processes take advantage
- * of the Trove library, that provides high speed regular and primitive collections ( [[http://trove.starlight-systems.com]] ).
- * </p>
- *
- * <p> General architecture and features:
- * <ul>
- * <li>The algorithm distributes the FOL clauses into the available system processors.
- * The grounding process is performed in parallel and supports the following features:
- * <ul>
- * <li>Eliminates all tautological clauses</li>
- * <li>Support for FOL functions</li>
- * <li>Grounds the minimal required Markov network. Like many Knowledge Base Model Construction methods,
- * all nodes not associated (directly or indirectly through intermediate nodes) with the query variables
- * are eliminated.</li>
- * <li>Optionally, negative clauses can be transformed into positive clauses. For example, the ground clause
- * {{{-3 A v B v C}}}
- * will be transformed into the following ground clauses:
- * {{{
- *     1 !A
- *     1 !B
- *     1 !C
- * }}}
- * </li>
- * <li>Optionally, negated unit clauses can be eliminated by inverting their weights. For example, the ground unit clause
- * {{{ 3 !A }}}
- * will be transformed into the following ground clause:
- * {{{ -3 A }}}
- * </li>
- * </ul>
- * </li>
- * <li>The produced cliques (i.e. ground clauses clauses) are distributed across the available processors and
- * cliques with the same nodes (literals) are merged into a single clique (ground clause).</li>
- * <li>All produced nodes (ground atoms) are distributed across the available processors.</li>
- * </ul>
- * </p>
- *
- * @param mln the input MLN to ground
- * @param noNegWeights transform negative weighted clauses into (possibly several) positive weighted clauses (default is false, since the inference algorithms support negative weights).
- * @param eliminateNegatedUnit eliminate negated unit clauses by transforming them into negative positive unit clauses.
- */
-final class MRFBuilder(val mln: MLN,
-                       noNegWeights: Boolean = false,
-                       eliminateNegatedUnit: Boolean = false,
-                       createDependencyMap: Boolean = false) extends LazyLogging {
+  * This is a high-performance parallel algorithm for ground MRF construction.
+  *
+  * <p> The implementation uses the high-performance Actor Akka framework ( [[http://akka.io]] ), in order to distribute the grounding
+  * process over the available processors/threads. Additionally, for memory and speed efficiency local processes take advantage
+  * of the Trove library, that provides high speed regular and primitive collections ( [[http://trove.starlight-systems.com]] ).
+  * </p>
+  *
+  * <p> General architecture and features:
+  * <ul>
+  * <li>The algorithm distributes the FOL clauses into the available system processors.
+  * The grounding process is performed in parallel and supports the following features:
+  * <ul>
+  * <li>Eliminates all tautological clauses</li>
+  * <li>Support for FOL functions</li>
+  * <li>Grounds the minimal required Markov network. Like many Knowledge Base Model Construction methods,
+  * all nodes not associated (directly or indirectly through intermediate nodes) with the query variables
+  * are eliminated.</li>
+  * <li>Optionally, negative clauses can be transformed into positive clauses. For example, the ground clause
+  * {{{-3 A v B v C}}}
+  * will be transformed into the following ground clauses:
+  * {{{
+  *     1 !A
+  *     1 !B
+  *     1 !C
+  * }}}
+  * </li>
+  * <li>Optionally, negated unit clauses can be eliminated by inverting their weights. For example, the ground unit clause
+  * {{{ 3 !A }}}
+  * will be transformed into the following ground clause:
+  * {{{ -3 A }}}
+  * </li>
+  * </ul>
+  * </li>
+  * <li>The produced cliques (i.e. ground clauses clauses) are distributed across the available processors and
+  * cliques with the same nodes (literals) are merged into a single clique (ground clause).</li>
+  * <li>All produced nodes (ground atoms) are distributed across the available processors.</li>
+  * </ul>
+  * </p>
+  *
+  * @param mln the input MLN to ground
+  * @param noNegWeights transform negative weighted clauses into (possibly several) positive weighted clauses (default is false, since the inference algorithms support negative weights).
+  * @param eliminateNegatedUnit eliminate negated unit clauses by transforming them into negative positive unit clauses.
+  */
+final class MRFBuilder(
+    val mln: MLN,
+    noNegWeights: Boolean = false,
+    eliminateNegatedUnit: Boolean = false,
+    createDependencyMap: Boolean = false) extends LazyLogging {
 
   import messages._
 
@@ -108,11 +108,9 @@ final class MRFBuilder(val mln: MLN,
     val resultF: Future[Result] = (masterActor ? REQUEST_RESULTS).mapTo[Result]
     val result = Await.result(resultF, Duration.Inf)
 
-
-    system.terminate().foreach{ _ =>
+    system.terminate().foreach { _ =>
       logger.info("Actor system was shut down")
     }
-
 
     var weightHard = 10.0
     for (clause <- mln.clauses; if !clause.isHard && clause.variables.nonEmpty) {
@@ -129,7 +127,6 @@ final class MRFBuilder(val mln: MLN,
     if (numAtoms == 0) numAtoms = if (result.queryAtomIDs ne null) result.queryAtomIDs.partitions.map(qas => if (qas ne null) qas.size() else 0).sum else 0
 
     if (numAtoms == 0) logger.fatal("The ground MRF is empty.")
-
 
     val constraints = new TIntObjectHashMap[Constraint](
       if (numConstraints == 0) DEFAULT_CAPACITY else numConstraints, DEFAULT_LOAD_FACTOR, NO_ENTRY_KEY)
@@ -151,7 +148,8 @@ final class MRFBuilder(val mln: MLN,
 
         if (noNegWeights) for {
           partition <- dependencyMapPartitions.partitions.par
-          (_, frequencies) <- partition.iterator()} {
+          (_, frequencies) <- partition.iterator()
+        } {
 
           val iterator = frequencies.iterator()
           while (iterator.hasNext) {
@@ -164,9 +162,7 @@ final class MRFBuilder(val mln: MLN,
         dependencyMapPartitions.partitions.foreach(mergedDependencyMap.putAll)
 
         Some(mergedDependencyMap)
-      }
-      else None
-
+      } else None
 
     for (qas <- result.queryAtomIDs.partitions) {
       val iterator = qas.iterator()

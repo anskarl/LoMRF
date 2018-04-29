@@ -14,7 +14,7 @@
  *  o   o o-o-o  o  o-o o-o o o o     o    | o-o o  o-o o-o
  *
  *  Logical Markov Random Fields (LoMRF).
- *     
+ *
  *
  */
 
@@ -26,14 +26,14 @@ import lomrf.mln.learning.structure.ModeParser
 import lomrf.mln.learning.supervision.graphs.SupervisionGraph
 import lomrf.mln.learning.supervision.graphs.SupervisionGraph._
 import lomrf.mln.learning.supervision.metric.HungarianMatcher
-import lomrf.mln.model.{AtomEvidenceDB, Evidence, KB, MLN}
+import lomrf.mln.model.{ AtomEvidenceDB, Evidence, KB, MLN }
 import lomrf.util.NaturalComparator
-import lomrf.util.evaluation.{Evaluate, Metrics}
+import lomrf.util.evaluation.{ Evaluate, Metrics }
 import lomrf.util.time._
 import lomrf.util.logging.Implicits._
 import scala.io.Source
-import java.io.{File, FileOutputStream, PrintStream}
-import scala.util.{Failure, Success}
+import java.io.{ File, FileOutputStream, PrintStream }
+import scala.util.{ Failure, Success }
 
 /**
   * Command line tool for supervision completion
@@ -119,14 +119,15 @@ object SemiSupervisionCLI extends CLIApp {
   })
 
   opt("c", "connector", "<kNN | eNN>", "Specify a connection heuristic for the graph (default is kNN).", {
-    v: String => v.trim.toLowerCase match {
-      case "knn" => _kNNConnector = true
-      case "enn" => _kNNConnector = false
-      case _ => logger.fatal(s"Unknown connector of type '$v'.")
-    }
+    v: String =>
+      v.trim.toLowerCase match {
+        case "knn" => _kNNConnector = true
+        case "enn" => _kNNConnector = false
+        case _     => logger.fatal(s"Unknown connector of type '$v'.")
+      }
   })
 
-  intOpt("k", "kappa", "Kappa parameter for the kNN connector (default is "+ _k +")", {
+  intOpt("k", "kappa", "Kappa parameter for the kNN connector (default is " + _k + ")", {
     v: Int => if (v < 1) logger.fatal("k value must be any integer greater than zero, but you gave: " + v) else _k = v
   })
 
@@ -160,7 +161,7 @@ object SemiSupervisionCLI extends CLIApp {
 
     val resultsStream = _resultsFileName match {
       case Some(fileName) => new PrintStream(new FileOutputStream(fileName), true)
-      case None => System.out
+      case None           => System.out
     }
 
     val strModeFileName = _modesFileName.getOrElse(logger.fatal("Please specify an input mode declaration file."))
@@ -173,11 +174,10 @@ object SemiSupervisionCLI extends CLIApp {
       + "\n\t(ne) Non-evidence predicate(s): " + _nonEvidenceAtoms.map(_.toString).mkString(", ")
       + "\n\t(gD) GroupBy domains: " + _groupByDomains.getOrElse(Set("None")).mkString(", ")
       + "\n\t(nD) Numerical domains: " + _numericalDomains.getOrElse(Set("None")).mkString(", ")
-      + "\n\t(connector) Graph connection heuristic: " + ( if (_kNNConnector) "kNN" else "eNN" )
+      + "\n\t(connector) Graph connection heuristic: " + (if (_kNNConnector) "kNN" else "eNN")
       + "\n\t(kappa) k parameter for the kNN connector: " + _k
       + "\n\t(epsilon) Epsilon parameter for the eNN connector: " + _epsilon
-      + "\n\t(cache) Cache labels for online supervision completion: " + _cacheLabels
-    )
+      + "\n\t(cache) Cache labels for online supervision completion: " + _cacheLabels)
 
     // Init all statistics values to zero
     var actualPositive, actualNegative, positiveFound, negativeFound = 0
@@ -197,12 +197,12 @@ object SemiSupervisionCLI extends CLIApp {
       // Do not force CWA in order to complete UNKNOWN query atoms
       val trainingEvidence =
         Evidence.fromFiles(kb, constants,
-          _nonEvidenceAtoms,
-          Set.empty[AtomSignature],
+                           _nonEvidenceAtoms,
+                           Set.empty[AtomSignature],
           kb.predicateSchema.keySet -- _nonEvidenceAtoms,
-          List(currentTrainingFile),
-          convertFunctions = true,
-          forceCWAForAll = false)
+                           List(currentTrainingFile),
+                           convertFunctions = true,
+                           forceCWAForAll   = false)
 
       // Partition the training data into annotation and evidence databases
       var (annotationDB, atomStateDB) = trainingEvidence.db.partition(e => _nonEvidenceAtoms.contains(e._1))
@@ -250,13 +250,11 @@ object SemiSupervisionCLI extends CLIApp {
       val resultsFolder = new File(
         currentTrainingFile.getParentFile.getParent + "/" +
           (if (_kNNConnector) "kNN." + _k else "eNN." + _epsilon) + ".batch." +
-          (if (_cacheLabels) "cache" else "no.cache")
-      )
+          (if (_cacheLabels) "cache" else "no.cache"))
       resultsFolder.mkdirs()
 
       val completedBatch = new PrintStream(
-        new File(resultsFolder.getCanonicalPath + "/" + currentTrainingFile.getName)
-      )
+        new File(resultsFolder.getCanonicalPath + "/" + currentTrainingFile.getName))
 
       val inputStream = Source.fromFile(currentTrainingFile)
       inputStream.getLines.filter { line =>
@@ -267,37 +265,38 @@ object SemiSupervisionCLI extends CLIApp {
       completedBatch.println("\n// Completed supervision")
 
       completedEvidenceSet.map(_.db).foreach { evidenceDB =>
-        evidenceDB.foreach { case (signature, atomDB) =>
+        evidenceDB.foreach {
+          case (signature, atomDB) =>
 
-          completedBatch.println(s"// Positives for $signature")
-          val atomIDF = atomDB.identity
+            completedBatch.println(s"// Positives for $signature")
+            val atomIDF = atomDB.identity
 
-          /*
+            /*
            * We cannot decode the ids using the mln because the indices are allocated
            * in a different way, so there would be a problem.
            *
            * Note: Keep only positive. Negatives may be too many. We have CWA during learning.
            */
-          atomIDF.indices.flatMap { id =>
-            atomIDF.decode(id) match {
-              case Success(terms) if atomDB(id) == TRUE =>
-                Some(s"${signature.symbol}(${terms.mkString(",")})")
-              case Failure(exception) => throw exception
-              case _ => None
-            }
-          }.sortWith(NaturalComparator.compareBool).foreach(completedBatch.println(_))
+            atomIDF.indices.flatMap { id =>
+              atomIDF.decode(id) match {
+                case Success(terms) if atomDB(id) == TRUE =>
+                  Some(s"${signature.symbol}(${terms.mkString(",")})")
+                case Failure(exception) => throw exception
+                case _                  => None
+              }
+            }.sortWith(NaturalComparator.compareBool).foreach(completedBatch.println(_))
 
-          // TODO negatives are too many, should be removed
-          completedBatch.println(s"// Negatives for $signature")
+            // TODO negatives are too many, should be removed
+            completedBatch.println(s"// Negatives for $signature")
 
-          atomIDF.indices.flatMap { id =>
-            atomIDF.decode(id) match {
-              case Success(terms) if atomDB(id) == FALSE =>
-                Some(s"!${signature.symbol}(${terms.mkString(",")})")
-              case Failure(exception) => throw exception
-              case _ => None
-            }
-          }.sortWith(NaturalComparator.compareBool).foreach(completedBatch.println(_))
+            atomIDF.indices.flatMap { id =>
+              atomIDF.decode(id) match {
+                case Success(terms) if atomDB(id) == FALSE =>
+                  Some(s"!${signature.symbol}(${terms.mkString(",")})")
+                case Failure(exception) => throw exception
+                case _                  => None
+              }
+            }.sortWith(NaturalComparator.compareBool).foreach(completedBatch.println(_))
 
         }
       }
@@ -316,12 +315,12 @@ object SemiSupervisionCLI extends CLIApp {
         // At this point force CWA because annotation cannot have UNKNOWN atoms.
         val fullAnnotationDB =
           Evidence.fromFiles(kb, trainingEvidence.constants,
-            _nonEvidenceAtoms,
-            Set.empty[AtomSignature],
+                             _nonEvidenceAtoms,
+                             Set.empty[AtomSignature],
             kb.predicateSchema.keySet -- _nonEvidenceAtoms,
-            List(currentAnnotationFile),
-            convertFunctions = false,
-            forceCWAForAll = true)
+                             List(currentAnnotationFile),
+                             convertFunctions = false,
+                             forceCWAForAll   = true)
 
         _nonEvidenceAtoms.foreach { querySignature =>
           actualPositive += fullAnnotationDB.db(querySignature).numberOfTrue

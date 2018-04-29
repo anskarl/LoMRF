@@ -14,7 +14,7 @@
  *  o   o o-o-o  o  o-o o-o o o o     o    | o-o o  o-o o-o
  *
  *  Logical Markov Random Fields (LoMRF).
- *     
+ *
  *
  */
 
@@ -25,7 +25,7 @@ import java.util
 import lomrf.logic.Variable
 import lomrf.mln.model.ConstantsSet
 
-import scala.{collection => scol}
+import scala.{ collection => scol }
 import scalaxy.streams.optimize
 import scala.language.postfixOps
 
@@ -71,9 +71,10 @@ object Cartesian {
     def mkArithmetic(sizes: Array[Int]) = new CartesianIteratorArithmeticImpl(sizes)
   }
 
-  private class CartesianIteratorSeqImpl[T](sets: Array[Iterable[T]],
-                                            iterators: Array[Iterator[T]],
-                                            elements: Array[T]) extends Iterator[Array[T]] {
+  private class CartesianIteratorSeqImpl[T](
+      sets: Array[Iterable[T]],
+      iterators: Array[Iterator[T]],
+      elements: Array[T]) extends Iterator[Array[T]] {
     private var has_next = true
 
     def next(): Array[T] = {
@@ -89,7 +90,7 @@ object Cartesian {
           currentIterator = iterators(idx)
           if (currentIterator.hasNext) {
 
-            optimize{
+            optimize {
               for (i <- 0 until idx) {
                 iterators(i) = sets(i).iterator
                 elements(i) = iterators(i).next()
@@ -98,12 +99,10 @@ object Cartesian {
 
             elements(idx) = currentIterator.next()
             stop = true
-          }
-          else if (idx == iterators.length - 1 && !currentIterator.hasNext) {
+          } else if (idx == iterators.length - 1 && !currentIterator.hasNext) {
             stop = true
             has_next = false
-          }
-          else idx += 1
+          } else idx += 1
 
         }
       }
@@ -114,12 +113,13 @@ object Cartesian {
   }
 
   /**
-   * Iterating over Cartesian products
-   */
-  private class CartesianIteratorMapImpl(aKeys: Array[Variable],
-                                         aIterables: Array[Iterable[String]],
-                                         aIterators: Array[Iterator[String]],
-                                         aElements: Array[String]) extends Iterator[Map[Variable, String]] {
+    * Iterating over Cartesian products
+    */
+  private class CartesianIteratorMapImpl(
+      aKeys: Array[Variable],
+      aIterables: Array[Iterable[String]],
+      aIterators: Array[Iterator[String]],
+      aElements: Array[String]) extends Iterator[Map[Variable, String]] {
 
     private val arrayLength = aKeys.length
     private var has_next = true
@@ -147,8 +147,7 @@ object Cartesian {
           }
           aElements(idx) = aIterators(idx).next()
           stop = true
-        }
-        else {
+        } else {
           idx += 1
         }
       }
@@ -160,28 +159,27 @@ object Cartesian {
     }
   }
 
-
   /**
-   * Prototype implementation for fast and lightweight Cartesian products over domain indexes (represented by
-   * inverted counters).
-   *
-   * <p>
-   * Each entry in the '''elementDomainSizes''' represents is the size of the corresponding domain. Consider,
-   * for example, that the domain of persons is '''persons={Anna, Bob}''' and the domain of time is '''time={1,...,10}'''. 
-   * Assume that the ordering of the elements is {persons, time}. The initial elements will be '''{2, 10}''', since the
-   * sizes of the domains 'persons' and 'time' are 2 and 10, respectively.
-   * </p>
-   *
-   * <p>
-   * Beginning from the index of the last entry of each element in the  '''elementDomainSizes''', i.e., size - 1, the
-   * iterator gives an array of indexes. In the above example, the first iteration will give the array '''{1, 9}'''. The
-   * second iteration will give the array '''{0,9}''', the third '''{1,8}''' and the last will always an array of zeroes
-   * '''{0,0}'''.
-   * </p>
-   *
-   * 
-   * @param elementDomainSizes The domain size of each individual element.
-   */
+    * Prototype implementation for fast and lightweight Cartesian products over domain indexes (represented by
+    * inverted counters).
+    *
+    * <p>
+    * Each entry in the '''elementDomainSizes''' represents is the size of the corresponding domain. Consider,
+    * for example, that the domain of persons is '''persons={Anna, Bob}''' and the domain of time is '''time={1,...,10}'''.
+    * Assume that the ordering of the elements is {persons, time}. The initial elements will be '''{2, 10}''', since the
+    * sizes of the domains 'persons' and 'time' are 2 and 10, respectively.
+    * </p>
+    *
+    * <p>
+    * Beginning from the index of the last entry of each element in the  '''elementDomainSizes''', i.e., size - 1, the
+    * iterator gives an array of indexes. In the above example, the first iteration will give the array '''{1, 9}'''. The
+    * second iteration will give the array '''{0,9}''', the third '''{1,8}''' and the last will always an array of zeroes
+    * '''{0,0}'''.
+    * </p>
+    *
+    *
+    * @param elementDomainSizes The domain size of each individual element.
+    */
   private[util] class CartesianIteratorArithmeticImpl(elementDomainSizes: Iterable[Int]) extends Iterator[Array[Int]] {
 
     private val lengths = elementDomainSizes.toArray
@@ -190,21 +188,19 @@ object Cartesian {
 
     def hasNext = has_next
 
-
     def next(): Array[Int] = {
       val result = new Array[Int](elements.length)
-      System.arraycopy(elements, 0, result, 0, elements.length )
+      System.arraycopy(elements, 0, result, 0, elements.length)
 
       var stop = false
       var idx = 0
 
-      while(!stop && (idx < elements.length)){
-        if(elements(idx) > 0) {
-          if(idx > 0) System.arraycopy(lengths, 0, elements, 0, idx)
+      while (!stop && (idx < elements.length)) {
+        if (elements(idx) > 0) {
+          if (idx > 0) System.arraycopy(lengths, 0, elements, 0, idx)
           elements(idx) -= 1
           stop = true
-        }
-        else idx += 1
+        } else idx += 1
       }
 
       has_next = stop || idx != elements.length

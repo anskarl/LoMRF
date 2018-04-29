@@ -14,7 +14,7 @@
  *  o   o o-o-o  o  o-o o-o o o o     o    | o-o o  o-o o-o
  *
  *  Logical Markov Random Fields (LoMRF).
- *     
+ *
  *
  */
 
@@ -26,26 +26,26 @@ import lomrf.logic.AtomSignature
 import lomrf.mln.model.AtomIdentityFunction
 
 /**
- * @param identities a map that associates atom signatures to their corresponding identity functions
- * @param orderedAtomSignatures the order of atom signatures according to the complete domain of groundings
- * @param orderedStartIDs the fist index for each atom in the complete domain of groundings
- * @param queryStartID the first index of ground query atom in the MRF
- * @param queryEndID the last index of ground query atom in the MRF
- */
-final class PredicateSpace private(
-                                    val identities: Identities,
-                                    val orderedAtomSignatures: Array[AtomSignature],
-                                    val orderedStartIDs: Array[Int],
-                                    val queryStartID: Int,
-                                    val queryEndID: Int,
-                                    val queryAtoms: Set[AtomSignature],
-                                    val cwa: Set[AtomSignature],
-                                    val owa: Set[AtomSignature],
-                                    val hiddenAtoms: Set[AtomSignature]) {
-  
+  * @param identities a map that associates atom signatures to their corresponding identity functions
+  * @param orderedAtomSignatures the order of atom signatures according to the complete domain of groundings
+  * @param orderedStartIDs the fist index for each atom in the complete domain of groundings
+  * @param queryStartID the first index of ground query atom in the MRF
+  * @param queryEndID the last index of ground query atom in the MRF
+  */
+final class PredicateSpace private (
+    val identities: Identities,
+    val orderedAtomSignatures: Array[AtomSignature],
+    val orderedStartIDs: Array[Int],
+    val queryStartID: Int,
+    val queryEndID: Int,
+    val queryAtoms: Set[AtomSignature],
+    val cwa: Set[AtomSignature],
+    val owa: Set[AtomSignature],
+    val hiddenAtoms: Set[AtomSignature]) {
+
   /**
-   * Total number of ground query atoms
-   */
+    * Total number of ground query atoms
+    */
   val numberOfQueryIDs: Int = queryStartID - queryEndID
 
   def isOWA(signature: AtomSignature): Boolean = owa.contains(signature)
@@ -60,9 +60,9 @@ final class PredicateSpace private(
 
     val atomID = math.abs(literal)
     val result = java.util.Arrays.binarySearch(orderedStartIDs, atomID)
-    val position = if(result < 0) (-result) - 2 else result
+    val position = if (result < 0) (-result) - 2 else result
 
-   orderedAtomSignatures(position)
+    orderedAtomSignatures(position)
   }
 
 }
@@ -71,33 +71,35 @@ object PredicateSpace {
 
   private val logger = Logger(this.getClass)
 
-  def apply(schema: MLNSchema,
-            nonEvidence: Set[AtomSignature],
-            constants: ConstantsDomain): PredicateSpace = {
+  def apply(
+      schema: MLNSchema,
+      nonEvidence: Set[AtomSignature],
+      constants: ConstantsDomain): PredicateSpace = {
     PredicateSpace(schema.predicates, nonEvidence, Set.empty[AtomSignature], constants)
   }
 
-
-  def apply(schema: MLNSchema,
-            queryPredicates: Set[AtomSignature],
-            hiddenPredicates: Set[AtomSignature],
-            constants: ConstantsDomain): PredicateSpace = {
+  def apply(
+      schema: MLNSchema,
+      queryPredicates: Set[AtomSignature],
+      hiddenPredicates: Set[AtomSignature],
+      constants: ConstantsDomain): PredicateSpace = {
     PredicateSpace(schema.predicates, queryPredicates, hiddenPredicates, constants)
   }
 
   /**
-   *
-   * @param predicateSchema
-   * @param queryPredicates
-   * @param hiddenPredicates
-   * @param constants
-   *
-   * @return a new instance of DomainSpace
-   */
-  def apply(predicateSchema: PredicateSchema,
-            queryPredicates: Set[AtomSignature],
-            hiddenPredicates: Set[AtomSignature],
-            constants: ConstantsDomain): PredicateSpace = {
+    *
+    * @param predicateSchema
+    * @param queryPredicates
+    * @param hiddenPredicates
+    * @param constants
+    *
+    * @return a new instance of DomainSpace
+    */
+  def apply(
+      predicateSchema: PredicateSchema,
+      queryPredicates: Set[AtomSignature],
+      hiddenPredicates: Set[AtomSignature],
+      constants: ConstantsDomain): PredicateSpace = {
 
     val owa = queryPredicates ++ hiddenPredicates
     val cwa = predicateSchema.keySet -- owa
@@ -108,7 +110,6 @@ object PredicateSpace {
     val orderedStartIDs = new Array[Int](predicateSchema.size)
     val orderedAtomSignatures = new Array[AtomSignature](predicateSchema.size)
     var index = 0
-
 
     // Query predicates
     for ((signature, atomSchema) <- predicateSchema; if queryPredicates.contains(signature)) {
@@ -147,9 +148,8 @@ object PredicateSpace {
     }
 
     logger.whenDebugEnabled {
-      orderedAtomSignatures.zip(orderedStartIDs).foreach{case (sig, startid) => logger.debug(s"$sig -> $startid") }
+      orderedAtomSignatures.zip(orderedStartIDs).foreach { case (sig, startid) => logger.debug(s"$sig -> $startid") }
     }
-
 
     new PredicateSpace(identities, orderedAtomSignatures, orderedStartIDs, queryStartID, queryEndID, queryPredicates, cwa, owa, hiddenPredicates)
   }

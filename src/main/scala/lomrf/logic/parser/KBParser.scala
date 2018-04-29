@@ -14,22 +14,23 @@
  *  o   o o-o-o  o  o-o o-o o o o     o    | o-o o  o-o o-o
  *
  *  Logical Markov Random Fields (LoMRF).
- *     
+ *
  *
  */
 
 package lomrf.logic.parser
 
 import com.typesafe.scalalogging.LazyLogging
-import lomrf.logic.dynamic.{DynamicAtomBuilder, DynamicFunctionBuilder}
+import lomrf.logic.dynamic.{ DynamicAtomBuilder, DynamicFunctionBuilder }
 import lomrf.logic._
 import lomrf.util.logging.Implicits._
 import scala.collection.breakOut
 
-final class KBParser(predicateSchema: Map[AtomSignature, Vector[String]],
-                     functionSchema: Map[AtomSignature, (String, Vector[String])],
-                     dynamicAtomBuilders: Map[AtomSignature, DynamicAtomBuilder] = predef.dynAtomBuilders,
-                     dynamicFunctionBuilders: Map[AtomSignature, DynamicFunctionBuilder] = predef.dynFunctionBuilders) extends CommonsMLNParser with LazyLogging {
+final class KBParser(
+    predicateSchema: Map[AtomSignature, Vector[String]],
+    functionSchema: Map[AtomSignature, (String, Vector[String])],
+    dynamicAtomBuilders: Map[AtomSignature, DynamicAtomBuilder] = predef.dynAtomBuilders,
+    dynamicFunctionBuilders: Map[AtomSignature, DynamicFunctionBuilder] = predef.dynFunctionBuilders) extends CommonsMLNParser with LazyLogging {
 
   private val minPrecedenceLevel = 1
   private val maxPrecedenceLevel = 3
@@ -55,7 +56,6 @@ final class KBParser(predicateSchema: Map[AtomSignature, Vector[String]],
     */
   def getDynamicFunctionsInstances: Set[TermFunction] = dynamicFunctionsInstances
 
-
   // ---------------------------------------------------
   // Parser functions:
   // ---------------------------------------------------
@@ -76,7 +76,6 @@ final class KBParser(predicateSchema: Map[AtomSignature, Vector[String]],
     */
   def sentence: Parser[MLNExpression] =
     definiteSentence | folSentence | formula | includeFile
-
 
   // ---------------------------------------------------
   // Include parser functions:
@@ -199,7 +198,6 @@ final class KBParser(predicateSchema: Map[AtomSignature, Vector[String]],
   private def conjunctionOpDefinite: Parser[(DefiniteClauseConstruct, DefiniteClauseConstruct) => DefiniteClauseConstruct] =
     "^" ^^^ { (a: DefiniteClauseConstruct, b: DefiniteClauseConstruct) => And(a, b) }
 
-
   // ---------------------------------------------------
   // FOL formula parser functions:
   // ---------------------------------------------------
@@ -256,10 +254,11 @@ final class KBParser(predicateSchema: Map[AtomSignature, Vector[String]],
   def deterministicFormula: Parser[WeightedFormula] = {
     currentTypes = Vector[Variable]()
     formula <~ "." ^^ {
-      f => {
-        normaliseVariableDomains(f)
-        WeightedFormula(Double.PositiveInfinity, f)
-      }
+      f =>
+        {
+          normaliseVariableDomains(f)
+          WeightedFormula(Double.PositiveInfinity, f)
+        }
     }
   }
 
@@ -278,9 +277,9 @@ final class KBParser(predicateSchema: Map[AtomSignature, Vector[String]],
       val definedDomainVarMap = definedDomainVars.map(v => v.symbol -> v.domainName).toMap
 
       for (currentVar <- undefinedDomainVars) definedDomainVarMap.get(currentVar.symbol) match {
-          case Some(domainName) => currentVar.domainName = domainName
-          case None =>
-            logger.fatal(s"Cannot determine the domain of variable '${currentVar.toText}' in (sub)formula '${formula.toText}'.")
+        case Some(domainName) => currentVar.domainName = domainName
+        case None =>
+          logger.fatal(s"Cannot determine the domain of variable '${currentVar.toText}' in (sub)formula '${formula.toText}'.")
       }
     }
   }
@@ -301,8 +300,8 @@ final class KBParser(predicateSchema: Map[AtomSignature, Vector[String]],
     * @return a formula construct
     */
   private def binary(level: Int): Parser[FormulaConstruct] =
-  if (level > maxPrecedenceLevel) formulaNoOp
-  else binary(level + 1) * logicalOperator(level)
+    if (level > maxPrecedenceLevel) formulaNoOp
+    else binary(level + 1) * logicalOperator(level)
 
   /**
     * @param level the operator precedence level
@@ -409,8 +408,7 @@ final class KBParser(predicateSchema: Map[AtomSignature, Vector[String]],
           .foldRight(ExistentialQuantifier(vars(subListSize), formula)) {
             (v: Variable, e: ExistentialQuantifier) => ExistentialQuantifier(v, e)
           }
-      }
-      else ExistentialQuantifier(vars.head, formula)
+      } else ExistentialQuantifier(vars.head, formula)
 
     case ("Forall" | "FORALL") ~ listVarStr ~ formula =>
       val vars = makeVars(listVarStr, formula)
@@ -420,8 +418,7 @@ final class KBParser(predicateSchema: Map[AtomSignature, Vector[String]],
           .foldRight(UniversalQuantifier(vars(subListSize), formula)) {
             (v: Variable, e: UniversalQuantifier) => UniversalQuantifier(v, e)
           }
-      }
-      else UniversalQuantifier(vars.head, formula)
+      } else UniversalQuantifier(vars.head, formula)
   }
 
   /**
@@ -437,10 +434,9 @@ final class KBParser(predicateSchema: Map[AtomSignature, Vector[String]],
     v <- listVarNames
     result = f.variables.find(_.symbol == v) match {
       case Some(x) => Variable(x.symbol, x.domain)
-      case None => throw new IllegalStateException(s"The variable '$v' is not defined.")
+      case None    => throw new IllegalStateException(s"The variable '$v' is not defined.")
     }
   } yield result
-
 
   // ---------------------------------------------------
   // Atomic formula parser functions:
@@ -486,63 +482,62 @@ final class KBParser(predicateSchema: Map[AtomSignature, Vector[String]],
     */
   private def atomicFormulaPrefix: Parser[AtomicFormula] =
     (lowerCaseID | upperCaseID) ~ "(" ~ repsep(functionArg | variableArg | upperCaseID, ",") ~ ")" ^^ {
-    case name ~ "(" ~ arguments ~ ")" =>
+      case name ~ "(" ~ arguments ~ ")" =>
 
-      val atomSignature = AtomSignature(name, arguments.size)
+        val atomSignature = AtomSignature(name, arguments.size)
 
-      dynamicAtomBuilders.get(atomSignature) match {
-        case Some(atomBuilder) =>
-          val termList: Vector[Term] =
-            (for (term <- arguments) yield term match {
-              case symbol: String => symbol match {
-                case upperCaseID(s, _*) => Constant(s)
-                case variableArg(v, _*) => fetchTypedVariable(v)
-              }
-              case func: TermFunction => func
-              case _ => logger.fatal(s"Cannot parse the symbol: $term")
-            })(breakOut)
-
-          dynamicPredicates += (atomSignature -> atomBuilder.stateFunction)
-          atomBuilder(termList)
-
-        case None =>
-          // the atomicFormula is a common used-defined predicate
-          val argTypes: Vector[String] = predicateSchema.get(atomSignature) match {
-            case Some(x) => x
-            case _ => logger.fatal(s"The predicate with signature '${atomSignature.toString}' is not defined.")
-          }
-
-          val termList: Vector[Term] =
-            (for ((element, argType: String) <- arguments.zip(argTypes)) yield element match {
-
-              case symbol: String => symbol match {
-                case upperCaseID(s, _*) => Constant(s)
-
-                case variableArg(v, _*) =>
-                  val (isFlaggedGroundPerConstant, variableSymbol) =
-                    if (v.startsWith("+")) (true, v.drop(1))
-                    else (false, v)
-
-                  val variable = Variable(variableSymbol, argType, groundPerConstant = isFlaggedGroundPerConstant)
-                  currentTypes = Vector(variable) ++: currentTypes
-                  variable
-
-              }
-              case func: TermFunction =>
-                if (!func.isDomainDefined) {
-                  val result = TermFunction(func.symbol, func.terms, argType)
-                  dynamicFunctionsInstances += result
-                  result
+        dynamicAtomBuilders.get(atomSignature) match {
+          case Some(atomBuilder) =>
+            val termList: Vector[Term] =
+              (for (term <- arguments) yield term match {
+                case symbol: String => symbol match {
+                  case upperCaseID(s, _*) => Constant(s)
+                  case variableArg(v, _*) => fetchTypedVariable(v)
                 }
-                else if (func.domain == argType) func
-                else logger.fatal(s"The function '${func.toText}' returns '${func.domain}', while expecting to return '$argType'.")
+                case func: TermFunction => func
+                case _                  => logger.fatal(s"Cannot parse the symbol: $term")
+              })(breakOut)
 
-              case _ => logger.fatal(s"Cannot parse the symbol: $element")
-            })(breakOut)
+            dynamicPredicates += (atomSignature -> atomBuilder.stateFunction)
+            atomBuilder(termList)
 
-          AtomicFormula(name, termList)
-      }
-  }
+          case None =>
+            // the atomicFormula is a common used-defined predicate
+            val argTypes: Vector[String] = predicateSchema.get(atomSignature) match {
+              case Some(x) => x
+              case _       => logger.fatal(s"The predicate with signature '${atomSignature.toString}' is not defined.")
+            }
+
+            val termList: Vector[Term] =
+              (for ((element, argType: String) <- arguments.zip(argTypes)) yield element match {
+
+                case symbol: String => symbol match {
+                  case upperCaseID(s, _*) => Constant(s)
+
+                  case variableArg(v, _*) =>
+                    val (isFlaggedGroundPerConstant, variableSymbol) =
+                      if (v.startsWith("+")) (true, v.drop(1))
+                      else (false, v)
+
+                    val variable = Variable(variableSymbol, argType, groundPerConstant = isFlaggedGroundPerConstant)
+                    currentTypes = Vector(variable) ++: currentTypes
+                    variable
+
+                }
+                case func: TermFunction =>
+                  if (!func.isDomainDefined) {
+                    val result = TermFunction(func.symbol, func.terms, argType)
+                    dynamicFunctionsInstances += result
+                    result
+                  } else if (func.domain == argType) func
+                  else logger.fatal(s"The function '${func.toText}' returns '${func.domain}', while expecting to return '$argType'.")
+
+                case _ => logger.fatal(s"Cannot parse the symbol: $element")
+              })(breakOut)
+
+            AtomicFormula(name, termList)
+        }
+    }
 
   // ---------------------------------------------------
   // Dynamic atomic formula parser functions:
@@ -609,72 +604,72 @@ final class KBParser(predicateSchema: Map[AtomSignature, Vector[String]],
     */
   private def functionArgPrefix: Parser[TermFunction] =
     lowerCaseID ~ "(" ~ repsep(variableArg | upperCaseID | functionArg, ",") ~ ")" ^^ {
-    case functionName ~ "(" ~ arguments ~ ")" =>
+      case functionName ~ "(" ~ arguments ~ ")" =>
 
-      val functionSignature = AtomSignature(functionName, arguments.size)
+        val functionSignature = AtomSignature(functionName, arguments.size)
 
-      dynamicFunctionBuilders.get(functionSignature) match {
+        dynamicFunctionBuilders.get(functionSignature) match {
 
-        // Case 1. Check this function is a special (predefined) function:
-        case Some(functionBuilder) =>
-          // fetch the function's terms that are defined in its arguments
-          val termList: Vector[Term] = (for (term <- arguments) yield term match {
+          // Case 1. Check this function is a special (predefined) function:
+          case Some(functionBuilder) =>
+            // fetch the function's terms that are defined in its arguments
+            val termList: Vector[Term] = (for (term <- arguments) yield term match {
               case symbol: String => symbol match {
                 case upperCaseID(s, _*) => Constant(s)
                 case variableArg(v, _*) => fetchTypedVariable(v)
               }
               case func: TermFunction => func
-              case _ => logger.fatal(s"Cannot parse symbol: $term")
+              case _                  => logger.fatal(s"Cannot parse symbol: $term")
             })(breakOut)
 
-          // store the special function to special functions HashMap
-          dynamicFunctions += (functionSignature -> functionBuilder.resultFunction)
+            // store the special function to special functions HashMap
+            dynamicFunctions += (functionSignature -> functionBuilder.resultFunction)
 
-          logger.debug(s"Parsed dynamic function: $functionSignature with terms: ${termList.mkString(", ")}")
+            logger.debug(s"Parsed dynamic function: $functionSignature with terms: ${termList.mkString(", ")}")
 
-          // Give the resulting function --- that is a function with UNDEFINED return type.
-          // The return type will be determined later inside the method: "atomicFormula".
-          functionBuilder(termList)
+            // Give the resulting function --- that is a function with UNDEFINED return type.
+            // The return type will be determined later inside the method: "atomicFormula".
+            functionBuilder(termList)
 
-        // Case 2. The function seems to be user-defined (thus, its arguments are typed)
-        case None =>
-          // Take the function's input/output types from the functionSchema map
-          val (retType, argTypes) = functionSchema.get(functionSignature) match {
-            case Some(x) => x
-            case None => logger.fatal(s"The function: $functionSignature is not defined.")
-          }
-          // fetch the function's terms that are defined in its arguments,
-          // and check if their types match with the function argument types
-          val termList: Vector[Term] =
-            (for ((symbol, argType: String) <- arguments.zip(argTypes)) yield symbol match {
-              case x: String => x match {
-                case upperCaseID(s, _*) => Constant(s)
+          // Case 2. The function seems to be user-defined (thus, its arguments are typed)
+          case None =>
+            // Take the function's input/output types from the functionSchema map
+            val (retType, argTypes) = functionSchema.get(functionSignature) match {
+              case Some(x) => x
+              case None    => logger.fatal(s"The function: $functionSignature is not defined.")
+            }
+            // fetch the function's terms that are defined in its arguments,
+            // and check if their types match with the function argument types
+            val termList: Vector[Term] =
+              (for ((symbol, argType: String) <- arguments.zip(argTypes)) yield symbol match {
+                case x: String => x match {
+                  case upperCaseID(s, _*) => Constant(s)
 
-                case variableArg(v, _*) =>
-                  val (isFlaggedGroundPerConstant, variableSymbol) =
-                    if (v.startsWith("+")) (true, v.drop(1))
-                    else (false, v)
+                  case variableArg(v, _*) =>
+                    val (isFlaggedGroundPerConstant, variableSymbol) =
+                      if (v.startsWith("+")) (true, v.drop(1))
+                      else (false, v)
 
-                  val variable = Variable(variableSymbol, argType, groundPerConstant = isFlaggedGroundPerConstant)
-                  currentTypes = Vector(variable) ++: currentTypes
-                  variable
-              }
-              case func: TermFunction =>
-                // if the function is user-defined (thus it has a return type),
-                // check if its return type is the same with the corresponding argument type.
-                if (func.isDomainDefined && func.domain != argType)
-                  logger.fatal(s"The function $func returns: ${func.domain}, while expecting: $argType")
+                    val variable = Variable(variableSymbol, argType, groundPerConstant = isFlaggedGroundPerConstant)
+                    currentTypes = Vector(variable) ++: currentTypes
+                    variable
+                }
+                case func: TermFunction =>
+                  // if the function is user-defined (thus it has a return type),
+                  // check if its return type is the same with the corresponding argument type.
+                  if (func.isDomainDefined && func.domain != argType)
+                    logger.fatal(s"The function $func returns: ${func.domain}, while expecting: $argType")
 
-                // Everything seems to be fine, give the function.
-                func
+                  // Everything seems to be fine, give the function.
+                  func
 
-              case _ => logger.fatal(s"Cannot parse the symbol: $symbol")
+                case _ => logger.fatal(s"Cannot parse the symbol: $symbol")
 
-            })(breakOut)
+              })(breakOut)
 
-          TermFunction(functionName, termList, retType)
-      }
-  }
+            TermFunction(functionName, termList, retType)
+        }
+    }
 
   // ---------------------------------------------------
   // Dynamic term function parser functions:
@@ -684,38 +679,38 @@ final class KBParser(predicateSchema: Map[AtomSignature, Vector[String]],
     plusInfix | minusInfix | timesInfix | dividedByInfix | modInfix
 
   private def plusInfix: Parser[TermFunction] =
-    (lowerCaseID | upperCaseID) ~ "+" ~ (lowerCaseID | upperCaseID ) ^^ {
+    (lowerCaseID | upperCaseID) ~ "+" ~ (lowerCaseID | upperCaseID) ^^ {
       case left ~ "+" ~ right => this.parseFunction("plus(" + left + "," + right + ")")
     }
 
   private def minusInfix: Parser[TermFunction] =
-    (lowerCaseID | upperCaseID ) ~ "-" ~ (lowerCaseID | upperCaseID ) ^^ {
+    (lowerCaseID | upperCaseID) ~ "-" ~ (lowerCaseID | upperCaseID) ^^ {
       case left ~ "-" ~ right => this.parseFunction("minus(" + left + "," + right + ")")
     }
 
   private def timesInfix: Parser[TermFunction] =
-    (lowerCaseID | upperCaseID ) ~ "*" ~ (lowerCaseID | upperCaseID ) ^^ {
+    (lowerCaseID | upperCaseID) ~ "*" ~ (lowerCaseID | upperCaseID) ^^ {
       case left ~ "*" ~ right => this.parseFunction("times(" + left + "," + right + ")")
     }
 
   private def dividedByInfix: Parser[TermFunction] =
-    (lowerCaseID | upperCaseID ) ~ "/" ~ (lowerCaseID | upperCaseID ) ^^ {
+    (lowerCaseID | upperCaseID) ~ "/" ~ (lowerCaseID | upperCaseID) ^^ {
       case left ~ "/" ~ right => this.parseFunction("dividedBy(" + left + "," + right + ")")
     }
 
   private def modInfix: Parser[TermFunction] =
-    (lowerCaseID | upperCaseID) ~ "%" ~ (lowerCaseID | upperCaseID ) ^^ {
+    (lowerCaseID | upperCaseID) ~ "%" ~ (lowerCaseID | upperCaseID) ^^ {
       case left ~ "%" ~ right => this.parseFunction("mod(" + left + "," + right + ")")
     }
 
   private def functionArgSuffix: Parser[TermFunction] = succSuffix | prevSuffix
 
-  private def succSuffix: Parser[TermFunction] = (lowerCaseID | upperCaseID) ~ "++" ^^{
-    case left ~ "++" => this.parseFunction("succ(" + left  + ")")
+  private def succSuffix: Parser[TermFunction] = (lowerCaseID | upperCaseID) ~ "++" ^^ {
+    case left ~ "++" => this.parseFunction("succ(" + left + ")")
   }
 
-  private def prevSuffix: Parser[TermFunction] = (lowerCaseID | upperCaseID) ~ "--" ^^{
-    case left ~ "--" => this.parseFunction("prec(" + left  + ")")
+  private def prevSuffix: Parser[TermFunction] = (lowerCaseID | upperCaseID) ~ "--" ^^ {
+    case left ~ "--" => this.parseFunction("prec(" + left + ")")
   }
 
   private def fetchTypedVariable(symbol: String): Variable = {
@@ -725,15 +720,14 @@ final class KBParser(predicateSchema: Map[AtomSignature, Vector[String]],
 
     currentTypes.find(v => v.symbol == variableSymbol) match {
       case Some(x) => Variable(variableSymbol, x.domain, index = x.index, groundPerConstant = isFlaggedGroundPerConstant)
-      case None => Variable(variableSymbol)
+      case None    => Variable(variableSymbol)
     }
   }
-
 
   //--------------------------------------------------------------------------------------------------------------------
   //--- Public API defining utility functions for parsing
   //--------------------------------------------------------------------------------------------------------------------
-  
+
   /**
     * Parses a logical sentence given a string. The sentence can be
     * either a logical weighted formula or a weighted definite clause.
@@ -758,22 +752,22 @@ final class KBParser(predicateSchema: Map[AtomSignature, Vector[String]],
   }
 
   /**
-   * Parses an individual definite clause given as a string.
-   *
-   * @param src string representation of the definite clause
-   * @return the resulting definite clause
-   */
+    * Parses an individual definite clause given as a string.
+    *
+    * @param src string representation of the definite clause
+    * @return the resulting definite clause
+    */
   def parseDefiniteClause(src: String): WeightedDefiniteClause = parse(definiteSentence, src) match {
     case Success(expr, _) if expr.isInstanceOf[WeightedDefiniteClause] => expr.asInstanceOf[WeightedDefiniteClause]
     case x => logger.fatal(s"Can't parse the following expression: $x")
   }
 
   /**
-   * Parses an individual predicate (atom) given as a string.
-   *
-   * @param src string representation of the atom
-   * @return the resulting atom
-   */
+    * Parses an individual predicate (atom) given as a string.
+    *
+    * @param src string representation of the atom
+    * @return the resulting atom
+    */
   def parsePredicate(src: String): AtomicFormula = parse(atomicFormula, src) match {
     case Success(expr, _) if expr.isInstanceOf[AtomicFormula] => expr
     case x => logger.fatal(s"Can't parse the following expression as an Atomic Formula: $x")
@@ -791,11 +785,11 @@ final class KBParser(predicateSchema: Map[AtomSignature, Vector[String]],
   }
 
   /**
-   * Parses an individual literal (an atom or its negation) given as a string.
-   *
-   * @param src string representation of the literal
-   * @return the resulting literal
-   */
+    * Parses an individual literal (an atom or its negation) given as a string.
+    *
+    * @param src string representation of the literal
+    * @return the resulting literal
+    */
   def parseLiteral(src: String): Literal = parse(formula, src) match {
     case Success(expr, _) =>
       expr match {
@@ -815,7 +809,7 @@ final class KBParser(predicateSchema: Map[AtomSignature, Vector[String]],
   def parseTheory(theory: String): List[MLNExpression] = {
     parse(mln, theory) match {
       case Success(result, _) => result
-      case x => logger.fatal(s"Can't parse the given theory:\n$x")
+      case x                  => logger.fatal(s"Can't parse the given theory:\n$x")
     }
   }
 }

@@ -14,18 +14,18 @@
  *  o   o o-o-o  o  o-o o-o o o o     o    | o-o o  o-o o-o
  *
  *  Logical Markov Random Fields (LoMRF).
- *     
+ *
  *
  */
 
 package lomrf.util
 
-import org.scalatest.{Matchers, FunSpec}
+import org.scalatest.{ Matchers, FunSpec }
 
 /**
- * Specification test for LongDouble numbers used for very high
- * precision operations.
- */
+  * Specification test for LongDouble numbers used for very high
+  * precision operations.
+  */
 final class LongDoubleSpecTest extends FunSpec with Matchers {
 
   import lomrf.util.LongDoubleConversions._

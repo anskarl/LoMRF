@@ -14,7 +14,7 @@
  *  o   o o-o-o  o  o-o o-o o o o     o    | o-o o  o-o o-o
  *
  *  Logical Markov Random Fields (LoMRF).
- *     
+ *
  *
  */
 
@@ -25,48 +25,48 @@ import java.text.DecimalFormat
 import com.typesafe.scalalogging.LazyLogging
 import lomrf.app.Algorithm
 import lomrf.app.Algorithm.Algorithm
-import lomrf.logic.{AtomSignature, FALSE, TRUE, TriState}
+import lomrf.logic.{ AtomSignature, FALSE, TRUE, TriState }
 import lomrf.logic.AtomSignatureOps._
 import lomrf.mln.inference.ILP
-import lomrf.mln.model.{AtomEvidenceDB, MLN}
+import lomrf.mln.model.{ AtomEvidenceDB, MLN }
 import lomrf.mln.model.mrf.MRF
 import optimus.optimization.enums.SolverLib
 import scalaxy.streams.optimize
 import scala.language.postfixOps
 
 /**
- * This is an implementation of online weight learning algorithms for parameter estimation in Markov Logic Networks.
- * Details about the online algorithm for MLNs can be found in the following publications:
- *
- * <ul>
- * <li> Tuyen N. Huynh and Raymond J. Mooney. Online Max-Margin Weight Learning for Markov Logic Networks (2011)
- * In Proceedings of the Eleventh SIAM International Conference on Data Mining (SDM11) pp. 642--651, Mesa, Arizona, USA, April 2011.
- * The paper can be found in [[http://www.cs.utexas.edu/users/ai-lab/?huynh:sdm11]]
- * </li>
- * <li> Duchi J. Hazan E. and Singer Y. Adaptive Subgradient Methods for Online Learning and Stochastic Optimization (2011)
- * The Journal of Machine Learning Research, Vol. 12, pp. 2121--2159, July 2011
- * The paper can be found in [[http://jmlr.org/papers/v12/duchi11a.html]]
- * </li>
- * </ul>
- *
- * @param mln Markov logic network of the current problem
- * @param algorithm Algorithm type selection option for online optimization
- * @param lossAugmented Use loss augmented inference
- * @param lossScale Loss scaling parameter
- * @param ilpSolver Solver type selection option for ILP inference (default is LPSolve)
- * @param sigma Sigma parameter for strongly convex functions (should be positive)
- * @param lambda Regularization parameter for ADAGRAD
- * @param eta Learning rate parameter for ADAGRAD
- * @param delta Delta parameter for ADAGRAD (should be positive or equal zero)
- * @param printLearnedWeightsPerIteration Print learned weights for each iteration
- *
- */
+  * This is an implementation of online weight learning algorithms for parameter estimation in Markov Logic Networks.
+  * Details about the online algorithm for MLNs can be found in the following publications:
+  *
+  * <ul>
+  * <li> Tuyen N. Huynh and Raymond J. Mooney. Online Max-Margin Weight Learning for Markov Logic Networks (2011)
+  * In Proceedings of the Eleventh SIAM International Conference on Data Mining (SDM11) pp. 642--651, Mesa, Arizona, USA, April 2011.
+  * The paper can be found in [[http://www.cs.utexas.edu/users/ai-lab/?huynh:sdm11]]
+  * </li>
+  * <li> Duchi J. Hazan E. and Singer Y. Adaptive Subgradient Methods for Online Learning and Stochastic Optimization (2011)
+  * The Journal of Machine Learning Research, Vol. 12, pp. 2121--2159, July 2011
+  * The paper can be found in [[http://jmlr.org/papers/v12/duchi11a.html]]
+  * </li>
+  * </ul>
+  *
+  * @param mln Markov logic network of the current problem
+  * @param algorithm Algorithm type selection option for online optimization
+  * @param lossAugmented Use loss augmented inference
+  * @param lossScale Loss scaling parameter
+  * @param ilpSolver Solver type selection option for ILP inference (default is LPSolve)
+  * @param sigma Sigma parameter for strongly convex functions (should be positive)
+  * @param lambda Regularization parameter for ADAGRAD
+  * @param eta Learning rate parameter for ADAGRAD
+  * @param delta Delta parameter for ADAGRAD (should be positive or equal zero)
+  * @param printLearnedWeightsPerIteration Print learned weights for each iteration
+  *
+  */
 final class OnlineLearner(mln: MLN, algorithm: Algorithm, lossAugmented: Boolean = false, lossScale: Double = 1.0,
-                          ilpSolver: SolverLib = SolverLib.LpSolve, sigma: Double = 1.0, lambda: Double = 0.01, eta: Double = 1.0,
-                          delta: Double = 1.0, printLearnedWeightsPerIteration: Boolean = false) extends LazyLogging {
+    ilpSolver: SolverLib = SolverLib.LpSolve, sigma: Double = 1.0, lambda: Double = 0.01, eta: Double = 1.0,
+    delta: Double = 1.0, printLearnedWeightsPerIteration: Boolean = false) extends LazyLogging {
 
   algorithm match {
-    case Algorithm.ADAGRAD_FB => logger.info("ADAGRAD method Fobos")
+    case Algorithm.ADAGRAD_FB             => logger.info("ADAGRAD method Fobos")
     case Algorithm.COORDINATE_DUAL_ASCEND => logger.info("Coordinate dual ascend method for strongly convex function")
   }
 
@@ -79,25 +79,25 @@ final class OnlineLearner(mln: MLN, algorithm: Algorithm, lossAugmented: Boolean
   val sumSquareGradients: Array[Int] = Array.fill[Int](numberOfClauses)(0)
 
   /**
-   * Fetch annotation from database for the given atom id. Annotation
-   * exist only for non evidence atoms.
-   *
-   * @param atomID id of the atom
-   * @return annotation TriState value (TRUE, FALSE or UNKNOWN)
-   */
+    * Fetch annotation from database for the given atom id. Annotation
+    * exist only for non evidence atoms.
+    *
+    * @param atomID id of the atom
+    * @return annotation TriState value (TRUE, FALSE or UNKNOWN)
+    */
   @inline private def getAnnotation(atomID: Int, mrf: MRF, annotationDB: Map[AtomSignature, AtomEvidenceDB]): TriState = {
     val annotation = annotationDB(atomID.signature(mrf.mln))
     annotation(atomID)
   }
 
   /**
-   * Set the annotated state as current MRF state.
-   */
+    * Set the annotated state as current MRF state.
+    */
   @inline private def setAnnotatedState(mrf: MRF, annotationDB: Map[AtomSignature, AtomEvidenceDB]) = {
 
     val atomsIterator = mrf.atoms.iterator()
 
-    while(atomsIterator.hasNext) {
+    while (atomsIterator.hasNext) {
       atomsIterator.advance()
       val atom = atomsIterator.value()
       if (getAnnotation(atom.id, mrf, annotationDB) == TRUE) atom.state = true
@@ -106,17 +106,17 @@ final class OnlineLearner(mln: MLN, algorithm: Algorithm, lossAugmented: Boolean
   }
 
   /**
-   * Count the number of true groundings of each clause in the data.
-   * In order to do this, we compute the satisfied literals of each
-   * ground clause given an MRF state (annotation or inferred). Then
-   * if the number of satisfied literals are greater than zero and
-   * the weight of the clause that produced it has not been flipped
-   * we can count it as true ground clause. On the other hand if the
-   * weight has been flipped then in order to count it the number of
-   * satisfied literals should be zero.
-   *
-   * @return count of true groundings of the clauses
-   */
+    * Count the number of true groundings of each clause in the data.
+    * In order to do this, we compute the satisfied literals of each
+    * ground clause given an MRF state (annotation or inferred). Then
+    * if the number of satisfied literals are greater than zero and
+    * the weight of the clause that produced it has not been flipped
+    * we can count it as true ground clause. On the other hand if the
+    * weight has been flipped then in order to count it the number of
+    * satisfied literals should be zero.
+    *
+    * @return count of true groundings of the clauses
+    */
   @inline private def countGroundings(mrf: MRF): Array[Int] = {
 
     val dependencyMap = mrf.dependencyMap.getOrElse(sys.error("Dependency map does not exists."))
@@ -140,20 +140,20 @@ final class OnlineLearner(mln: MLN, algorithm: Algorithm, lossAugmented: Boolean
       idx = 0 // Reset
       while (idx < currentConstraint.literals.length) {
         val lit = currentConstraint.literals(idx)
-        if ( (lit > 0) == mrf.fetchAtom(lit).state ) nsat += 1
+        if ((lit > 0) == mrf.fetchAtom(lit).state) nsat += 1
         idx += 1
       }
 
       val iterator = dependencyMap.get(currentConstraint.id).iterator()
 
-      while(iterator.hasNext) {
+      while (iterator.hasNext) {
         iterator.advance()
         val clauseIdx = iterator.key()
         val frequency = iterator.value()
 
         // If weight is flipped then we want to count the opposite type of grounding
         // Use math abs because frequency may be negative to indicate a weight is flipped
-        if( (frequency < 0 && nsat == 0) || (frequency > 0 && nsat > 0) )
+        if ((frequency < 0 && nsat == 0) || (frequency > 0 && nsat > 0))
           counts(clauseIdx) += math.abs(frequency.toInt) // Clauses cannot have float frequencies at this point!
       }
 
@@ -163,13 +163,13 @@ final class OnlineLearner(mln: MLN, algorithm: Algorithm, lossAugmented: Boolean
   }
 
   /**
-   * Calculates the total error of inferred atom truth values. The
-   * result is not divided by the number of examples.
-   *
-   * Currently working only for Hamming loss
-   *
-   * @return the total error
-   */
+    * Calculates the total error of inferred atom truth values. The
+    * result is not divided by the number of examples.
+    *
+    * Currently working only for Hamming loss
+    *
+    * @return the total error
+    */
   @inline private def calculateError(mrf: MRF, annotationDB: Map[AtomSignature, AtomEvidenceDB]): Double = {
     var totalError = 0.0
     val numberOfExamples = mrf.atoms.size()
@@ -177,11 +177,11 @@ final class OnlineLearner(mln: MLN, algorithm: Algorithm, lossAugmented: Boolean
     logger.info("Calculating misclassifed loss...")
 
     val iterator = mrf.atoms.iterator()
-    while(iterator.hasNext) {
+    while (iterator.hasNext) {
       iterator.advance()
       val atom = iterator.value()
       val annotation = getAnnotation(atom.id, mrf, annotationDB)
-      if( (atom.state && annotation == FALSE) || (!atom.state && annotation == TRUE) )
+      if ((atom.state && annotation == FALSE) || (!atom.state && annotation == TRUE))
         totalError += 1.0
     }
 
@@ -190,52 +190,52 @@ final class OnlineLearner(mln: MLN, algorithm: Algorithm, lossAugmented: Boolean
   }
 
   /**
-   * Update constraint weights from the sum of newly found parent
-   * weights in order to reconstruct the ground network faster in
-   * order to run inference.
-   *
-   * Basic reconstruction steps:
-   *
-   * For each clause that produced the constaint do:
-   *    If weight has been inverted then:
-   *      multiply the clause weight learned so far and the number of times (frequency)
-   *      this clause produced the corresponding constraint and subtract the result from
-   *      the total weight of the constraint so far.
-   *
-   *    If weight has not been inverted then:
-   *      Do the same but add the result to the total weight instead of subtract it.
-   *
-   * Note: In case the clause is hard then just assign the hard weight to the constraint.
-   */
+    * Update constraint weights from the sum of newly found parent
+    * weights in order to reconstruct the ground network faster in
+    * order to run inference.
+    *
+    * Basic reconstruction steps:
+    *
+    * For each clause that produced the constaint do:
+    *    If weight has been inverted then:
+    *      multiply the clause weight learned so far and the number of times (frequency)
+    *      this clause produced the corresponding constraint and subtract the result from
+    *      the total weight of the constraint so far.
+    *
+    *    If weight has not been inverted then:
+    *      Do the same but add the result to the total weight instead of subtract it.
+    *
+    * Note: In case the clause is hard then just assign the hard weight to the constraint.
+    */
   @inline private def updateConstraintWeights(mrf: MRF) = {
 
     val dependencyMap = mrf.dependencyMap.getOrElse(sys.error("Dependency map does not exists."))
 
     val constraints = mrf.constraints.iterator()
 
-    while(constraints.hasNext) {
+    while (constraints.hasNext) {
       constraints.advance()
       val constraint = constraints.value()
       val iterator = dependencyMap.get(constraint.id).iterator()
 
       constraint.setWeight(0.0)
-      while(iterator.hasNext) {
+      while (iterator.hasNext) {
         iterator.advance()
 
         val clauseIdx = iterator.key()
         val frequency = iterator.value()
 
         // Frequency would never be negative because we always start using positive unit weights
-        if(mrf.mln.clauses(clauseIdx).isHard) constraint.setWeight(mrf.weightHard)
+        if (mrf.mln.clauses(clauseIdx).isHard) constraint.setWeight(mrf.weightHard)
         else constraint.setWeight(constraint.getWeight + weights(clauseIdx) * frequency)
       }
     }
   }
 
   /**
-   * Reconstruct the ground network without running the grounding procedure
-   * and then perform inference using the ILP solver.
-   */
+    * Reconstruct the ground network without running the grounding procedure
+    * and then perform inference using the ILP solver.
+    */
   @inline private def infer(mrf: MRF, annotationDB: Map[AtomSignature, AtomEvidenceDB]) = {
     updateConstraintWeights(mrf)
     val solver = new ILP(mrf, annotationDB = annotationDB, lossAugmented = lossAugmented, ilpSolver = ilpSolver)
@@ -256,7 +256,7 @@ final class OnlineLearner(mln: MLN, algorithm: Algorithm, lossAugmented: Boolean
 
     var weightedDeltaPhi = 0.0
 
-    if(algorithm == Algorithm.COORDINATE_DUAL_ASCEND) {
+    if (algorithm == Algorithm.COORDINATE_DUAL_ASCEND) {
 
       // Set default learning rate
       val defaultLearningRate = 1.0 / (sigma * t)
@@ -266,29 +266,29 @@ final class OnlineLearner(mln: MLN, algorithm: Algorithm, lossAugmented: Boolean
 
       // Calculate true counts minus inferred counts
       val delta = Array.fill[Int](numberOfClauses)(0)
-      optimize{
+      optimize {
         for (clauseIdx <- 0 until numberOfClauses) {
           if (!mrf.mln.clauses(clauseIdx).isHard)
             delta(clauseIdx) = trueCounts(clauseIdx) - inferredCounts(clauseIdx)
           weightedDeltaPhi += weights(clauseIdx) * delta(clauseIdx)
         }
       }
-      val deltaPhi = delta.map( dif => Math.abs(dif) ).sum
+      val deltaPhi = delta.map(dif => Math.abs(dif)).sum
 
       logger.info {
         s"""
-           |Delta = ${delta.deep.mkString("[" ,", ", "]")}
+           |Delta = ${delta.deep.mkString("[", ", ", "]")}
            |Absolute delta phi: $deltaPhi
            |Weighted delta phi: $weightedDeltaPhi
          """.stripMargin
       }
 
       var loss = error - weightedDeltaPhi
-      if(loss < 0) loss = 0.0
+      if (loss < 0) loss = 0.0
 
-      val square2NormDeltaPhi = delta.map( dif => dif * dif).sum
+      val square2NormDeltaPhi = delta.map(dif => dif * dif).sum
 
-      val learningRate = if(square2NormDeltaPhi <= 0) 0.0
+      val learningRate = if (square2NormDeltaPhi <= 0) 0.0
       else Math.min(defaultLearningRate, (error - ((t - 1) * weightedDeltaPhi) / t) / square2NormDeltaPhi)
 
       logger.info("Learning rate: " + learningRate)
@@ -298,8 +298,7 @@ final class OnlineLearner(mln: MLN, algorithm: Algorithm, lossAugmented: Boolean
         for (clauseIdx <- 0 until numberOfClauses)
           weights(clauseIdx) = (t - 1) * weights(clauseIdx) / t + learningRate * delta(clauseIdx)
       }
-    }
-    else if(algorithm == Algorithm.ADAGRAD_FB) {
+    } else if (algorithm == Algorithm.ADAGRAD_FB) {
 
       // Compute subgradients for all clausese
       val subgradients = Array.fill[Int](numberOfClauses)(0)
@@ -341,16 +340,16 @@ final class OnlineLearner(mln: MLN, algorithm: Algorithm, lossAugmented: Boolean
     }
 
     if (printLearnedWeightsPerIteration) {
-      logger.info("Learned weights on step " + t + ":\n" +  weights.deep.mkString("[", ", ", "]"))
+      logger.info("Learned weights on step " + t + ":\n" + weights.deep.mkString("[", ", ", "]"))
     }
   }
 
   /**
-   * Write clauses and their corresponding learned weights in the output
-   * mln file together with the predicate and function schema if any exists.
-   *
-   * @param out Selected output stream (default is console)
-   */
+    * Write clauses and their corresponding learned weights in the output
+    * mln file together with the predicate and function schema if any exists.
+    *
+    * @param out Selected output stream (default is console)
+    */
   def writeResults(out: PrintStream = System.out): Unit = {
 
     implicit val numFormat: DecimalFormat = new DecimalFormat("0.############")
@@ -363,7 +362,7 @@ final class OnlineLearner(mln: MLN, algorithm: Algorithm, lossAugmented: Boolean
       out.print(line)
     }
 
-    if(mln.schema.functions.nonEmpty) {
+    if (mln.schema.functions.nonEmpty) {
       out.println("\n// Functions definitions")
       for ((signature, (retType, args)) <- mln.schema.functions) {
         val line = retType + " " + signature.symbol + "(" + args.mkString(",") + ")\n"
@@ -372,8 +371,8 @@ final class OnlineLearner(mln: MLN, algorithm: Algorithm, lossAugmented: Boolean
     }
 
     out.println("\n// Clauses")
-    for((clause, clauseIdx) <- mln.clauses.zipWithIndex){
-      if(clause.isHard) out.println(clause.toText(weighted = false) + ".\n")
+    for ((clause, clauseIdx) <- mln.clauses.zipWithIndex) {
+      if (clause.isHard) out.println(clause.toText(weighted = false) + ".\n")
       else out.println(numFormat.format(weights(clauseIdx)) + " " + clause.toText(weighted = false) + "\n")
     }
   }

@@ -14,28 +14,27 @@
  *  o   o o-o-o  o  o-o o-o o o o     o    | o-o o  o-o o-o
  *
  *  Logical Markov Random Fields (LoMRF).
- *     
+ *
  *
  */
 
 package lomrf.mln.inference
 
-import java.io.{File, FileOutputStream, PrintStream}
+import java.io.{ File, FileOutputStream, PrintStream }
 
 import lomrf.logic.AtomSignature
 import lomrf.mln.grounding.MRFBuilder
 import lomrf.mln.model.MLN
 import lomrf.tests.TestData
 import lomrf.util.io._
-import org.scalatest.{FunSpec, Matchers}
+import org.scalatest.{ FunSpec, Matchers }
 
 import scala.io.Source
 
 /**
- * Specification test for MC-SAT algorithm used for marginal inference.
- */
+  * Specification test for MC-SAT algorithm used for marginal inference.
+  */
 final class MCSATSpecTest extends FunSpec with Matchers {
-
 
   private val mainPath = TestData.TestFilesPath / "inference" / "caviar" / "DN"
 
@@ -54,7 +53,7 @@ final class MCSATSpecTest extends FunSpec with Matchers {
     if currentPath.exists
 
     mlnFile = findFirstFile(currentPath, _.getName.endsWith(".mln"))
-      .getOrElse(sys.error("Cannot find MLN in '"+currentPath+"'"))
+      .getOrElse(sys.error("Cannot find MLN in '" + currentPath + "'"))
 
     expectedResultFiles = findFiles(currentPath, _.getName.endsWith(".mcsat.golden"))
 
@@ -112,7 +111,6 @@ final class MCSATSpecTest extends FunSpec with Matchers {
         .find(f => f.getName.contains(dbFile.getName.split(".db")(0)))
         .getOrElse(sys.error("Failed to locate golden standard file."))
 
-
       val solver = new MCSAT(mrf)
       solver.infer()
       solver.writeResults(new PrintStream(new FileOutputStream(prefix + ".mcsat.result"), true))
@@ -152,7 +150,7 @@ final class MCSATSpecTest extends FunSpec with Matchers {
 
           totalError += currentError
 
-          if(currentError >= 0.2 ){
+          if (currentError >= 0.2) {
             majorDifferences += 1
             info(s"\tLine '$lineNumber': The estimated probability of '$inferredPredicate' is '$inferredValue' which differs significantly (>=0.2 p.p.) from the expected probability '" + expectedValue + "'")
           }
@@ -160,7 +158,7 @@ final class MCSATSpecTest extends FunSpec with Matchers {
 
       }
 
-      it(s"produces marginal probabilities for ${expectedResultsMap.size} ground query predicates."){
+      it(s"produces marginal probabilities for ${expectedResultsMap.size} ground query predicates.") {
         countedResults shouldBe expectedResultsMap.size
       }
 

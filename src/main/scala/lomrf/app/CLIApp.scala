@@ -14,7 +14,7 @@
  *  o   o o-o-o  o  o-o o-o o o o     o    | o-o o  o-o o-o
  *
  *  Logical Markov Random Fields (LoMRF).
- *     
+ *
  *
  */
 
@@ -24,9 +24,9 @@ import lomrf.util.opt.OptionParser
 import com.typesafe.scalalogging.LazyLogging
 
 /**
- * Command line basic functionality shared across all command line interfaces. Should
- * be extended by any command line interface.
- */
+  * Command line basic functionality shared across all command line interfaces. Should
+  * be extended by any command line interface.
+  */
 trait CLIApp extends App with LazyLogging with OptionParser {
   println(lomrf.ASCIILogo)
   println(lomrf.BuildVersion)

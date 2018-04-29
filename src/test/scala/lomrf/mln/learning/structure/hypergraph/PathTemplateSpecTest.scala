@@ -14,7 +14,7 @@
  *  o   o o-o-o  o  o-o o-o o o o     o    | o-o o  o-o o-o
  *
  *  Logical Markov Random Fields (LoMRF).
- *     
+ *
  *
  */
 
@@ -23,31 +23,29 @@ package lomrf.mln.learning.structure.hypergraph
 import lomrf.logic.AtomSignature
 import lomrf.logic.parser.KBParser
 import lomrf.mln.model.ConstantsSet
-import org.scalatest.{FunSpec, Matchers}
+import org.scalatest.{ FunSpec, Matchers }
 
 /**
- * Specification test for path templates.
- */
+  * Specification test for path templates.
+  */
 final class PathTemplateSpecTest extends FunSpec with Matchers {
 
   // Predicate schema having template atoms, evidence atoms and non-evidence atoms
-  private val predicateSchema = Map (
+  private val predicateSchema = Map(
     AtomSignature("TemplateAtom_1", 2) -> Vector("X", "T"),
     AtomSignature("TemplateAtom_2", 2) -> Vector("X", "T"),
     AtomSignature("EvidenceAtom_1", 2) -> Vector("Y", "T"),
     AtomSignature("EvidenceAtom_2", 2) -> Vector("T", "T"),
-    AtomSignature("NonEvidenceAtom_1", 2) -> Vector("X", "T")
-  )
+    AtomSignature("NonEvidenceAtom_1", 2) -> Vector("X", "T"))
 
   // Empty function schema
   private val functionsSchema = Map.empty[AtomSignature, (String, Vector[String])]
 
   // Constants domain
-  private val constantsDomain = Map (
+  private val constantsDomain = Map(
     "T" -> ConstantsSet((1 to 10).map(_.toString)),
     "X" -> ConstantsSet("X1", "X2", "X3", "X4"),
-    "Y" -> ConstantsSet("Y1", "Y2", "Y3", "Y4")
-  )
+    "Y" -> ConstantsSet("Y1", "Y2", "Y3", "Y4"))
 
   private val parser = new KBParser(predicateSchema, functionsSchema)
 
@@ -56,17 +54,17 @@ final class PathTemplateSpecTest extends FunSpec with Matchers {
   // ------------------------------------------------------------------------------------------------------------------
 
   // Template atoms
-  private val templateAtomsPerAxiom = Seq(AtomSignature("TemplateAtom_1", 2),
-                                          AtomSignature("TemplateAtom_2", 2),
-                                          AtomSignature("TemplateAtom_2", 2),
-                                          AtomSignature("TemplateAtom_1", 2))
+  private val templateAtomsPerAxiom = Seq(
+    AtomSignature("TemplateAtom_1", 2),
+    AtomSignature("TemplateAtom_2", 2),
+    AtomSignature("TemplateAtom_2", 2),
+    AtomSignature("TemplateAtom_1", 2))
 
-  val axioms = Seq (
+  val axioms = Seq(
     "EvidenceAtom_2(t1, t0) ^ TemplateAtom_1(x, t0) => NonEvidenceAtom_1(x, t1).",
     "EvidenceAtom_2(t1, t0) ^ TemplateAtom_2(x, t0) => !NonEvidenceAtom_1(x, t1).",
     "EvidenceAtom_2(t1, t0) ^ NonEvidenceAtom_1(x, t0) ^ !TemplateAtom_2(x, t0) => NonEvidenceAtom_1(x, t1).",
-    "EvidenceAtom_2(t1, t0) ^ !NonEvidenceAtom_1(x, t0) ^ !TemplateAtom_1(x, t0) => !NonEvidenceAtom_1(x, t1)."
-  ).map(parser.parseLogicalSentence).flatMap(_.toCNF(constantsDomain))
+    "EvidenceAtom_2(t1, t0) ^ !NonEvidenceAtom_1(x, t0) ^ !TemplateAtom_1(x, t0) => !NonEvidenceAtom_1(x, t1).").map(parser.parseLogicalSentence).flatMap(_.toCNF(constantsDomain))
 
   info(axioms.map(_.literals.map(_.toText).mkString(" v ")).mkString("\n"))
 

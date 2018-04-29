@@ -14,14 +14,14 @@
  *  o   o o-o-o  o  o-o o-o o o o     o    | o-o o  o-o o-o
  *
  *  Logical Markov Random Fields (LoMRF).
- *     
+ *
  *
  */
 
 package lomrf.logic
 
 import lomrf.logic.parser.KBParser
-import org.scalatest.{FunSpec, Matchers}
+import org.scalatest.{ FunSpec, Matchers }
 
 /**
   * A series of specification tests for atomic formulas
@@ -32,15 +32,12 @@ import org.scalatest.{FunSpec, Matchers}
 final class AtomSpecTest extends FunSpec with Matchers {
 
   private val predicateSchema = Map[AtomSignature, Vector[String]](
-    AtomSignature("Happens", 2) -> Vector("event", "time")
-  )
+    AtomSignature("Happens", 2) -> Vector("event", "time"))
 
   private val functionsSchema = Map[AtomSignature, (String, Vector[String])](
-    AtomSignature("walking", 1) ->("event", Vector("id"))
-  )
+    AtomSignature("walking", 1) -> ("event", Vector("id")))
 
   private val parser = new KBParser(predicateSchema, functionsSchema)
-
 
   /**
     * Parse an atomic formula with two constants
@@ -88,7 +85,6 @@ final class AtomSpecTest extends FunSpec with Matchers {
     val atomHappens = AtomicFormula("Happens", Vector(Constant("Foo"), Variable("t", "time")))
     val result = parser.parsePredicate(strHappens)
 
-
     it("is an atomic formula") {
       result shouldEqual atomHappens
     }
@@ -134,8 +130,7 @@ final class AtomSpecTest extends FunSpec with Matchers {
     (TermFunction("walking", Vector(Variable("x", "id")), "event"), Constant("0"), 1, 1, "Happens(walking(x),0)"),
 
     // Happens(walking(x),t) : 0 constants and 2 variables
-    (TermFunction("walking", Vector(Variable("x", "id")), "event"), Variable("t", "time"), 0, 2, "Happens(walking(x),t)")
-  )
+    (TermFunction("walking", Vector(Variable("x", "id")), "event"), Variable("t", "time"), 0, 2, "Happens(walking(x),t)"))
 
   for ((term1, term2, nConst, nVar, strHappens) <- functionsToTest) describe("The sentence: '" + strHappens + "'") {
     val atomHappens = AtomicFormula("Happens", Vector(term1, term2))
@@ -160,7 +155,7 @@ final class AtomSpecTest extends FunSpec with Matchers {
       result.variables should equal(atomHappens.variables)
     }
 
-    it("contains the function "+term1.toText){
+    it("contains the function " + term1.toText) {
       result.functions.size should equal(1)
       result.functions.head should equal(term1)
     }
@@ -172,11 +167,10 @@ final class AtomSpecTest extends FunSpec with Matchers {
       result.isGround shouldEqual true
     }
 
-    it("composed of '"+term1.toText+"' and '"+term2.toText+"'") {
+    it("composed of '" + term1.toText + "' and '" + term2.toText + "'") {
       result.terms shouldEqual Vector(term1, term2)
     }
 
   }
-
 
 }

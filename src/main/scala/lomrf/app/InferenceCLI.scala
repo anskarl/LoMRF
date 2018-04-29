@@ -14,17 +14,17 @@
  *  o   o o-o-o  o  o-o o-o o o o     o    | o-o o  o-o o-o
  *
  *  Logical Markov Random Fields (LoMRF).
- *     
+ *
  *
  */
 
 package lomrf.app
 
-import java.io.{FileOutputStream, PrintStream}
+import java.io.{ FileOutputStream, PrintStream }
 import lomrf.logic._
 import lomrf.logic.AtomSignatureOps._
 import lomrf.logic.PredicateCompletionMode._
-import lomrf.logic.dynamic.{DynamicAtomBuilder, DynamicFunctionBuilder}
+import lomrf.logic.dynamic.{ DynamicAtomBuilder, DynamicFunctionBuilder }
 import lomrf.mln.grounding.MRFBuilder
 import lomrf.mln.inference._
 import lomrf.mln.model.MLN
@@ -33,8 +33,8 @@ import lomrf.util.logging.Implicits._
 import optimus.optimization.enums.SolverLib
 
 /**
- * Command line tool for inference.
- */
+  * Command line tool for inference.
+  */
 object InferenceCLI extends CLIApp {
 
   // The path to the input MLN file
@@ -127,7 +127,6 @@ object InferenceCLI extends CLIApp {
 
   //private var _domainPartition = false
 
-
   private def addQueryAtom(atom: String) {
     _queryAtoms += atom.signature.getOrElse(logger.fatal(s"Cannot parse the arity of query atom: $atom"))
   }
@@ -161,28 +160,31 @@ object InferenceCLI extends CLIApp {
       "Each atom must be defined using its identity (i.e. Name/arity, see the description of -q for an example)", _.split(",").foreach(v => addOWA(v)))
 
   opt("inferType", "inference-type", "<map | marginal>", "Specify the inference type: MAP or Marginal (default is marginal).", {
-    v: String => v.trim.toLowerCase match {
-      case "map" => _marginalInference = false
-      case "marginal" => _marginalInference = true
-      case _ => logger.fatal("Unknown parameter for inference type '" + v + "'.")
-    }
+    v: String =>
+      v.trim.toLowerCase match {
+        case "map"      => _marginalInference = false
+        case "marginal" => _marginalInference = true
+        case _          => logger.fatal("Unknown parameter for inference type '" + v + "'.")
+      }
   })
 
   opt("mapType", "map-type", "<mws | ilp>", "Specify the MAP inference type: MaxWalkSAt or ILP (default is MaxWalkSAT).", {
-    v: String => v.trim.toLowerCase match {
-      case "ilp" => _mws = false
-      case "mws" => _mws = true
-      case _ => logger.fatal("Unknown parameter for inference type '" + v + "'.")
-    }
+    v: String =>
+      v.trim.toLowerCase match {
+        case "ilp" => _mws = false
+        case "mws" => _mws = true
+        case _     => logger.fatal("Unknown parameter for inference type '" + v + "'.")
+      }
   })
 
   opt("mapOutput", "map-output-type", "<all | positive>", "Specify MAP inference output type: 0/1 results for all query atoms or " +
     "only positive query atoms (default is all).", {
-    v: String => v.trim.toLowerCase match {
-      case "all" => _mapOutputAll = true
-      case "positive" => _mapOutputAll = false
-      case _ => logger.fatal("Unknown parameter for inference type '" + v + "'.")
-    }
+    v: String =>
+      v.trim.toLowerCase match {
+        case "all"      => _mapOutputAll = true
+        case "positive" => _mapOutputAll = false
+        case _          => logger.fatal("Unknown parameter for inference type '" + v + "'.")
+      }
   })
 
   flagOpt("satHardUnit", "sat-hard-unit", "Trivially satisfy hard constrained unit clauses in MaxWalkSAT.", {
@@ -195,21 +197,23 @@ object InferenceCLI extends CLIApp {
 
   opt("ilpRounding", "ilp-rounding", "<roundup | mws>", "Specify either RoundUp (roundup) or MaxWalkSAT (mws) as " +
     "rounding algorithm to use for non-integral parts of the ILP solutions (default is RoundUp).", {
-    v: String => v.trim.toLowerCase match {
-      case "roundup" => _ilpRounding = RoundingScheme.ROUNDUP
-      case "mws" => _ilpRounding = RoundingScheme.MWS
-      case _ => logger.fatal("Unknown parameter for ILP rounding type '" + v + "'.")
-    }
+    v: String =>
+      v.trim.toLowerCase match {
+        case "roundup" => _ilpRounding = RoundingScheme.ROUNDUP
+        case "mws"     => _ilpRounding = RoundingScheme.MWS
+        case _         => logger.fatal("Unknown parameter for ILP rounding type '" + v + "'.")
+      }
   })
 
   opt("ilpSolver", "ilp-solver", "<lpsolve | ojalgo | gurobi | mosek>", "Specify which ILP solver use (default is LPSolve).", {
-    v: String => v.trim.toLowerCase match {
-      case "gurobi" => _ilpSolver = SolverLib.Gurobi
-      case "lpsolve" => _ilpSolver = SolverLib.LpSolve
-      case "ojalgo" => _ilpSolver = SolverLib.oJSolver
-      case "mosek" => _ilpSolver = SolverLib.Mosek
-      case _ => logger.fatal(s"Unknown parameter for ILP solver type '$v'.")
-    }
+    v: String =>
+      v.trim.toLowerCase match {
+        case "gurobi"  => _ilpSolver = SolverLib.Gurobi
+        case "lpsolve" => _ilpSolver = SolverLib.LpSolve
+        case "ojalgo"  => _ilpSolver = SolverLib.oJSolver
+        case "mosek"   => _ilpSolver = SolverLib.Mosek
+        case _         => logger.fatal(s"Unknown parameter for ILP solver type '$v'.")
+      }
   })
 
   intOpt("samples", "num-samples", "Specify the number of samples to take in MC-SAT (default is " + _samples + ").", _samples = _)
@@ -237,7 +241,6 @@ object InferenceCLI extends CLIApp {
     "is considered as a solution (default is " + _targetCost + ").", {
     v: Double => if (v < 0) logger.fatal("The targetCost value cannot be negative, you gave: " + v) else _targetCost = v
   })
-
 
   intOpt("maxTries", "maximum-tries", "The maximum number of attempts, in order to find a solution in MaxWalkSAT and " +
     "MC-SAT (default is " + _maxTries + ")", {
@@ -297,13 +300,12 @@ object InferenceCLI extends CLIApp {
     val strMLNFileName = _mlnFileName.getOrElse(logger.fatal("Please specify an input MLN file."))
     if (_evidenceFileNames.isEmpty) logger.warn("You haven't specified any evidence file.")
 
-
     val resultsWriter = _resultsFileName match {
       case Some(fileName) => new PrintStream(new FileOutputStream(fileName), true)
-      case None => System.out
+      case None           => System.out
     }
 
-    logger.info{
+    logger.info {
       s"""
          |Parameters:
          |  (q) Query predicate(s):  ${_queryAtoms.map(_.toString).mkString(", ")}
@@ -347,10 +349,9 @@ object InferenceCLI extends CLIApp {
       mln.clauses.zipWithIndex.foreach { case (c, idx) => logger.debug(idx + ": " + c) }
     }
 
-    if(mln.clauses.exists(_.weight.isNaN))
+    if (mln.clauses.exists(_.weight.isNaN))
       logger.fatal("Cannot perform inference, soft-constrained clauses with undefined weights found in the specified theory. " +
         "Please check the given MLN file(s) for soft-constrained formulas with missing weight values.")
-
 
     logger.info("Creating MRF...")
     val mrfBuilder = new MRFBuilder(mln, noNegWeights = _noNeg, eliminateNegatedUnit = _eliminateNegatedUnit)
@@ -360,20 +361,17 @@ object InferenceCLI extends CLIApp {
       // Marginal inference methods
       val solver = new MCSAT(
         mrf, pBest = _pBest, pSA = _pSA, maxFlips = _maxFlips, maxTries = _maxTries, targetCost = _targetCost, numSolutions = _numSolutions,
-        saTemperature = _saTemperature, samples = _samples, lateSA = _lateSA, unitPropagation = _unitProp, satHardPriority = _satHardPriority, tabuLength = _tabuLength
-      )
+        saTemperature   = _saTemperature, samples = _samples, lateSA = _lateSA, unitPropagation = _unitProp, satHardPriority = _satHardPriority, tabuLength = _tabuLength)
       solver.infer()
       solver.writeResults(resultsWriter)
-    }
-    else {
+    } else {
       // MAP inference methods
       if (_mws) {
         val solver = new MaxWalkSAT(mrf, pBest = _pBest, maxFlips = _maxFlips, maxTries = _maxTries, targetCost = _targetCost,
-          outputAll = _mapOutputAll, satHardUnit = _satHardUnit, satHardPriority = _satHardPriority, tabuLength = _tabuLength)
+                                    outputAll       = _mapOutputAll, satHardUnit = _satHardUnit, satHardPriority = _satHardPriority, tabuLength = _tabuLength)
         solver.infer()
         solver.writeResults(resultsWriter)
-      }
-      else {
+      } else {
         val solver = new ILP(mrf, outputAll = _mapOutputAll, ilpRounding = _ilpRounding, ilpSolver = _ilpSolver)
         solver.infer()
         solver.writeResults(resultsWriter)
@@ -381,7 +379,4 @@ object InferenceCLI extends CLIApp {
     }
   }
 }
-
-
-
 

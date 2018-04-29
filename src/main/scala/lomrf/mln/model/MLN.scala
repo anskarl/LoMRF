@@ -14,14 +14,13 @@
  *  o   o o-o-o  o  o-o o-o o o o     o    | o-o o  o-o o-o
  *
  *  Logical Markov Random Fields (LoMRF).
- *     
+ *
  *
  */
 
 package lomrf.mln.model
 
-
-import java.io.{File, PrintStream}
+import java.io.{ File, PrintStream }
 import java.text.DecimalFormat
 
 import lomrf.logic._
@@ -32,16 +31,17 @@ import com.typesafe.scalalogging.Logger
 import scala.collection.breakOut
 
 /**
- * A Markov Logic Networks knowledge base and evidence data.
- *
- * @param schema the domain schema (i.e., definitions of  (dynamic) predicates and (dynamic) functions)
- * @param evidence the specified evidence (i.e., constants, the state of atoms, function mappings and the domain space)
- * @param clauses collection of CNF clauses
- */
-final class MLN(val schema: MLNSchema,
-                val space: PredicateSpace,
-                val evidence: Evidence,
-                val clauses: Vector[Clause]) {
+  * A Markov Logic Networks knowledge base and evidence data.
+  *
+  * @param schema the domain schema (i.e., definitions of  (dynamic) predicates and (dynamic) functions)
+  * @param evidence the specified evidence (i.e., constants, the state of atoms, function mappings and the domain space)
+  * @param clauses collection of CNF clauses
+  */
+final class MLN(
+    val schema: MLNSchema,
+    val space: PredicateSpace,
+    val evidence: Evidence,
+    val clauses: Vector[Clause]) {
 
   /**
     * Function mappers for both user defined functions from evidence, as well as dynamic functions
@@ -51,87 +51,87 @@ final class MLN(val schema: MLNSchema,
   }
 
   /**
-   * Determine if the given atom signature corresponds to an atom with closed-world assumption.
-   *
-   * @param signature the atom's signature
-   * @return true if the given atom signature corresponds to an atom with closed-world assumption, otherwise false.
-   */
+    * Determine if the given atom signature corresponds to an atom with closed-world assumption.
+    *
+    * @param signature the atom's signature
+    * @return true if the given atom signature corresponds to an atom with closed-world assumption, otherwise false.
+    */
   def isCWA(signature: AtomSignature): Boolean = space.cwa.contains(signature)
 
   /**
-   * Determine if the given atom signature corresponds to an atom with open-world assumption.
-   *
-   * @param signature the atom's signature
-   * @return true if the given atom signature corresponds to an atom with open-world assumption, otherwise false.
-   */
+    * Determine if the given atom signature corresponds to an atom with open-world assumption.
+    *
+    * @param signature the atom's signature
+    * @return true if the given atom signature corresponds to an atom with open-world assumption, otherwise false.
+    */
   def isOWA(signature: AtomSignature): Boolean = space.owa.contains(signature)
 
   /**
-   * Determine whether the given atom signature corresponds to an atom which may have three states according to
-   * the given evidence and KB, i.e. TRUE, FALSE and UNKNOWN.
-   *
-   * That is atoms that are OWA, Probabilistic or in some cases evidence atoms that some of their groundings are
-   * explicitly defined with Unknown state (i.e. prefixed with the symbol ? ).
-   *
-   * @param signature the atom's signature
-   *
-   * @return true is the given atom signature corresponds to an atom that its groundings may have three states.
-   */
+    * Determine whether the given atom signature corresponds to an atom which may have three states according to
+    * the given evidence and KB, i.e. TRUE, FALSE and UNKNOWN.
+    *
+    * That is atoms that are OWA, Probabilistic or in some cases evidence atoms that some of their groundings are
+    * explicitly defined with Unknown state (i.e. prefixed with the symbol ? ).
+    *
+    * @param signature the atom's signature
+    *
+    * @return true is the given atom signature corresponds to an atom that its groundings may have three states.
+    */
   def isTriState(signature: AtomSignature): Boolean = evidence.triStateAtoms.contains(signature)
 
   /**
-   * Determine if the given atom signature corresponds to a query atom
-   *
-   * @param signature the atom's signature
-   * @return true if the given atom signature corresponds to a query atom, otherwise false.
-   */
+    * Determine if the given atom signature corresponds to a query atom
+    *
+    * @param signature the atom's signature
+    * @return true if the given atom signature corresponds to a query atom, otherwise false.
+    */
   def isQueryAtom(signature: AtomSignature): Boolean = space.queryAtoms.contains(signature)
 
   /**
-   * Determine if the given atom signature corresponds to a dynamic atom.
-   *
-   * @param signature the atom's signature
-   * @return true if the given atom signature corresponds to a dynamic atom, otherwise false.
-   */
+    * Determine if the given atom signature corresponds to a dynamic atom.
+    *
+    * @param signature the atom's signature
+    * @return true if the given atom signature corresponds to a dynamic atom, otherwise false.
+    */
   def isDynamicAtom(signature: AtomSignature): Boolean = schema.dynamicPredicates.contains(signature)
 
   /**
-   * Determine if the given atom signature corresponds to an evidence atom.
-   *
-   * @param signature the atom's signature
-   * @return true if the given atom signature corresponds to an evidence atom, otherwise false.
-   */
+    * Determine if the given atom signature corresponds to an evidence atom.
+    *
+    * @param signature the atom's signature
+    * @return true if the given atom signature corresponds to an evidence atom, otherwise false.
+    */
   def isEvidenceAtom(signature: AtomSignature): Boolean = space.cwa.contains(signature)
 
   /**
-   * Determine if the given atom signature corresponds to a hidden atom (i.e. is not evidence and not query)
-   *
-   * @param signature the atom's signature
-   * @return true if the given atom signature corresponds to a hidden atom, otherwise false.
-   */
+    * Determine if the given atom signature corresponds to a hidden atom (i.e. is not evidence and not query)
+    *
+    * @param signature the atom's signature
+    * @return true if the given atom signature corresponds to a hidden atom, otherwise false.
+    */
   def isHiddenAtom(signature: AtomSignature): Boolean = space.hiddenAtoms.contains(signature)
 
   /**
-   * @param signature the atom's signature
-   * @return the schema of this atom
-   */
+    * @param signature the atom's signature
+    * @return the schema of this atom
+    */
   def getSchemaOf(signature: AtomSignature) = schema.predicates.get(signature)
 
   /**
-   * Gives the domain of the given type
-   *
-   * @param t the type name
-   * @return a constantSet (if any).
-   */
+    * Gives the domain of the given type
+    *
+    * @param t the type name
+    * @return a constantSet (if any).
+    */
   def getConstantValuesOf(t: String): Option[ConstantsSet] = evidence.constants.get(t)
 
   /**
-   * Gives the state of the specified ground atom.
-   *
-   * @param signature the atom's signature [[lomrf.logic.AtomSignature]]
-   * @param atomId integer indicating a specific grounding of the given atom signature [[AtomIdentityFunction]]
-   * @return TRUE, FALSE or UNKNOWN [[lomrf.logic.TriState]]
-   */
+    * Gives the state of the specified ground atom.
+    *
+    * @param signature the atom's signature [[lomrf.logic.AtomSignature]]
+    * @param atomId integer indicating a specific grounding of the given atom signature [[AtomIdentityFunction]]
+    * @return TRUE, FALSE or UNKNOWN [[lomrf.logic.TriState]]
+    */
   def getStateOf(signature: AtomSignature, atomId: Int) = evidence.db(signature).get(atomId)
 
   def queryAtoms: Set[AtomSignature] = space.queryAtoms
@@ -168,10 +168,10 @@ object MLN {
 
     val (toPartialGround, rest) = clauses.partition(clause => clause.variables.exists(_.groundPerConstant))
 
-    if(toPartialGround.nonEmpty){
+    if (toPartialGround.nonEmpty) {
 
       val partiallyGrounded = toPartialGround.
-        flatMap{ clause =>
+        flatMap { clause =>
           val targetVariables = clause.variables.filter(_.groundPerConstant)
 
           val iterator = CartesianIterator(targetVariables.map(v => v -> constants(v.domain)).toMap)
@@ -180,25 +180,24 @@ object MLN {
         }
 
       partiallyGrounded ++ rest
-    }
-    else clauses
+    } else clauses
   }
 
   def apply(schema: MLNSchema, evidence: Evidence, space: PredicateSpace, clauses: Vector[Clause]): MLN = {
     new MLN(schema, space, evidence, expand(clauses, evidence.constants))
   }
 
-  def apply(predicateSchema: PredicateSchema,
-            functionSchema: FunctionSchema,
-            dynamicPredicates: DynamicPredicates,
-            dynamicFunctions: DynamicFunctions,
-            formulas: Set[WeightedFormula],
-            constants: ConstantsDomain,
-            evidenceDB: EvidenceDB,
-            functionMappers: FunctionMappers,
-            queryAtoms: Set[AtomSignature],
-            owa: Set[AtomSignature]): MLN = {
-
+  def apply(
+      predicateSchema: PredicateSchema,
+      functionSchema: FunctionSchema,
+      dynamicPredicates: DynamicPredicates,
+      dynamicFunctions: DynamicFunctions,
+      formulas: Set[WeightedFormula],
+      constants: ConstantsDomain,
+      evidenceDB: EvidenceDB,
+      functionMappers: FunctionMappers,
+      queryAtoms: Set[AtomSignature],
+      owa: Set[AtomSignature]): MLN = {
 
     val hiddenPredicates = owa -- queryAtoms
 
@@ -208,27 +207,29 @@ object MLN {
 
     val evidence = Evidence(constants, evidenceDB, functionMappers)
 
-    val clauses =  expand(NormalForm.compileCNF(formulas)(constants).toVector, constants)
+    val clauses = expand(NormalForm.compileCNF(formulas)(constants).toVector, constants)
 
     new MLN(schema, space, evidence, clauses)
   }
 
-  def apply(schema: MLNSchema,
-            evidence: Evidence,
-            queryAtoms: Set[AtomSignature],
-            clauses: Vector[Clause]) = {
+  def apply(
+      schema: MLNSchema,
+      evidence: Evidence,
+      queryAtoms: Set[AtomSignature],
+      clauses: Vector[Clause]) = {
 
     val space = PredicateSpace(schema, queryAtoms, evidence.constants)
 
     new MLN(schema, space, evidence, expand(clauses, evidence.constants))
   }
 
-  def apply(schema: MLNSchema,
-            clauses: Vector[Clause],
-            constants: ConstantsDomain,
-            functionMappers: FunctionMappers,
-            evidenceDB: EvidenceDB,
-            space: PredicateSpace): MLN = {
+  def apply(
+      schema: MLNSchema,
+      clauses: Vector[Clause],
+      constants: ConstantsDomain,
+      functionMappers: FunctionMappers,
+      evidenceDB: EvidenceDB,
+      space: PredicateSpace): MLN = {
 
     val evidence = Evidence(constants, evidenceDB, functionMappers)
 
@@ -236,35 +237,37 @@ object MLN {
   }
 
   /**
-   * Constructs a MLN instance from the specified knowledge base and evidence files.
-   *
-   * @param mlnFileName the path to the MLN file (.mln)
-   * @param evidenceFileName the path to the evidence file (.db)
-   * @param queryAtoms the set of query atoms
-   * @param cwa the set of closed world assumption atoms
-   * @param owa the set of open world assumption atoms
-   * @param pcm the predicate completion mode to perform [[lomrf.logic.PredicateCompletion]]
-   *
-   * @return an MLN instance
-   */
-  def fromFile(mlnFileName: String,
-               queryAtoms: Set[AtomSignature],
-               evidenceFileName: String,
-               cwa: Set[AtomSignature] = Set(),
-               owa: Set[AtomSignature] = Set(),
-               pcm: PredicateCompletionMode = Decomposed,
-               dynamicDefinitions: Option[ImplFinder.ImplementationsMap] = None): MLN = {
+    * Constructs a MLN instance from the specified knowledge base and evidence files.
+    *
+    * @param mlnFileName the path to the MLN file (.mln)
+    * @param evidenceFileName the path to the evidence file (.db)
+    * @param queryAtoms the set of query atoms
+    * @param cwa the set of closed world assumption atoms
+    * @param owa the set of open world assumption atoms
+    * @param pcm the predicate completion mode to perform [[lomrf.logic.PredicateCompletion]]
+    *
+    * @return an MLN instance
+    */
+  def fromFile(
+      mlnFileName: String,
+      queryAtoms: Set[AtomSignature],
+      evidenceFileName: String,
+      cwa: Set[AtomSignature] = Set(),
+      owa: Set[AtomSignature] = Set(),
+      pcm: PredicateCompletionMode = Decomposed,
+      dynamicDefinitions: Option[ImplFinder.ImplementationsMap] = None): MLN = {
 
     fromFile(mlnFileName, List(evidenceFileName), queryAtoms, cwa, owa, pcm, dynamicDefinitions)
   }
 
-  def fromFile(mlnFileName: String,
-               evidenceFileNames: List[String],
-               queryAtoms: Set[AtomSignature],
-               cwa: Set[AtomSignature],
-               owa: Set[AtomSignature],
-               pcm: PredicateCompletionMode,
-               dynamicDefinitions: Option[ImplFinder.ImplementationsMap]): MLN = {
+  def fromFile(
+      mlnFileName: String,
+      evidenceFileNames: List[String],
+      queryAtoms: Set[AtomSignature],
+      cwa: Set[AtomSignature],
+      owa: Set[AtomSignature],
+      pcm: PredicateCompletionMode,
+      dynamicDefinitions: Option[ImplFinder.ImplementationsMap]): MLN = {
     val logger = Logger(this.getClass)
 
     logger.info {
@@ -274,17 +277,16 @@ object MLN {
         |""".stripMargin
     }
 
-
     //parse knowledge base (.mln)
     val (kb, constantsDomain) = KB.fromFile(mlnFileName, dynamicDefinitions)
 
     val atomSignatures: Set[AtomSignature] = kb.predicateSchema.keySet
 
     /**
-     * Check if the schema of all Query and OWA atoms is defined in the MLN file
-     */
+      * Check if the schema of all Query and OWA atoms is defined in the MLN file
+      */
     val missingQuerySignatures = queryAtoms.diff(atomSignatures)
-    if(missingQuerySignatures.nonEmpty)
+    if (missingQuerySignatures.nonEmpty)
       logger.fatal(s"Missing definitions for the following query predicate(s): ${missingQuerySignatures.mkString(", ")}")
 
     // OWA predicates
@@ -293,7 +295,7 @@ object MLN {
       case _ =>
         val missingOWASignatures = owa.diff(atomSignatures)
 
-        if(missingOWASignatures.nonEmpty)
+        if (missingOWASignatures.nonEmpty)
           logger.fatal(s"Missing definitions for the following OWA predicate(s): ${missingOWASignatures.mkString(", ")}")
 
         queryAtoms ++ owa
@@ -301,7 +303,7 @@ object MLN {
 
     // Check for predicates that are mistakenly defined as open and closed
     val openClosedSignatures = cwa.intersect(predicatesOWA)
-    if(openClosedSignatures.nonEmpty)
+    if (openClosedSignatures.nonEmpty)
       logger.fatal(s"Predicate(s): ${openClosedSignatures.mkString(", ")} defined both as closed and open.")
 
     //parse the evidence database (.db)
@@ -313,19 +315,17 @@ object MLN {
       cwa,
       evidenceFileNames.map(new File(_)),
       convertFunctions = false,
-      forceCWAForAll = false
-    )
+      forceCWAForAll   = false)
 
     val completedFormulas =
       PredicateCompletion(kb.formulas, kb.definiteClauses, pcm)(kb.predicateSchema, kb.functionSchema, evidence.constants)
-
 
     // In case that some predicates are eliminated by the predicate completion,
     // remove them from the final predicate schema.
     val resultingPredicateSchema = pcm match {
       case Simplification =>
         val resultingFormulas = kb.predicateSchema -- kb.definiteClauses.map(_.clause.head.signature)
-        if(resultingFormulas.isEmpty)
+        if (resultingFormulas.isEmpty)
           logger.warn("The given theory is empty (i.e., contains empty set of non-zeroed formulas).")
 
         resultingFormulas
@@ -334,12 +334,11 @@ object MLN {
 
     val mlnSchema = MLNSchema(resultingPredicateSchema, kb.functionSchema, kb.dynamicPredicates, kb.dynamicFunctions)
 
-    val expandedClauses = expand (
-      clauses = NormalForm
+    val expandedClauses = expand(
+      clauses   = NormalForm
         .compileCNF(completedFormulas)(evidence.constants)
         .toVector,
-      constants = evidence.constants
-    )
+      constants = evidence.constants)
 
     val hiddenAtoms = (kb.signatures.predicates -- queryAtoms) -- evidence.cwaAtoms
     val space = PredicateSpace(kb.schema, queryAtoms, hiddenAtoms, evidence.constants)
@@ -348,34 +347,32 @@ object MLN {
     new MLN(mlnSchema, space, evidence, expandedClauses)
   }
 
-
   /**
-   * Constructs a MLN instance and annotation from the specified knowledge base
-   * and training files.
-   *
-   * @param mlnFileName the path to the MLN file (.mln)
-   * @param trainingFileNames the path to the training file(s) (.db)
-   * @param nonEvidenceAtoms the set of non evidence atoms
-   * @param pcm the predicate completion mode to perform [[lomrf.logic.PredicateCompletion]]
-   * @param addUnitClauses add a unit clause for each predicate definition to the mln instance
-   *
-   * @return an MLN instance
-   */
-  def forLearning(mlnFileName: String,
-                  trainingFileNames: List[String],
-                  nonEvidenceAtoms: Set[AtomSignature],
-                  pcm: PredicateCompletionMode = Decomposed,
-                  dynamicDefinitions: Option[ImplFinder.ImplementationsMap] = None,
-                  addUnitClauses: Boolean = false): (MLN, EvidenceDB) = {
+    * Constructs a MLN instance and annotation from the specified knowledge base
+    * and training files.
+    *
+    * @param mlnFileName the path to the MLN file (.mln)
+    * @param trainingFileNames the path to the training file(s) (.db)
+    * @param nonEvidenceAtoms the set of non evidence atoms
+    * @param pcm the predicate completion mode to perform [[lomrf.logic.PredicateCompletion]]
+    * @param addUnitClauses add a unit clause for each predicate definition to the mln instance
+    *
+    * @return an MLN instance
+    */
+  def forLearning(
+      mlnFileName: String,
+      trainingFileNames: List[String],
+      nonEvidenceAtoms: Set[AtomSignature],
+      pcm: PredicateCompletionMode = Decomposed,
+      dynamicDefinitions: Option[ImplFinder.ImplementationsMap] = None,
+      addUnitClauses: Boolean = false): (MLN, EvidenceDB) = {
 
     val logger = Logger(getClass)
-
 
     logger.info(
       "--- Stage 0: Loading an MLN instance from data..." +
         "\n\tInput MLN file: " + mlnFileName +
         "\n\tInput training file(s): " + (if (trainingFileNames.nonEmpty) trainingFileNames.mkString(", ") else ""))
-
 
     //parse knowledge base (.mln)
     val (kb, constantsDomain) = KB.fromFile(mlnFileName, dynamicDefinitions)
@@ -386,7 +383,7 @@ object MLN {
     // Check if the schema of all Non-Evidence atoms is defined in the MLN file
     nonEvidenceAtoms.find(s => !atomSignatures.contains(s)) match {
       case Some(x) => logger.fatal(s"The predicate '$x' that appears in the query, is not defined in the mln file.")
-      case None => // do nothing
+      case None    => // do nothing
     }
 
     // Very important for supervised learning: Explicitly define that all atoms except the non-evidence ones will have Closed-world assumption
@@ -402,8 +399,7 @@ object MLN {
       atomSignatures,
       trainingFileNames.map(new File(_)),
       convertFunctions = false,
-      forceCWAForAll = true
-    )
+      forceCWAForAll   = true)
 
     val domainSpace = PredicateSpace(kb.schema, nonEvidenceAtoms, trainingEvidence.constants)
 
@@ -425,7 +421,6 @@ object MLN {
         atomStateDB += (signature -> AtomEvidenceDB.allFalse(domainSpace.identities(signature)))
     }
 
-
     val completedFormulas =
       PredicateCompletion(kb.formulas, kb.definiteClauses, pcm)(kb.predicateSchema, kb.functionSchema, trainingEvidence.constants)
 
@@ -434,13 +429,12 @@ object MLN {
     val resultingPredicateSchema = pcm match {
       case Simplification =>
         val resultingFormulas = kb.predicateSchema -- kb.definiteClauses.map(_.clause.head.signature)
-        if(resultingFormulas.isEmpty)
+        if (resultingFormulas.isEmpty)
           logger.warn("The given theory is empty (i.e., contains empty set of non-zeroed formulas).")
 
         resultingFormulas
       case _ => kb.predicateSchema
     }
-
 
     // In case we want to learn weights for unit clauses
     val formulas =
@@ -448,7 +442,7 @@ object MLN {
         completedFormulas ++ resultingPredicateSchema.map {
           case (signature, termTypes) =>
             // Find variables for the current predicate
-            val variables: Vector[Variable] = termTypes.zipWithIndex.map{
+            val variables: Vector[Variable] = termTypes.zipWithIndex.map {
               case (termType, idx) => Variable("v" + idx, termType)
             }(breakOut)
 
@@ -456,31 +450,27 @@ object MLN {
         }
       } else completedFormulas
 
-
     val mlnSchema = MLNSchema(resultingPredicateSchema, kb.functionSchema, kb.dynamicPredicates, kb.dynamicFunctions)
 
     logger.info(s"Initialising weight values in target formulas and computing CNF form")
 
-    def initialiseWeight(formula: WeightedFormula): WeightedFormula ={
-      if(formula.weight.isNaN) formula.copy(weight = 1.0)
-      else formula
-    }
+      def initialiseWeight(formula: WeightedFormula): WeightedFormula = {
+        if (formula.weight.isNaN) formula.copy(weight = 1.0)
+        else formula
+      }
 
-    val clauses = expand (
-      clauses = NormalForm
+    val clauses = expand(
+      clauses   = NormalForm
         .compileCNF(formulas.map(initialiseWeight))(trainingEvidence.constants)
         .toVector,
-      constants = constantsDomain
-    )
-
+      constants = constantsDomain)
 
     val evidence = new Evidence(trainingEvidence.constants, atomStateDB, trainingEvidence.functionMappers)
 
     (new MLN(mlnSchema, domainSpace, evidence, clauses), annotationDB)
   }
 
-  def export(mln: MLN, out: PrintStream = System.out)
-            (implicit numFormat: DecimalFormat = new DecimalFormat("0.############")): Unit = {
+  def export(mln: MLN, out: PrintStream = System.out)(implicit numFormat: DecimalFormat = new DecimalFormat("0.############")): Unit = {
 
     out.println("// Predicate definitions")
     for ((signature, args) <- mln.schema.predicates) {
@@ -490,7 +480,7 @@ object MLN {
       out.print(line)
     }
 
-    if(mln.schema.functions.nonEmpty) {
+    if (mln.schema.functions.nonEmpty) {
       out.println("\n// Functions definitions")
       for ((signature, (retType, args)) <- mln.schema.functions) {
         val line = retType + " " + signature.symbol + "(" + args.mkString(",") + ")\n"
@@ -503,24 +493,24 @@ object MLN {
   }
 
   /**
-   * Constructs a MLN instance and annotation from a specified mln schema,
-   * a set of clauses and training files.
-   *
-   * @param mlnSchema the mln schema
-   * @param nonEvidenceAtoms the set of non evidence atoms
-   * @param clauses the set of clauses to include in the mln instance
-   * @param trainingFileNames the path to the training file(s) (.db)
-   *
-   * @return an MLN instance
-   */
-  def forLearning(mlnSchema: MLNSchema,
-                  initialConstantsDomain: ConstantsDomain,
-                  nonEvidenceAtoms: Set[AtomSignature],
-                  clauses: Vector[Clause],
-                  trainingFileNames: List[String]): (MLN, EvidenceDB) = {
+    * Constructs a MLN instance and annotation from a specified mln schema,
+    * a set of clauses and training files.
+    *
+    * @param mlnSchema the mln schema
+    * @param nonEvidenceAtoms the set of non evidence atoms
+    * @param clauses the set of clauses to include in the mln instance
+    * @param trainingFileNames the path to the training file(s) (.db)
+    *
+    * @return an MLN instance
+    */
+  def forLearning(
+      mlnSchema: MLNSchema,
+      initialConstantsDomain: ConstantsDomain,
+      nonEvidenceAtoms: Set[AtomSignature],
+      clauses: Vector[Clause],
+      trainingFileNames: List[String]): (MLN, EvidenceDB) = {
 
     val logger = Logger(getClass)
-
 
     logger.info(
       "--- Stage 0: Loading an MLN instance from data..." +
@@ -554,31 +544,29 @@ object MLN {
         evidenceAtoms,
         trainingFileNames.map(filename => new File(filename)),
         convertFunctions = false,
-        forceCWAForAll = true
-      )
+        forceCWAForAll   = true)
 
     forLearning(mlnSchema, trainingEvidence, nonEvidenceAtoms, expandedClauses)
   }
 
-
   /**
-   * Constructs a MLN instance and annotation from a specified mln schema,
-   * a set of clauses and a training evidence database.
-   *
-   * @param mlnSchema the mln schema
-   * @param trainingEvidence the specified training evidence (including annotation)
-   * @param nonEvidenceAtoms the set of non evidence atoms
-   * @param clauses the set of clauses to include in the mln instance
-   *
-   * @return an MLN instance
-   */
-  def forLearning(mlnSchema: MLNSchema,
-                  trainingEvidence: Evidence,
-                  nonEvidenceAtoms: Set[AtomSignature],
-                  clauses: Vector[Clause]): (MLN, EvidenceDB) = {
+    * Constructs a MLN instance and annotation from a specified mln schema,
+    * a set of clauses and a training evidence database.
+    *
+    * @param mlnSchema the mln schema
+    * @param trainingEvidence the specified training evidence (including annotation)
+    * @param nonEvidenceAtoms the set of non evidence atoms
+    * @param clauses the set of clauses to include in the mln instance
+    *
+    * @return an MLN instance
+    */
+  def forLearning(
+      mlnSchema: MLNSchema,
+      trainingEvidence: Evidence,
+      nonEvidenceAtoms: Set[AtomSignature],
+      clauses: Vector[Clause]): (MLN, EvidenceDB) = {
 
     val logger = Logger(getClass)
-
 
     // All atom signatures
     val atomSignatures: Set[AtomSignature] = mlnSchema.predicates.keySet

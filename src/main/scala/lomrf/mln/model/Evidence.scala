@@ -14,13 +14,13 @@
  *  o   o o-o-o  o  o-o o-o o o o     o    | o-o o  o-o o-o
  *
  *  Logical Markov Random Fields (LoMRF).
- *     
+ *
  *
  */
 
 package lomrf.mln.model
 
-import java.io.{BufferedReader, File, FileReader}
+import java.io.{ BufferedReader, File, FileReader }
 
 import com.typesafe.scalalogging.Logger
 import lomrf.logic._
@@ -30,22 +30,23 @@ import lomrf.util.logging.Implicits._
 import scala.util.Try
 import scala.collection.breakOut
 
-class Evidence(val constants: ConstantsDomain,
-               val db: EvidenceDB,
-               val functionMappers: FunctionMappers){
+class Evidence(
+    val constants: ConstantsDomain,
+    val db: EvidenceDB,
+    val functionMappers: FunctionMappers) {
 
   /**
-   * collection of atoms with tri-state, i.e., open-world assumption (unknown state) with some evidence (true/false state)
-   */
+    * collection of atoms with tri-state, i.e., open-world assumption (unknown state) with some evidence (true/false state)
+    */
   lazy val triStateAtoms: Set[AtomSignature] = db.filter(x => x._2.isTriStateDB).keySet
 
   /**
-   * collection of probabilistic atoms
-   */
+    * collection of probabilistic atoms
+    */
   lazy val probabilisticAtoms: Set[AtomSignature] = db.filter(x => x._2.isProbabilistic).keySet
 
   lazy val cwaAtoms: Set[AtomSignature] =
-    (for((signature, edb) <- db; if edb.numberOfUnknown == 0) yield signature)(breakOut)
+    (for ((signature, edb) <- db; if edb.numberOfUnknown == 0) yield signature)(breakOut)
 
   lazy val owaAtoms: Set[AtomSignature] = db.keySet -- cwaAtoms
 
@@ -59,62 +60,63 @@ object Evidence {
     new Evidence(constants, db, fm)
   }
 
-
-  def fromFiles(kb: KB,
-                constantsDomain: ConstantsDomain,
-                queryPredicates: Set[AtomSignature],
-                files: Iterable[File],
-                convertFunctions: Boolean,
-                forceCWAForAll: Boolean): Evidence = {
+  def fromFiles(
+      kb: KB,
+      constantsDomain: ConstantsDomain,
+      queryPredicates: Set[AtomSignature],
+      files: Iterable[File],
+      convertFunctions: Boolean,
+      forceCWAForAll: Boolean): Evidence = {
 
     fromFiles(kb.predicateSchema, kb.functionSchema, constantsDomain, kb.dynamicFunctions, queryPredicates, Set.empty[AtomSignature], Set.empty[AtomSignature], files, convertFunctions, forceCWAForAll)
   }
 
-  def fromFiles(kb: KB,
-                constantsDomain: ConstantsDomain,
-                queryPredicates: Set[AtomSignature],
-                owaPredicates: Set[AtomSignature],
-                cwaPredicates: Set[AtomSignature],
-                files: Iterable[File],
-                convertFunctions: Boolean,
-                forceCWAForAll: Boolean): Evidence = {
+  def fromFiles(
+      kb: KB,
+      constantsDomain: ConstantsDomain,
+      queryPredicates: Set[AtomSignature],
+      owaPredicates: Set[AtomSignature],
+      cwaPredicates: Set[AtomSignature],
+      files: Iterable[File],
+      convertFunctions: Boolean,
+      forceCWAForAll: Boolean): Evidence = {
 
     fromFiles(kb.predicateSchema, kb.functionSchema, constantsDomain, kb.dynamicFunctions, queryPredicates, owaPredicates, cwaPredicates, files, convertFunctions, forceCWAForAll)
   }
 
-  def fromFiles(predicateSchema: PredicateSchema,
-                functionSchema: FunctionSchema,
-                constantsDomain: ConstantsDomain,
-                dynamicFunctions: DynamicFunctions,
-                queryPredicates: Set[AtomSignature],
-                owaPredicates: Set[AtomSignature],
-                files: Iterable[File],
-                convertFunctions: Boolean,
-                forceCWAForAll: Boolean): Evidence ={
+  def fromFiles(
+      predicateSchema: PredicateSchema,
+      functionSchema: FunctionSchema,
+      constantsDomain: ConstantsDomain,
+      dynamicFunctions: DynamicFunctions,
+      queryPredicates: Set[AtomSignature],
+      owaPredicates: Set[AtomSignature],
+      files: Iterable[File],
+      convertFunctions: Boolean,
+      forceCWAForAll: Boolean): Evidence = {
 
     fromFiles(predicateSchema, functionSchema, constantsDomain, dynamicFunctions, queryPredicates, owaPredicates, Set.empty, files, convertFunctions, forceCWAForAll)
   }
 
-  def fromFiles(predicateSchema: PredicateSchema,
-                functionSchema: FunctionSchema,
-                constantsDomain: ConstantsDomain,
-                dynamicFunctions: DynamicFunctions,
-                queryPredicates: Set[AtomSignature],
-                owaPredicates: Set[AtomSignature],
-                cwaPredicates: Set[AtomSignature],
-                files: Iterable[File],
-                convertFunctions: Boolean,
-                forceCWAForAll: Boolean): Evidence = {
-
-
+  def fromFiles(
+      predicateSchema: PredicateSchema,
+      functionSchema: FunctionSchema,
+      constantsDomain: ConstantsDomain,
+      dynamicFunctions: DynamicFunctions,
+      queryPredicates: Set[AtomSignature],
+      owaPredicates: Set[AtomSignature],
+      cwaPredicates: Set[AtomSignature],
+      files: Iterable[File],
+      convertFunctions: Boolean,
+      forceCWAForAll: Boolean): Evidence = {
 
     val inputFiles =
-      if(files.isEmpty) {
+      if (files.isEmpty) {
         logger.warn("Loading from empty evidence")
         List(createTempEmptyDBFile)
       } else {
         // check if we can read the specified files
-        files.foreach(f => if(!f.exists() || !f.isFile || !f.canRead) logger.fatal(s"Cannot read input evidence file '${f.getPath}'"))
+        files.foreach(f => if (!f.exists() || !f.isFile || !f.canRead) logger.fatal(s"Cannot read input evidence file '${f.getPath}'"))
 
         files
       }
@@ -123,9 +125,9 @@ object Evidence {
     val evidenceExpressionsDB =
       for (file <- inputFiles; fileReader = new BufferedReader(new FileReader(file)))
         yield evidenceParser.parseAll(evidenceParser.evidence, fileReader) match {
-          case evidenceParser.Success(expr, _) => expr
-          case x => logger.fatal(s"Can't parse the following expression: '$x' in file: '${file.getPath}'")
-        }
+        case evidenceParser.Success(expr, _) => expr
+        case x                               => logger.fatal(s"Can't parse the following expression: '$x' in file: '${file.getPath}'")
+      }
 
     logger.info("--- Stage 1: Parsing constants")
     val constantsDomainBuilder = ConstantsDomainBuilder.from(constantsDomain)
@@ -145,7 +147,7 @@ object Evidence {
 
         builder += f.retValue
 
-        for ((argType, argValue) <- argTypes.zip(f.values)){
+        for ((argType, argValue) <- argTypes.zip(f.values)) {
           val currBuilder = constantsDomainBuilder.getOrElse(
             argType,
             logger.fatal(s"Type '$argType' in function '${f.signature}' is not defined."))
@@ -197,7 +199,7 @@ object Evidence {
 
     for (evidenceExpressions <- evidenceExpressionsDB; expr <- evidenceExpressions) expr match {
       case fm: FunctionMapping => builder.functions += fm
-      case atom: EvidenceAtom => builder.evidence += atom
+      case atom: EvidenceAtom  => builder.evidence += atom
     }
 
     builder.result()
@@ -211,7 +213,7 @@ object Evidence {
       tmpFile =>
         tmpFile.deleteOnExit()
         tmpFile
-    } getOrElse{
+    } getOrElse {
       logger.fatal(s"Cannot create temporary file '$filePrefix.db' in the default JVM temporary file directory '${sys.props.get("java.io.tmpdir")}' (see JVM parameter 'java.io.tmpdir').")
     }
 

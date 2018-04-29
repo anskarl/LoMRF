@@ -14,17 +14,17 @@
  *  o   o o-o-o  o  o-o o-o o o o     o    | o-o o  o-o o-o
  *
  *  Logical Markov Random Fields (LoMRF).
- *     
+ *
  *
  */
 
 package lomrf.app
 
-import java.io.{FileOutputStream, PrintStream}
+import java.io.{ FileOutputStream, PrintStream }
 import lomrf.logic.AtomSignature
 import lomrf.logic.AtomSignatureOps._
 import lomrf.mln.grounding.MRFBuilder
-import lomrf.mln.learning.weight.{LossFunction, MaxMarginLearner, OnlineLearner}
+import lomrf.mln.learning.weight.{ LossFunction, MaxMarginLearner, OnlineLearner }
 import lomrf.mln.model.MLN
 import lomrf.util.NaturalComparator
 import lomrf.util.time._
@@ -32,8 +32,8 @@ import lomrf.util.logging.Implicits._
 import optimus.optimization.enums.SolverLib
 
 /**
- * Command line tool for weight learning.
- */
+  * Command line tool for weight learning.
+  */
 object WeightLearningCLI extends CLIApp {
 
   // The path to the input MLN file
@@ -110,7 +110,6 @@ object WeightLearningCLI extends CLIApp {
 
   private var _implPaths: Option[Array[String]] = None
 
-
   opt("i", "input", "<kb file>", "Markov Logic file", {
     v: String => _mlnFileName = Some(v)
   })
@@ -130,16 +129,17 @@ object WeightLearningCLI extends CLIApp {
   opt("ne", "non-evidence atoms", "<string>", "Comma separated non-evidence atoms. "
     + "Each atom must be defined using its identity (i.e. Name/arity). "
     + "For example the identity of NonEvidenceAtom(arg1,arg2) is NonEvidenceAtom/2", {
-      _nonEvidenceAtoms ++= _.split(',').map(s => s.signature.getOrElse(logger.fatal(s"Cannot parse the arity of atom signature: $s")))
+    _nonEvidenceAtoms ++= _.split(',').map(s => s.signature.getOrElse(logger.fatal(s"Cannot parse the arity of atom signature: $s")))
   })
 
   opt("alg", "algorithm", "<MAX_MARGIN | CDA | ADAGRAD>", "Algorithm used to perform learning (default is Max-Margin).", {
-    v: String => v.trim.toLowerCase match {
-      case "max_margin" => _algorithm = Algorithm.MAX_MARGIN
-      case "cda" => _algorithm = Algorithm.COORDINATE_DUAL_ASCEND
-      case "adagrad" => _algorithm = Algorithm.ADAGRAD_FB
-      case _ => logger.fatal("Unknown parameter for learning algorithm type '" + v + "'.")
-    }
+    v: String =>
+      v.trim.toLowerCase match {
+        case "max_margin" => _algorithm = Algorithm.MAX_MARGIN
+        case "cda"        => _algorithm = Algorithm.COORDINATE_DUAL_ASCEND
+        case "adagrad"    => _algorithm = Algorithm.ADAGRAD_FB
+        case _            => logger.fatal("Unknown parameter for learning algorithm type '" + v + "'.")
+      }
   })
 
   doubleOpt("sigma", "sigma", "Parameter for strong convexity in CDA (default is " + _sigma + ").", {
@@ -155,7 +155,7 @@ object WeightLearningCLI extends CLIApp {
   })
 
   doubleOpt("delta", "delta", "Delta parameter for ADAGRAD (default is " + _delta + ").", {
-    v: Double => if(v < 0) logger.fatal("Delta value must be any number greater or equal to zero, but you gave: " + v) else _delta = v
+    v: Double => if (v < 0) logger.fatal("Delta value must be any number greater or equal to zero, but you gave: " + v) else _delta = v
   })
 
   doubleOpt("C", "C", "Regularization parameter (default is " + _C + ").", {
@@ -174,33 +174,34 @@ object WeightLearningCLI extends CLIApp {
     v: Int => if (v < 0) logger.fatal("The maximum iterations value must be any integer above zero, but you gave: " + v) else _iterations = v
   })
 
-  flagOpt("addUnitClauses", "add-unit-clauses", "If specified, unit clauses are included in the output MLN file.", {_addUnitClauses = true})
+  flagOpt("addUnitClauses", "add-unit-clauses", "If specified, unit clauses are included in the output MLN file.", { _addUnitClauses = true })
 
-  flagOpt("L1Regularization", "L1-regularization", "Use L1 regularization instead of L2.", {_L1Regularization = true})
+  flagOpt("L1Regularization", "L1-regularization", "Use L1 regularization instead of L2.", { _L1Regularization = true })
 
-  flagOpt("printLearnedWeightsPerIteration", "print-learned-weights-per-iteration", "Print the learned weights for each iteration.", { _printLearnedWeightsPerIteration = true})
+  flagOpt("printLearnedWeightsPerIteration", "print-learned-weights-per-iteration", "Print the learned weights for each iteration.", { _printLearnedWeightsPerIteration = true })
 
   opt("ilpSolver", "ilp-solver", "<lpsolve | ojalgo | gurobi | mosek>", "Solver used by ILP (default is lpsolve).", {
-    v: String => v.trim.toLowerCase match {
-      case "gurobi" => _ilpSolver = SolverLib.Gurobi
-      case "lpsolve" => _ilpSolver = SolverLib.LpSolve
-      case "ojalgo" => _ilpSolver = SolverLib.oJSolver
-      case "mosek" => _ilpSolver = SolverLib.Mosek
-      case _ => logger.fatal("Unknown parameter for ILP solver type '" + v + "'.")
-    }
+    v: String =>
+      v.trim.toLowerCase match {
+        case "gurobi"  => _ilpSolver = SolverLib.Gurobi
+        case "lpsolve" => _ilpSolver = SolverLib.LpSolve
+        case "ojalgo"  => _ilpSolver = SolverLib.oJSolver
+        case "mosek"   => _ilpSolver = SolverLib.Mosek
+        case _         => logger.fatal("Unknown parameter for ILP solver type '" + v + "'.")
+      }
   })
 
-  flagOpt("lossAugmented", "loss-augmented", "Perform loss augmented inference.", {_lossAugmented = true})
+  flagOpt("lossAugmented", "loss-augmented", "Perform loss augmented inference.", { _lossAugmented = true })
 
-  flagOpt("nonMarginRescaling", "non-margin-rescaling", "Don't scale the margin by the loss.", {_nonMarginRescaling = true})
+  flagOpt("nonMarginRescaling", "non-margin-rescaling", "Don't scale the margin by the loss.", { _nonMarginRescaling = true })
 
   opt("dynamic", "dynamic-implementations", "<string>", "Comma separated paths to search recursively for dynamic predicates/functions implementations (*.class and *.jar files).", {
     path: String => if (!path.isEmpty) _implPaths = Some(path.split(','))
   })
 
-  flagOpt("noNegWeights", "eliminate-negative-weights", "Eliminate negative weight values from ground clauses.", {_noNeg = true})
+  flagOpt("noNegWeights", "eliminate-negative-weights", "Eliminate negative weight values from ground clauses.", { _noNeg = true })
 
-  flagOpt("noNegatedUnit", "eliminate-negated-unit", "Eliminate negated unit ground clauses.", {_eliminateNegatedUnit = true})
+  flagOpt("noNegatedUnit", "eliminate-negated-unit", "Eliminate negated unit ground clauses.", { _eliminateNegatedUnit = true })
 
   flagOpt("v", "version", "Print LoMRF version.", sys.exit(0))
 
@@ -218,7 +219,7 @@ object WeightLearningCLI extends CLIApp {
 
     val outputWriter = _outputFileName match {
       case Some(fileName) => new PrintStream(new FileOutputStream(fileName), true)
-      case None => System.out
+      case None           => System.out
     }
 
     logger.info("Parameters:"
@@ -235,18 +236,17 @@ object WeightLearningCLI extends CLIApp {
       + "\n\t(L1Regularization) Use L1 regularization instead of L2: " + _L1Regularization
       + "\n\t(printLearnedWeightsPerIteration) Print learned weights for each iteration: " + _printLearnedWeightsPerIteration
       + "\n\t(ilpSolver) ILP solver used for learning and map inference: " + _ilpSolver
-      + "\n\t(algorithm) Algorithm used to perform learning: " + ( if(_algorithm == Algorithm.MAX_MARGIN) "Max-Margin"
-                                                                   else if(_algorithm == Algorithm.COORDINATE_DUAL_ASCEND) "Cordinate Dual Ascent"
-                                                                   else "ADAGRAD_FB" )
+      + "\n\t(algorithm) Algorithm used to perform learning: " + (if (_algorithm == Algorithm.MAX_MARGIN) "Max-Margin"
+      else if (_algorithm == Algorithm.COORDINATE_DUAL_ASCEND) "Cordinate Dual Ascent"
+      else "ADAGRAD_FB")
       + "\n\t(lossAugmented) Perform loss augmented inference: " + _lossAugmented
       + "\n\t(nonMarginRescaling) Don't scale the margin by the loss: " + _nonMarginRescaling
       + "\n\t(noNegWeights) Eliminate negative weights: " + _noNeg
-      + "\n\t(noNegatedUnit) Eliminate negated ground unit clauses: " + _eliminateNegatedUnit
-    )
+      + "\n\t(noNegatedUnit) Eliminate negated ground unit clauses: " + _eliminateNegatedUnit)
 
-    if(_algorithm == Algorithm.MAX_MARGIN) {
+    if (_algorithm == Algorithm.MAX_MARGIN) {
 
-      if(_ilpSolver != SolverLib.Gurobi) {
+      if (_ilpSolver != SolverLib.Gurobi) {
         logger.warn("For MAX_MARGIN training, only GUROBI solver is supported. Switching to GUROBI.")
         _ilpSolver = SolverLib.Gurobi
       }
@@ -254,28 +254,26 @@ object WeightLearningCLI extends CLIApp {
       val (mln, annotationDB) = MLN.forLearning(strMLNFileName, strTrainingFileNames.toList, _nonEvidenceAtoms, addUnitClauses = _addUnitClauses)
 
       logger.info("AnnotationDB: "
-        + "\n\tAtoms with annotations: " + annotationDB.keys.map(_.toString).reduceLeft((left, right) => left + "," + right)
-      )
+        + "\n\tAtoms with annotations: " + annotationDB.keys.map(_.toString).reduceLeft((left, right) => left + "," + right))
 
       logger.info(mln.toString)
 
       logger.info("Number of CNF clauses = " + mln.clauses.size)
       logger.info("List of CNF clauses: ")
-      mln.clauses.zipWithIndex.foreach { case (c, idx) => logger.info(idx + ": " + c)}
+      mln.clauses.zipWithIndex.foreach { case (c, idx) => logger.info(idx + ": " + c) }
 
       logger.info("Creating MRF...")
       val mrfBuilder = new MRFBuilder(mln, noNegWeights = _noNeg, eliminateNegatedUnit = _eliminateNegatedUnit, createDependencyMap = true)
       val mrf = mrfBuilder.buildNetwork
 
-      val learner = new MaxMarginLearner(mrf = mrf, annotationDB = annotationDB, nonEvidenceAtoms = _nonEvidenceAtoms, iterations = _iterations,
-                                        ilpSolver = _ilpSolver, C = _C, epsilon = _epsilon, lossScale = _lossScale,
-                                        nonMarginRescaling = _nonMarginRescaling, lossAugmented = _lossAugmented, lossFunction = _lossFunction,
-                                        L1Regularization = _L1Regularization, printLearnedWeightsPerIteration = _printLearnedWeightsPerIteration)
+      val learner = new MaxMarginLearner(mrf                             = mrf, annotationDB = annotationDB, nonEvidenceAtoms = _nonEvidenceAtoms, iterations = _iterations,
+                                         ilpSolver                       = _ilpSolver, C = _C, epsilon = _epsilon, lossScale = _lossScale,
+                                         nonMarginRescaling              = _nonMarginRescaling, lossAugmented = _lossAugmented, lossFunction = _lossFunction,
+                                         L1Regularization                = _L1Regularization, printLearnedWeightsPerIteration = _printLearnedWeightsPerIteration)
 
       learner.learn()
       learner.writeResults(outputWriter)
-    }
-    else {
+    } else {
 
       var learner: OnlineLearner = null
       val start = System.currentTimeMillis()
@@ -289,18 +287,18 @@ object WeightLearningCLI extends CLIApp {
         logger.info(mln.toString)
 
         logger.info("Number of CNF clauses = " + mln.clauses.size)
-        logger.whenDebugEnabled{
+        logger.whenDebugEnabled {
           logger.debug("List of CNF clauses: ")
-          mln.clauses.zipWithIndex.foreach { case (c, idx) => logger.debug(idx + ": " + c)}
+          mln.clauses.zipWithIndex.foreach { case (c, idx) => logger.debug(idx + ": " + c) }
         }
 
         logger.info("Creating MRF...")
         val mrfBuilder = new MRFBuilder(mln, noNegWeights = _noNeg, eliminateNegatedUnit = _eliminateNegatedUnit, createDependencyMap = true)
         val mrf = mrfBuilder.buildNetwork
 
-        if(step == 0) learner = new OnlineLearner(mln = mln, algorithm = _algorithm, lossAugmented = _lossAugmented,
-                                                  ilpSolver = _ilpSolver, lossScale = _lossScale, sigma = _sigma, lambda = _lambda, eta = _eta,
-                                                  delta = _delta, printLearnedWeightsPerIteration = _printLearnedWeightsPerIteration)
+        if (step == 0) learner = new OnlineLearner(mln                             = mln, algorithm = _algorithm, lossAugmented = _lossAugmented,
+                                                   ilpSolver                       = _ilpSolver, lossScale = _lossScale, sigma = _sigma, lambda = _lambda, eta = _eta,
+                                                   delta                           = _delta, printLearnedWeightsPerIteration = _printLearnedWeightsPerIteration)
 
         logger.info("Step " + (step + 1) + ": " + strTrainingFileNames(step))
         learner.learningStep(step + 1, mrf, annotationDB)
@@ -318,8 +316,8 @@ object WeightLearningCLI extends CLIApp {
 }
 
 /**
- * Object holding constants for learning algorithm type.
- */
+  * Object holding constants for learning algorithm type.
+  */
 object Algorithm extends Enumeration {
   type Algorithm = Value
   val ADAGRAD_FB = Value

@@ -1,18 +1,20 @@
 /*
- * o                        o     o   o         o
- * |             o          |     |\ /|         | /
- * |    o-o o--o    o-o  oo |     | O |  oo o-o OO   o-o o   o
- * |    | | |  | | |    | | |     |   | | | |   | \  | |  \ /
- * O---oo-o o--O |  o-o o-o-o     o   o o-o-o   o  o o-o   o
- *             |
- *          o--o
- * o--o              o               o--o       o    o
- * |   |             |               |    o     |    |
- * O-Oo   oo o-o   o-O o-o o-O-o     O-o    o-o |  o-O o-o
- * |  \  | | |  | |  | | | | | |     |    | |-' | |  |  \
- * o   o o-o-o  o  o-o o-o o o o     o    | o-o o  o-o o-o
  *
- * Logical Markov Random Fields.
+ *  o                        o     o   o         o
+ *  |             o          |     |\ /|         | /
+ *  |    o-o o--o    o-o  oo |     | O |  oo o-o OO   o-o o   o
+ *  |    | | |  | | |    | | |     |   | | | |   | \  | |  \ /
+ *  O---oo-o o--O |  o-o o-o-o     o   o o-o-o   o  o o-o   o
+ *              |
+ *           o--o
+ *  o--o              o               o--o       o    o
+ *  |   |             |               |    o     |    |
+ *  O-Oo   oo o-o   o-O o-o o-O-o     O-o    o-o |  o-O o-o
+ *  |  \  | | |  | |  | | | | | |     |    | |-' | |  |  \
+ *  o   o o-o-o  o  o-o o-o o o o     o    | o-o o  o-o o-o
+ *
+ *  Logical Markov Random Fields (LoMRF).
+ *
  *
  */
 
@@ -74,7 +76,8 @@ object LoMRFBuild extends AutoPlugin {
         ScalaSettings ++
         JavaSettings ++
         PackagingOptions ++
-        DockerSettings
+        DockerSettings ++
+        Formatting.formatSettings
     }
   }
 
@@ -83,7 +86,6 @@ object LoMRFBuild extends AutoPlugin {
     organization := "com.github.anskarl",
     scalaVersion := "2.11.12",
     name := "LoMRF",
-    //headers := projectHeaders,
     headerMappings := headerMappings.value + (HeaderFileType.scala -> HeaderCommentStyle.cStyleBlockComment),
     headerLicense := Some(HeaderLicense.Custom(logo + "\n\n")),
     autoScalaLibrary := false,

@@ -14,7 +14,7 @@
  *  o   o o-o-o  o  o-o o-o o o o     o    | o-o o  o-o o-o
  *
  *  Logical Markov Random Fields (LoMRF).
- *     
+ *
  *
  */
 
@@ -22,8 +22,8 @@ package lomrf.mln.model
 
 import lomrf.logic._
 import lomrf.logic.LogicOps._
-import lomrf.{AUX_PRED_PREFIX => FUNC_PREFIX}
-import lomrf.{FUNC_RET_VAR_PREFIX => RET_VAR}
+import lomrf.{ AUX_PRED_PREFIX => FUNC_PREFIX }
+import lomrf.{ FUNC_RET_VAR_PREFIX => RET_VAR }
 
 /**
   * Logic formatter performs operations over clauses and definite clauses. These operations
@@ -62,7 +62,8 @@ object LogicFormatter {
       */
     def introduceFunctions(clause: Clause): Clause = {
 
-      require(!clause.literals.filter(_.isPositive).exists(_.sentence.symbol.contains(FUNC_PREFIX)),
+      require(
+        !clause.literals.filter(_.isPositive).exists(_.sentence.symbol.contains(FUNC_PREFIX)),
         "Clauses does not support auxiliary predicates as positive literals!")
 
       if (clause.isUnit && clause.weight < 0) return introduceFunctions(Clause(Set(clause.literals.head.negate), -clause.weight))
@@ -83,16 +84,15 @@ object LogicFormatter {
           functionVar -> function
         }.toMap
 
-        def introduceFunctions(literal: Literal): Literal = {
-          if (!literal.sentence.variables.exists(functionMap.contains)) literal
-          else introduceFunctions(literal.substitute(literal.sentence.variables.map(t => t -> functionMap.getOrElse(t, t)).toMap))
-        }
+          def introduceFunctions(literal: Literal): Literal = {
+            if (!literal.sentence.variables.exists(functionMap.contains)) literal
+            else introduceFunctions(literal.substitute(literal.sentence.variables.map(t => t -> functionMap.getOrElse(t, t)).toMap))
+          }
 
         val replacedLiterals = literalsNoFunctions map introduceFunctions
 
         if (replacedLiterals.nonEmpty) Clause(replacedLiterals, clause.weight) else clause
-      }
-      else clause
+      } else clause
     }
 
     /**
@@ -118,7 +118,7 @@ object LogicFormatter {
 
       val (literalsNoFunctions, literalsFunctions) = clause.literals.span(_.sentence.functions.isEmpty)
 
-      if(literalsFunctions.nonEmpty) {
+      if (literalsFunctions.nonEmpty) {
 
         var functionMap = Map.empty[TermFunction, (Variable, Literal)]
         var functionCounter = 0
@@ -138,28 +138,27 @@ object LogicFormatter {
           }
         }
 
-        /*
+          /*
          * Eliminates functions on the given literal by using the function map constructed
          * above. Each TermFunction is replaced by its return variable.
          */
-        def eliminateFunctions(literal: Literal): Literal = {
+          def eliminateFunctions(literal: Literal): Literal = {
 
-          def replaceArgs(terms: Vector[Term]): Vector[Term] = terms map {
-              case f: TermFunction => functionMap(f)._1
-              case t: Term => t
+              def replaceArgs(terms: Vector[Term]): Vector[Term] = terms map {
+                case f: TermFunction => functionMap(f)._1
+                case t: Term         => t
+              }
+            literal match {
+              case p: PositiveLiteral => Literal.asPositive(AtomicFormula(p.sentence.symbol, replaceArgs(p.sentence.terms)))
+              case n: NegativeLiteral => Literal.asNegative(AtomicFormula(n.sentence.symbol, replaceArgs(n.sentence.terms)))
+            }
           }
-          literal match {
-            case p: PositiveLiteral => Literal.asPositive(AtomicFormula(p.sentence.symbol, replaceArgs(p.sentence.terms)))
-            case n: NegativeLiteral => Literal.asNegative(AtomicFormula(n.sentence.symbol, replaceArgs(n.sentence.terms)))
-          }
-        }
 
         val replacedLiterals = (literalsFunctions map eliminateFunctions) ++
           functionMap.map { case (function, (variable, literal)) => eliminateFunctions(literal) }
 
         Clause(literalsNoFunctions ++ replacedLiterals, clause.weight)
-      }
-      else clause
+      } else clause
     }
 
   }
@@ -187,7 +186,8 @@ object LogicFormatter {
       */
     def introduceFunctions(definiteClause: DefiniteClause): DefiniteClause = {
 
-      require(!definiteClause.bodyLiterals.filter(_.isNegative).exists(_.sentence.symbol.contains(FUNC_PREFIX)),
+      require(
+        !definiteClause.bodyLiterals.filter(_.isNegative).exists(_.sentence.symbol.contains(FUNC_PREFIX)),
         "Definite clauses does not support auxiliary predicates as negated literals!")
 
       val (literalsNoFunctions, literalsFunctions) = definiteClause.literals.partition(!_.sentence.symbol.contains(FUNC_PREFIX))
@@ -205,10 +205,10 @@ object LogicFormatter {
           functionVar -> function
         }.toMap
 
-        def introduceFunctions(literal: Literal): Literal = {
-          if (!literal.sentence.variables.exists(functionMap.contains)) literal
-          else introduceFunctions(literal.substitute(literal.sentence.variables.map(t => t -> functionMap.getOrElse(t, t)).toMap))
-        }
+          def introduceFunctions(literal: Literal): Literal = {
+            if (!literal.sentence.variables.exists(functionMap.contains)) literal
+            else introduceFunctions(literal.substitute(literal.sentence.variables.map(t => t -> functionMap.getOrElse(t, t)).toMap))
+          }
 
         val replacedLiterals = literalsNoFunctions map introduceFunctions
 
@@ -219,11 +219,9 @@ object LogicFormatter {
             replacedHead.sentence,
             (replacedLiterals - replacedHead).map {
               l => if (l.isNegative) Not(l.sentence) else l.sentence
-            }.reduce(And)
-          )
+            }.reduce(And))
         else definiteClause
-      }
-      else definiteClause
+      } else definiteClause
     }
 
     /**
@@ -246,40 +244,40 @@ object LogicFormatter {
 
       val (literalsNoFunctions, literalsFunctions) = definiteClause.literals.partition(_.sentence.functions.isEmpty)
 
-      if(literalsFunctions.nonEmpty) {
+      if (literalsFunctions.nonEmpty) {
 
         var functionMap = Map.empty[TermFunction, (Variable, Literal)]
         var functionCounter = 0
 
-        definiteClause.functions.foreach{ function =>
+        definiteClause.functions.foreach { function =>
           functionMap.get(function) match {
 
             case None =>
               val functionVar = Variable(lomrf.FUNC_RET_VAR_PREFIX + functionCounter, function.domain)
               val terms = Vector(functionVar) ++: function.terms
               val functionLiteral = PositiveLiteral(AtomicFormula(lomrf.AUX_PRED_PREFIX + function.symbol, terms))
-              functionMap += (function ->(functionVar, functionLiteral))
+              functionMap += (function -> (functionVar, functionLiteral))
               functionCounter += 1
 
             case _ => // do nothing
           }
         }
 
-        /*
+          /*
          * Eliminates functions on the given literal by using the function map constructed
          * above. Each TermFunction is replaced by its return variable.
          */
-        def eliminateFunctions(literal: Literal): Literal = {
+          def eliminateFunctions(literal: Literal): Literal = {
 
-          def replaceArgs(terms: Vector[Term]): Vector[Term] = terms map {
-            case f: TermFunction => functionMap(f)._1
-            case t: Term => t
+              def replaceArgs(terms: Vector[Term]): Vector[Term] = terms map {
+                case f: TermFunction => functionMap(f)._1
+                case t: Term         => t
+              }
+            literal match {
+              case p: PositiveLiteral => Literal.asPositive(AtomicFormula(p.sentence.symbol, replaceArgs(p.sentence.terms)))
+              case n: NegativeLiteral => Literal.asNegative(AtomicFormula(n.sentence.symbol, replaceArgs(n.sentence.terms)))
+            }
           }
-          literal match {
-            case p: PositiveLiteral => Literal.asPositive(AtomicFormula(p.sentence.symbol, replaceArgs(p.sentence.terms)))
-            case n: NegativeLiteral => Literal.asNegative(AtomicFormula(n.sentence.symbol, replaceArgs(n.sentence.terms)))
-          }
-        }
 
         val replacedLiterals = (literalsFunctions map eliminateFunctions) ++
           functionMap.map { case (function, (variable, literal)) => eliminateFunctions(literal) }
@@ -292,11 +290,9 @@ object LogicFormatter {
             ((literalsNoFunctions ++ replacedLiterals) - replacedHead)
               .map { l =>
                 if (l.isNegative) Not(l.sentence) else l.sentence
-              }.reduce(And)
-          )
+              }.reduce(And))
         else definiteClause
-      }
-      else definiteClause
+      } else definiteClause
     }
 
   }

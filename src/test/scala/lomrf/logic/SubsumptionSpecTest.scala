@@ -14,18 +14,18 @@
  *  o   o o-o-o  o  o-o o-o o o o     o    | o-o o  o-o o-o
  *
  *  Logical Markov Random Fields (LoMRF).
- *     
+ *
  *
  */
 
 package lomrf.logic
 
 import lomrf.logic.LogicOps._
-import org.scalatest.{Matchers, FunSpec}
+import org.scalatest.{ Matchers, FunSpec }
 
 /**
- * Specification test for subsumption operator over clauses.
- */
+  * Specification test for subsumption operator over clauses.
+  */
 final class SubsumptionSpecTest extends FunSpec with Matchers {
 
   // ------------------------------------------------------------------------------------------------------------------

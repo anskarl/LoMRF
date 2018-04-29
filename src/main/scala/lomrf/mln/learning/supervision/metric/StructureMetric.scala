@@ -14,14 +14,14 @@
  *  o   o o-o-o  o  o-o o-o o o o     o    | o-o o  o-o o-o
  *
  *  Logical Markov Random Fields (LoMRF).
- *     
+ *
  *
  */
 
 package lomrf.mln.learning.supervision.metric
 
-import lomrf.logic.{Constant, EvidenceAtom}
-import lomrf.mln.model.{EvidenceDB, MLN, PredicateSchema}
+import lomrf.logic.{ Constant, EvidenceAtom }
+import lomrf.mln.model.{ EvidenceDB, MLN, PredicateSchema }
 
 /**
   * A structural metric space is a measure of distance for herbrand interpretations. Such a measure
@@ -52,10 +52,11 @@ import lomrf.mln.model.{EvidenceDB, MLN, PredicateSchema}
   * @param numericDistance a numerical distance (optional)
   * @param numericDomains a set of numerical domains (optional)
   */
-final class StructureMetric private(predicateSchema: PredicateSchema,
-                                    auxConstructs: Map[Constant, AuxConstruct],
-                                    numericDistance: Option[(Double, Double) => Double] = None,
-                                    numericDomains: Option[Set[String]] = None) extends Metric {
+final class StructureMetric private (
+    predicateSchema: PredicateSchema,
+    auxConstructs: Map[Constant, AuxConstruct],
+    numericDistance: Option[(Double, Double) => Double] = None,
+    numericDomains: Option[Set[String]] = None) extends Metric {
 
   /**
     * Distance for ground evidence atoms. The function must obey to the following properties:
@@ -99,9 +100,10 @@ final class StructureMetric private(predicateSchema: PredicateSchema,
     * @param constantSeqB another constant sequence
     * @return a distance in the interval [0, 1] for the given constant sequences
     */
-  @inline private def distance(constantSeqA: IndexedSeq[Constant],
-                               constantSeqB: IndexedSeq[Constant],
-                               domains: Option[Seq[String]]): Double = domains match {
+  @inline private def distance(
+      constantSeqA: IndexedSeq[Constant],
+      constantSeqB: IndexedSeq[Constant],
+      domains: Option[Seq[String]]): Double = domains match {
     case None => (constantSeqA zip constantSeqB)
       .map { case (a, b) => distance(a, b) }.sum / (2d * constantSeqA.length)
 
@@ -148,8 +150,7 @@ final class StructureMetric private(predicateSchema: PredicateSchema,
       predicateSchema,
       auxConstructs ++ collectAuxConstructs(evidenceDB),
       numericDistance,
-      numericDomains
-    )
+      numericDomains)
 
   /**
     *

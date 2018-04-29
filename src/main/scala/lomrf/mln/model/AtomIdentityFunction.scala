@@ -14,7 +14,7 @@
  *  o   o o-o-o  o  o-o o-o o o o     o    | o-o o  o-o o-o
  *
  *  Logical Markov Random Fields (LoMRF).
- *     
+ *
  *
  */
 
@@ -24,25 +24,25 @@ import lomrf.logic._
 import lomrf.mln.model.mrf.Constraint
 
 import scala.collection.mutable
-import scala.util.{Failure, Success, Try}
+import scala.util.{ Failure, Success, Try }
 import scalaxy.streams.optimize
 
 /**
- * The AtomIdentityFunction represents a bijection between the groundings of an atom and  integer numbers. It is
- * extremely useful for encoding the entire ground Markov Network into a set of integer numbers, where each number is
- * uniquely represent a single grounding of the specified AtomSignature.
- *
- * This class provides fast and thread-safe functions for encoding ground predicates of the same FOL atom into unique
- * integer numbers, as well as for the opposite (decoding integers to ground predicates).
- *
- *
- */
-final class AtomIdentityFunction private(
-                                          val signature: AtomSignature,
-                                          val startID: Int,
-                                          val constantsAndStep: Array[(ConstantsSet, Int, Int, String, Int)],
-                                          val length: Int,
-                                          val schema: Seq[String]) extends Serializable {
+  * The AtomIdentityFunction represents a bijection between the groundings of an atom and  integer numbers. It is
+  * extremely useful for encoding the entire ground Markov Network into a set of integer numbers, where each number is
+  * uniquely represent a single grounding of the specified AtomSignature.
+  *
+  * This class provides fast and thread-safe functions for encoding ground predicates of the same FOL atom into unique
+  * integer numbers, as well as for the opposite (decoding integers to ground predicates).
+  *
+  *
+  */
+final class AtomIdentityFunction private (
+    val signature: AtomSignature,
+    val startID: Int,
+    val constantsAndStep: Array[(ConstantsSet, Int, Int, String, Int)],
+    val length: Int,
+    val schema: Seq[String]) extends Serializable {
 
   import AtomIdentityFunction.IDENTITY_NOT_EXIST
 
@@ -125,14 +125,14 @@ final class AtomIdentityFunction private(
   }
 
   /**
-   * Gives the ID (positive integer) of the corresponding constant ids. This is the fastest
-   * encoding function, as it doesn't need to perform any lookup to the ConstantsSet for fetching
-   * the id of the constant.
-   *
-   * @param indexes the array which its elements are pointing to the correct position in constantIds
-   * @param constantIds the array of constant ids (assumed to have the correct ordering)
-   * @return encoded number that uniquely corresponds to a grounding of the atom
-   */
+    * Gives the ID (positive integer) of the corresponding constant ids. This is the fastest
+    * encoding function, as it doesn't need to perform any lookup to the ConstantsSet for fetching
+    * the id of the constant.
+    *
+    * @param indexes the array which its elements are pointing to the correct position in constantIds
+    * @param constantIds the array of constant ids (assumed to have the correct ordering)
+    * @return encoded number that uniquely corresponds to a grounding of the atom
+    */
   def encode(indexes: Array[Int], constantIds: Array[Int]): Int = {
 
     var result = startID
@@ -156,30 +156,30 @@ final class AtomIdentityFunction private(
   }
 
   /**
-   * <p>
-   * Gives the ID (positive integer) of the corresponding grounding
-   * for the specified atom. The grounding is computed with the help
-   * of the specified function that maps Terms to Strings.
-   * </p>
-   * <p>
-   * The positive integer represents the unique ID of the ground atom,
-   * if the grounding cannot be computed, then it returns IDENTITY_NOT_EXIST.
-   * For example, the special FOL function succ(int) that returns the successive
-   * number of the given integer and the predicate HoldsAt(fluent, succ(time)).
-   * </p>
-   * <p>
-   * Let time={0,...,100} and fluent={F1,...Fn}.
-   * </p>
-   * <p>
-   * The grounding of HoldsAt(F1, succ(99)) is HoldsAt(F1,100) which is inside the bounds of time,
-   * thus the encode(...) function will return the corresponding ID.
-   * However, the grounding of HoldsAt(F1, succ(100)) cannot be determined, since
-   * the resulting ground atom HoldsAt(F1, 101) is out of time bounds. Therefore,
-   * the encode(...) function will return IDENTITY_NOT_EXIST.
-   * </p>
-   *
-   * @return the corresponding ID if a valid grounding exists, IDENTITY_NOT_EXIST otherwise.
-   */
+    * <p>
+    * Gives the ID (positive integer) of the corresponding grounding
+    * for the specified atom. The grounding is computed with the help
+    * of the specified function that maps Terms to Strings.
+    * </p>
+    * <p>
+    * The positive integer represents the unique ID of the ground atom,
+    * if the grounding cannot be computed, then it returns IDENTITY_NOT_EXIST.
+    * For example, the special FOL function succ(int) that returns the successive
+    * number of the given integer and the predicate HoldsAt(fluent, succ(time)).
+    * </p>
+    * <p>
+    * Let time={0,...,100} and fluent={F1,...Fn}.
+    * </p>
+    * <p>
+    * The grounding of HoldsAt(F1, succ(99)) is HoldsAt(F1,100) which is inside the bounds of time,
+    * thus the encode(...) function will return the corresponding ID.
+    * However, the grounding of HoldsAt(F1, succ(100)) cannot be determined, since
+    * the resulting ground atom HoldsAt(F1, 101) is out of time bounds. Therefore,
+    * the encode(...) function will return IDENTITY_NOT_EXIST.
+    * </p>
+    *
+    * @return the corresponding ID if a valid grounding exists, IDENTITY_NOT_EXIST otherwise.
+    */
   def encode(atom: AtomicFormula, f: Term => String): Int = {
     var sum = startID
     var idx = 0
@@ -196,7 +196,6 @@ final class AtomIdentityFunction private(
       sum += (offset + constantID)
       idx += 1
     }
-
 
     sum
   }
@@ -221,8 +220,7 @@ final class AtomIdentityFunction private(
         val tmpID = (currentID - (currentID % sigma)) / sigma
         result(idx) = constatsSet(tmpID)
         currentID -= (tmpID * sigma)
-      }
-      else result(idx) = constatsSet(0)
+      } else result(idx) = constatsSet(0)
 
       idx -= 1
     }
@@ -253,8 +251,7 @@ final class AtomIdentityFunction private(
         val localID = (currentID - (currentID % sigma)) / sigma
         result(idx) = offset + localID
         currentID -= (localID * sigma)
-      }
-      else result(idx) = offset // + (currentID=0)
+      } else result(idx) = offset // + (currentID=0)
 
       idx -= 1
     }
@@ -294,15 +291,12 @@ final class AtomIdentityFunction private(
       }
     }
 
-
     new MatchingIDsIterator(rangesMap, iteratorsMap, values)
   }
-
 
   private class MatchingIDsIterator(rangesMap: Map[Int, Range], iteratorsMap: mutable.Map[Int, Iterator[Int]], values: Array[Int]) extends Iterator[Int] {
 
     import scalaxy.streams.optimize
-
 
     private val _length = rangesMap.map(_._2.size).product
     private var counter = 0
@@ -354,10 +348,11 @@ object AtomIdentityFunction {
 
   val IDENTITY_NOT_EXIST = 0
 
-  def apply(signature: AtomSignature,
-            schema: Seq[String],
-            constants: ConstantsDomain,
-            startID: Int): AtomIdentityFunction = {
+  def apply(
+      signature: AtomSignature,
+      schema: Seq[String],
+      constants: ConstantsDomain,
+      startID: Int): AtomIdentityFunction = {
 
     assert(startID > 0, "Atom identity function requires startID to be greater than zero and you gave: " + startID)
 
@@ -365,7 +360,6 @@ object AtomIdentityFunction {
 
     var n = 0
     val constantsAndStep = new Array[(ConstantsSet, Int, Int, String, Int)](descriptor.length)
-
 
     var constOffsetMap = Map[String, Int]()
 
@@ -420,8 +414,7 @@ object AtomIdentityFunction {
     if (weight.isPosInfinity) {
       if (hardWeight != 0) buffer.append(hardWeight.toString)
       buffer.append(' ')
-    }
-    else if (!weight.isNaN) {
+    } else if (!weight.isNaN) {
       buffer.append(feature.getWeight.toString)
       buffer.append(' ')
     }
@@ -436,9 +429,7 @@ object AtomIdentityFunction {
       }
     }
 
-
     if (feature.getWeight.isInfinite && hardWeight != 0) buffer.append('.')
-
 
     Success(buffer.result())
   }

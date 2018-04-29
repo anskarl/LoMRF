@@ -14,23 +14,23 @@
  *  o   o o-o-o  o  o-o o-o o o o     o    | o-o o  o-o o-o
  *
  *  Logical Markov Random Fields (LoMRF).
- *     
+ *
  *
  */
 
 package lomrf.mln.learning.weight
 
-import org.scalatest.{FunSpec, Matchers, PrivateMethodTester}
+import org.scalatest.{ FunSpec, Matchers, PrivateMethodTester }
 import lomrf.logic.AtomSignature
-import lomrf.mln.model.{AtomIdentityFunctionOps, MLN}
+import lomrf.mln.model.{ AtomIdentityFunctionOps, MLN }
 import lomrf.mln.model.mrf.MRF
 import AtomIdentityFunctionOps._
 import lomrf.tests.TestData
 import lomrf.util.io._
 
 /**
- * Specification test for Max-Margin learner
- */
+  * Specification test for Max-Margin learner
+  */
 final class MaxMarginSpecTest extends FunSpec with Matchers with PrivateMethodTester {
 
   private val prefix = TestData.TestFilesPath / "learning"
@@ -69,7 +69,7 @@ final class MaxMarginSpecTest extends FunSpec with Matchers with PrivateMethodTe
 
   println("------------------------")*/
 
-  describe(s"The MLN theory in '$mlnFile'"){
+  describe(s"The MLN theory in '$mlnFile'") {
 
     /*it("should contain 3 formulas") {
       mln.formulas.size shouldBe 3
@@ -98,32 +98,32 @@ final class MaxMarginSpecTest extends FunSpec with Matchers with PrivateMethodTe
     mrf.numberOfConstraints shouldBe 40
   }
 
-  val learner = new MaxMarginLearner(mrf = mrf, annotationDB = annotationDB, nonEvidenceAtoms = nonEvidenceAtoms, lossAugmented = true)
+  val learner = new MaxMarginLearner(mrf              = mrf, annotationDB = annotationDB, nonEvidenceAtoms = nonEvidenceAtoms, lossAugmented = true)
 
   val countGroundings = PrivateMethod('countGroundings)
   val updateConstraintWeights = PrivateMethod('updateConstraintWeights)
   val calculateError = PrivateMethod('calculateError)
 
   describe("Checking count true groundings functionality") {
-    val trueCounts:Array[Int] = learner invokePrivate countGroundings()
+    val trueCounts: Array[Int] = learner invokePrivate countGroundings()
 
     val clause0 = mln.clauses(0).toText()
-    it(s"clause '$clause0' should have 6 true counts"){
+    it(s"clause '$clause0' should have 6 true counts") {
       trueCounts(0) shouldBe 6
     }
 
     val clause1 = mln.clauses(1).toText()
-    it(s"clause '$clause1' should have 16 true counts"){
+    it(s"clause '$clause1' should have 16 true counts") {
       trueCounts(1) shouldBe 16
     }
 
     val clause2 = mln.clauses(2).toText()
-    it(s"clause '$clause2' should have 15 true counts"){
+    it(s"clause '$clause2' should have 15 true counts") {
       trueCounts(2) shouldBe 15
     }
 
     val clause3 = mln.clauses(3).toText()
-    it(s"clause '$clause3' should have 15 true counts"){
+    it(s"clause '$clause3' should have 15 true counts") {
       trueCounts(3) shouldBe 15
     }
   }
@@ -152,8 +152,7 @@ final class MaxMarginSpecTest extends FunSpec with Matchers with PrivateMethodTe
         it(s"constraint { $string } should be having a hard weight") {
           constraint.getWeight shouldBe mrf.weightHard
         }
-      }
-      else {
+      } else {
         val iterator = dependencyMap.get(constraint.id).iterator()
         var result = 0.0
         while (iterator.hasNext) {

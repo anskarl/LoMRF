@@ -14,7 +14,7 @@
  *  o   o o-o-o  o  o-o o-o o o o     o    | o-o o  o-o o-o
  *
  *  Logical Markov Random Fields (LoMRF).
- *     
+ *
  *
  */
 
@@ -22,11 +22,11 @@ package lomrf.logic.parser
 
 import lomrf.logic._
 import lomrf.logic.dynamic._
-import org.scalatest.{FunSpec, Matchers}
+import org.scalatest.{ FunSpec, Matchers }
 
 /**
- * A series of spec tests for knowledge base parsing, e.g., predicates, formulas, weighted formulas, etc.
- */
+  * A series of spec tests for knowledge base parsing, e.g., predicates, formulas, weighted formulas, etc.
+  */
 final class KBParserSpecTest extends FunSpec with Matchers {
 
   private val predicateSchema = Map[AtomSignature, Vector[String]](
@@ -41,20 +41,18 @@ final class KBParserSpecTest extends FunSpec with Matchers {
     AtomSignature("Close", 4) -> Vector("id", "id", "dist", "time"),
     AtomSignature("OrientationMove", 1) -> Vector("time"),
     AtomSignature("StartedAt", 3) -> Vector("event", "fluent", "time"),
-    AtomSignature("StoppedAt", 3) -> Vector("event", "fluent", "time")
-  )
+    AtomSignature("StoppedAt", 3) -> Vector("event", "fluent", "time"))
 
   private val functionsSchema = Map[AtomSignature, (String, Vector[String])](
-    AtomSignature("walking", 1) ->("event", Vector("id")),
-    AtomSignature("abrupt", 1) ->("event", Vector("id")),
-    AtomSignature("running", 1) ->("event", Vector("id")),
-    AtomSignature("active", 1) ->("event", Vector("id")),
-    AtomSignature("inactive", 1) ->("event", Vector("id")),
-    AtomSignature("exit", 1) ->("event", Vector("id")),
-    AtomSignature("fight", 2) ->("fluent", Vector("id", "id")),
-    AtomSignature("move", 2) ->("fluent", Vector("id", "id")),
-    AtomSignature("meet", 2) ->("fluent", Vector("id", "id"))
-  )
+    AtomSignature("walking", 1) -> ("event", Vector("id")),
+    AtomSignature("abrupt", 1) -> ("event", Vector("id")),
+    AtomSignature("running", 1) -> ("event", Vector("id")),
+    AtomSignature("active", 1) -> ("event", Vector("id")),
+    AtomSignature("inactive", 1) -> ("event", Vector("id")),
+    AtomSignature("exit", 1) -> ("event", Vector("id")),
+    AtomSignature("fight", 2) -> ("fluent", Vector("id", "id")),
+    AtomSignature("move", 2) -> ("fluent", Vector("id", "id")),
+    AtomSignature("meet", 2) -> ("fluent", Vector("id", "id")))
 
   private val parser = new KBParser(predicateSchema, functionsSchema)
 
@@ -73,7 +71,6 @@ final class KBParserSpecTest extends FunSpec with Matchers {
   private val greaterThanEq = DynGreaterThanEqBuilder()
   private val lessThan = DynLessThanBuilder()
   private val lessThanEq = DynLessThanEqBuilder()
-
 
   describe("Atomic formulas") {
 
@@ -120,8 +117,7 @@ final class KBParserSpecTest extends FunSpec with Matchers {
       parsed shouldEqual
         AtomicFormula("Happens", Vector(
           TermFunction("active", Vector(Variable("x", "id")), "event"),
-          Variable("t", "time"))
-        )
+          Variable("t", "time")))
 
       parsed.variables.size shouldEqual 2
       parsed.constants.size shouldEqual 0
@@ -135,8 +131,7 @@ final class KBParserSpecTest extends FunSpec with Matchers {
       parsed shouldEqual
         AtomicFormula("Happens", Vector(
           TermFunction("active", Vector(Constant("ID1")), "event"),
-          Variable("t", "time"))
-        )
+          Variable("t", "time")))
 
       parsed.variables.size shouldEqual 1
       parsed.constants.size shouldEqual 1
@@ -151,8 +146,7 @@ final class KBParserSpecTest extends FunSpec with Matchers {
         AtomicFormula("Initiates", Vector(
           TermFunction("inactive", Vector(Variable("x", "id")), "event"),
           TermFunction("meet", Vector(Variable("x", "id"), Variable("y", "id")), "fluent"),
-          Variable("t", "time"))
-        )
+          Variable("t", "time")))
 
       parsed.variables.size shouldEqual 3
       parsed.constants.size shouldEqual 0
@@ -178,10 +172,7 @@ final class KBParserSpecTest extends FunSpec with Matchers {
             AtomicFormula("InitiatedAt", Vector(Variable("f", "fluent"), Variable("t", "time"))),
             And(
               AtomicFormula("Happens", Vector(Variable("e1", "event"), Variable("t", "time"))),
-              AtomicFormula("Happens", Vector(Variable("e2", "event"), Variable("t", "time")))
-            )
-          )
-        )
+              AtomicFormula("Happens", Vector(Variable("e2", "event"), Variable("t", "time"))))))
 
       parsed.variables.size shouldEqual 4
       parsed.constants.size shouldEqual 0
@@ -199,12 +190,8 @@ final class KBParserSpecTest extends FunSpec with Matchers {
             And(
               AtomicFormula("Happens", Vector(
                 TermFunction("inactive", Vector(Variable("x", "id")), "event"),
-                Variable("t", "time"))
-              ),
-              AtomicFormula("Happens", Vector(Constant("Active"), Variable("t", "time")))
-            )
-          )
-        )
+                Variable("t", "time"))),
+              AtomicFormula("Happens", Vector(Constant("Active"), Variable("t", "time"))))))
 
       parsed.variables.size shouldEqual 2
       parsed.constants.size shouldEqual 2
@@ -220,20 +207,14 @@ final class KBParserSpecTest extends FunSpec with Matchers {
           1.256, DefiniteClause(
             AtomicFormula("InitiatedAt", Vector(
               TermFunction("meet", Vector(Variable("x", "id"), Variable("y", "id")), "fluent"),
-              Variable("t", "time"))
-            ),
+              Variable("t", "time"))),
             And(
               AtomicFormula("Happens", Vector(
                 TermFunction("inactive", Vector(Variable("x", "id")), "event"),
-                Variable("t", "time"))
-              ),
+                Variable("t", "time"))),
               AtomicFormula("Happens", Vector(
                 TermFunction("inactive", Vector(Variable("y", "id")), "event"),
-                Variable("t", "time"))
-              )
-            )
-          )
-        )
+                Variable("t", "time"))))))
 
       parsed.variables.size shouldEqual 3
       parsed.constants.size shouldEqual 0
@@ -249,20 +230,14 @@ final class KBParserSpecTest extends FunSpec with Matchers {
           -2.5, DefiniteClause(
             AtomicFormula("InitiatedAt", Vector(
               TermFunction("meet", Vector(Variable("x", "id"), Variable("y", "id")), "fluent"),
-              Variable("t", "time"))
-            ),
+              Variable("t", "time"))),
             Not(And(
               AtomicFormula("Happens", Vector(
                 TermFunction("inactive", Vector(Variable("x", "id")), "event"),
-                Variable("t", "time"))
-              ),
+                Variable("t", "time"))),
               AtomicFormula("Happens", Vector(
                 TermFunction("inactive", Vector(Variable("y", "id")), "event"),
-                Variable("t", "time"))
-              )
-            ))
-          )
-        )
+                Variable("t", "time")))))))
 
       parsed.variables.size shouldEqual 3
       parsed.constants.size shouldEqual 0
@@ -278,20 +253,14 @@ final class KBParserSpecTest extends FunSpec with Matchers {
           1554, DefiniteClause(
             AtomicFormula("InitiatedAt", Vector(
               TermFunction("meet", Vector(Variable("x", "id"), Variable("y", "id")), "fluent"),
-              Variable("t", "time"))
-            ),
+              Variable("t", "time"))),
             And(
               AtomicFormula("Happens", Vector(
                 TermFunction("inactive", Vector(Variable("x", "id")), "event"),
-                Variable("t", "time"))
-              ),
+                Variable("t", "time"))),
               Not(AtomicFormula("Happens", Vector(
                 TermFunction("exit", Vector(Constant("ID0")), "event"),
-                Variable("t", "time"))
-              ))
-            )
-          )
-        )
+                Variable("t", "time")))))))
 
       parsed.variables.size shouldEqual 3
       parsed.constants.size shouldEqual 1
@@ -309,8 +278,7 @@ final class KBParserSpecTest extends FunSpec with Matchers {
         WeightedFormula(
           Double.PositiveInfinity, Implies(
             AtomicFormula("Happens", Vector(Constant("Walking"), Variable("t", "time"))),
-            AtomicFormula("InitiatedAt", Vector(Constant("Moving"), Variable("t", "time"))))
-        )
+            AtomicFormula("InitiatedAt", Vector(Constant("Moving"), Variable("t", "time")))))
 
       parsed.variables.size shouldEqual 1
       parsed.constants.size shouldEqual 2
@@ -327,19 +295,13 @@ final class KBParserSpecTest extends FunSpec with Matchers {
             And(
               AtomicFormula("Happens", Vector(
                 TermFunction("walking", Vector(Variable("p1", "id")), "event"),
-                Variable("t", "time"))
-              ),
+                Variable("t", "time"))),
               AtomicFormula("Happens", Vector(
                 TermFunction("walking", Vector(Variable("p2", "id")), "event"),
-                Variable("t", "time"))
-              )
-            ),
+                Variable("t", "time")))),
             AtomicFormula("InitiatedAt", Vector(
               TermFunction("move", Vector(Variable("p1", "id"), Variable("p2", "id")), "fluent"),
-              Variable("t", "time"))
-            )
-          )
-        )
+              Variable("t", "time")))))
 
       parsed.variables.size shouldEqual 3
       parsed.constants.size shouldEqual 0
@@ -355,14 +317,10 @@ final class KBParserSpecTest extends FunSpec with Matchers {
           Double.PositiveInfinity, Equivalence(
             AtomicFormula("InitiatedAt", Vector(
               TermFunction("move", Vector(Variable("p2", "id"), Variable("p1", "id")), "fluent"),
-              Variable("t", "time"))
-            ),
+              Variable("t", "time"))),
             AtomicFormula("InitiatedAt", Vector(
               TermFunction("move", Vector(Variable("p1", "id"), Variable("p2", "id")), "fluent"),
-              Variable("t", "time"))
-            )
-          )
-        )
+              Variable("t", "time")))))
 
       parsed.variables.size shouldEqual 3
       parsed.constants.size shouldEqual 0
@@ -378,14 +336,10 @@ final class KBParserSpecTest extends FunSpec with Matchers {
           124.2, Implies(
             AtomicFormula("InitiatedAt", Vector(
               Variable("f", "fluent"),
-              Variable("t", "time"))
-            ),
+              Variable("t", "time"))),
             Not(AtomicFormula("HoldsAt", Vector(
               Variable("f", "fluent"),
-              Variable("t", "time"))
-            ))
-          )
-        )
+              Variable("t", "time"))))))
 
       parsed.variables.size shouldEqual 2
       parsed.constants.size shouldEqual 0
@@ -404,14 +358,10 @@ final class KBParserSpecTest extends FunSpec with Matchers {
           5.2, ExistentialQuantifier(Variable("f", "fluent"), Implies(
             AtomicFormula("InitiatedAt", Vector(
               Variable("f", "fluent"),
-              Variable("t", "time"))
-            ),
+              Variable("t", "time"))),
             Not(AtomicFormula("HoldsAt", Vector(
               Variable("f", "fluent"),
-              Variable("t", "time"))
-            ))
-          ))
-        )
+              Variable("t", "time")))))))
 
       parsed.variables.size shouldEqual 2
       parsed.constants.size shouldEqual 0
@@ -428,14 +378,10 @@ final class KBParserSpecTest extends FunSpec with Matchers {
           UniversalQuantifier(Variable("f", "fluent"), UniversalQuantifier(Variable("t", "time"), Implies(
             AtomicFormula("InitiatedAt", Vector(
               Variable("f", "fluent"),
-              Variable("t", "time"))
-            ),
+              Variable("t", "time"))),
             Not(AtomicFormula("HoldsAt", Vector(
               Variable("f", "fluent"),
-              Variable("t", "time"))
-            ))
-          )))
-        )
+              Variable("t", "time"))))))))
 
       parsed.variables.size shouldEqual 2
       parsed.constants.size shouldEqual 0
@@ -449,19 +395,15 @@ final class KBParserSpecTest extends FunSpec with Matchers {
       parsed shouldEqual
         WeightedFormula(
           Double.NaN,
-          UniversalQuantifier(Variable("t", "time"),
+          UniversalQuantifier(
+            Variable("t", "time"),
             Not(ExistentialQuantifier(Variable("f", "fluent"), Implies(
               AtomicFormula("InitiatedAt", Vector(
                 Variable("f", "fluent"),
-                Variable("t", "time"))
-              ),
+                Variable("t", "time"))),
               AtomicFormula("HoldsAt", Vector(
                 Variable("f", "fluent"),
-                Variable("t", "time"))
-              )
-            )))
-          )
-        )
+                Variable("t", "time"))))))))
 
       parsed.variables.size shouldEqual 2
       parsed.constants.size shouldEqual 0
@@ -502,11 +444,8 @@ final class KBParserSpecTest extends FunSpec with Matchers {
           Double.PositiveInfinity, And(
             And(
               AtomicFormula("HoldsAt", Vector(Variable("f", "fluent"), Variable("t", "time"))),
-              greaterThan(Vector(Variable("t", "time"), Constant("5")))
-            ),
-            lessThan(Vector(Variable("t", "time"), Constant("24")))
-          )
-        )
+              greaterThan(Vector(Variable("t", "time"), Constant("5")))),
+            lessThan(Vector(Variable("t", "time"), Constant("24")))))
 
       parsed.variables.size shouldEqual 2
       parsed.constants.size shouldEqual 2
@@ -522,11 +461,8 @@ final class KBParserSpecTest extends FunSpec with Matchers {
           Double.PositiveInfinity, And(
             And(
               AtomicFormula("HoldsAt", Vector(Variable("f", "fluent"), Variable("t", "time"))),
-              greaterThanEq(Vector(Variable("t", "time"), Constant("5")))
-            ),
-            lessThanEq(Vector(Variable("t", "time"), Constant("24")))
-          )
-        )
+              greaterThanEq(Vector(Variable("t", "time"), Constant("5")))),
+            lessThanEq(Vector(Variable("t", "time"), Constant("24")))))
 
       parsed.variables.size shouldEqual 2
       parsed.constants.size shouldEqual 2
@@ -544,8 +480,7 @@ final class KBParserSpecTest extends FunSpec with Matchers {
       parsed shouldEqual
         WeightedFormula(Double.PositiveInfinity, Implies(
           AtomicFormula("InitiatedAt", Vector(Variable("f", "fluent"), Variable("t", "time"))),
-          AtomicFormula("HoldsAt", Vector(Variable("f", "fluent"), functionPlus(Variable("t", "time"), Constant("1"), "time"))))
-        )
+          AtomicFormula("HoldsAt", Vector(Variable("f", "fluent"), functionPlus(Variable("t", "time"), Constant("1"), "time")))))
 
       parsed.variables.size shouldEqual 2
       parsed.constants.size shouldEqual 1
@@ -559,8 +494,7 @@ final class KBParserSpecTest extends FunSpec with Matchers {
       parsed shouldEqual
         WeightedFormula(Double.PositiveInfinity, Implies(
           AtomicFormula("InitiatedAt", Vector(Variable("f", "fluent"), functionMinus(Variable("t", "time"), Constant("1"), "time"))),
-          AtomicFormula("HoldsAt", Vector(Variable("f", "fluent"), Variable("t", "time"))))
-        )
+          AtomicFormula("HoldsAt", Vector(Variable("f", "fluent"), Variable("t", "time")))))
 
       parsed.variables.size shouldEqual 2
       parsed.constants.size shouldEqual 1
@@ -574,8 +508,7 @@ final class KBParserSpecTest extends FunSpec with Matchers {
       parsed shouldEqual
         WeightedFormula(Double.PositiveInfinity, Implies(
           AtomicFormula("InitiatedAt", Vector(Variable("f", "fluent"), Variable("t", "time"))),
-          AtomicFormula("HoldsAt", Vector(Variable("f", "fluent"), functionNext(Variable("t", "time"), "time"))))
-        )
+          AtomicFormula("HoldsAt", Vector(Variable("f", "fluent"), functionNext(Variable("t", "time"), "time")))))
 
       parsed.variables.size shouldEqual 2
       parsed.constants.size shouldEqual 0
@@ -589,8 +522,7 @@ final class KBParserSpecTest extends FunSpec with Matchers {
       parsed shouldEqual
         WeightedFormula(Double.PositiveInfinity, Implies(
           AtomicFormula("InitiatedAt", Vector(Variable("f", "fluent"), functionPrev(Variable("t", "time"), "time"))),
-          AtomicFormula("HoldsAt", Vector(Variable("f", "fluent"), Variable("t", "time"))))
-        )
+          AtomicFormula("HoldsAt", Vector(Variable("f", "fluent"), Variable("t", "time")))))
 
       parsed.variables.size shouldEqual 2
       parsed.constants.size shouldEqual 0
@@ -604,8 +536,7 @@ final class KBParserSpecTest extends FunSpec with Matchers {
       parsed shouldEqual
         WeightedFormula(1.2, Implies(
           AtomicFormula("InitiatedAt", Vector(Variable("f", "fluent"), Variable("t", "time"))),
-          AtomicFormula("HoldsAt", Vector(Variable("f", "fluent"), functionTimes(Variable("t", "time"), Constant("5"), "time"))))
-        )
+          AtomicFormula("HoldsAt", Vector(Variable("f", "fluent"), functionTimes(Variable("t", "time"), Constant("5"), "time")))))
 
       parsed.variables.size shouldEqual 2
       parsed.constants.size shouldEqual 1
@@ -617,18 +548,15 @@ final class KBParserSpecTest extends FunSpec with Matchers {
       val parsed = parser.parseLogicalSentence(dynamicFormula6)
 
       parsed shouldEqual
-        WeightedFormula(Double.NaN,
+        WeightedFormula(
+          Double.NaN,
           Equivalence(
             And(
               AtomicFormula("Initiates", Vector(Variable("e", "event"), Variable("f", "fluent"), Variable("t1", "time"))),
-              AtomicFormula("Terminates", Vector(Variable("e", "event"), Variable("f", "fluent"), Variable("t2", "time")))
-            ),
+              AtomicFormula("Terminates", Vector(Variable("e", "event"), Variable("f", "fluent"), Variable("t2", "time")))),
             And(Or(
               AtomicFormula("Happens", Vector(Variable("e", "event"), functionDiv(Variable("t1", "time"), Variable("t2", "time"), "time"))),
-              AtomicFormula("Happens", Vector(Variable("e", "event"), functionMod(Variable("t1", "time"), Variable("t2", "time"), "time")))
-            ), lessThan(Vector(Variable("t1", "time"), Variable("t2", "time"))))
-          )
-        )
+              AtomicFormula("Happens", Vector(Variable("e", "event"), functionMod(Variable("t1", "time"), Variable("t2", "time"), "time")))), lessThan(Vector(Variable("t1", "time"), Variable("t2", "time"))))))
 
       parsed.variables.size shouldEqual 4
       parsed.constants.size shouldEqual 0

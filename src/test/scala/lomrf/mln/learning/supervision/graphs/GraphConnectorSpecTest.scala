@@ -14,7 +14,7 @@
  *  o   o o-o-o  o  o-o o-o o o o     o    | o-o o  o-o o-o
  *
  *  Logical Markov Random Fields (LoMRF).
- *     
+ *
  *
  */
 
@@ -22,7 +22,7 @@ package lomrf.mln.learning.supervision.graphs
 
 import breeze.linalg.DenseVector
 import breeze.stats.distributions.Uniform
-import org.scalatest.{FunSpec, Matchers}
+import org.scalatest.{ FunSpec, Matchers }
 
 final class GraphConnectorSpecTest extends FunSpec with Matchers {
 
@@ -53,8 +53,7 @@ final class GraphConnectorSpecTest extends FunSpec with Matchers {
     it("Only one neighbor should remain connected.") {
       DenseVector.vertcat(
         DenseVector.fill(4, UNCONNECTED),
-        DenseVector[Double](5)
-      ) shouldEqual connector(neighbors)
+        DenseVector[Double](5)) shouldEqual connector(neighbors)
     }
 
     val neighborsDuplicates = DenseVector.vertcat(DenseVector.rangeD(1, 6), DenseVector.fill[Double](4, 5))
@@ -62,8 +61,7 @@ final class GraphConnectorSpecTest extends FunSpec with Matchers {
     it("Five neighbors having the highest cost should remain connected.") {
       DenseVector.vertcat(
         DenseVector.fill(4, UNCONNECTED),
-        DenseVector.fill[Double](5, 5)
-      ) shouldEqual connector(neighborsDuplicates)
+        DenseVector.fill[Double](5, 5)) shouldEqual connector(neighborsDuplicates)
     }
   }
 
@@ -84,8 +82,7 @@ final class GraphConnectorSpecTest extends FunSpec with Matchers {
     it("Only two neighbors should remain connected.") {
       DenseVector.vertcat(
         DenseVector.fill(3, UNCONNECTED),
-        DenseVector[Double](4, 5)
-      ) shouldEqual connector(neighbors)
+        DenseVector[Double](4, 5)) shouldEqual connector(neighbors)
     }
 
     val neighborsDuplicates = DenseVector.vertcat(DenseVector.rangeD(1, 6), DenseVector.fill(4, 5D))
@@ -93,8 +90,7 @@ final class GraphConnectorSpecTest extends FunSpec with Matchers {
     it("Six neighbors having the highest costs should remain connected.") {
       DenseVector.vertcat(
         DenseVector.fill(3, UNCONNECTED),
-        DenseVector[Double](4, 5, 5, 5, 5, 5)
-      ) shouldEqual connector(neighborsDuplicates)
+        DenseVector[Double](4, 5, 5, 5, 5, 5)) shouldEqual connector(neighborsDuplicates)
     }
 
   }
@@ -122,8 +118,7 @@ final class GraphConnectorSpecTest extends FunSpec with Matchers {
     it("Only two neighbors should be unconnected.") {
       DenseVector.vertcat(
         DenseVector.fill(2, UNCONNECTED),
-        DenseVector.rangeD(0.2, 1.1, 0.1).map(n => math.round(n * 100D) / 100D)
-      ) shouldEqual connector(neighbors)
+        DenseVector.rangeD(0.2, 1.1, 0.1).map(n => math.round(n * 100D) / 100D)) shouldEqual connector(neighbors)
     }
   }
 
@@ -150,8 +145,7 @@ final class GraphConnectorSpecTest extends FunSpec with Matchers {
     it("Nine neighbors should be unconnected.") {
       DenseVector.vertcat(
         DenseVector.fill(9, UNCONNECTED),
-        DenseVector.rangeD(0.9, 1.1, 0.1).map(n => math.round(n * 100D) / 100D)
-      ) shouldEqual connector(neighbors)
+        DenseVector.rangeD(0.9, 1.1, 0.1).map(n => math.round(n * 100D) / 100D)) shouldEqual connector(neighbors)
     }
   }
 }

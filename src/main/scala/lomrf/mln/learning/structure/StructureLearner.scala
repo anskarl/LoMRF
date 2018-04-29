@@ -14,7 +14,7 @@
  *  o   o o-o-o  o  o-o o-o o o o     o    | o-o o  o-o o-o
  *
  *  Logical Markov Random Fields (LoMRF).
- *     
+ *
  *
  */
 
@@ -28,9 +28,9 @@ import lomrf.logic.Clause
 import lomrf.mln.model._
 
 /**
- * Structure learner describes the specification of structure learning procedure
- * and should be extended by any structure learning algorithm implementation.
- */
+  * Structure learner describes the specification of structure learning procedure
+  * and should be extended by any structure learning algorithm implementation.
+  */
 trait StructureLearner extends LazyLogging {
 
   // tolerance threshold for discarding poor clauses
@@ -40,31 +40,31 @@ trait StructureLearner extends LazyLogging {
   protected val knowledgeBase: KB
 
   /**
-   * @return a vector of all learned clauses
-   */
+    * @return a vector of all learned clauses
+    */
   def getLearnedClauses: Vector[Clause]
 
   /**
-   * @return a vector of all learned weights
-   */
+    * @return a vector of all learned weights
+    */
   def getLearnedWeights: Array[Double]
 
   /**
-   * Should revise the current theory and return clauses learned for this
-   * training evidence as a vector of clauses.
-   *
-   * @param trainingEvidence the training evidence (includes annotation)
-   *
-   * @return a vector of learned clauses for the given training evidence
-   */
+    * Should revise the current theory and return clauses learned for this
+    * training evidence as a vector of clauses.
+    *
+    * @param trainingEvidence the training evidence (includes annotation)
+    *
+    * @return a vector of learned clauses for the given training evidence
+    */
   def reviseTheory(trainingEvidence: TrainingEvidence): Vector[Clause]
 
   /**
-   * Write all learned clauses and their corresponding learned weights in the given
-   * output file together with the predicate and function schema if any exists.
-   *
-   * @param out the selected output stream (default is console)
-   */
+    * Write all learned clauses and their corresponding learned weights in the given
+    * output file together with the predicate and function schema if any exists.
+    *
+    * @param out the selected output stream (default is console)
+    */
   def writeResults(out: PrintStream = System.out): Unit = {
 
     val numFormat = new DecimalFormat("0.############")
@@ -119,7 +119,7 @@ trait StructureLearner extends LazyLogging {
       out.print(line)
     }
 
-    if(knowledgeBase.functionSchema.nonEmpty) {
+    if (knowledgeBase.functionSchema.nonEmpty) {
       out.println("\n// Functions definitions")
       for ((signature, (retType, args)) <- knowledgeBase.functionSchema) {
         val line = s"$retType ${signature.symbol}(${args.mkString(",")})\n"
@@ -128,8 +128,8 @@ trait StructureLearner extends LazyLogging {
     }
 
     out.println("\n// Clauses")
-    for(clauseIdx <- getLearnedClauses.indices) {
-      if(getLearnedClauses(clauseIdx).isHard) out.println(s"${getLearnedClauses(clauseIdx).toText()}\n")
+    for (clauseIdx <- getLearnedClauses.indices) {
+      if (getLearnedClauses(clauseIdx).isHard) out.println(s"${getLearnedClauses(clauseIdx).toText()}\n")
       else if (math.abs(getLearnedWeights(clauseIdx)) >= tolerance)
         out.println(s"${numFormat.format(getLearnedWeights(clauseIdx))} ${getLearnedClauses(clauseIdx).toText(weighted = false)}\n")
     }

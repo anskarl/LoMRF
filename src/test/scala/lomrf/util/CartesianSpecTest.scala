@@ -14,18 +14,18 @@
  *  o   o o-o-o  o  o-o o-o o o o     o    | o-o o  o-o o-o
  *
  *  Logical Markov Random Fields (LoMRF).
- *     
+ *
  *
  */
 
 package lomrf.util
 
 import lomrf.util.Cartesian.CartesianIteratorArithmeticImpl
-import org.scalatest.{Matchers, FunSpec}
+import org.scalatest.{ Matchers, FunSpec }
 
 /**
- *
- */
+  *
+  */
 class CartesianSpecTest extends FunSpec with Matchers {
 
   // Note: the given domains should always be above zero
@@ -36,8 +36,7 @@ class CartesianSpecTest extends FunSpec with Matchers {
     Array(1, 10),
     Array(5, 10),
     Array(10),
-    Array(1)
-  )
+    Array(1))
 
   require(domainList.forall(_.forall(_ > 0)))
 
