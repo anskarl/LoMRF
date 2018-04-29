@@ -20,17 +20,11 @@
 
 package lomrf.mln.inference
 
-import java.io.PrintStream
-import java.text.DecimalFormat
 import java.util.concurrent.ThreadLocalRandom
-
-import com.typesafe.scalalogging.LazyLogging
-import lomrf.mln.model.{ AtomIdentityFunctionOps, MLN }
+import lomrf.mln.model.MLN
 import lomrf.mln.model.mrf.{ GroundAtom, MRF, MRFState }
 import lomrf.util.time._
 import lomrf.util.LongDoubleConversions._
-
-import scala.util.Success
 
 /**
   * This is an implementation of the MC-SAT sampling algorithm for marginal inference in the presence
@@ -72,25 +66,17 @@ final case class MCSAT(
     lateSA: Boolean = true,
     unitPropagation: Boolean = true,
     satHardPriority: Boolean = false,
-    tabuLength: Int = 10) extends LazyLogging {
+    tabuLength: Int = 10) extends MarginalSolver {
 
   private val TARGET_COST = new LongDouble(targetCost + 0.0001)
   implicit val mln: MLN = mrf.mln
-
-  /**
-    * Fetch atom given its literal code.
-    *
-    * @param literal Code of the literal
-    * @return The ground atom which corresponds to the given literal code
-    */
-  @inline private def fetchAtom(literal: Int) = mrf.atoms.get(math.abs(literal))
 
   /**
     * Runs marginal inference using MCSAT.
     *
     * @return The MRFState after inference procedure is complete
     */
-  def infer(): MRFState = {
+  def infer: MRFState = {
     val state = MRFState(mrf, satHardPriority)
 
     val bufferAtoms = new Array[GroundAtom](mrf.maxNumberOfLiterals)
@@ -156,7 +142,7 @@ final case class MCSAT(
             if (lucky.isPositive) {
               // a. The chosen constraint has positive weight value.
               while (idx < literals.length) {
-                currentAtom = fetchAtom(literals(idx))
+                currentAtom = mrf.fetchAtom(literals(idx))
                 currentDelta = currentAtom.delta
                 if (!currentAtom.isFixed && (currentAtom.breakCost == 0 || tabuLength < (iteration - currentAtom.lastFlip))) {
                   if (currentDelta < bestDelta) {
@@ -174,7 +160,7 @@ final case class MCSAT(
               //  b. The chosen constraint have negative weight value,
               //     thus look only at true literals.
               while (idx < literals.length) {
-                currentAtom = fetchAtom(literals(idx))
+                currentAtom = mrf.fetchAtom(literals(idx))
                 currentDelta = currentAtom.delta
                 if (!currentAtom.isFixed && ((literals(idx) > 0) == currentAtom.state)
                   && (currentAtom.breakCost == 0 || tabuLength < (iteration - currentAtom.lastFlip))) {
@@ -198,7 +184,7 @@ final case class MCSAT(
             if (lucky.isPositive) {
               // a. The chosen constraint has positive weight value.
               while (idx < literals.length) {
-                currentAtom = fetchAtom(literals(idx))
+                currentAtom = mrf.fetchAtom(literals(idx))
                 if (!currentAtom.isFixed
                   && (currentAtom.breakCost == 0 || tabuLength < (iteration - currentAtom.lastFlip))) {
                   bufferAtoms(bufferIdx) = currentAtom
@@ -210,7 +196,7 @@ final case class MCSAT(
               //  b. The chosen constraint have negative weight value,
               //     thus look only at true literals.
               while (idx < literals.length) {
-                currentAtom = fetchAtom(literals(idx))
+                currentAtom = mrf.fetchAtom(literals(idx))
                 if (!currentAtom.isFixed && ((literals(idx) > 0) == currentAtom.state)
                   && (currentAtom.breakCost == 0 || tabuLength < (iteration - currentAtom.lastFlip))) {
                   bufferAtoms(bufferIdx) = currentAtom
@@ -282,36 +268,4 @@ final case class MCSAT(
     // return the best state
     state
   }
-
-  /**
-    * Write the results of inference into the selected output stream.
-    *
-    * @param result Selected output stream for results (default is console)
-    */
-  def writeResults(result: PrintStream = System.out) {
-    import AtomIdentityFunctionOps._
-
-    val numFormat = new DecimalFormat("0.0######")
-
-    val queryStartID = mln.space.queryStartID
-    val queryEndID = mln.space.queryEndID
-
-    val iterator = mrf.atoms.iterator()
-    while (iterator.hasNext) {
-      iterator.advance()
-      val atomID = iterator.key()
-
-      if (atomID >= queryStartID && atomID <= queryEndID) {
-        val groundAtom = iterator.value()
-        val probability = (groundAtom.getTruesCount * 1.0) / samples
-
-        atomID.decodeAtom match {
-          case Success(txtAtom) => result.println(txtAtom + " " + numFormat.format(probability))
-          case _                => logger.error(s"failed to decode id: $atomID")
-        }
-      }
-    }
-
-  }
-
 }

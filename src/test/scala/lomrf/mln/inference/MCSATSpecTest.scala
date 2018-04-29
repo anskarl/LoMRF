@@ -111,8 +111,8 @@ final class MCSATSpecTest extends FunSpec with Matchers {
         .find(f => f.getName.contains(dbFile.getName.split(".db")(0)))
         .getOrElse(sys.error("Failed to locate golden standard file."))
 
-      val solver = new MCSAT(mrf)
-      solver.infer()
+      val solver = MCSAT(mrf)
+      solver.infer
       solver.writeResults(new PrintStream(new FileOutputStream(prefix + ".mcsat.result"), true))
 
       info("Inspecting result file: '" + prefix + ".mcsat.result'")

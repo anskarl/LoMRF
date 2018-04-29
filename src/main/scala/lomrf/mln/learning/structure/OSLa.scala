@@ -160,8 +160,8 @@ final class OSLa private (kb: KB, constants: ConstantsDomain, evidenceAtoms: Set
     */
   @inline private def infer(mrf: MRF, annotationDB: EvidenceDB): MRFState = {
     mrf.updateConstraintWeights(weights)
-    val solver = new ILP(mrf, annotationDB = annotationDB, lossAugmented = lossAugmented, ilpSolver = ilpSolver)
-    solver.infer()
+    val solver = if (lossAugmented) ILP(mrf, ilpSolver, annotationDB = Some(annotationDB)) else ILP(mrf, ilpSolver)
+    solver.infer
   }
 
   /**

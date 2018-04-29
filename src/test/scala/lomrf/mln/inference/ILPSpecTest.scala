@@ -114,8 +114,8 @@ final class ILPSpecTest extends FunSpec with Matchers {
 
       val resultsWriter = new PrintStream(new FileOutputStream(prefix + ".ilp.result"), true)
 
-      val solver = new ILP(mrf)
-      solver.infer()
+      val solver = ILP(mrf)
+      solver.infer
       solver.writeResults(resultsWriter)
 
       info("Inspecting result file: '" + prefix + ".ilp.result'")

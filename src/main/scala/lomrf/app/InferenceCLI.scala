@@ -71,7 +71,7 @@ object InferenceCLI extends CLIApp {
   private var _satHardPriority = false
 
   // Rounding algorithm for ILP map inference
-  private var _ilpRounding = RoundingScheme.ROUNDUP
+  private var _ilpRounding: RoundingScheme = RoundingScheme.RoundUp
 
   // Solver used by ILP map inference
   private var _ilpSolver: SolverLib = SolverLib.LpSolve
@@ -199,8 +199,8 @@ object InferenceCLI extends CLIApp {
     "rounding algorithm to use for non-integral parts of the ILP solutions (default is RoundUp).", {
     v: String =>
       v.trim.toLowerCase match {
-        case "roundup" => _ilpRounding = RoundingScheme.ROUNDUP
-        case "mws"     => _ilpRounding = RoundingScheme.MWS
+        case "roundup" => _ilpRounding = RoundingScheme.RoundUp
+        case "mws"     => _ilpRounding = RoundingScheme.SAT
         case _         => logger.fatal("Unknown parameter for ILP rounding type '" + v + "'.")
       }
   })
@@ -359,23 +359,40 @@ object InferenceCLI extends CLIApp {
 
     if (_marginalInference) {
       // Marginal inference methods
-      val solver = new MCSAT(
-        mrf, pBest = _pBest, pSA = _pSA, maxFlips = _maxFlips, maxTries = _maxTries, targetCost = _targetCost, numSolutions = _numSolutions,
-        saTemperature   = _saTemperature, samples = _samples, lateSA = _lateSA, unitPropagation = _unitProp, satHardPriority = _satHardPriority, tabuLength = _tabuLength)
-      solver.infer()
+      val solver = MCSAT(
+        mrf,
+        pBest           = _pBest,
+        pSA             = _pSA,
+        maxFlips        = _maxFlips,
+        maxTries        = _maxTries,
+        targetCost      = _targetCost,
+        numSolutions    = _numSolutions,
+        saTemperature   = _saTemperature,
+        samples         = _samples,
+        lateSA          = _lateSA,
+        unitPropagation = _unitProp,
+        satHardPriority = _satHardPriority,
+        tabuLength      = _tabuLength
+      )
+      solver.infer
       solver.writeResults(resultsWriter)
     } else {
       // MAP inference methods
-      if (_mws) {
-        val solver = new MaxWalkSAT(mrf, pBest = _pBest, maxFlips = _maxFlips, maxTries = _maxTries, targetCost = _targetCost,
-                                    outputAll       = _mapOutputAll, satHardUnit = _satHardUnit, satHardPriority = _satHardPriority, tabuLength = _tabuLength)
-        solver.infer()
-        solver.writeResults(resultsWriter)
-      } else {
-        val solver = new ILP(mrf, outputAll = _mapOutputAll, ilpRounding = _ilpRounding, ilpSolver = _ilpSolver)
-        solver.infer()
-        solver.writeResults(resultsWriter)
-      }
+      val solver =
+        if (_mws) MaxWalkSAT(
+          mrf,
+          pBest           = _pBest,
+          maxFlips        = _maxFlips,
+          maxTries        = _maxTries,
+          targetCost      = _targetCost,
+          satHardUnit     = _satHardUnit,
+          satHardPriority = _satHardPriority,
+          tabuLength      = _tabuLength
+        )
+        else ILP(mrf, ilpRounding = _ilpRounding, ilpSolver = _ilpSolver)
+
+      solver.infer
+      solver.writeResults(resultsWriter, _mapOutputAll)
     }
   }
 }

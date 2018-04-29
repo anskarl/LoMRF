@@ -111,8 +111,8 @@ final class MaxWalkSATSpecTest extends FunSpec with Matchers {
 
       val resultsWriter = new PrintStream(new FileOutputStream(prefix + ".mws.result"), true)
 
-      val solver = new MaxWalkSAT(mrf)
-      solver.infer()
+      val solver = MaxWalkSAT(mrf)
+      solver.infer
       solver.writeResults(resultsWriter)
 
       info("Inspecting result file: '" + prefix + ".mws.result'")

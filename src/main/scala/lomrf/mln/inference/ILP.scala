@@ -20,10 +20,8 @@
 
 package lomrf.mln.inference
 
-import lomrf.logic.{ AtomSignature, TRUE, TriState }
-import java.io.PrintStream
-import lomrf.mln.inference.RoundingScheme.RoundingScheme
-import lomrf.mln.model.{ AtomEvidenceDB, AtomIdentityFunctionOps, MLN }
+import lomrf.logic.TRUE
+import lomrf.mln.model.{ AtomIdentityFunctionOps, EvidenceDB, MLN }
 import lomrf.mln.model.mrf._
 import lomrf.util.time._
 import lomrf.util.logging.Implicits._
@@ -33,13 +31,13 @@ import gnu.trove.map.hash.TIntObjectHashMap
 import optimus.algebra._
 import optimus.optimization._
 import optimus.algebra.AlgebraOps._
-import scala.util.{ Failure, Success }
 import scalaxy.streams.optimize
 import scala.language.postfixOps
 import lomrf.util.collection.trove.TroveConversions._
-import com.typesafe.scalalogging.LazyLogging
+import lomrf.mln.inference.RoundingScheme.RoundUp
+import optimus.optimization.enums.SolverLib.LpSolve
 import optimus.optimization.enums.{ PreSolve, SolverLib }
-import optimus.optimization.model.MPFloatVar
+import optimus.optimization.model.{ MPFloatVar, ModelSpec }
 
 /**
   * This is an implementation of an approximate MAP inference algorithm for MLNs using Integer Linear Programming.
@@ -51,51 +49,18 @@ import optimus.optimization.model.MPFloatVar
   * @param mrf The ground Markov network
   * @param annotationDB Annotation database holding the ground truth values for non evidence
   *                     atoms. Required when performing loss augmented inference.
-  * @param outputAll Show 0/1 results for all query atoms (default is true)
   * @param ilpRounding Rounding algorithm selection option (default is RoundUp)
   * @param ilpSolver Solver type selection option (default is LPSolve)
-  * @param lossAugmented Perform loss augmented inference using hamming distance (default is false)
-  *
   */
-final class ILP(
+final case class ILP(
     mrf: MRF,
-    annotationDB: Map[AtomSignature, AtomEvidenceDB] = Map.empty[AtomSignature, AtomEvidenceDB],
-    outputAll: Boolean = true,
-    ilpRounding: RoundingScheme = RoundingScheme.ROUNDUP,
-    ilpSolver: SolverLib = SolverLib.LpSolve,
-    lossAugmented: Boolean = false) extends LazyLogging {
-
-  // Select the appropriate mathematical programming solver
-  implicit val model: MPModel = MPModel(ilpSolver)
+    ilpSolver: SolverLib = LpSolve,
+    ilpRounding: RoundingScheme = RoundUp,
+    annotationDB: Option[EvidenceDB] = None) extends ModelSpec(ilpSolver) with MAPSolver {
 
   implicit val mln: MLN = mrf.mln
 
-  /**
-    * Fetch atom given its id.
-    *
-    * @param atomID id of the atom
-    * @return the ground atom which corresponds to the given id
-    */
-  @inline private def fetchAtom(atomID: Int) = mrf.atoms.get(atomID)
-
-  /**
-    * Fetch annotation from database for the given atom id. Annotation
-    * exist only for non evidence atoms.
-    *
-    * @param atomID id of the atom
-    * @return annotation TriState value (TRUE, FALSE or UNKNOWN)
-    */
-  @inline private def getAnnotation(atomID: Int): TriState = {
-    val annotation = annotationDB(atomID.signature(mrf.mln))
-    annotation(atomID)
-  }
-
-  def infer(): MRFState = {
-
-    if (lossAugmented) {
-      assert(annotationDB.nonEmpty, "Annotation database does not exist!")
-      logger.info("Running loss augmented inference...")
-    }
+  def infer: MRFState = {
 
     val sTranslation = System.currentTimeMillis()
 
@@ -127,8 +92,10 @@ final class ILP(
        * true (annotated) value of y is FALSE and subtracting 1 from the
        * coefficient of y if the true value of y is TRUE.
        */
-      if (lossAugmented) {
-        val loss = if (getAnnotation(atomID) == TRUE) -1.0 else 1.0
+      if (annotationDB.isDefined) {
+        logger.info("Running loss augmented inference...")
+        val annotation = annotationDB.get(atomID.signature(mrf.mln))
+        val loss = if (annotation(atomID) == TRUE) -1.0 else 1.0
         expressions ::= loss * literalLPVars.get(atomID)
       }
     }
@@ -230,11 +197,11 @@ final class ILP(
 
     logger.whenDebugEnabled {
       literalLPVars.iterator.foreach {
-        case (k: Int, v: MPFloatVar) =>
+        case (_: Int, v: MPFloatVar) =>
           logger.debug(v.symbol + " = " + v.value.getOrElse("Value does not exist for this ground atom variable!"))
       }
       clauseLPVars.iterator.foreach {
-        case (k: Int, v: MPFloatVar) =>
+        case (_: Int, v: MPFloatVar) =>
           logger.debug(v.symbol + " = " + v.value.getOrElse("Value does not exist for this constraint variable"))
       }
     }
@@ -252,7 +219,7 @@ final class ILP(
 
       /*
        * Round values very close to 0 and 1 in using this naive approach because they
-       * probably arised from rounding error of the solver.
+       * probably arise from rounding error of the solver.
        */
       val normalisedValue = if (value > 0.99) 1.0 else value
 
@@ -260,7 +227,7 @@ final class ILP(
         nonIntegralSolutionsCounter += 1
         fractionalSolutions +:= id
       } else {
-        val currentAtom = fetchAtom(id)
+        val currentAtom = mrf.atoms.get(id)
         currentAtom.fixedValue = if (normalisedValue == 0.0) -1 else 1
         currentAtom.state = if (normalisedValue == 0.0) false else true
         state.refineState(id)
@@ -290,11 +257,11 @@ final class ILP(
        *
        * Note: Better to keep delta >= 0 for true values and < for false.
        */
-      if (ilpRounding == RoundingScheme.ROUNDUP) optimize {
+      if (ilpRounding == RoundUp) optimize {
 
         for (i <- fractionalSolutions.size - 1 to 0 by -1) {
           val id = fractionalSolutions(i)
-          val currentAtom = fetchAtom(id)
+          val currentAtom = mrf.atoms.get(id)
           if (state.computeDelta(id) >= 0) {
             currentAtom.fixedValue = 1
             currentAtom.state = true
@@ -321,45 +288,4 @@ final class ILP(
 
     state
   }
-
-  /**
-    * Write the results of inference into the selected output stream.
-    *
-    * @param out Selected output stream (default is console)
-    */
-  def writeResults(out: PrintStream = System.out) {
-
-    val queryStartID = mln.space.queryStartID
-    val queryEndID = mln.space.queryEndID
-
-    val iterator = mrf.atoms.iterator()
-
-    while (iterator.hasNext) {
-      iterator.advance()
-      val atomID = iterator.key()
-
-      if (atomID >= queryStartID && atomID <= queryEndID) {
-        val groundAtom = iterator.value()
-        val state = if (groundAtom.getState) 1 else 0
-
-        atomID.decodeAtom match {
-          case Success(txtAtom) if outputAll || state == 1 => out.println(txtAtom + " " + state)
-          case Failure(f)                                  => logger.error(s"failed to decode id: $atomID", f)
-        }
-
-      }
-    }
-  }
-
-}
-
-/**
-  * Object holding constants for rounding type.
-  */
-object RoundingScheme extends Enumeration {
-  type RoundingScheme = Value
-
-  val ROUNDUP = Value(0, "RoundUp")
-
-  val MWS = Value(1, "MaxWalkSAT")
 }

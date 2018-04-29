@@ -20,17 +20,11 @@
 
 package lomrf.mln.inference
 
-import lomrf.mln.model.{ AtomIdentityFunctionOps, MLN }
 import lomrf.mln.model.mrf.{ GroundAtom, MRF, MRFState }
 import MRF.{ NO_ATOM, NO_ATOM_ID }
-import java.io.PrintStream
 import java.util.concurrent.ThreadLocalRandom
-
-import com.typesafe.scalalogging.LazyLogging
 import lomrf.util.time._
 import lomrf.util.LongDoubleConversions._
-
-import scala.util.{ Failure, Success }
 
 /**
   * This is an implementation of the MaxWalkSAT local-search algorithm with tabu search for weighed satisfiability solving.
@@ -54,11 +48,9 @@ import scala.util.{ Failure, Success }
   * @param maxFlips The maximum number of flips taken to reach a solution (default is 1000000).
   * @param maxTries The maximum number of attempts taken to find a solution (default is 1).
   * @param targetCost Any possible world having cost below this threshold is considered as a solution (default is 0.0001)
-  * @param outputAll Show 0/1 results for all query atoms (default is true)
   * @param satHardUnit Trivially satisfy hard constrained unit clauses (default is false)
   * @param satHardPriority Satisfiability priority to hard constrained clauses (default is false)
   * @param tabuLength Minimum number of flips between flipping the same atom (default is 10)
-  *
   */
 final case class MaxWalkSAT(
     mrf: MRF,
@@ -66,27 +58,18 @@ final case class MaxWalkSAT(
     maxFlips: Int = 1000000,
     maxTries: Int = 1,
     targetCost: Double = 0.001,
-    outputAll: Boolean = true,
     satHardUnit: Boolean = false,
     satHardPriority: Boolean = false,
-    tabuLength: Int = 10) extends LazyLogging {
+    tabuLength: Int = 10) extends MAPSolver {
 
   private val TARGET_COST = new LongDouble(targetCost + 0.0001)
-
-  /**
-    * Fetch atom given its literal code.
-    *
-    * @param literal Code of the literal
-    * @return The ground atom which corresponds to the given literal code
-    */
-  @inline private def fetchAtom(literal: Int) = mrf.atoms.get(math.abs(literal))
 
   /**
     * Runs MAP inference using MaxWalkSAT.
     *
     * @return The MRFState after inference procedure is complete
     */
-  def infer(): MRFState = {
+  def infer: MRFState = {
     val startTime = System.currentTimeMillis()
     val state = infer(MRFState(mrf, satHardUnit, satHardPriority))
     val endTime = System.currentTimeMillis()
@@ -138,7 +121,7 @@ final case class MaxWalkSAT(
           if (lucky.isPositive) {
             // a. The chosen constraint has positive weight value.
             while (idx < literals.length) {
-              currentAtom = fetchAtom(literals(idx))
+              currentAtom = mrf.fetchAtom(literals(idx))
               if (!currentAtom.isFixed
                 && (currentAtom.breakCost == 0 || tabuLength < (iteration - currentAtom.lastFlip))) {
                 if (currentAtom.delta < bestDelta) {
@@ -156,7 +139,7 @@ final case class MaxWalkSAT(
             //  b. The chosen constraint have negative weight value,
             //     thus look only at true literals.
             while (idx < literals.length) {
-              currentAtom = fetchAtom(literals(idx))
+              currentAtom = mrf.fetchAtom(literals(idx))
               currentDelta = currentAtom.delta
               if (!currentAtom.isFixed && ((literals(idx) > 0) == currentAtom.state)
                 && (currentAtom.breakCost == 0 || tabuLength < (iteration - currentAtom.lastFlip))) {
@@ -179,7 +162,7 @@ final case class MaxWalkSAT(
           if (lucky.isPositive) {
             // a. The chosen constraint has positive weight value.
             while (idx < literals.length) {
-              currentAtom = fetchAtom(literals(idx))
+              currentAtom = mrf.fetchAtom(literals(idx))
               if (!currentAtom.isFixed
                 && (currentAtom.breakCost == 0 || tabuLength < (iteration - currentAtom.lastFlip))) {
                 bufferAtoms(bufferIdx) = currentAtom
@@ -191,7 +174,7 @@ final case class MaxWalkSAT(
             //  b. The chosen constraint have negative weight value,
             //     thus look only at true literals.
             while (idx < literals.length) {
-              currentAtom = fetchAtom(literals(idx))
+              currentAtom = mrf.fetchAtom(literals(idx))
               if (!currentAtom.isFixed && ((literals(idx) > 0) == currentAtom.state)
                 && (currentAtom.breakCost == 0 || tabuLength < (iteration - currentAtom.lastFlip))) {
                 bufferAtoms(bufferIdx) = currentAtom
@@ -210,7 +193,7 @@ final case class MaxWalkSAT(
       }
 
     while (numTry < maxTries) {
-      state.reset(tabuLength, withUnitPropagation = false)
+      state.reset(tabuLength)
       iteration = 0
       var chosenAtom = NO_ATOM
 
@@ -234,37 +217,4 @@ final case class MaxWalkSAT(
     //return best state
     state
   }
-
-  /**
-    * Write the results of inference into the selected output stream.
-    *
-    * @param out Selected output stream (default is console)
-    */
-  def writeResults(out: PrintStream = System.out) {
-    import AtomIdentityFunctionOps._
-
-    implicit val mln: MLN = mrf.mln
-
-    val queryStartID = mln.space.queryStartID
-    val queryEndID = mln.space.queryEndID
-
-    val iterator = mrf.atoms.iterator()
-
-    while (iterator.hasNext) {
-      iterator.advance()
-      val atomID = iterator.key()
-
-      if (atomID >= queryStartID && atomID <= queryEndID) {
-        val groundAtom = iterator.value()
-        val state = if (groundAtom.getState) 1 else 0
-
-        atomID.decodeAtom match {
-          case Success(txtAtom) if outputAll || state == 1 => out.println(txtAtom + " " + state)
-          case Failure(f)                                  => logger.error(s"failed to decode id: $atomID", f)
-        }
-
-      }
-    }
-  }
-
 }

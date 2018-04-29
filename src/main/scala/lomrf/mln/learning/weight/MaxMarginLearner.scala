@@ -272,8 +272,8 @@ final class MaxMarginLearner(mrf: MRF, annotationDB: Map[AtomSignature, AtomEvid
     */
   @inline private def infer() = {
     updateConstraintWeights()
-    val solver = new ILP(mrf, annotationDB = annotationDB, lossAugmented = lossAugmented, ilpSolver = _ilpSolver)
-    solver.infer()
+    val solver = if (lossAugmented) ILP(mrf, _ilpSolver, annotationDB = Some(annotationDB)) else ILP(mrf, _ilpSolver)
+    solver.infer
   }
 
   // Set the annotation as current state and count true groundings

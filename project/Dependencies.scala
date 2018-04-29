@@ -36,6 +36,7 @@ object Dependencies {
     final val Trove4j = "3.0.3"
     final val JTS = "1.14.0"
     final val Scalaxy = "0.3.4"
+    final val Enums = "1.5.13"
 
     final val Optimus = "3.0.0"
     final val Breeze = "0.12"
@@ -74,8 +75,9 @@ object Dependencies {
 
     // Breeze library for efficient numerical processing
     "org.scalanlp" %% "breeze" % v.Breeze,
-    "org.scalanlp" %% "breeze-natives" % v.Breeze
+    "org.scalanlp" %% "breeze-natives" % v.Breeze,
 
+    "com.beachape" %% "enumeratum" % v.Enums
   )
 
   // Optimus library for linear and quadratic optimization
