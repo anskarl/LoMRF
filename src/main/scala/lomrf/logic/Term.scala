@@ -113,8 +113,8 @@ sealed case class Variable(
   /**
     * @return the textual representation of this term.
     */
-  def toText = {
-    val txtSymbol = if (index > 0) symbol + "_" + index else symbol
+  def toText: String = {
+    val txtSymbol = if (index > 0) symbol + "$" + index else symbol
 
     if (groundPerConstant) "+" + txtSymbol else txtSymbol
   }
@@ -278,7 +278,7 @@ sealed case class TermFunction(
   /**
     * @return the textual representation of this term.
     */
-  def toText = {
+  def toText: String = {
     if (terms.isEmpty) symbol + "()"
     else s"$symbol(${terms.map(_.toText).mkString(", ")})"
   }
