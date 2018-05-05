@@ -552,8 +552,8 @@ final class KBParser(
     }
 
   private def neqInfix: Parser[AtomicFormula] =
-    (lowerCaseID | upperCaseID | functionArg) ~ "=" ~ (lowerCaseID | upperCaseID | functionArg) ^^ {
-      case left ~ "!=" ~ right => this.parsePredicate("!equals(" + left + "," + right + ")")
+    (lowerCaseID | upperCaseID | functionArg) ~ "!=" ~ (lowerCaseID | upperCaseID | functionArg) ^^ {
+      case left ~ "!=" ~ right => this.parsePredicate("notEquals(" + left + "," + right + ")")
     }
 
   private def ltInfix: Parser[AtomicFormula] =

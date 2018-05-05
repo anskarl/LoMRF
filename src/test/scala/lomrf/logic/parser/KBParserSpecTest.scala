@@ -57,20 +57,23 @@ final class KBParserSpecTest extends FunSpec with Matchers {
   private val parser = new KBParser(predicateSchema, functionsSchema)
 
   // Dynamic function builders
-  private val functionPlus = DynPlusFunctionBuilder()
-  private val functionMinus = DynMinusFunctionBuilder()
-  private val functionTimes = DynTimesFunctionBuilder()
-  private val functionDiv = DynDividedByFunctionBuilder()
-  private val functionMod = DynModFunctionBuilder()
-  private val functionNext = DynSuccFunctionBuilder()
-  private val functionPrev = DynPrecFunctionBuilder()
+  private val functionPlus = new DynPlusFunctionBuilder
+  private val functionMinus = new DynMinusFunctionBuilder
+  private val functionTimes = new DynTimesFunctionBuilder
+  private val functionDiv = new DynDividedByFunctionBuilder
+  private val functionMod = new DynModFunctionBuilder
+  private val functionNext = new DynSuccFunctionBuilder
+  private val functionPrev = new DynPrecFunctionBuilder
+  private val functionConcat = new DynConcatFunctionBuilder
 
   // Dynamic predicate builders
-  private val equals = DynEqualsBuilder()
-  private val greaterThan = DynGreaterThanBuilder()
-  private val greaterThanEq = DynGreaterThanEqBuilder()
-  private val lessThan = DynLessThanBuilder()
-  private val lessThanEq = DynLessThanEqBuilder()
+  private val equals = new DynEqualsBuilder
+  private val notEquals = new DynNotEqualsBuilder
+  private val greaterThan = new DynGreaterThanBuilder
+  private val greaterThanEq = new DynGreaterThanEqBuilder
+  private val lessThan = new DynLessThanBuilder
+  private val lessThanEq = new DynLessThanEqBuilder
+  private val substring = new DynSubstringBuilder
 
   describe("Atomic formulas") {
 
@@ -435,9 +438,39 @@ final class KBParserSpecTest extends FunSpec with Matchers {
       parsed.functions.size shouldEqual 0
     }
 
-    val dynamicFormula3 = "HoldsAt(f, t) ^ t > 5 ^ t < 24."
+    val dynamicFormula3 = "f != Move"
     it(s"$dynamicFormula3 should be a valid FOL sentence") {
-      val parsed = parser.parseLogicalSentence(dynamicFormula3)
+      val parsed = parser.parsePredicate(dynamicFormula3)
+
+      parsed shouldEqual notEquals(Vector(Variable("f"), Constant("Move")))
+
+      parsed.variables.size shouldEqual 1
+      parsed.constants.size shouldEqual 1
+      parsed.functions.size shouldEqual 0
+    }
+
+
+    val dynamicFormula4 = "HoldsAt(f, t1) ^ HoldsAt(f, t2) ^ t1 != t2."
+    it(s"$dynamicFormula4 should be a valid FOL sentence") {
+      val parsed = parser.parseLogicalSentence(dynamicFormula4)
+
+      parsed shouldEqual
+        WeightedFormula(
+          Double.PositiveInfinity, And(
+            And(
+              AtomicFormula("HoldsAt", Vector(Variable("f", "fluent"), Variable("t1", "time"))),
+              AtomicFormula("HoldsAt", Vector(Variable("f", "fluent"), Variable("t2", "time")))),
+            notEquals(Vector(Variable("t1", "time"), Variable("t2", "time"))))
+        )
+
+      parsed.variables.size shouldEqual 3
+      parsed.constants.size shouldEqual 0
+      parsed.functions.size shouldEqual 0
+    }
+
+    val dynamicFormula5 = "HoldsAt(f, t) ^ t > 5 ^ t < 24."
+    it(s"$dynamicFormula5 should be a valid FOL sentence") {
+      val parsed = parser.parseLogicalSentence(dynamicFormula5)
 
       parsed shouldEqual
         WeightedFormula(
@@ -452,9 +485,9 @@ final class KBParserSpecTest extends FunSpec with Matchers {
       parsed.functions.size shouldEqual 0
     }
 
-    val dynamicFormula4 = "HoldsAt(f, t) ^ t >= 5 ^ t =< 24."
-    it(s"$dynamicFormula4 should be a valid FOL sentence") {
-      val parsed = parser.parseLogicalSentence(dynamicFormula4)
+    val dynamicFormula6 = "HoldsAt(f, t) ^ t >= 5 ^ t =< 24."
+    it(s"$dynamicFormula6 should be a valid FOL sentence") {
+      val parsed = parser.parseLogicalSentence(dynamicFormula6)
 
       parsed shouldEqual
         WeightedFormula(
@@ -469,6 +502,20 @@ final class KBParserSpecTest extends FunSpec with Matchers {
       parsed.functions.size shouldEqual 0
     }
 
+    val dynamicFormula7 = "HoldsAt(f, t) <=> substr(Meet, f)."
+    it(s"$dynamicFormula7 should be a valid FOL sentence") {
+      val parsed = parser.parseLogicalSentence(dynamicFormula7)
+
+      parsed shouldEqual
+        WeightedFormula(
+          Double.PositiveInfinity, Equivalence(
+            AtomicFormula("HoldsAt", Vector(Variable("f", "fluent"), Variable("t", "time"))),
+            substring(Vector(Constant("Meet"), Variable("f", "fluent")))))
+
+      parsed.variables.size shouldEqual 2
+      parsed.constants.size shouldEqual 1
+      parsed.functions.size shouldEqual 0
+    }
   }
 
   describe("Dynamic functions") {
@@ -549,17 +596,34 @@ final class KBParserSpecTest extends FunSpec with Matchers {
 
       parsed shouldEqual
         WeightedFormula(
-          Double.NaN,
-          Equivalence(
+          Double.NaN, Equivalence(
             And(
               AtomicFormula("Initiates", Vector(Variable("e", "event"), Variable("f", "fluent"), Variable("t1", "time"))),
               AtomicFormula("Terminates", Vector(Variable("e", "event"), Variable("f", "fluent"), Variable("t2", "time")))),
             And(Or(
               AtomicFormula("Happens", Vector(Variable("e", "event"), functionDiv(Variable("t1", "time"), Variable("t2", "time"), "time"))),
-              AtomicFormula("Happens", Vector(Variable("e", "event"), functionMod(Variable("t1", "time"), Variable("t2", "time"), "time")))), lessThan(Vector(Variable("t1", "time"), Variable("t2", "time"))))))
+              AtomicFormula("Happens", Vector(Variable("e", "event"), functionMod(Variable("t1", "time"), Variable("t2", "time"), "time")))),
+              lessThan(Vector(Variable("t1", "time"), Variable("t2", "time"))))))
 
       parsed.variables.size shouldEqual 4
       parsed.constants.size shouldEqual 0
+      parsed.functions.size shouldEqual 2
+    }
+
+    val dynamicFormula7 = "HoldsAt(meet(BOB, ALICE), t) <=> Close(concat(B, OB), ALICE, 25, t)"
+    it(s"$dynamicFormula7 should be a valid FOL sentence") {
+      val parsed = parser.parseLogicalSentence(dynamicFormula7)
+
+      parsed shouldEqual
+        WeightedFormula(
+          Double.NaN, Equivalence(
+              AtomicFormula("HoldsAt", Vector(TermFunction("meet", Vector(Constant("BOB"), Constant("ALICE")), "fluent"), Variable("t", "time"))),
+              AtomicFormula("Close", Vector(functionConcat(Constant("B"), Constant("OB"), "id"), Constant("ALICE"), Constant("25"), Variable("t", "time")))
+          )
+        )
+
+      parsed.variables.size shouldEqual 1
+      parsed.constants.size shouldEqual 5
       parsed.functions.size shouldEqual 2
     }
   }

@@ -498,16 +498,28 @@ package object logic {
   object predef {
 
     val dynAtomBuilders: Map[AtomSignature, DynamicAtomBuilder] = List(
-      DynEqualsBuilder(), DynLessThanBuilder(), DynLessThanEqBuilder(),
-      DynGreaterThanBuilder(), DynGreaterThanEqBuilder(), DynSubstringBuilder()).map(builder => builder.signature -> builder).toMap
+      new DynEqualsBuilder,
+      new DynNotEqualsBuilder,
+      new DynLessThanBuilder,
+      new DynLessThanEqBuilder,
+      new DynGreaterThanBuilder,
+      new DynGreaterThanEqBuilder,
+      new DynSubstringBuilder
+    ).map(builder => builder.signature -> builder).toMap
 
     val dynAtoms: Map[AtomSignature, Vector[String] => Boolean] =
       dynAtomBuilders.map { case (signature, builder) => signature -> builder.stateFunction }
 
     val dynFunctionBuilders: Map[AtomSignature, DynamicFunctionBuilder] = List(
-      DynSuccFunctionBuilder(), DynPrecFunctionBuilder(), DynPlusFunctionBuilder(),
-      DynMinusFunctionBuilder(), DynTimesFunctionBuilder(), DynDividedByFunctionBuilder(),
-      DynModFunctionBuilder(), DynConcatFunctionBuilder()).map(builder => builder.signature -> builder).toMap
+      new DynSuccFunctionBuilder,
+      new DynPrecFunctionBuilder,
+      new DynPlusFunctionBuilder,
+      new DynMinusFunctionBuilder,
+      new DynTimesFunctionBuilder,
+      new DynDividedByFunctionBuilder,
+      new DynModFunctionBuilder,
+      new DynConcatFunctionBuilder
+    ).map(builder => builder.signature -> builder).toMap
 
     val dynFunctions: Map[AtomSignature, Vector[String] => String] =
       dynFunctionBuilders.map { case (signature, builder) => signature -> builder.resultFunction }

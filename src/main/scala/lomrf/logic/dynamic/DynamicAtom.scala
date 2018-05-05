@@ -23,7 +23,13 @@ package lomrf.logic.dynamic
 import lomrf.logic.{ Term, AtomicFormula }
 
 /**
+  * Represents a dynamic atom. Dynamic atoms are atomic formulas whose
+  * state is evaluated dynamically according to a state function.
   *
+  * @see [[lomrf.logic.Term]]
+  *
+  * @param symbol dynamic atom symbol
+  * @param terms dynamic atom arguments, i.e., constants, variables or functions
   */
 class DynamicAtom(override val symbol: String, override val terms: Vector[Term]) extends AtomicFormula(symbol, terms) {
   override val isDynamic = true
@@ -36,5 +42,4 @@ object DynamicAtom {
     case DynamicAtom(symbol, terms) => Some((symbol, terms))
     case _                          => None
   }
-
 }
