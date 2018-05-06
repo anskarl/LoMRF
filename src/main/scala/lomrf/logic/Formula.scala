@@ -517,7 +517,7 @@ final case class DefiniteClause(head: AtomicFormula, body: DefiniteClauseConstru
 
   override def getExistentialQuantifiers: List[ExistentialQuantifier] = List[ExistentialQuantifier]()
 
-  override def toCNF(implicit constants: Map[String, ConstantsSet]): Set[Clause] = NormalForm.toCNF(Equivalence(head, body))(constants)
+  override def toCNF(implicit constants: Map[String, ConstantsSet]): Set[Clause] = NormalForm.toCNF(Or(head, Not(body)))(constants)
 
   def toText: String = head.toText + " :- " + body.toText
 
