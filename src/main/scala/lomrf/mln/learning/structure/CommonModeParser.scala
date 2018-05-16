@@ -20,18 +20,19 @@
 
 package lomrf.mln.learning.structure
 
-import scala.util.parsing.combinator.{ RegexParsers, JavaTokenParsers }
+import scala.util.matching.Regex
+import scala.util.parsing.combinator.{JavaTokenParsers, RegexParsers}
 
 /**
   * Regular expressions for mode declaration parser
   */
 trait CommonModeParser extends JavaTokenParsers with RegexParsers {
 
-  protected val arity = """([1-9][0-9]*)""".r
-  protected val recall = """([0]|[1-9][0-9]*|\*)""".r
-  protected val predicate = """([A-Z0-9]([a-zA-Z0-9]|_[a-zA-Z0-9])*)""".r
-  protected val function = """([a-z]([a-zA-Z0-9]|_[a-zA-Z0-9])*)""".r
-  protected val placeMarker = """(#)?(\+|-|\.)""".r
+  protected val arity: Regex = """([1-9][0-9]*)""".r
+  protected val recall: Regex = """([0]|[1-9][0-9]*|\*)""".r
+  protected val predicate: Regex = """([A-Z0-9]([a-zA-Z0-9]|_[a-zA-Z0-9])*)""".r
+  protected val function: Regex = """([a-z]([a-zA-Z0-9]|_[a-zA-Z0-9])*)""".r
+  protected val placeMarker: Regex = """(#)?(n)?(\+|-|\.)""".r
 
-  protected override val whiteSpace = """(\s|//.*\n|(/\*(?:.|[\n\r])*?\*/))+""".r
+  protected override val whiteSpace: Regex = """(\s|//.*\n|(/\*(?:.|[\n\r])*?\*/))+""".r
 }

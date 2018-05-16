@@ -48,6 +48,8 @@ final class ModeParserSpecTest extends FunSpec with Matchers {
     ("modeP(*, M(+, +))", AtomSignature("M", 2), Int.MaxValue, Vector(PM.input, PM.input), noIncompatible),
     ("modeP(2, N(#-, #., #+))", AtomSignature("N", 3), 2, Vector(PM.outputConstant, PM.ignoreConstant, PM.inputConstant), noIncompatible),
     ("modeP(102, O(+, #-, #+))", AtomSignature("O", 3), 102, Vector(PM.input, PM.outputConstant, PM.inputConstant), noIncompatible),
+    ("modeP(8, P(n-))", AtomSignature("P", 1), 8, Vector(PM.outputNumeric), noIncompatible),
+    ("modeP(17, Q(#n+))", AtomSignature("Q", 1), 17, Vector(PM.inputNumericConstant), noIncompatible),
     ("modeF(7, foo(-, .))", AtomSignature(lomrf.AUX_PRED_PREFIX + "foo", 3), 7, Vector(PM.input, PM.output, PM.ignore), noIncompatible),
     ("modeF(*, bar(-))", AtomSignature(lomrf.AUX_PRED_PREFIX + "bar", 2), Int.MaxValue, Vector(PM.input, PM.output), noIncompatible))
 
