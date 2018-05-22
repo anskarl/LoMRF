@@ -24,6 +24,7 @@ import lomrf.logic.{ AtomSignature, Constant, EvidenceAtom, FunctionMapping }
 import lomrf.mln.model.ConstantsSet
 import lomrf.mln.model.builders.EvidenceBuilder
 import org.scalatest.{ FunSpec, Matchers }
+import lomrf.{ AUX_PRED_PREFIX => PREFIX }
 
 final class StructureMetricSpecTest extends FunSpec with Matchers {
 
@@ -188,7 +189,6 @@ final class StructureMetricSpecTest extends FunSpec with Matchers {
           metric.distance(pair.head, pair.last) shouldEqual metric.distance(pair.last, pair.head)
         }
     }
-
   }
 
   describe("Distances over predicates having multiple level functions.") {
@@ -275,18 +275,17 @@ final class StructureMetricSpecTest extends FunSpec with Matchers {
     // Predicate schema
     val predicateSchema = Map(
       AtomSignature("Happens", 2) -> Vector("event", "time"),
-      AtomSignature("AUXavg_speed", 3) -> Vector("event", "id", "speed"))
+      AtomSignature(PREFIX + "avg_speed", 3) -> Vector("event", "id", "speed"))
 
     // Function schema
-    val functionSchema = Map(
-      AtomSignature("avg_speed", 2) -> ("event", Vector("id", "speed")))
+    val functionSchema = Map(AtomSignature("avg_speed", 2) -> ("event", Vector("id", "speed")))
 
     // Constants domain
     val constantsDomain = Map(
-      "event" -> ConstantsSet("AvgSpeed_85_4354"),
+      "event" -> ConstantsSet("AvgSpeed_4354_35", "AvgSpeed_4354_85"),
       "id" -> ConstantsSet("4354"),
-      "speed" -> ConstantsSet("85"),
-      "time" -> ConstantsSet("10", "99"))
+      "speed" -> ConstantsSet("35", "85"),
+      "time" -> ConstantsSet("10", "20", "50"))
 
     // Evidence Builder
     val builder = EvidenceBuilder(
@@ -297,8 +296,9 @@ final class StructureMetricSpecTest extends FunSpec with Matchers {
       constantsDomain,
       convertFunctions = true)
 
-    // Append function mappings for largeBox/2, smallBox/2, tinyBox/1
-    builder.functions += FunctionMapping("AvgSpeed_85_4354", "avg_speed", Vector("4354", "85").map(Constant))
+    // Append function mappings for avg_speed
+    builder.functions += FunctionMapping("AvgSpeed_4354_85", "avg_speed", Vector("4354", "85").map(Constant))
+    builder.functions += FunctionMapping("AvgSpeed_4354_35", "avg_speed", Vector("4354", "35").map(Constant))
 
     val metric = StructureMetric(predicateSchema, builder.result().db)
       .makeNumeric((x: Double, y: Double) => math.abs(x - y) / (x + y), Set("speed"))
@@ -306,14 +306,28 @@ final class StructureMetricSpecTest extends FunSpec with Matchers {
     val predicateA =
       EvidenceAtom.asTrue(
         "Happens",
-        Vector("AvgSpeed_85_4354", "99").map(Constant))
+        Vector("AvgSpeed_4354_85", "10").map(Constant))
 
     val predicateB =
       EvidenceAtom.asTrue(
         "Happens",
-        Vector("AvgSpeed_85_4354", "26").map(Constant))
+        Vector("AvgSpeed_4354_35", "20").map(Constant))
 
-    println(metric.distance(predicateA, predicateB))
+    val predicateC =
+      EvidenceAtom.asTrue(
+        "Happens",
+        Vector("AvgSpeed_4354_85", "50").map(Constant))
 
+    it("Distance of Happens(AvgSpeed_4354_85, 10) to itself should be 0") {
+      metric.distance(predicateA, predicateA) shouldEqual 0
+    }
+
+    it("Distance of Happens(AvgSpeed_4354_85, 10) to Happens(AvgSpeed_4354_35, 20) should be 0.276") {
+      metric.distance(predicateA, predicateB) shouldEqual 0.276 +- 10E-3
+    }
+
+    it("Distance of Happens(AvgSpeed_4354_85, 10) to Happens(AvgSpeed_4354_85, 50) should be 0.25") {
+      metric.distance(predicateA, predicateC) shouldEqual 0.25
+    }
   }
 }

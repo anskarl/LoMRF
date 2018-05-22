@@ -46,7 +46,7 @@ trait Metric[A <: AtomicFormula] {
 
   /**
     * Distance over sequences of atoms. The function requires a matcher over double
-    * numbers in order to find an assignment between individual evidence atoms.
+    * numbers in order to find an assignment between individual atoms.
     *
     * @see [[lomrf.mln.learning.supervision.metric.Matcher]]
     * @param xAtomSeq a sequence of atoms
