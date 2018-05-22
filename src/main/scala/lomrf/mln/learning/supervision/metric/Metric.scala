@@ -20,16 +20,16 @@
 
 package lomrf.mln.learning.supervision.metric
 
-import lomrf.logic.EvidenceAtom
+import lomrf.logic.AtomicFormula
 
 /**
-  * A metric is defined by a distance function over individual evidence atoms and
-  * distance over sequences of evidence atoms by specifying a matcher function.
+  * A metric is defined by a distance function over individual atoms and
+  * distance over sequences of atoms by specifying a matcher function.
   */
-trait Metric {
+trait Metric[A <: AtomicFormula] {
 
   /**
-    * Distance for ground evidence atoms. The function must obey to the following properties:
+    * Distance for atoms. The function must obey to the following properties:
     *
     * {{{
     * 1. d(x, y) >= 0 for all x, y and d(x, y) = 0 if and only if x = y
@@ -37,26 +37,26 @@ trait Metric {
     * 3. d(x, y) + d(y, z) >= d(x, z) for all x, y, z (triangle inequality)
     * }}}
     *
-    * @see [[lomrf.logic.EvidenceAtom]]
-    * @param xAtom an evidence atom
-    * @param yAtom another evidence atom
-    * @return a distance for the given evidence atoms
+    * @see [[lomrf.logic.AtomicFormula]]
+    * @param xAtom an atom
+    * @param yAtom another atom
+    * @return a distance for the given atoms
     */
-  def distance(xAtom: EvidenceAtom, yAtom: EvidenceAtom): Double
+  def distance(xAtom: A, yAtom: A): Double
 
   /**
-    * Distance over sequences of evidence atoms. The function requires a matcher over double
+    * Distance over sequences of atoms. The function requires a matcher over double
     * numbers in order to find an assignment between individual evidence atoms.
     *
     * @see [[lomrf.mln.learning.supervision.metric.Matcher]]
-    * @param xAtomSeq a sequence of evidence atoms
-    * @param yAtomSeq another sequence of evidence atoms
+    * @param xAtomSeq a sequence of atoms
+    * @param yAtomSeq another sequence of atoms
     * @param matcher a matcher function for the assignment problem
-    * @return a distance for the given sequences of evidence atoms
+    * @return a distance for the given sequences of atoms
     */
   final def distance(
-      xAtomSeq: IndexedSeq[EvidenceAtom],
-      yAtomSeq: IndexedSeq[EvidenceAtom],
+      xAtomSeq: IndexedSeq[A],
+      yAtomSeq: IndexedSeq[A],
       matcher: Matcher[Double]): Double = matcher {
     xAtomSeq map (x => yAtomSeq map (y => distance(x, y)))
   }

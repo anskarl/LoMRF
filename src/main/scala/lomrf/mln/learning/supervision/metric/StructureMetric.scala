@@ -24,7 +24,7 @@ import lomrf.logic.{ Constant, EvidenceAtom }
 import lomrf.mln.model.{ EvidenceDB, MLN, PredicateSchema }
 
 /**
-  * A structural metric space is a measure of distance for herbrand interpretations. Such a measure
+  * A structural metric space is a measure of distance for logical interpretations. Such a measure
   * enables the calculation of distances based on the structural similarity of atoms. Moreover, it can
   * be extended given a numerical function for calculating numerical distances over specific domains.
   *
@@ -56,7 +56,7 @@ final class StructureMetric private (
     predicateSchema: PredicateSchema,
     auxConstructs: Map[Constant, AuxConstruct],
     numericDistance: Option[(Double, Double) => Double] = None,
-    numericDomains: Option[Set[String]] = None) extends Metric {
+    numericDomains: Option[Set[String]] = None) extends Metric[EvidenceAtom] {
 
   /**
     * Distance for ground evidence atoms. The function must obey to the following properties:
@@ -73,24 +73,22 @@ final class StructureMetric private (
     * @return a distance for the given evidence atoms
     */
   override def distance(xAtom: EvidenceAtom, yAtom: EvidenceAtom): Double =
-    if (xAtom.state != yAtom.state || xAtom.symbol != yAtom.symbol) 1D
-    else distance(xAtom.terms, yAtom.terms, predicateSchema.get(xAtom.signature))
+    if (xAtom.state != yAtom.state || xAtom.symbol != yAtom.symbol) 1
+    else constantSeqDistance(xAtom.terms, yAtom.terms, predicateSchema.get(xAtom.signature))
 
   /**
-    * Distance for auxiliary predicates.
+    * Distance for auxiliary predicates, e.g., functions.
     *
     * @see [[lomrf.mln.learning.supervision.metric.AuxConstruct]]
     * @param xConstruct an auxiliary predicate
     * @param yConstruct another auxiliary predicate
     * @return a distance in the interval [0, 1] for the given auxiliary predicates.
     */
-  @inline private def distance(xConstruct: AuxConstruct, yConstruct: AuxConstruct): Double =
-    if (xConstruct.signature != yConstruct.signature) 1D
+  @inline private def functionDistance(xConstruct: AuxConstruct, yConstruct: AuxConstruct): Double =
+    if (xConstruct.signature != yConstruct.signature) 1
     else predicateSchema.get(xConstruct.signature) match {
-      case Some(domains) =>
-        distance(xConstruct.constants, yConstruct.constants, Some(domains.tail))
-      case None =>
-        distance(xConstruct.constants, yConstruct.constants, None)
+      case Some(domains) => constantSeqDistance(xConstruct.constants, yConstruct.constants, Some(domains.tail))
+      case None => constantSeqDistance(xConstruct.constants, yConstruct.constants, None)
     }
 
   /**
@@ -100,16 +98,16 @@ final class StructureMetric private (
     * @param constantSeqB another constant sequence
     * @return a distance in the interval [0, 1] for the given constant sequences
     */
-  @inline private def distance(
+  @inline private def constantSeqDistance(
       constantSeqA: IndexedSeq[Constant],
       constantSeqB: IndexedSeq[Constant],
       domains: Option[Seq[String]]): Double = domains match {
     case None => (constantSeqA zip constantSeqB)
-      .map { case (a, b) => distance(a, b) }.sum / (2d * constantSeqA.length)
+      .map { case (a, b) => constantDistance(a, b) }.sum / (2d * constantSeqA.length)
 
     case Some(domainSeq) =>
       (constantSeqA zip constantSeqB zip domainSeq.map(numericDomains.getOrElse(Set.empty).contains))
-        .map { case ((a, b), isNumeric) => distance(a, b, isNumeric) }.sum / (2d * constantSeqA.length)
+        .map { case ((a, b), isNumeric) => constantDistance(a, b, isNumeric) }.sum / (2d * constantSeqA.length)
   }
 
   /**
@@ -123,12 +121,12 @@ final class StructureMetric private (
     * @return a distance in the interval [0, 1] for the given constants. If constants are identical
     *         the distance is 0, else is 1.
     */
-  @inline private def distance(xConstant: Constant, yConstant: Constant, isNumeric: Boolean = false): Double =
+  @inline private def constantDistance(xConstant: Constant, yConstant: Constant, isNumeric: Boolean = false): Double =
     (auxConstructs.get(xConstant), auxConstructs.get(yConstant)) match {
-      case (Some(functionA), Some(functionB)) => distance(functionA, functionB)
+      case (Some(functionA), Some(functionB)) => functionDistance(functionA, functionB)
       case _ if numericDistance.isDefined && isNumeric && xConstant.symbol.matches("-?\\d+") =>
         numericDistance.get(xConstant.symbol.toDouble, yConstant.symbol.toDouble)
-      case _ => if (xConstant == yConstant) 0.0 else 1.0
+      case _ => if (xConstant == yConstant) 0 else 1
     }
 
   /**
