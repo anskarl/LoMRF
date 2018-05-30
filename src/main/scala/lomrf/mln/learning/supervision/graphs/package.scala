@@ -47,8 +47,8 @@ package object graphs {
     * @param delta delta parameter (default is 0.0001)
     * @return true in case the bound is satisfied, else false
     */
-  private[graphs] def HoeffdingBound(x: Double, y: Double, N: Int, delta: Double = 0.0001) =
-    math.abs(x - y) > math.sqrt(math.log(1 / delta) / (2 * N))
+  private[graphs] def HoeffdingBound(x: Double, y: Double, N: Int, delta: Double = 0.0001): Boolean =
+    math.abs(x - y) > math.sqrt(math.log(2 / delta) / (2 * N))
 
   /**
     * Produce a clause given a sequence of evidence atoms.
