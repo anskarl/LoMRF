@@ -88,7 +88,7 @@ final class StructureMetric private (
     if (xConstruct.signature != yConstruct.signature) 1
     else predicateSchema.get(xConstruct.signature) match {
       case Some(domains) => constantSeqDistance(xConstruct.constants, yConstruct.constants, Some(domains.tail))
-      case None => constantSeqDistance(xConstruct.constants, yConstruct.constants, None)
+      case None          => constantSeqDistance(xConstruct.constants, yConstruct.constants, None)
     }
 
   /**

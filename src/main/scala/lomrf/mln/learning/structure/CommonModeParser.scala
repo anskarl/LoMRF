@@ -21,7 +21,7 @@
 package lomrf.mln.learning.structure
 
 import scala.util.matching.Regex
-import scala.util.parsing.combinator.{JavaTokenParsers, RegexParsers}
+import scala.util.parsing.combinator.{ JavaTokenParsers, RegexParsers }
 
 /**
   * Regular expressions for mode declaration parser

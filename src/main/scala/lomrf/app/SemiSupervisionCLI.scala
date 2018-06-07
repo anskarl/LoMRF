@@ -263,7 +263,7 @@ object SemiSupervisionCLI extends CLIApp {
       val inputStream = Source.fromFile(currentTrainingFile)
       inputStream.getLines.filter { line =>
         _nonEvidenceAtoms.map(_.symbol).forall(!line.contains(_)) && line.nonEmpty
-      }.foreach(completedBatch.println(_))
+      }.foreach(completedBatch.println)
       inputStream.close()
 
       completedBatch.println("\n// Completed supervision")
@@ -288,7 +288,7 @@ object SemiSupervisionCLI extends CLIApp {
                 case Failure(exception) => throw exception
                 case _                  => None
               }
-            }.sortWith(NaturalComparator.compareBool).foreach(completedBatch.println(_))
+            }.sortWith(NaturalComparator.compareBool).foreach(completedBatch.println)
 
             // TODO negatives are too many, should be removed
             completedBatch.println(s"// Negatives for $signature")
@@ -300,7 +300,7 @@ object SemiSupervisionCLI extends CLIApp {
                 case Failure(exception) => throw exception
                 case _                  => None
               }
-            }.sortWith(NaturalComparator.compareBool).foreach(completedBatch.println(_))
+            }.sortWith(NaturalComparator.compareBool).foreach(completedBatch.println)
 
         }
       }
