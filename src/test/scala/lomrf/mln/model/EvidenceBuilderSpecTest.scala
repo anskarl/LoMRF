@@ -22,11 +22,15 @@ package lomrf.mln.model
 
 import lomrf.logic._
 import lomrf.logic.AtomSignatureOps._
-import lomrf.mln.model.AtomIdentityFunction
-import org.scalatest.{ Matchers, FunSpec }
-import LogicImplicits._
+import org.scalatest.{ FunSpec, Matchers }
+
+import scala.language.implicitConversions
 
 class EvidenceBuilderSpecTest extends FunSpec with Matchers {
+
+  implicit def str2Constant(symbol: String): Constant = Constant(symbol)
+
+  implicit def const2String(constant: Constant): String = constant.symbol
 
   // ------------------------------------------------------------------------------------------------------------------
   // --- CONSTANTS

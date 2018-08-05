@@ -28,8 +28,7 @@ import gnu.trove.set.TIntSet
 
 import scala.collection.mutable
 import scala.reflect._
-import scalaxy.streams.optimize
-
+import spire.syntax.cfor._
 import scala.language.implicitConversions
 
 package object util {
@@ -56,9 +55,7 @@ package object util {
       val position = idx - sum
       val iterator = elements(segIndex).iterator()
 
-      optimize {
-        for (i <- 0 until position) iterator.next()
-      }
+      cfor(0)(_ < position, _ + 1){ i: Int => iterator.next() }
 
       iterator.next()
     }
@@ -83,9 +80,7 @@ package object util {
       val position = idx - sum
       val iterator = elements(segIndex).iterator()
 
-      optimize {
-        for (i <- 0 to position) iterator.advance()
-      }
+      cfor(0)(_ <= position, _ + 1){ i: Int => iterator.advance() }
 
       iterator.key()
     }
@@ -110,9 +105,7 @@ package object util {
       val position = idx - sum
       val iterator = elements(segIndex).iterator()
 
-      optimize {
-        for (i <- 0 to position) iterator.advance()
-      }
+      cfor(0)(_ < position, _ + 1){ i: Int => iterator.advance() }
 
       (iterator.key(), iterator.value())
     }
@@ -160,7 +153,8 @@ package object util {
       *
       * @return the converted time until now along with the given message
       */
-    def msecTimeToTextUntilNow(msg: String, fromTime: Long) = msg + " = " + msecTimeToText(System.currentTimeMillis - fromTime)
+    def msecTimeToTextUntilNow(msg: String, fromTime: Long): String =
+      msg + " = " + msecTimeToText(System.currentTimeMillis - fromTime)
 
     /**
       * Calculates the actual time in hours, minutes, seconds and milliseconds until now
@@ -170,7 +164,8 @@ package object util {
       *
       * @return the converted time until now
       */
-    def msecTimeToTextUntilNow(fromTime: Long) = msecTimeToText(System.currentTimeMillis - fromTime)
+    def msecTimeToTextUntilNow(fromTime: Long): String =
+      msecTimeToText(System.currentTimeMillis - fromTime)
 
     /**
       * Calculates the actual time in seconds, milliseconds and nanoseconds given the
@@ -181,7 +176,8 @@ package object util {
       *
       * @return the converted time along with the given message
       */
-    def nsecTimeToText(msg: String, nanoseconds: Long): String = msg + " = " + nsecTimeToText(nanoseconds)
+    def nsecTimeToText(msg: String, nanoseconds: Long): String =
+      msg + " = " + nsecTimeToText(nanoseconds)
 
     /**
       * Calculates the actual time in seconds, milliseconds and nanoseconds given the
@@ -210,16 +206,18 @@ package object util {
       * @tparam T the type of the result when executing
       * @return a tuple: (total execution time, result)
       */
-    def measureTime[T](body: => T)(implicit granularity: TimeGranularity = TimeGranularity.Millisecond) = granularity match {
-      case TimeGranularity.Millisecond =>
-        val begin = System.currentTimeMillis
-        val result = body
-        (System.currentTimeMillis - begin, result)
+    def measureTime[T](body: => T)(implicit granularity: TimeGranularity = TimeGranularity.Millisecond): (Long, T) = {
+      granularity match {
+        case TimeGranularity.Millisecond =>
+          val begin = System.currentTimeMillis
+          val result = body
+          (System.currentTimeMillis - begin, result)
 
-      case TimeGranularity.Nanosecond =>
-        val begin = System.nanoTime()
-        val result = body
-        (System.nanoTime() - begin, result)
+        case TimeGranularity.Nanosecond =>
+          val begin = System.nanoTime()
+          val result = body
+          (System.nanoTime() - begin, result)
+      }
     }
   }
 

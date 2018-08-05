@@ -26,7 +26,7 @@ import lomrf.mln.learning.structure.ClauseConstructor.ClauseType.ClauseType
 import lomrf.mln.learning.structure.hypergraph.HPath
 import lomrf.mln.model._
 import scala.util.{ Success, Failure, Try }
-import scalaxy.streams._
+import spire.syntax.cfor._
 
 /**
   * Clause constructor provides various methods for constructing clauses.
@@ -348,16 +348,14 @@ object ClauseConstructor {
           val placeMarkers = modes(signature).placeMarkers
           var terms = Vector.empty[Term]
 
-          optimize {
-            for (i <- constants.indices) {
-              val constant = constants(i)
-              if (placeMarkers(i).constant) terms :+= Constant(constant)
-              else if (constantsToVar.contains(constant)) terms :+= constantsToVar(constant)
-              else {
-                val variable = Variable(s"x${constantsToVar.size}", schema(i))
-                constantsToVar += constant -> variable
-                terms :+= variable
-              }
+          cfor(0) (_ <= constants.length, _ + 1) { i: Int =>
+            val constant = constants(i)
+            if (placeMarkers(i).constant) terms :+= Constant(constant)
+            else if (constantsToVar.contains(constant)) terms :+= constantsToVar(constant)
+            else {
+              val variable = Variable(s"x${constantsToVar.size}", schema(i))
+              constantsToVar += constant -> variable
+              terms :+= variable
             }
           }
 
@@ -438,16 +436,14 @@ object ClauseConstructor {
           val placeMarkers = modes(signature).placeMarkers
           var terms = Vector[Term]()
 
-          optimize {
-            for (i <- constants.indices) {
-              val constant = constants(i)
-              if (placeMarkers(i).constant) terms :+= Constant(constant)
-              else if (constantsToVar.contains(constant)) terms :+= constantsToVar(constant)
-              else {
-                val variable = Variable(s"x${constantsToVar.size}", schema(i))
-                constantsToVar += constant -> variable
-                terms :+= variable
-              }
+          cfor (0)(_ < constants.length, _ + 1) { i: Int =>
+            val constant = constants(i)
+            if (placeMarkers(i).constant) terms :+= Constant(constant)
+            else if (constantsToVar.contains(constant)) terms :+= constantsToVar(constant)
+            else {
+              val variable = Variable(s"x${constantsToVar.size}", schema(i))
+              constantsToVar += constant -> variable
+              terms :+= variable
             }
           }
 

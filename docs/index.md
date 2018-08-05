@@ -53,7 +53,7 @@ See [Build and Link LoMRF](7_1_build_and_link_lomrf.md).
     - [Temporal Weight Learning Examples](3_2_temporal_weight_learning_examples.md)
   - [Structure Learning](4_structure_learning.md)
     - [Structure Learning Examples](4_1_structure_learning_examples.md)
-  - [Supervision Completion](_5_supervision_completion.md)
+  - [Supervision Completion](5_supervision_completion.md)
   - [CLI Tools](6_tools.md)
   - [Build from source](7_build_test_lomrf.md)
     - [Build and Link](7_1_build_and_link_lomrf.md)

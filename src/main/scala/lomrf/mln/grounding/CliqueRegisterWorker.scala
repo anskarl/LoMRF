@@ -31,7 +31,7 @@ import lomrf._
 import lomrf.util.collection.IndexPartitioned
 import lomrf.util.logging.Implicits._
 import scala.language.postfixOps
-import scalaxy.streams.optimize
+import spire.syntax.cfor._
 
 /**
   * CliqueRegisterWorker stores a partition of ground clauses that result from grounding workers.
@@ -196,10 +196,15 @@ final class CliqueRegisterWorker private (
       logger.error(s"CliqueRegister[$index] received an unknown message '$msg' from ${sender()}")
   }
 
-  private def registerAtoms(variables: Array[Int], cliqueID: Int): Unit = optimize {
+  private def registerAtoms(variables: Array[Int], cliqueID: Int): Unit = {
     // Register (atomID -> cliqueID) mappings
-    for (variable <- variables; atomID = math.abs(variable))
+    cfor(0)(_ < variables.length, _ + 1){ i: Int =>
+
+      val variable = variables(i)
+      val atomID = math.abs(variable)
+
       atomRegisters(atomID) ! RegisterAtom(atomID, cliqueID)
+    }
   }
 
   /**

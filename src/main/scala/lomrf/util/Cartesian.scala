@@ -26,8 +26,8 @@ import lomrf.logic.Variable
 import lomrf.mln.model.ConstantsSet
 
 import scala.{ collection => scol }
-import scalaxy.streams.optimize
 import scala.language.postfixOps
+import spire.syntax.cfor._
 
 object Cartesian {
 
@@ -90,11 +90,9 @@ object Cartesian {
           currentIterator = iterators(idx)
           if (currentIterator.hasNext) {
 
-            optimize {
-              for (i <- 0 until idx) {
-                iterators(i) = sets(i).iterator
-                elements(i) = iterators(i).next()
-              }
+            cfor(0)(_ < idx, _ + 1) { i: Int =>
+              iterators(i) = sets(i).iterator
+              elements(i) = iterators(i).next()
             }
 
             elements(idx) = currentIterator.next()
@@ -186,7 +184,7 @@ object Cartesian {
     private val elements = util.Arrays.copyOf(lengths, lengths.length)
     private var has_next = true
 
-    def hasNext = has_next
+    def hasNext: Boolean = has_next
 
     def next(): Array[Int] = {
       val result = new Array[Int](elements.length)

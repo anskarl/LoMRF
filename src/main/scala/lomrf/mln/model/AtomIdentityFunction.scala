@@ -25,7 +25,7 @@ import lomrf.mln.model.mrf.Constraint
 
 import scala.collection.mutable
 import scala.util.{ Failure, Success, Try }
-import scalaxy.streams.optimize
+import spire.syntax.cfor._
 
 /**
   * The AtomIdentityFunction represents a bijection between the groundings of an atom and  integer numbers. It is
@@ -275,19 +275,17 @@ final class AtomIdentityFunction private (
     var iteratorsMap = mutable.Map[Int, Iterator[Int]]()
     val values = new Array[Int](length)
 
-    optimize {
-      for (idx <- 0 until length) {
-        val constantSet = constantsAndStep(idx)._1
-        val symbol = constantsAndStep(idx)._4
-        query.get(symbol) match {
-          case Some(constantValue) => values(idx) = constantSet(constantValue)
-          case None =>
-            val range = constantSet.idsRange
-            val iterator = range.iterator
-            rangesMap += (idx -> range)
-            iteratorsMap += (idx -> iterator)
-            values(idx) = iterator.next()
-        }
+    cfor(0)(_ < length, _ + 1) { idx: Int =>
+      val constantSet = constantsAndStep(idx)._1
+      val symbol = constantsAndStep(idx)._4
+      query.get(symbol) match {
+        case Some(constantValue) => values(idx) = constantSet(constantValue)
+        case None =>
+          val range = constantSet.idsRange
+          val iterator = range.iterator
+          rangesMap += (idx -> range)
+          iteratorsMap += (idx -> iterator)
+          values(idx) = iterator.next()
       }
     }
 
@@ -295,8 +293,6 @@ final class AtomIdentityFunction private (
   }
 
   private class MatchingIDsIterator(rangesMap: Map[Int, Range], iteratorsMap: mutable.Map[Int, Iterator[Int]], values: Array[Int]) extends Iterator[Int] {
-
-    import scalaxy.streams.optimize
 
     private val _length = rangesMap.map(_._2.size).product
     private var counter = 0
@@ -311,29 +307,27 @@ final class AtomIdentityFunction private (
     def next(): Int = {
       if (counter < _length) {
         sum = startID
-        optimize {
-          for (idx <- 0 until values.length) {
 
-            //1. encode
-            val constantID = values(idx)
-            val step = constantsAndStep(idx)._2
-            val offset = constantID * step
-            sum += (offset + constantID)
+        cfor(0) (_ < values.length, _ + 1) { idx: Int =>
 
-            //2. advance
-            iteratorsMap.get(idx) match {
-              case Some(currentIter) =>
-                values(idx) =
-                  if (currentIter.hasNext) {
-                    currentIter.next()
-                  } else {
-                    val nouvaIter = rangesMap(idx).iterator
-                    iteratorsMap(idx) = nouvaIter
-                    nouvaIter.next()
-                  }
-              case _ => //do nothing
-            }
+          //1. encode
+          val constantID = values(idx)
+          val step = constantsAndStep(idx)._2
+          val offset = constantID * step
+          sum += (offset + constantID)
 
+          //2. advance
+          iteratorsMap.get(idx) match {
+            case Some(currentIter) =>
+              values(idx) =
+                if (currentIter.hasNext) {
+                  currentIter.next()
+                } else {
+                  val nouvaIter = rangesMap(idx).iterator
+                  iteratorsMap(idx) = nouvaIter
+                  nouvaIter.next()
+                }
+            case _ => //do nothing
           }
         }
         counter += 1
@@ -419,12 +413,13 @@ object AtomIdentityFunction {
       buffer.append(' ')
     }
 
-    optimize {
-      for (i <- 0 until feature.literals.length; tryLiteral = decodeLiteral(feature.literals(i))) tryLiteral match {
+    cfor(0) (_ < feature.literals.length, _ + 1) { i: Int =>
+      val tryLiteral = decodeLiteral(feature.literals(i))
+
+      tryLiteral match {
         case Success(litTXT) =>
           buffer.append(litTXT)
           if (i != feature.literals.length - 1) buffer.append(" v ")
-
         case f: Failure[String] => return f
       }
     }
@@ -439,9 +434,9 @@ object AtomIdentityFunctionOps {
 
   implicit class WrappedGroundLiteral(val literal: Int) extends AnyVal {
 
-    def decodeLiteral(implicit mln: MLN) = AtomIdentityFunction.decodeLiteral(literal)
+    def decodeLiteral(implicit mln: MLN): Try[String] = AtomIdentityFunction.decodeLiteral(literal)
 
-    def decodeAtom(implicit mln: MLN) = AtomIdentityFunction.decodeAtom(literal)
+    def decodeAtom(implicit mln: MLN): Try[String] = AtomIdentityFunction.decodeAtom(literal)
 
   }
 

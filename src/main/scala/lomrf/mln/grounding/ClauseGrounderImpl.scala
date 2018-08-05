@@ -33,7 +33,7 @@ import lomrf.util.Cartesian
 
 import scala.collection._
 import scala.language.postfixOps
-import scalaxy.streams.optimize
+import spire.syntax.cfor._
 import lomrf.mln.model.AtomIdentityFunctionOps._
 import lomrf.util.logging.Implicits._
 
@@ -175,21 +175,19 @@ class ClauseGrounderImpl(
           var owaIdx = 0
           val cliqueVariables = new Array[Int](idx - ignoredVars)
 
-          optimize {
-            for (i <- 0 until idx) {
-              val currentAtomID = currentVariables(i)
-              if (currentAtomID > 0) {
+          cfor(0)(_ < idx, _ + 1) { i: Int =>
+            val currentAtomID = currentVariables(i)
+            if (currentAtomID > 0) {
 
-                cliqueVariables(owaIdx) = if (owaLiterals(i).isPositive) currentAtomID else -currentAtomID
+              cliqueVariables(owaIdx) = if (owaLiterals(i).isPositive) currentAtomID else -currentAtomID
 
-                // Examine whether the current literal is included to the atomsDB. If it isn't,
-                // the current clause will be omitted from the MRF
-                val atomsDBSegment = atomsDB(currentAtomID)
-                if (!canSend && (atomsDBSegment ne null)) canSend = atomsDBSegment.contains(currentAtomID)
-                else if (atomsDBSegment eq null) canSend = true // this case happens only for Query literals
+              // Examine whether the current literal is included to the atomsDB. If it isn't,
+              // the current clause will be omitted from the MRF
+              val atomsDBSegment = atomsDB(currentAtomID)
+              if (!canSend && (atomsDBSegment ne null)) canSend = atomsDBSegment.contains(currentAtomID)
+              else if (atomsDBSegment eq null) canSend = true // this case happens only for Query literals
 
-                owaIdx += 1
-              }
+              owaIdx += 1
             }
           }
 

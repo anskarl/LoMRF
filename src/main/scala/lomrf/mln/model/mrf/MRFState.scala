@@ -25,6 +25,7 @@ import java.util.concurrent.ThreadLocalRandom
 import java.util.concurrent.atomic.AtomicBoolean
 
 import com.typesafe.scalalogging.LazyLogging
+import gnu.trove.iterator.TIntObjectIterator
 import gnu.trove.list.array.TIntArrayList
 import gnu.trove.map.hash.TIntIntHashMap
 import lomrf.logic.TRUE
@@ -35,7 +36,7 @@ import scala.collection.mutable
 import scala.collection.parallel.mutable.ParArray
 import scala.util.{ Failure, Success }
 import lomrf.logic.AtomSignatureOps._
-import scalaxy.streams.optimize
+import spire.syntax.cfor._
 
 /**
   * This class represents the MRF state.
@@ -259,14 +260,13 @@ final class MRFState private (
 
     var countNeg = 0
 
-    optimize {
-      for (i <- 0 until unsatisfied)
-        if (Unsatisfied(i).getWeight < 0) countNeg += 1
+    cfor(0) (_ < unsatisfied, _ + 1){ i: Int =>
+      if (Unsatisfied(i).getWeight < 0) countNeg += 1
     }
 
     var likelihood, likelihoodUB = ZERO
 
-    val iterator = mrf.constraints.iterator()
+    val iterator: TIntObjectIterator[Constraint] = mrf.constraints.iterator()
 
     while (iterator.hasNext) {
       iterator.advance()
@@ -415,9 +415,10 @@ final class MRFState private (
     while (nIterator.hasNext) {
       nIterator.advance()
       val constraint = nIterator.value()
-      if (!constraint.inactive && !constraint.isPositive && !constraint.isSatisfiedByFixed) optimize {
-        for (i <- constraint.literals.indices)
+      if (!constraint.inactive && !constraint.isPositive && !constraint.isSatisfiedByFixed) {
+        cfor(0) (_ < constraint.literals.length, _ + 1) { i: Int =>
           fixAtom(math.abs(constraint.literals(i)), constraint.literals(i) < 0)
+        }
       }
     }
 
@@ -426,14 +427,10 @@ final class MRFState private (
     val done = new AtomicBoolean(false)
 
     while (!done.get()) {
-      //done = true
+
       done.set(true)
       parConstraints.foreach { constraint =>
-        /*val pIterator = mrf.constraints.iterator()
 
-        while (pIterator.hasNext) {
-          pIterator.advance()
-          val constraint = pIterator.value()*/
         if (!constraint.inactive && constraint.isPositive && !constraint.isSatisfiedByFixed) {
 
           var numOfNonFixedAtoms = 0
@@ -460,7 +457,6 @@ final class MRFState private (
           if (isSat) constraint.isSatisfiedByFixed = true
           else if (numOfNonFixedAtoms == 1) {
             fixAtom(math.abs(nonFixedLiteral), nonFixedLiteral > 0)
-            //done = false
             done.set(false)
           }
         }

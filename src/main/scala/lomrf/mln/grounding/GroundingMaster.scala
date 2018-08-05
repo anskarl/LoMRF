@@ -33,7 +33,7 @@ import lomrf.mln.model.MLN
 import lomrf.util.collection.IndexPartitioned
 import lomrf.util.logging.Implicits._
 import lomrf.util.collection.mutable.{ IndexPartitioned => MPartitionedData }
-import scalaxy.streams.optimize
+import spire.syntax.cfor._
 
 /**
   * GroundingMaster orchestrates the grounding procedure, i.e., the procedure in which an MLN theory is translated to a
@@ -69,28 +69,32 @@ final class GroundingMaster(
       * Partitioned Map that associates variables (i.e., ground atoms) with the set of cliques (i.e., ground clauses) that
       * they appear. Variables and cliques are represented by their unique ID (integer number).
       */
-    val variables2Cliques = MPartitionedData[TIntObjectMap[TIntHashSet]](nPar)
+    val variables2Cliques: MPartitionedData[TIntObjectMap[TIntHashSet]] =
+      MPartitionedData[TIntObjectMap[TIntHashSet]](nPar)
 
     /**
       * Partitioned Map that associates clique IDs with CliqueEntries (object representing a clique --- i.e., ground clause)
       */
-    val cliques = MPartitionedData[TIntObjectMap[CliqueEntry]](nPar)
+    val cliques: MPartitionedData[TIntObjectMap[CliqueEntry]] =
+      MPartitionedData[TIntObjectMap[CliqueEntry]](nPar)
 
     /**
       * Partitioned Set of collected query variable IDs (i.e., ground query atoms)
       */
-    val queryAtomIDs = MPartitionedData[TIntSet](nPar)
+    val queryAtomIDs: MPartitionedData[TIntSet] =
+      MPartitionedData[TIntSet](nPar)
 
     /**
       * Partitioned Set of collected variable IDs (i.e., ground atoms)
       */
-    val atomsDB = MPartitionedData[TIntSet](nPar)
+    val atomsDB: MPartitionedData[TIntSet] =
+      MPartitionedData[TIntSet](nPar)
 
     /**
       * Partitioned Map that represents the relations between FOL clauses and their groundings. It is useful for
       * Machine Learning
       */
-    lazy val dependencyMap = MPartitionedData[DependencyMap](nPar)
+    lazy val dependencyMap: MPartitionedData[DependencyMap] = MPartitionedData[DependencyMap](nPar)
   }
 
   /**
@@ -259,26 +263,25 @@ final class GroundingMaster(
     // reset the global clause counter
     clauseCounter = 0
 
-    optimize {
-      for ((clause, clauseIndex) <- remainingClauses) {
+    cfor(0)(_ < remainingClauses.size, _ + 1){ i: Int =>
+      val (clause, clauseIndex) = remainingClauses(i)
 
-        // - When the signature of at least one literal is included in the collection of atom signatures (see the
-        // var atomSignatures), then this clause is send for grounding.
-        // - Otherwise, add the current clause to the collection of remaining clauses to be considered for grounding
-        // in the next call for grounding
-        if (clause.literals.exists(literal => atomSignatures.contains(literal.sentence.signature))) {
+      // - When the signature of at least one literal is included in the collection of atom signatures (see the
+      // var atomSignatures), then this clause is send for grounding.
+      // - Otherwise, add the current clause to the collection of remaining clauses to be considered for grounding
+      // in the next call for grounding
+      if (clause.literals.exists(literal => atomSignatures.contains(literal.sentence.signature))) {
 
-          // send the clause to the corresponding worker
-          clauseGroundingWorkers.partition(workerIdx) ! Ground(clause, clauseIndex, atomSignatures, partitioned.atomsDB)
+        // send the clause to the corresponding worker
+        clauseGroundingWorkers.partition(workerIdx) ! Ground(clause, clauseIndex, atomSignatures, partitioned.atomsDB)
 
-          // reset the index to position zero when the worker index is pointing to the last worker,
-          // otherwise increment by one
-          workerIdx = if (workerIdx == clauseGroundingWorkers.size - 1) 0 else workerIdx + 1
+        // reset the index to position zero when the worker index is pointing to the last worker,
+        // otherwise increment by one
+        workerIdx = if (workerIdx == clauseGroundingWorkers.size - 1) 0 else workerIdx + 1
 
-          // increment the number of clauses being send for grounding
-          counter += 1
-        } else remaining :+= (clause, clauseIndex)
-      }
+        // increment the number of clauses being send for grounding
+        counter += 1
+      } else remaining :+= (clause, clauseIndex)
     }
 
     logger.debug(s"(MASTER) Grounding iteration $groundingIterations --- total $counter clause(s) selected to ground.")
@@ -339,7 +342,7 @@ final class GroundingMaster(
 
       // When clauses of the current batch are all grounded inform all atom register workers that this iteration
       // is completed, in order to send back the CollectedAtomIDs
-      if (clauseCounter == clausesBatchSize) optimize {
+      if (clauseCounter == clausesBatchSize) {
         //atomRegisters.partitions.foreach(_ ! GRND_Iteration_Completed)
         cliqueRegisters.partitions.foreach(_ ! ITERATION_COMPLETED)
       }
@@ -347,9 +350,7 @@ final class GroundingMaster(
     case REGISTRATION_COMPLETED =>
       regSendCounter += 1
       if (regSendCounter == cliqueRegisters.size) {
-        optimize {
-          atomRegisters.partitions.foreach(_ ! ITERATION_COMPLETED)
-        }
+        atomRegisters.partitions.foreach(_ ! ITERATION_COMPLETED)
         regSendCounter = 0
       }
     /**
@@ -414,7 +415,7 @@ final class GroundingMaster(
       cliqueBatchesCounter += 1 // we have stored the partition, increase the counter by one.
 
       // When we have collected all partitions, stop all atom registers.
-      if (cliqueBatchesCounter == nPar) optimize {
+      if (cliqueBatchesCounter == nPar) {
         atomRegisters.partitions.foreach(_ ! PoisonPill)
       }
 
@@ -434,13 +435,12 @@ final class GroundingMaster(
         * Stop all workers, mark the internal state as completed and reduce the latch.
         */
       if (atomBatchesCounter == nPar) {
-        optimize {
-          for (i <- 0 until nPar) {
-            cliqueRegisters.partition(i) ! PoisonPill
-            atomRegisters.partition(i) ! PoisonPill
-            clauseGroundingWorkers.partition(i) ! PoisonPill
-          }
+        cfor(0)(_ < nPar, _ + 1) { i: Int =>
+          cliqueRegisters.partition(i) ! PoisonPill
+          atomRegisters.partition(i) ! PoisonPill
+          clauseGroundingWorkers.partition(i) ! PoisonPill
         }
+
         completed = true
 
         become(receiveRequestForMRF)
@@ -468,19 +468,18 @@ final class GroundingMaster(
     * @return a partial function with the actor logic when an unknown message is being received.
     */
   private def handleUnknownMessage: Receive = {
-    case msg => error(s"Master --- Received an unknown message '${msg.toString}' from '${sender().toString()}'")
+    case msg => sys.error(s"Master --- Received an unknown message '${msg.toString}' from '${sender().toString()}'")
   }
 
   private def groundingIsComplete(): Unit = {
     become(receiveMRF)
-    optimize {
-      remainingClauses.foreach {
-        case (clause, idx) =>
-          logger.warn(s"Clause '$clause' is being ignored, since is not associated directly or indirectly with query atoms.")
-      }
-
-      cliqueRegisters.partitions.foreach(_ ! GROUNDING_COMPLETED)
+    remainingClauses.foreach {
+      case (clause, idx) =>
+        logger.warn(s"Clause '$clause' is being ignored, since is not associated directly or indirectly with query atoms.")
     }
+
+    cliqueRegisters.partitions.foreach(_ ! GROUNDING_COMPLETED)
+
   }
 
 }

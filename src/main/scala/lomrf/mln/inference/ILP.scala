@@ -31,13 +31,13 @@ import gnu.trove.map.hash.TIntObjectHashMap
 import optimus.algebra._
 import optimus.optimization._
 import optimus.algebra.AlgebraOps._
-import scalaxy.streams.optimize
 import scala.language.postfixOps
 import lomrf.util.collection.trove.TroveConversions._
 import lomrf.mln.inference.RoundingScheme.RoundUp
 import optimus.optimization.enums.SolverLib.LpSolve
 import optimus.optimization.enums.{ PreSolve, SolverLib }
 import optimus.optimization.model.{ MPFloatVar, ModelSpec }
+import spire.syntax.cfor._
 
 /**
   * This is an implementation of an approximate MAP inference algorithm for MLNs using Integer Linear Programming.
@@ -257,9 +257,9 @@ final case class ILP(
        *
        * Note: Better to keep delta >= 0 for true values and < for false.
        */
-      if (ilpRounding == RoundUp) optimize {
+      if (ilpRounding == RoundUp) {
 
-        for (i <- fractionalSolutions.size - 1 to 0 by -1) {
+        cfor(fractionalSolutions.size - 1)(_ <= 0, _ - 1){ i: Int =>
           val id = fractionalSolutions(i)
           val currentAtom = mrf.atoms.get(id)
           if (state.computeDelta(id) >= 0) {
@@ -271,8 +271,7 @@ final case class ILP(
           }
           state.refineState(id)
         }
-      }
-      // MaxWalkSAT algorithm
+      } // MaxWalkSAT algorithm
       else MaxWalkSAT(mrf).infer(state)
     }
 

@@ -24,7 +24,7 @@ import sbt.Keys._
 object Dependencies {
 
   object v {
-    final val Akka = "2.5.12"
+    final val Akka = "2.5.14"
 
     final val ScalaLogging = "3.9.0"
     final val Logback = "1.2.3"
@@ -33,13 +33,15 @@ object Dependencies {
 
     final val ScalaTest = "3.0.5"
 
-    final val Trove4j = "3.0.3"
+    final val Trove4j = "3.0.3" // todo upgrade to 3.1
     final val JTS = "1.14.0"
-    final val Scalaxy = "0.3.4"
+
     final val Enums = "1.5.13"
 
     final val Optimus = "3.0.0"
-    final val Breeze = "0.12"
+    final val Breeze = "0.13.2"
+
+    final val Spire = "0.13.0"
   }
 
   // Akka.io
@@ -63,13 +65,13 @@ object Dependencies {
 
   lazy val Utils = Seq(
     // GNU Trove4j for high performance and memory efficient data-structures
-    "net.sf.trove4j" % "trove4j" % v.Trove4j,
+    "net.sf.trove4j" % "trove4j" % v.Trove4j, // todo: v3.1 and change artifact from 'trove4j' to 'core'
 
     // JTS Topology API for modelling and manipulating 2-dimensional linear geometry
     "com.vividsolutions" % "jts-core" % v.JTS,
 
     // Optimized Range foreach loops
-    "com.nativelibs4java" %% "scalaxy-streams" % v.Scalaxy % "provided",
+    //"com.nativelibs4java" %% "scalaxy-streams" % v.Scalaxy % "provided",
 
     "org.fusesource.jansi" % "jansi" % v.JANSI,
 
@@ -77,7 +79,10 @@ object Dependencies {
     "org.scalanlp" %% "breeze" % v.Breeze,
     "org.scalanlp" %% "breeze-natives" % v.Breeze,
 
-    "com.beachape" %% "enumeratum" % v.Enums
+    "com.beachape" %% "enumeratum" % v.Enums,
+
+    "org.spire-math" %% "spire" % v.Spire,
+    "org.spire-math" %% "spire-macros" % v.Spire
   )
 
   // Optimus library for linear and quadratic optimization
