@@ -213,6 +213,25 @@ final class SupervisionGraph private (
     // Map solution to actual truth values using a threshold
     val solution = Try((-pinv(Luu) * Lul) * fl) match {
       case Success(res) =>
+        /*
+        val rescale = res.map(value => (value + 1) / 2)
+        val Np = sum(rescale)
+        val Nn = sum(rescale.map(1 - _))
+        val Pq = nodeCache
+          .withFilter(_._1.literals.find(_.sentence.signature == querySignature).get.isPositive)
+          .map(_._2).sum.toDouble / nodeCache.map(_._2).sum.toDouble
+
+        //val Pq = 0.1386
+        // meet 0.0756
+        // move 0.1386
+        // println(Pq)
+
+        rescale.map { value =>
+          val lhs = Pq / (1 - Pq) //Pq * (value / Np)
+          val rhs = (1 - value) / value //(1 - Pq) * ((1 - value) / Nn)
+          if (lhs > rhs) TRUE else FALSE
+        }
+         */
         res.map(value => if (value <= UNCONNECTED) FALSE else TRUE)
       case Failure(_) =>
         logger.warn("Not Converged. Setting everything to FALSE.")
