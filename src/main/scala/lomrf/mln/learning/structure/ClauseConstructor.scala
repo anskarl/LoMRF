@@ -348,7 +348,7 @@ object ClauseConstructor {
           val placeMarkers = modes(signature).placeMarkers
           var terms = Vector.empty[Term]
 
-          cfor(0) (_ <= constants.length, _ + 1) { i: Int =>
+          cfor(0) (_ < constants.length, _ + 1) { i: Int =>
             val constant = constants(i)
             if (placeMarkers(i).constant) terms :+= Constant(constant)
             else if (constantsToVar.contains(constant)) terms :+= constantsToVar(constant)

@@ -105,7 +105,7 @@ package object util {
       val position = idx - sum
       val iterator = elements(segIndex).iterator()
 
-      cfor(0)(_ < position, _ + 1){ i: Int => iterator.advance() }
+      cfor(0)(_ <= position, _ + 1){ i: Int => iterator.advance() }
 
       (iterator.key(), iterator.value())
     }

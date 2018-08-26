@@ -259,7 +259,7 @@ final case class ILP(
        */
       if (ilpRounding == RoundUp) {
 
-        cfor(fractionalSolutions.size - 1)(_ <= 0, _ - 1){ i: Int =>
+        cfor(fractionalSolutions.size - 1)(_ >= 0, _ - 1){ i: Int =>
           val id = fractionalSolutions(i)
           val currentAtom = mrf.atoms.get(id)
           if (state.computeDelta(id) >= 0) {

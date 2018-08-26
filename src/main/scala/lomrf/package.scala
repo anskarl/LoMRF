@@ -48,7 +48,7 @@ package object lomrf {
       ||  \  | | |  | |  | | | | | |     |    | |-' | |  |  \
       |o   o o-o-o  o  o-o o-o o o o     o    | o-o o  o-o o-o
       |
-      |Logical Markov Random Fields LoMRF (LoMRF).
+      |Logical Markov Random Fields (LoMRF).
     """.stripMargin
 
   final val processors = sys.runtime.availableProcessors
