@@ -45,16 +45,18 @@ Contributions are welcome, for details see [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ## License
 
-LoMRF comes with ABSOLUTELY NO WARRANTY. This is free software, and you are welcome to redistribute it
-under certain conditions; See the [GNU Lesser General Public License v3 for more details](http://www.gnu.org/licenses/lgpl-3.0.html).
+Copyright 2014-2018 Anastasios Skarlatidis and Evangelos Michelioudakis
+
+LoMRF is licensed under the Apache License, Version 2.0: [https://www.apache.org/licenses/LICENSE-2.0](https://www.apache.org/licenses/LICENSE-2.0)
 
 ## Reference in Scientific Publications
 
 Please use the following BibTex entry when you cite LoMRF in your papers:
 ```
 @misc{LoMRF,
-	author = {Anastasios Skarlatidis},
+	author = {Anastasios Skarlatidis and Evangelos Michelioudakis},
 	title = {{Logical Markov Random Fields (LoMRF): an open-source implementation of Markov Logic Networks}},
-	url = {https://github.com/anskarl/LoMRF}
+	url = {https://github.com/anskarl/LoMRF},
+	year = {2014}
 }
 ```
