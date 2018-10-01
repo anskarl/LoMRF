@@ -119,7 +119,9 @@ final class SupervisionGraph private (
     numericalDomains match {
       case None => metric
       case Some(domains) => metric.makeNumeric(
-        (x: Double, y: Double) => math.abs(x - y) / (x + y), domains)
+        (x: Double, y: Double) =>
+          if (x == 0 && y == 0) 0
+          else math.abs(x - y) / (x + y), domains)
     }
 
   /**
