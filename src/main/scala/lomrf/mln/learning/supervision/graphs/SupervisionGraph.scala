@@ -100,7 +100,8 @@ final class SupervisionGraph private (
   private val (emptyNodes, nonEmptyNodes) = nodes.partition(_.isEmpty)
   private val nonEmptyUnlabeledNodes = nonEmptyNodes.filter(_.isUnlabeled)
   private val nonEmptyLabeledNodes = nonEmptyNodes.filter(_.isLabeled)
-  private val parallelIndices = nonEmptyNodes.indices.par
+  private lazy val parallelIndices = nonEmptyNodes.indices.par
+  private lazy val parallelLabeledIndices = nonEmptyLabeledNodes.indices.par
 
   val numberOfNodes: Int = nodes.length
   val numberOfNonEmptyNodes: Int = nonEmptyNodes.length
@@ -146,10 +147,98 @@ final class SupervisionGraph private (
       }.toSet
       supervisionBuilder.evidence ++= unlabeledAtoms
       (unlabeledAtoms, supervisionBuilder.result())
-    } else (solve, supervisionBuilder.result())
+    } else (graphCut, supervisionBuilder.result())
   }
 
-  private def solve: Set[EvidenceAtom] = {
+  private def nearestNeighbor: Set[EvidenceAtom] = {
+
+    // Cost symmetric matrix U x L
+    val W = DenseMatrix.zeros[Double](numberOfNonEmptyUnlabeled, numberOfNonEmptyLabeled)
+
+    logger.info(
+      s"Supervision graph has $numberOfNodes nodes. Nodes have varying size sequences " +
+        s"of evidence atoms [${nodes.map(_.size).distinct.mkString(", ")}].\n" +
+        s"\t\t- Labeled Nodes: $numberOfLabeled\n" +
+        s"\t\t- Labeled Non-Empty Nodes: $numberOfNonEmptyLabeled\n" +
+        s"\t\t- Unlabeled Nodes: $numberOfUnlabeled\n" +
+        s"\t\t- Unlabeled Non-Empty Nodes: $numberOfNonEmptyUnlabeled\n" +
+        s"\t\t- Numerical Domains: ${numericalDomains.getOrElse("None")}\n" +
+        s"\t\t- Query Signature: $querySignature")
+
+    val startGraphConnection = System.currentTimeMillis()
+
+    for (i <- nonEmptyUnlabeledNodes.indices) {
+      val neighborCosts = DenseVector.zeros[Double](numberOfNonEmptyLabeled)
+
+      for (j <- parallelLabeledIndices) {
+        neighborCosts(j) =
+          /*
+           * The distance of nodes that do not have identical evidence atom sizes, is
+           * computed by adding 1 for each unmatched atom in the bigger node. That way
+           * the distance penalizes unmatched atoms.
+           */
+          1 - {
+            (metricSpace.distance(nonEmptyNodes(i).evidence, nonEmptyNodes(j).evidence, matcher) +
+              math.abs(nonEmptyNodes(i).size - nonEmptyNodes(j).size)) /
+              math.max(nonEmptyNodes(i).size, nonEmptyNodes(j).size)
+          }
+
+        logger.whenDebugEnabled {
+          if (i <= j)
+            logger.debug(s"${nonEmptyNodes(i).query.toText} - ${nonEmptyNodes(j).query.toText} = ${neighborCosts(j)}")
+        }
+      }
+
+      W(i, ::).inner := connector(neighborCosts)
+    }
+
+    logger.info(msecTimeToTextUntilNow(s"Graph connected in: ", startGraphConnection))
+
+    val startSolution = System.currentTimeMillis()
+
+    val labeledEvidenceAtoms = for {
+      (node, idx) <- nonEmptyUnlabeledNodes.zipWithIndex
+    } yield {
+      val nearest = W(idx, ::).inner.toArray.zipWithIndex
+        .withFilter { case (v, _) => v != UNCONNECTED }
+        .map {
+          case (v, i) =>
+            val freq = nodeCache.find { case (c, _) => c =~= nonEmptyLabeledNodes.head.clause.get } match {
+              case Some((_, count)) => count
+              case None => logger.fatal(
+                s"Pattern ${nonEmptyLabeledNodes.head.clause.get.toText()} is not unique, but it does not exist in the frequency set.")
+            }
+
+            v -> (nonEmptyLabeledNodes(i).isPositive, freq)
+        }
+
+      val (positive, negative) = nearest.partition { case (_, (tv, _)) => tv }
+
+      val value =
+        if (positive.map(_._2._2).sum > negative.map(_._2._2).sum) true
+        else if (negative.map(_._2._2).sum > positive.map(_._2._2).sum) false
+        else nearest.maxBy { case (v, _) => v }._2._1
+
+      println(node)
+      println(positive.map(_._2._2).sum)
+      println(negative.map(_._2._2).sum)
+
+      EvidenceAtom(node.query.symbol, node.query.terms, value)
+    }
+
+    logger.info(msecTimeToTextUntilNow(s"Labeling solution found in: ", startSolution))
+
+    val emptyEvidenceAtoms = emptyNodes.filter(_.isUnlabeled).map { n =>
+      EvidenceAtom.asFalse(n.query.symbol, n.query.terms)
+    }.toSet
+
+    supervisionBuilder.evidence ++= labeledEvidenceAtoms
+    supervisionBuilder.evidence ++= emptyEvidenceAtoms
+
+    labeledEvidenceAtoms.toSet ++ emptyEvidenceAtoms
+  }
+
+  private def graphCut: Set[EvidenceAtom] = {
 
     // Cost symmetric matrix
     val W = DenseMatrix.zeros[Double](numberOfNonEmptyNodes, numberOfNonEmptyNodes)
