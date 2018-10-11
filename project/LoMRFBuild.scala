@@ -84,8 +84,8 @@ object LoMRFBuild extends AutoPlugin {
   private lazy val baseProjectSettings: Seq[Setting[_]] = Seq(
 
     organization := "com.github.anskarl",
-    scalaVersion := "2.12.6",
-    crossScalaVersions := Seq("2.12.6", "2.11.12"),
+    scalaVersion := "2.12.7",
+    crossScalaVersions := Seq("2.12.7", "2.11.12"),
     name := "LoMRF",
     headerMappings := headerMappings.value + (HeaderFileType.scala -> HeaderCommentStyle.cStyleBlockComment),
     headerLicense := Some(HeaderLicense.Custom(logo + "\n\n")),
