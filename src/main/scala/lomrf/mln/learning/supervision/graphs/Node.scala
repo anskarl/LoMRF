@@ -37,22 +37,49 @@ case class Node(
     clause: Option[Clause],
     body: Option[Clause]) {
 
+  /**
+    * @return true if the node query atom has a KNOWN truth value, false otherwise.
+    */
   def isLabeled: Boolean = query.state != UNKNOWN
 
+  /**
+    * @return true if the node query atom has a UNKNOWN truth value, false otherwise.
+    */
   def isUnlabeled: Boolean = query.state == UNKNOWN
 
+  /**
+    * @return true if the node evidence atom sequence is empty, false otherwise.
+    */
   def isEmpty: Boolean = evidence.isEmpty
 
+  /**
+    * @return true if the node evidence atom sequence is not empty, false otherwise.
+    */
   def nonEmpty: Boolean = evidence.nonEmpty
 
+  /**
+    * @return the label of the node query atom (TRUE, FALSE or UNKNOWN).
+    */
   def label: TriState = query.state
 
+  /**
+    * @return true if the node query atom is TRUE.
+    */
   def isPositive: Boolean = label == TRUE
 
+  /**
+    * @return false if the node query atom is FALSE.
+    */
   def isNegative: Boolean = label == FALSE
 
+  /**
+    * @return the size of the node, that is, the number of evidence atoms.
+    */
   def size: Int = evidence.length
 
+  /**
+    * @return a string representation of the node.
+    */
   override def toString: String =
     s"[ $query = ${query.state} ]\n${evidence.map(_.toText).mkString("\n")}"
 }
