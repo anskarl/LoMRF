@@ -21,6 +21,8 @@
 package lomrf.mln.learning.supervision.graphs
 
 import lomrf.logic._
+import lomrf.util.logging.Implicits._
+import com.typesafe.scalalogging.LazyLogging
 
 /**
   * Node is a collection of evidence atoms that correspond to a query atom,
@@ -35,7 +37,10 @@ case class Node(
     query: EvidenceAtom,
     evidence: IndexedSeq[EvidenceAtom],
     clause: Option[Clause],
-    body: Option[Clause]) {
+    body: Option[Clause]) extends LazyLogging {
+
+  lazy val atoms: IndexedSeq[AtomicFormula] =
+    body.getOrElse(logger.fatal("Body does not exist!")).literals.map(_.sentence).toIndexedSeq
 
   /**
     * @return true if the node query atom has a KNOWN truth value, false otherwise.
