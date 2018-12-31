@@ -32,39 +32,6 @@ import lomrf.{ AUX_PRED_PREFIX => PREFIX }
 import scala.util.{ Failure, Success, Try }
 
 /**
-  * Node is a collection of evidence atoms that correspond to a query atom,
-  * usually connected through a set of shared constants.
-  *
-  * @param query the query ground atom
-  * @param evidence a sequence of evidence atoms
-  * @param clause a clausal representation for the node (optional)
-  * @param body a disjunction of all evidence atoms present in the node (optional)
-  */
-case class Node(
-    query: EvidenceAtom,
-    evidence: IndexedSeq[EvidenceAtom],
-    clause: Option[Clause],
-    body: Option[Clause]) {
-
-  def isLabeled: Boolean = query.state != UNKNOWN
-
-  def isUnlabeled: Boolean = query.state == UNKNOWN
-
-  def isEmpty: Boolean = evidence.isEmpty
-
-  def isPositive: Boolean = label == TRUE
-
-  def isNegative: Boolean = label == FALSE
-
-  def label: TriState = query.state
-
-  def size: Int = evidence.length
-
-  override def toString =
-    s"[ $query = ${query.state} ]\n${evidence.map(_.toText).mkString("\n")}"
-}
-
-/**
   * Supervision graph represents a graph having nodes for a given query signature. These
   * nodes contain a single ground query atom and a sequence of evidence atoms sharing
   * constants to the corresponding query atom. Nodes can be either labeled (the ground query
