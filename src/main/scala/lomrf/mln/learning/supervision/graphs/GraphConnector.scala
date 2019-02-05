@@ -41,6 +41,8 @@ object FullConnector extends GraphConnector {
     * @return the vector itself
     */
   override def apply(neighbors: DenseVector[Double]): DenseVector[Double] = neighbors
+
+  override def toString(): String = s"full"
 }
 
 /**
@@ -70,6 +72,8 @@ final case class kNNConnector(k: Int) extends GraphConnector {
       }
     } else neighbors
   }
+
+  override def toString(): String = s"kNN.$k"
 }
 
 /**
@@ -88,4 +92,6 @@ final case class eNNConnector(epsilon: Double) extends GraphConnector {
     */
   override def apply(neighbors: DenseVector[Double]): DenseVector[Double] =
     neighbors.map(cost => if (cost < epsilon) UNCONNECTED else cost)
+
+  override def toString(): String = s"eNN.$epsilon"
 }

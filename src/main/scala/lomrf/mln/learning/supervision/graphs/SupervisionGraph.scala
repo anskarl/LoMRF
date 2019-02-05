@@ -22,14 +22,14 @@ package lomrf.mln.learning.supervision.graphs
 
 import lomrf.logic._
 import lomrf.util.logging.Implicits._
-import breeze.linalg.{ DenseMatrix, DenseVector, pinv, sum }
+import breeze.linalg.{ DenseMatrix, DenseVector, sum }
 import com.typesafe.scalalogging.LazyLogging
 import lomrf.mln.learning.supervision.metric._
 import lomrf.mln.model._
 import lomrf.mln.model.builders.EvidenceBuilder
 import lomrf.util.time._
 import lomrf.{ AUX_PRED_PREFIX => PREFIX }
-import scala.util.{ Failure, Success, Try }
+import scala.util.{ Failure, Success }
 
 /**
   * Supervision graph represents a graph having nodes for a given query signature. These
@@ -126,11 +126,7 @@ final class SupervisionGraph private (
            * computed by adding 1 for each unmatched atom in the bigger node. That way
            * the distance penalizes unmatched atoms.
            */
-          1 - {
-            (metricSpace.distance(unlabeledNodes(i).evidence, labeledNodes(j).evidence, matcher) +
-              math.abs(unlabeledNodes(i).size - labeledNodes(j).size)) /
-              math.max(unlabeledNodes(i).size, labeledNodes(j).size)
-          }
+          1 - metricSpace.distance(unlabeledNodes(i).evidence, labeledNodes(j).evidence, matcher)
 
         logger.whenDebugEnabled {
           logger.debug(s"${unlabeledNodes(i).query.toText} - ${labeledNodes(j).query.toText} = ${neighborCosts(j)}")
@@ -212,11 +208,7 @@ final class SupervisionGraph private (
            * computed by adding 1 for each unmatched atom in the bigger node. That way
            * the distance penalizes unmatched atoms.
            */
-          1 - {
-            (metricSpace.distance(nodes(i).evidence, nodes(j).evidence, matcher) +
-              math.abs(nodes(i).size - nodes(j).size)) /
-              math.max(nodes(i).size, nodes(j).size)
-          }
+          1 - metricSpace.distance(nodes(i).evidence, nodes(j).evidence, matcher)
 
         logger.whenDebugEnabled {
           if (i <= j) logger.debug(s"${nodes(i).query.toText} - ${nodes(j).query.toText} = ${neighborCosts(j)}")

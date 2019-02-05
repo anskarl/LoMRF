@@ -54,10 +54,14 @@ object HungarianMatcher extends Matcher[Double] {
     * @param costMatrix the bipartite graph cost matrix
     * @return the cost of the optimal assignment
     */
-  override def apply(costMatrix: CostMatrix[Double]): Double =
+  override def apply(costMatrix: CostMatrix[Double]): Double = {
+    val unmatched = math.abs(costMatrix.length - costMatrix.head.length)
+    val maxDimension = math.max(costMatrix.length, costMatrix.head.length)
+
     KuhnMunkres.extractMatching(costMatrix) match {
-      case (_, cost) => cost
+      case (_, cost) => (cost + unmatched) / maxDimension
     }
+  }
 }
 
 /**
