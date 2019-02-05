@@ -32,7 +32,7 @@ package object graphs {
    * Use a very close to zero (non zero) value in order to avoid singular
    * or degenerate matrices, i.e. having zero determinant.
    */
-  val UNCONNECTED = 0.0001
+  val UNCONNECTED = 0.0
 
   /**
     * Hoeffding bound is a tool that can be used as a probabilistic estimator of the generalization
@@ -47,7 +47,7 @@ package object graphs {
     * @param delta delta parameter (default is 0.0001)
     * @return true in case the bound is satisfied, else false
     */
-  private[graphs] def HoeffdingBound(x: Double, y: Double, N: Int, delta: Double = 0.0001): Boolean =
+  private[graphs] def HoeffdingBound(x: Double, y: Double, N: Long, delta: Double = 0.0001): Boolean =
     math.abs(x - y) > math.sqrt(math.log(2 / delta) / (2 * N))
 
   /**

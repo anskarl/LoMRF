@@ -60,9 +60,9 @@ final class SupervisionGraph private (
     groupByDomains: Option[Set[String]],
     numericalDomains: Option[Set[String]],
     supervisionBuilder: EvidenceBuilder,
-    nodeCache: Set[(Clause, Int)] = Set.empty) extends LazyLogging {
+    nodeCache: Set[(Clause, Long)] = Set.empty) extends LazyLogging {
 
-  private val (labeledNodes, unlabeledNodes) = nodes.span(_.isLabeled)
+  private val (labeledNodes, unlabeledNodes) = nodes.partition(_.isLabeled)
 
   private lazy val parallelIndices = nodes.indices.par
   private lazy val parallelLabeledIndices = labeledNodes.indices.par
@@ -229,35 +229,23 @@ final class SupervisionGraph private (
 
     logger.info(msecTimeToTextUntilNow(s"Graph connected in: ", startGraphConnection))
 
-    // Vector holding the labeled values
-    val fl = DenseVector(labeledNodes.map(_.label.value.toDouble).toArray)
-
-    // Laplace's matrix
-    val L = D - W
-
-    val Lul = L(numberOfLabeled until numberOfNodes, 0 until numberOfLabeled)
-    val Luu = L(numberOfLabeled until numberOfNodes, numberOfLabeled until numberOfNodes)
-
     val startSolution = System.currentTimeMillis
 
-    // Map solution to actual truth values using a threshold
-    val solution = Try((-pinv(Luu) * Lul) * fl) match {
-      case Success(res) =>
-        res.map(value => if (value <= UNCONNECTED) FALSE else TRUE)
-      case Failure(_) =>
-        logger.warn("Not converged. Set everything to FALSE.")
-        DenseVector.fill(numberOfUnlabeled)(FALSE)
-    }
+    // Vector holding the labeled values
+    val fl = DenseVector(labeledNodes.map(_.value).toArray)
+
+    val solution = GraphCut.HFc(W, D, fl).toArray
+    val truthValues = solution.map(value => if (value <= UNCONNECTED) FALSE else TRUE)
 
     logger.info(msecTimeToTextUntilNow(s"Labeling solution found in: ", startSolution))
 
     logger.whenDebugEnabled {
-      (unlabeledNodes.map(_.query) zip solution.toArray)
+      (unlabeledNodes.map(_.query) zip solution)
         .map { case (atom, state) => s"$atom = $state" }.mkString("\n")
     }
 
     val labeledEvidenceAtoms = for {
-      (query, value) <- unlabeledNodes.map(_.query) zip solution.toArray
+      (query, value) <- unlabeledNodes.map(_.query) zip truthValues
     } yield EvidenceAtom(query.symbol, query.terms, value)
 
     supervisionBuilder.evidence ++= labeledEvidenceAtoms
@@ -330,7 +318,6 @@ final class SupervisionGraph private (
 
       val startCacheUpdate = System.currentTimeMillis
 
-
       /*
        * Update the cache using only non empty labeled nodes, i.e., nodes having at least one
        * evidence predicate. Keep only unique pattern. Moreover, update the pattern frequencies
@@ -344,12 +331,12 @@ final class SupervisionGraph private (
 
             if (!unique.flatMap(_.clause).exists(_ =~= pattern))
               cache.find { case (c, _) => c =~= pattern } match {
-                case Some(entry@(_, frequency)) => (unique :+ node, (cache - entry) + (pattern -> (frequency + 1)))
-                case None        => (unique :+ node, cache + (pattern -> 1))
+                case Some(entry @ (_, frequency)) => (unique :+ node, (cache - entry) + (pattern -> (frequency + 1)))
+                case None                         => (unique :+ node, cache + (pattern -> 1))
               }
             else cache.find { case (c, _) => c =~= pattern } match {
-              case Some(entry@(_, frequency)) => (unique, (cache - entry) + (pattern -> (frequency + 1)))
-              case None        => logger.fatal(s"Pattern ${pattern.toText()} is not unique, but it does not exist in the frequency set.")
+              case Some(entry @ (_, frequency)) => (unique, (cache - entry) + (pattern -> (frequency + 1)))
+              case None                         => logger.fatal(s"Pattern ${pattern.toText()} is not unique, but it does not exist in the frequency set.")
             }
         }
 
@@ -651,18 +638,18 @@ object SupervisionGraph extends LazyLogging {
      * one evidence predicate. Keep only unique patterns in the cache along their frequencies.
      */
     val (uniqueLabeled, nodeCache) = labeledNodes.filter(_.nonEmpty)
-      .foldLeft(IndexedSeq.empty[Node] -> Set.empty[(Clause, Int)]) {
+      .foldLeft(IndexedSeq.empty[Node] -> Set.empty[(Clause, Long)]) {
         case ((unique, cache), node) =>
           val pattern = node.clause.getOrElse(logger.fatal("Cannot construct a pattern!"))
 
           if (!unique.flatMap(_.clause).exists(_ =~= pattern))
             cache.find { case (c, _) => c =~= pattern } match {
-              case Some(entry@(_, frequency)) => (unique :+ node, (cache - entry) + (pattern -> (frequency + 1)))
-              case None => (unique :+ node, cache + (pattern -> 1))
+              case Some(entry @ (_, frequency)) => (unique :+ node, (cache - entry) + (pattern -> (frequency + 1)))
+              case None                         => (unique :+ node, cache + (pattern -> 1))
             }
           else cache.find { case (c, _) => c =~= pattern } match {
-            case Some(entry@(_, frequency)) => (unique, (cache - entry) + (pattern -> (frequency + 1)))
-            case None => logger.fatal(s"Pattern ${pattern.toText()} is not unique, but it does not exist in the frequency set.")
+            case Some(entry @ (_, frequency)) => (unique, (cache - entry) + (pattern -> (frequency + 1)))
+            case None                         => logger.fatal(s"Pattern ${pattern.toText()} is not unique, but it does not exist in the frequency set.")
           }
       }
 

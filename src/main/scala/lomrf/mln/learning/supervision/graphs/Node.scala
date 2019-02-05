@@ -68,6 +68,11 @@ case class Node(
   def label: TriState = query.state
 
   /**
+    * @return a value label of the node query atom (1 for TRUE, -1 for FALSE or 0 for UNKNOWN).
+    */
+  def value: Double = label.value.toDouble
+
+  /**
     * @return true if the node query atom is TRUE.
     */
   def isPositive: Boolean = label == TRUE
