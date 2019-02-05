@@ -64,20 +64,12 @@ final class SupervisionGraph private (
 
   private val (labeledNodes, unlabeledNodes) = nodes.span(_.isLabeled)
 
-  private val (emptyNodes, nonEmptyNodes) = nodes.partition(_.isEmpty)
-  private val nonEmptyUnlabeledNodes = nonEmptyNodes.filter(_.isUnlabeled)
-  private val nonEmptyLabeledNodes = nonEmptyNodes.filter(_.isLabeled)
-  private lazy val parallelIndices = nonEmptyNodes.indices.par
-  private lazy val parallelLabeledIndices = nonEmptyLabeledNodes.indices.par
+  private lazy val parallelIndices = nodes.indices.par
+  private lazy val parallelLabeledIndices = labeledNodes.indices.par
 
   val numberOfNodes: Int = nodes.length
-  val numberOfNonEmptyNodes: Int = nonEmptyNodes.length
-
   val numberOfLabeled: Int = labeledNodes.length
-  val numberOfNonEmptyLabeled: Int = nonEmptyLabeledNodes.length
-
   val numberOfUnlabeled: Int = unlabeledNodes.length
-  val numberOfNonEmptyUnlabeled: Int = nonEmptyUnlabeledNodes.length
 
   /*
     * Extend metric to include numerical distance function in case numeric
@@ -99,18 +91,10 @@ final class SupervisionGraph private (
     if (unlabeledNodes.isEmpty) {
       logger.warn("No unlabeled query atoms found!")
       (Set.empty[EvidenceAtom], supervisionBuilder.result())
-    } else if (labeledNodes.isEmpty || nonEmptyLabeledNodes.isEmpty) {
-      logger.warn("No labeled query atoms found or labeled nodes are empty. " +
-        "Setting all unlabeled to FALSE due to close world assumption!")
+    } else if (labeledNodes.isEmpty) {
+      logger.warn("No labeled query atoms found. Set all unlabeled to FALSE due to close world assumption!")
       val unlabeledAtoms = unlabeledNodes.map { node =>
         EvidenceAtom.asFalse(node.query.symbol, node.query.terms)
-      }.toSet
-      supervisionBuilder.evidence ++= unlabeledAtoms
-      (unlabeledAtoms, supervisionBuilder.result())
-    } else if (nonEmptyUnlabeledNodes.isEmpty) {
-      logger.warn("All unlabeled nodes are empty. Setting all unlabeled to FALSE!")
-      val unlabeledAtoms = emptyNodes.filter(_.isUnlabeled).map {
-        n => EvidenceAtom.asFalse(n.query.symbol, n.query.terms)
       }.toSet
       supervisionBuilder.evidence ++= unlabeledAtoms
       (unlabeledAtoms, supervisionBuilder.result())
@@ -120,22 +104,20 @@ final class SupervisionGraph private (
   private def nearestNeighbor: Set[EvidenceAtom] = {
 
     // Cost symmetric matrix U x L
-    val W = DenseMatrix.zeros[Double](numberOfNonEmptyUnlabeled, numberOfNonEmptyLabeled)
+    val W = DenseMatrix.zeros[Double](numberOfUnlabeled, numberOfLabeled)
 
     logger.info(
       s"Supervision graph has $numberOfNodes nodes. Nodes have varying size sequences " +
         s"of evidence atoms [${nodes.map(_.size).distinct.mkString(", ")}].\n" +
         s"\t\t- Labeled Nodes: $numberOfLabeled\n" +
-        s"\t\t- Labeled Non-Empty Nodes: $numberOfNonEmptyLabeled\n" +
         s"\t\t- Unlabeled Nodes: $numberOfUnlabeled\n" +
-        s"\t\t- Unlabeled Non-Empty Nodes: $numberOfNonEmptyUnlabeled\n" +
         s"\t\t- Numerical Domains: ${numericalDomains.getOrElse("None")}\n" +
         s"\t\t- Query Signature: $querySignature")
 
     val startGraphConnection = System.currentTimeMillis()
 
-    for (i <- nonEmptyUnlabeledNodes.indices) {
-      val neighborCosts = DenseVector.zeros[Double](numberOfNonEmptyLabeled)
+    for (i <- unlabeledNodes.indices) {
+      val neighborCosts = DenseVector.zeros[Double](numberOfLabeled)
 
       for (j <- parallelLabeledIndices) {
         neighborCosts(j) =
@@ -145,14 +127,13 @@ final class SupervisionGraph private (
            * the distance penalizes unmatched atoms.
            */
           1 - {
-            (metricSpace.distance(nonEmptyNodes(i).evidence, nonEmptyNodes(j).evidence, matcher) +
-              math.abs(nonEmptyNodes(i).size - nonEmptyNodes(j).size)) /
-              math.max(nonEmptyNodes(i).size, nonEmptyNodes(j).size)
+            (metricSpace.distance(unlabeledNodes(i).evidence, labeledNodes(j).evidence, matcher) +
+              math.abs(unlabeledNodes(i).size - labeledNodes(j).size)) /
+              math.max(unlabeledNodes(i).size, labeledNodes(j).size)
           }
 
         logger.whenDebugEnabled {
-          if (i <= j)
-            logger.debug(s"${nonEmptyNodes(i).query.toText} - ${nonEmptyNodes(j).query.toText} = ${neighborCosts(j)}")
+          logger.debug(s"${unlabeledNodes(i).query.toText} - ${labeledNodes(j).query.toText} = ${neighborCosts(j)}")
         }
       }
 
@@ -164,19 +145,19 @@ final class SupervisionGraph private (
     val startSolution = System.currentTimeMillis()
 
     val labeledEvidenceAtoms = for {
-      (node, idx) <- nonEmptyUnlabeledNodes.zipWithIndex
+      (node, idx) <- unlabeledNodes.zipWithIndex
     } yield {
       val nearest = W(idx, ::).inner.toArray.zipWithIndex
         .withFilter { case (v, _) => v != UNCONNECTED }
         .map {
           case (v, i) =>
-            val freq = nodeCache.find { case (c, _) => c =~= nonEmptyLabeledNodes.head.clause.get } match {
+            val freq = nodeCache.find { case (c, _) => c =~= labeledNodes.head.clause.get } match {
               case Some((_, count)) => count
               case None => logger.fatal(
-                s"Pattern ${nonEmptyLabeledNodes.head.clause.get.toText()} is not unique, but it does not exist in the frequency set.")
+                s"Pattern ${labeledNodes.head.clause.get.toText()} is not unique, but it does not exist in the frequency set.")
             }
 
-            v -> (nonEmptyLabeledNodes(i).isPositive, freq)
+            v -> (labeledNodes(i).isPositive, freq)
         }
 
       val (positive, negative) = nearest.partition { case (_, (tv, _)) => tv }
@@ -195,44 +176,36 @@ final class SupervisionGraph private (
 
     logger.info(msecTimeToTextUntilNow(s"Labeling solution found in: ", startSolution))
 
-    val emptyEvidenceAtoms = emptyNodes.filter(_.isUnlabeled).map { n =>
-      EvidenceAtom.asFalse(n.query.symbol, n.query.terms)
-    }.toSet
-
     supervisionBuilder.evidence ++= labeledEvidenceAtoms
-    supervisionBuilder.evidence ++= emptyEvidenceAtoms
-
-    labeledEvidenceAtoms.toSet ++ emptyEvidenceAtoms
+    labeledEvidenceAtoms.toSet
   }
 
   private def graphCut: Set[EvidenceAtom] = {
 
     // Cost symmetric matrix
-    val W = DenseMatrix.zeros[Double](numberOfNonEmptyNodes, numberOfNonEmptyNodes)
+    val W = DenseMatrix.zeros[Double](numberOfNodes, numberOfNodes)
 
     // Cost degree diagonal matrix
-    val D = DenseMatrix.zeros[Double](numberOfNonEmptyNodes, numberOfNonEmptyNodes)
+    val D = DenseMatrix.zeros[Double](numberOfNodes, numberOfNodes)
 
     logger.info(
       s"Supervision graph has $numberOfNodes nodes. Nodes have varying size sequences " +
         s"of evidence atoms [${nodes.map(_.size).distinct.mkString(", ")}].\n" +
         s"\t\t- Labeled Nodes: $numberOfLabeled\n" +
-        s"\t\t- Labeled Non-Empty Nodes: $numberOfNonEmptyLabeled\n" +
         s"\t\t- Unlabeled Nodes: $numberOfUnlabeled\n" +
-        s"\t\t- Unlabeled Non-Empty Nodes: $numberOfNonEmptyUnlabeled\n" +
         s"\t\t- Numerical Domains: ${numericalDomains.getOrElse("None")}\n" +
         s"\t\t- Query Signature: $querySignature")
 
     val startGraphConnection = System.currentTimeMillis()
 
-    for (i <- nonEmptyNodes.indices) {
-      val neighborCosts = DenseVector.zeros[Double](numberOfNonEmptyNodes)
+    for (i <- nodes.indices) {
+      val neighborCosts = DenseVector.zeros[Double](numberOfNodes)
 
       for (j <- parallelIndices if i != j) { // A node cannot be connected to itself
 
         // W is symmetric and therefore there is no need to compute both upper and lower triangular parts
         if (i > j) neighborCosts(j) = W(j, i)
-        else if (nonEmptyNodes(i).isLabeled && nonEmptyNodes(j).isLabeled) neighborCosts(j) = UNCONNECTED
+        else if (nodes(i).isLabeled && nodes(j).isLabeled) neighborCosts(j) = UNCONNECTED
         else neighborCosts(j) =
           /*
            * The distance of nodes that do not have identical evidence atom sizes, is
@@ -240,14 +213,13 @@ final class SupervisionGraph private (
            * the distance penalizes unmatched atoms.
            */
           1 - {
-            (metricSpace.distance(nonEmptyNodes(i).evidence, nonEmptyNodes(j).evidence, matcher) +
-              math.abs(nonEmptyNodes(i).size - nonEmptyNodes(j).size)) /
-              math.max(nonEmptyNodes(i).size, nonEmptyNodes(j).size)
+            (metricSpace.distance(nodes(i).evidence, nodes(j).evidence, matcher) +
+              math.abs(nodes(i).size - nodes(j).size)) /
+              math.max(nodes(i).size, nodes(j).size)
           }
 
         logger.whenDebugEnabled {
-          if (i <= j)
-            logger.debug(s"${nonEmptyNodes(i).query.toText} - ${nonEmptyNodes(j).query.toText} = ${neighborCosts(j)}")
+          if (i <= j) logger.debug(s"${nodes(i).query.toText} - ${nodes(j).query.toText} = ${neighborCosts(j)}")
         }
       }
 
@@ -258,63 +230,38 @@ final class SupervisionGraph private (
     logger.info(msecTimeToTextUntilNow(s"Graph connected in: ", startGraphConnection))
 
     // Vector holding the labeled values
-    val fl = DenseVector(nonEmptyLabeledNodes.map(_.label.value.toDouble).toArray)
+    val fl = DenseVector(labeledNodes.map(_.label.value.toDouble).toArray)
 
     // Laplace's matrix
     val L = D - W
 
-    val Lul = L(numberOfNonEmptyLabeled until L.rows, 0 until numberOfNonEmptyLabeled)
-    val Luu = L(numberOfNonEmptyLabeled until L.rows, numberOfNonEmptyLabeled until L.cols)
+    val Lul = L(numberOfLabeled until numberOfNodes, 0 until numberOfLabeled)
+    val Luu = L(numberOfLabeled until numberOfNodes, numberOfLabeled until numberOfNodes)
 
-    val startSolution = System.currentTimeMillis()
+    val startSolution = System.currentTimeMillis
 
     // Map solution to actual truth values using a threshold
     val solution = Try((-pinv(Luu) * Lul) * fl) match {
       case Success(res) =>
-        /*
-        val rescale = res.map(value => (value + 1) / 2)
-        val Np = sum(rescale)
-        val Nn = sum(rescale.map(1 - _))
-        val Pq = nodeCache
-          .withFilter(_._1.literals.find(_.sentence.signature == querySignature).get.isPositive)
-          .map(_._2).sum.toDouble / nodeCache.map(_._2).sum.toDouble
-
-        //val Pq = 0.1386
-        // meet 0.0756
-        // move 0.1386
-        // println(Pq)
-
-        rescale.map { value =>
-          val lhs = Pq / (1 - Pq) //Pq * (value / Np)
-          val rhs = (1 - value) / value //(1 - Pq) * ((1 - value) / Nn)
-          if (lhs > rhs) TRUE else FALSE
-        }
-         */
         res.map(value => if (value <= UNCONNECTED) FALSE else TRUE)
       case Failure(_) =>
-        logger.warn("Not Converged. Setting everything to FALSE.")
-        DenseVector.fill(numberOfNonEmptyUnlabeled)(FALSE)
+        logger.warn("Not converged. Set everything to FALSE.")
+        DenseVector.fill(numberOfUnlabeled)(FALSE)
     }
 
     logger.info(msecTimeToTextUntilNow(s"Labeling solution found in: ", startSolution))
 
     logger.whenDebugEnabled {
-      (nonEmptyUnlabeledNodes.map(_.query) zip solution.toArray)
+      (unlabeledNodes.map(_.query) zip solution.toArray)
         .map { case (atom, state) => s"$atom = $state" }.mkString("\n")
     }
 
     val labeledEvidenceAtoms = for {
-      (query, value) <- nonEmptyUnlabeledNodes.map(_.query) zip solution.toArray
+      (query, value) <- unlabeledNodes.map(_.query) zip solution.toArray
     } yield EvidenceAtom(query.symbol, query.terms, value)
 
-    val emptyEvidenceAtoms = emptyNodes.filter(_.isUnlabeled).map { n =>
-      EvidenceAtom.asFalse(n.query.symbol, n.query.terms)
-    }.toSet
-
     supervisionBuilder.evidence ++= labeledEvidenceAtoms
-    supervisionBuilder.evidence ++= emptyEvidenceAtoms
-
-    labeledEvidenceAtoms.toSet ++ emptyEvidenceAtoms
+    labeledEvidenceAtoms.toSet
   }
 
   /**
@@ -339,19 +286,29 @@ final class SupervisionGraph private (
     // Group the given data into nodes, using the domains of the existing graph
     val currentNodes = SupervisionGraph.partition(mln, modes, annotationDB, querySignature, groupByDomains)
 
-    // Filter labeled nodes
-    val labeled = currentNodes.filter(_.isLabeled)
+    // Partition nodes into labeled and unlabeled. Then find empty unlabeled nodes.
+    val (labeled, unlabeled) = currentNodes.partition(_.isLabeled)
+    val (nonEmptyUnlabeled, emptyUnlabeled) = unlabeled.partition(_.nonEmpty)
+
+    // Labeled query atoms and empty unlabeled query atoms as FALSE.
+    val labeledEntries =
+      labeled.map(_.query) ++ emptyUnlabeled.map(x => EvidenceAtom.asFalse(x.query.symbol, x.query.terms))
+
+    if (emptyUnlabeled.nonEmpty)
+      logger.warn(s"Found ${emptyUnlabeled.length} empty unlabeled nodes. Set them to FALSE.")
 
     /*
      * Create an annotation builder and append every query atom that is TRUE or FALSE,
-     * all others should be labeled.
+     * or every UNKNOWN query atom that has no evidence atoms, everything else
+     * should be labeled by the supervision graph.
      */
     val annotationBuilder =
       EvidenceBuilder(
         mln.schema.predicates.filter { case (sig, _) => sig == querySignature },
         Set(querySignature),
         Set.empty,
-        mln.evidence.constants).withCWAForAll().evidence ++= labeled.map(_.query)
+        mln.evidence.constants
+      ).withCWAForAll().evidence ++= labeledEntries
 
     /*
      * In case no labeled nodes exist in the given data, then reuse the old ones. In any other
@@ -360,7 +317,7 @@ final class SupervisionGraph private (
      */
     if (labeled.isEmpty)
       new SupervisionGraph(
-        nodes.takeWhile(_.isLabeled) ++ currentNodes,
+        nodes.takeWhile(_.isLabeled) ++ nonEmptyUnlabeled,
         querySignature,
         connector,
         metric ++ mln,
@@ -370,25 +327,28 @@ final class SupervisionGraph private (
         annotationBuilder,
         nodeCache)
     else {
+
       val startCacheUpdate = System.currentTimeMillis
 
+
       /*
-       * Update incoming label cache by keeping unique pattern. Moreover, update the
-       * pattern frequencies present in the cache accordingly.
+       * Update the cache using only non empty labeled nodes, i.e., nodes having at least one
+       * evidence predicate. Keep only unique pattern. Moreover, update the pattern frequencies
+       * present in the cache accordingly.
        */
       val (uniqueLabeled, updatedNodeCache) =
-        labeled.foldLeft(labeledNodes -> nodeCache) {
+        labeled.filter(_.nonEmpty).foldLeft(labeledNodes -> nodeCache) {
           case ((unique, cache), node) =>
 
             val pattern = node.clause.getOrElse(logger.fatal("Cannot construct a pattern!"))
 
             if (!unique.flatMap(_.clause).exists(_ =~= pattern))
               cache.find { case (c, _) => c =~= pattern } match {
-                case Some(entry) => (unique :+ node, (cache - entry) + (pattern -> (entry._2 + 1)))
+                case Some(entry@(_, frequency)) => (unique :+ node, (cache - entry) + (pattern -> (frequency + 1)))
                 case None        => (unique :+ node, cache + (pattern -> 1))
               }
             else cache.find { case (c, _) => c =~= pattern } match {
-              case Some(entry) => (unique, (cache - entry) + (pattern -> (entry._2 + 1)))
+              case Some(entry@(_, frequency)) => (unique, (cache - entry) + (pattern -> (frequency + 1)))
               case None        => logger.fatal(s"Pattern ${pattern.toText()} is not unique, but it does not exist in the frequency set.")
             }
         }
@@ -433,7 +393,7 @@ final class SupervisionGraph private (
 
       // Labeled nodes MUST appear before unlabeled!
       new SupervisionGraph(
-        cleanedUniqueLabeled ++ currentNodes.filter(_.isUnlabeled),
+        cleanedUniqueLabeled ++ nonEmptyUnlabeled,
         querySignature,
         connector,
         metric ++ mln,
@@ -678,32 +638,63 @@ object SupervisionGraph extends LazyLogging {
     // Group the given data into nodes
     val nodes = partition(mln, modes, annotationDB, querySignature, groupByDomains)
 
-    val labeledNodes = nodes.filter(_.isLabeled)
+    logger.info("Constructing supervision graph.")
 
-    // Create cache using labeled nodes
-    val nodeCache = labeledNodes.foldLeft(Set.empty[(Clause, Int)]) {
-      case (cache, node) =>
-        val pattern = node.clause.get
+    // Partition nodes into labeled and unlabeled. Then find empty unlabeled nodes.
+    val (labeledNodes, unlabeledNodes) = nodes.partition(_.isLabeled)
+    val (nonEmptyUnlabeled, emptyUnlabeled) = unlabeledNodes.partition(_.nonEmpty)
 
-        cache.find { case (c, _) => c =~= pattern } match {
-          case Some(entry) => (cache - entry) + (pattern -> (entry._2 + 1))
-          case None        => cache + (pattern -> 1)
-        }
+    val startCacheConstruction = System.currentTimeMillis
+
+    /*
+     * Create a cache using only non empty labeled nodes, i.e., nodes having at least
+     * one evidence predicate. Keep only unique patterns in the cache along their frequencies.
+     */
+    val (uniqueLabeled, nodeCache) = labeledNodes.filter(_.nonEmpty)
+      .foldLeft(IndexedSeq.empty[Node] -> Set.empty[(Clause, Int)]) {
+        case ((unique, cache), node) =>
+          val pattern = node.clause.getOrElse(logger.fatal("Cannot construct a pattern!"))
+
+          if (!unique.flatMap(_.clause).exists(_ =~= pattern))
+            cache.find { case (c, _) => c =~= pattern } match {
+              case Some(entry@(_, frequency)) => (unique :+ node, (cache - entry) + (pattern -> (frequency + 1)))
+              case None => (unique :+ node, cache + (pattern -> 1))
+            }
+          else cache.find { case (c, _) => c =~= pattern } match {
+            case Some(entry@(_, frequency)) => (unique, (cache - entry) + (pattern -> (frequency + 1)))
+            case None => logger.fatal(s"Pattern ${pattern.toText()} is not unique, but it does not exist in the frequency set.")
+          }
+      }
+
+    logger.info(msecTimeToTextUntilNow(s"Cache constructed in: ", startCacheConstruction))
+    logger.info(s"${uniqueLabeled.length} / ${labeledNodes.length} unique labeled nodes kept.")
+
+    logger.whenDebugEnabled {
+      nodeCache.foreach { case (clause, freq) => logger.debug(s"${clause.toText()} -> $freq") }
     }
+
+    // Labeled query atoms and empty unlabeled query atoms as FALSE.
+    val labeledEntries =
+      labeledNodes.map(_.query) ++ emptyUnlabeled.map(x => EvidenceAtom.asFalse(x.query.symbol, x.query.terms))
+
+    if (emptyUnlabeled.nonEmpty)
+      logger.warn(s"Found ${emptyUnlabeled.length} empty unlabeled nodes. Set them to FALSE.")
 
     /*
      * Create an annotation builder and append every query atom that is TRUE or FALSE,
-     * all others should be labeled.
+     * or every UNKNOWN query atom that has no evidence atoms, everything else
+     * should be labeled by the supervision graph.
      */
     val annotationBuilder =
       EvidenceBuilder(
         mln.schema.predicates.filter { case (sig, _) => sig == querySignature },
         Set(querySignature),
         Set.empty,
-        mln.evidence.constants).withCWAForAll().evidence ++= labeledNodes.map(_.query)
+        mln.evidence.constants
+      ).withCWAForAll().evidence ++= labeledEntries
 
     new SupervisionGraph(
-      nodes,
+      uniqueLabeled ++ nonEmptyUnlabeled,
       querySignature,
       connector,
       StructureMetric(mln),
@@ -711,7 +702,8 @@ object SupervisionGraph extends LazyLogging {
       groupByDomains,
       numericDomains,
       annotationBuilder,
-      nodeCache)
+      nodeCache
+    )
   }
 
   /**
