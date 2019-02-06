@@ -141,7 +141,7 @@ final class SupervisionGraph private (
 
     val startSolution = System.currentTimeMillis
 
-    val labeledEvidenceAtoms = unlabeledNodes.zipWithIndex.map { case (node, i) =>
+    val labeledEvidenceAtoms = unlabeledNodes.zipWithIndex.flatMap { case (node, i) =>
 
       val nearest = W(i, ::).inner.toArray.zipWithIndex
         .withFilter { case (v, _) => v != UNCONNECTED }
@@ -161,7 +161,7 @@ final class SupervisionGraph private (
         else if (negative.map(_._2._2).sum > positive.map(_._2._2).sum) false
         else nearest.maxBy { case (v, _) => v }._2._1
 
-      EvidenceAtom(node.query.symbol, node.query.terms, value)
+      node.labelUsingValue(value)
     }
 
     logger.info(msecTimeToTextUntilNow(s"Labeling solution found in: ", startSolution))
@@ -234,9 +234,9 @@ final class SupervisionGraph private (
         .map { case (atom, state) => s"$atom = $state" }.mkString("\n")
     }
 
-    val labeledEvidenceAtoms = for {
-      (query, value) <- unlabeledNodes.map(_.query) zip truthValues
-    } yield EvidenceAtom(query.symbol, query.terms, value)
+    val labeledEvidenceAtoms = unlabeledNodes.zip(truthValues).flatMap {
+      case (node, value) => node.labelUsingValue(value)
+    }
 
     supervisionBuilder.evidence ++= labeledEvidenceAtoms
     labeledEvidenceAtoms.toSet
@@ -270,7 +270,7 @@ final class SupervisionGraph private (
 
     // Labeled query atoms and empty unlabeled query atoms as FALSE.
     val labeledEntries =
-      labeled.map(_.query) ++ emptyUnlabeled.map(x => EvidenceAtom.asFalse(x.query.symbol, x.query.terms))
+      labeled.map(_.query) ++ emptyUnlabeled.flatMap(_.labelUsingValue(FALSE))
 
     if (emptyUnlabeled.nonEmpty)
       logger.warn(s"Found ${emptyUnlabeled.length} empty unlabeled nodes. Set them to FALSE.")
@@ -500,7 +500,9 @@ object SupervisionGraph extends LazyLogging {
 
     val start = System.currentTimeMillis
 
-    val nodes = (labeled ++ unlabeled).par.map { queryAtom =>
+    val unlabeledSet = new NodeSet
+
+    val labeledNodes = (labeled ++ unlabeled).flatMap { queryAtom =>
       val queryDomain2Constants =
         domain2Constants(queryAtom.terms, predicateSchema(querySignature))
 
@@ -519,17 +521,22 @@ object SupervisionGraph extends LazyLogging {
 
       val evidenceSeq = evidence.toIndexedSeq
 
-      if (queryAtom.state == UNKNOWN) Node(queryAtom, evidenceSeq, None, None)
+      if (queryAtom.state == UNKNOWN) asPattern(querySignature, evidenceSeq, mln, modes) match {
+        case Success(body) =>
+          unlabeledSet.insert(Node(queryAtom, evidenceSeq, None, Some(body)))
+          None
+        case Failure(error) => throw error
+      }
       else asPattern(querySignature, evidenceSeq :+ queryAtom, mln, modes) match {
         case Success(clause) =>
           val body = Clause(clause.literals.filterNot(_.sentence.signature == querySignature))
-          Node(queryAtom, evidenceSeq, Some(clause), Some(body))
+          Some(Node(queryAtom, evidenceSeq, Some(clause), Some(body)))
         case Failure(error) => throw error
       }
     }
 
     logger.info(s"Nodes constructed in ${msecTimeToTextUntilNow(start)}")
-    nodes.toIndexedSeq
+    labeledNodes ++ unlabeledSet.toIndexedSeq
   }
 
   /**
@@ -596,7 +603,7 @@ object SupervisionGraph extends LazyLogging {
 
     // Labeled query atoms and empty unlabeled query atoms as FALSE.
     val labeledEntries =
-      labeledNodes.map(_.query) ++ emptyUnlabeled.map(x => EvidenceAtom.asFalse(x.query.symbol, x.query.terms))
+      labeledNodes.map(_.query) ++ emptyUnlabeled.flatMap(_.labelUsingValue(FALSE))
 
     if (emptyUnlabeled.nonEmpty)
       logger.warn(s"Found ${emptyUnlabeled.length} empty unlabeled nodes. Set them to FALSE.")

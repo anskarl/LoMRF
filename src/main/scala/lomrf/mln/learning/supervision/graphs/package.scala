@@ -34,6 +34,14 @@ package object graphs {
    */
   val UNCONNECTED = 0.0
 
+  // Node set used for grouping similar nodes
+  private[graphs] class NodeSet extends scala.collection.mutable.HashSet[Node] {
+    def insert(entry: Node): Unit = this.findEntry(entry) match {
+      case Some(node) => node.similarNodeQueryAtoms += entry.query
+      case None       => this += entry
+    }
+  }
+
   /**
     * Combine maps into a single map by merging their values for shared keys.
     *

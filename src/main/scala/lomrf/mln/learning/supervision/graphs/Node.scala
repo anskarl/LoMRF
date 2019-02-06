@@ -39,8 +39,26 @@ case class Node(
     clause: Option[Clause],
     body: Option[Clause]) extends LazyLogging {
 
+  private[graphs] var similarNodeQueryAtoms = scala.collection.mutable.Set.empty[EvidenceAtom]
+
   lazy val atoms: IndexedSeq[AtomicFormula] =
     body.getOrElse(logger.fatal("Body does not exist!")).literals.map(_.sentence).toIndexedSeq
+
+  /**
+    * @param value a value indicating the label of the query atoms
+    * @return a sequence of labeled query atoms
+    */
+  def labelUsingValue(value: TriState): Seq[EvidenceAtom] =
+    similarNodeQueryAtoms.toIndexedSeq.map(q => EvidenceAtom(q.symbol, q.terms, value)) :+
+      EvidenceAtom(query.symbol, query.terms, value)
+
+  /**
+    * @param value a value indicating the label of the query atoms
+    * @return a sequence of labeled query atoms
+    */
+  def labelUsingValue(value: Boolean): Seq[EvidenceAtom] =
+    similarNodeQueryAtoms.toIndexedSeq.map(q => EvidenceAtom(q.symbol, q.terms, value)) :+
+      EvidenceAtom(query.symbol, query.terms, value)
 
   /**
     * @return true if the node query atom has a KNOWN truth value, false otherwise.
@@ -92,4 +110,11 @@ case class Node(
     */
   override def toString: String =
     s"[ $query = ${query.state} ]\n${evidence.map(_.toText).mkString("\n")}"
+
+  override def hashCode(): Int = body.get.hashCode
+
+  override def equals(that: Any): Boolean = that match {
+    case x: Node => x.body.get =~= this.body.get
+    case _       => false
+  }
 }
