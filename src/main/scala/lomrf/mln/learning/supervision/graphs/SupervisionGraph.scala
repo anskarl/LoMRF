@@ -131,10 +131,10 @@ final class SupervisionGraph private (
         .withFilter { case (v, _) => v != UNCONNECTED }
         .map {
           case (v, i) =>
-            val freq = nodeCache.find { case (c, _) => c =~= labeledNodes.head.clause.get } match {
+            val freq = nodeCache.find { case (c, _) => c =~= labeledNodes(i).clause.get } match {
               case Some((_, count)) => count
               case None => logger.fatal(
-                s"Pattern ${labeledNodes.head.clause.get.toText()} is not unique, but it does not exist in the frequency set.")
+                s"Pattern ${labeledNodes(i).clause.get.toText()} is not unique, but it does not exist in the frequency set.")
             }
 
             v -> (labeledNodes(i).isPositive, freq)
