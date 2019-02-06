@@ -58,9 +58,6 @@ object SemiSupervisionCLI extends CLIApp {
   // The set of non evidence atoms (in the form of AtomName/Arity)
   private var _nonEvidenceAtoms = Set.empty[AtomSignature]
 
-  // The set of domains to group by
-  private var _groupByDomains: Option[Set[String]] = None
-
   // The set of numerical domains
   private var _numericalDomains: Option[Set[String]] = None
 
@@ -111,10 +108,6 @@ object SemiSupervisionCLI extends CLIApp {
 
   opt("m", "modes", "<mode file>", "Mode declarations file.", {
     v: String => _modesFileName = Some(v)
-  })
-
-  opt("gD", "group-domains", "<string>", "Comma separated domains to group the data.", {
-    v: String => _groupByDomains = Some(v.split(',').toSet)
   })
 
   opt("nD", "numerical-domains", "<string>", "Comma separated domains to be considered as numerical.", {
@@ -189,7 +182,6 @@ object SemiSupervisionCLI extends CLIApp {
 
     logger.info("Parameters:"
       + "\n\t(ne) Non-evidence predicate(s): " + _nonEvidenceAtoms.map(_.toString).mkString(", ")
-      + "\n\t(gD) GroupBy domains: " + _groupByDomains.getOrElse(Set("None")).mkString(", ")
       + "\n\t(nD) Numerical domains: " + _numericalDomains.getOrElse(Set("None")).mkString(", ")
       + "\n\t(distance) Distance metric for atomic formula: " + _distance
       + "\n\t(connector) Graph connection heuristic: " + (if (_kNNConnector) "kNN" else "eNN")
@@ -248,11 +240,11 @@ object SemiSupervisionCLI extends CLIApp {
         (_kNNConnector, _cacheLabels, supervisionGraphs.get(querySignature).isEmpty) match {
           case (true, _, true) | (true, false, false) =>
             supervisionGraphs +=
-              querySignature -> kNNGraph(_k, mln, modes, annotationDB, querySignature, distance, _groupByDomains, _numericalDomains)
+              querySignature -> kNNGraph(_k, mln, modes, annotationDB, querySignature, distance, _numericalDomains)
 
           case (false, _, true) | (false, false, false) =>
             supervisionGraphs +=
-              querySignature -> eNNGraph(_epsilon, mln, modes, annotationDB, querySignature, distance, _groupByDomains, _numericalDomains)
+              querySignature -> eNNGraph(_epsilon, mln, modes, annotationDB, querySignature, distance, _numericalDomains)
 
           case (_, true, false) =>
             supervisionGraphs += querySignature -> (supervisionGraphs(querySignature) ++ (mln, annotationDB, modes))
