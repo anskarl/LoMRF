@@ -209,7 +209,11 @@ final class SupervisionGraph private (
         }
       }
 
-      W(i, ::).inner := connector(neighborCosts)
+      W(i, ::).inner := neighborCosts
+    }
+
+    for (i <- parallelIndices) {
+      W(i, ::).inner := connector(W(i, ::).inner)
       D(i, i) = sum(W(i, ::))
     }
 
