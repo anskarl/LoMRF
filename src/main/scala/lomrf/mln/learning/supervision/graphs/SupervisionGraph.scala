@@ -30,6 +30,7 @@ import lomrf.mln.model.builders.EvidenceBuilder
 import lomrf.util.time._
 import lomrf.{ AUX_PRED_PREFIX => PREFIX }
 import scala.util.{ Failure, Success }
+import scala.language.existentials
 
 /**
   * Supervision graph represents a graph having nodes for a given query signature. These
@@ -45,8 +46,7 @@ import scala.util.{ Failure, Success }
   *
   * @param nodes an indexed sequence of nodes. Labeled nodes appear before unlabelled
   * @param connector a graph connector
-  * @param metric a structure metric
-  * @param matcher a matcher
+  * @param metric a metric for atomic formula
   * @param groupByDomains a set of domains to partition the evidence (optional)
   * @param numericalDomains a set of domains to be considered as numerical (optional)
   * @param supervisionBuilder a supervision evidence builder that contains the completed annotation
@@ -55,8 +55,7 @@ final class SupervisionGraph private (
     nodes: IndexedSeq[Node],
     querySignature: AtomSignature,
     connector: GraphConnector,
-    metric: StructureMetric,
-    matcher: Matcher[Double],
+    metric: Metric[_ <: AtomicFormula],
     groupByDomains: Option[Set[String]],
     numericalDomains: Option[Set[String]],
     supervisionBuilder: EvidenceBuilder,
@@ -70,19 +69,6 @@ final class SupervisionGraph private (
   val numberOfNodes: Int = nodes.length
   val numberOfLabeled: Int = labeledNodes.length
   val numberOfUnlabeled: Int = unlabeledNodes.length
-
-  /*
-    * Extend metric to include numerical distance function in case numeric
-    * domains have been given.
-    */
-  private val metricSpace =
-    numericalDomains match {
-      case None => metric
-      case Some(domains) => metric.makeNumeric(
-        (x: Double, y: Double) =>
-          if (x == 0 && y == 0) 0
-          else math.abs(x - y) / (x + y), domains)
-    }
 
   /**
     * @return a set of labeled query atoms along the fully labeled annotation database
@@ -120,13 +106,13 @@ final class SupervisionGraph private (
       val neighborCosts = DenseVector.zeros[Double](numberOfLabeled)
 
       for (j <- parallelLabeledIndices) {
-        neighborCosts(j) =
-          /*
-           * The distance of nodes that do not have identical evidence atom sizes, is
-           * computed by adding 1 for each unmatched atom in the bigger node. That way
-           * the distance penalizes unmatched atoms.
-           */
-          1 - metricSpace.distance(unlabeledNodes(i).evidence, labeledNodes(j).evidence, matcher)
+        neighborCosts(j) = 1 - {
+          metric match {
+            case x: StructureMetric => x.distance(unlabeledNodes(i).evidence, labeledNodes(j).evidence)
+            case x: AtomMetric      => x.distance(unlabeledNodes(i).atoms, labeledNodes(j).atoms)
+            case x: BinaryMetric    => x.distance(unlabeledNodes(i).atoms, labeledNodes(j).atoms)
+          }
+        }
 
         logger.whenDebugEnabled {
           logger.debug(s"${unlabeledNodes(i).query.toText} - ${labeledNodes(j).query.toText} = ${neighborCosts(j)}")
@@ -202,13 +188,13 @@ final class SupervisionGraph private (
         // W is symmetric and therefore there is no need to compute both upper and lower triangular parts
         if (i > j) neighborCosts(j) = W(j, i)
         else if (nodes(i).isLabeled && nodes(j).isLabeled) neighborCosts(j) = UNCONNECTED
-        else neighborCosts(j) =
-          /*
-           * The distance of nodes that do not have identical evidence atom sizes, is
-           * computed by adding 1 for each unmatched atom in the bigger node. That way
-           * the distance penalizes unmatched atoms.
-           */
-          1 - metricSpace.distance(nodes(i).evidence, nodes(j).evidence, matcher)
+        else neighborCosts(j) = 1 - {
+          metric match {
+            case x: StructureMetric => x.distance(unlabeledNodes(i).evidence, labeledNodes(j).evidence)
+            case x: AtomMetric      => x.distance(unlabeledNodes(i).atoms, labeledNodes(j).atoms)
+            case x: BinaryMetric    => x.distance(unlabeledNodes(i).atoms, labeledNodes(j).atoms)
+          }
+        }
 
         logger.whenDebugEnabled {
           if (i <= j) logger.debug(s"${nodes(i).query.toText} - ${nodes(j).query.toText} = ${neighborCosts(j)}")
@@ -300,8 +286,7 @@ final class SupervisionGraph private (
         nodes.takeWhile(_.isLabeled) ++ nonEmptyUnlabeled,
         querySignature,
         connector,
-        metric ++ mln,
-        matcher,
+        metric ++ mln.evidence,
         groupByDomains,
         numericalDomains,
         annotationBuilder,
@@ -375,8 +360,7 @@ final class SupervisionGraph private (
         cleanedUniqueLabeled ++ nonEmptyUnlabeled,
         querySignature,
         connector,
-        metric ++ mln,
-        matcher,
+        metric ++ mln.evidence,
         groupByDomains,
         numericalDomains,
         annotationBuilder,
@@ -391,25 +375,6 @@ final class SupervisionGraph private (
   * a list of domains to group the data.
   */
 object SupervisionGraph extends LazyLogging {
-
-  /**
-    * Combine maps into a single map by merging their values for shared keys.
-    *
-    * @param mapA a map
-    * @param mapB another map
-    * @return a combination of the given maps containing all their values
-    */
-  private def combine[K, V](
-      mapA: Map[K, IndexedSeq[V]],
-      mapB: Map[K, IndexedSeq[V]]): Map[K, IndexedSeq[V]] = {
-
-    val keySet = mapA.keySet & mapB.keySet
-
-    val merged = keySet.map(key =>
-      key -> (mapA(key) ++ mapB(key))).toMap
-
-    merged ++ mapA.filterKeys(!keySet.contains(_)) ++ mapB.filterKeys(!keySet.contains(_))
-  }
 
   /**
     * Partitions the given evidence database into nodes according to a given list of domains. The
@@ -592,25 +557,24 @@ object SupervisionGraph extends LazyLogging {
     *
     * @see
     *     [[lomrf.mln.learning.supervision.graphs.GraphConnector]]
-    *     [[lomrf.mln.learning.supervision.metric.Matcher]]
     *     [[lomrf.mln.learning.structure.ModeDeclaration]]
     * @param mln an MLN
     * @param modes mode declarations
     * @param annotationDB an annotation database
     * @param querySignature the query signature of interest
     * @param connector a graph connector
-    * @param matcher a matcher
+    * @param metric a metric for atomic formula
     * @param groupByDomains a set of domains to partition the evidence (optional)
     * @param numericDomains a set of domains to be considered as numerical (optional)
     * @return a supervision graph instance
     */
-  private def apply(
+  def apply(
       mln: MLN,
       modes: ModeDeclarations,
       annotationDB: EvidenceDB,
       querySignature: AtomSignature,
       connector: GraphConnector,
-      matcher: Matcher[Double],
+      metric: Metric[_ <: AtomicFormula],
       groupByDomains: Option[Set[String]],
       numericDomains: Option[Set[String]]): SupervisionGraph = {
 
@@ -676,8 +640,7 @@ object SupervisionGraph extends LazyLogging {
       uniqueLabeled ++ nonEmptyUnlabeled,
       querySignature,
       connector,
-      StructureMetric(mln),
-      matcher,
+      metric ++ mln.evidence,
       groupByDomains,
       numericDomains,
       annotationBuilder,
@@ -693,14 +656,13 @@ object SupervisionGraph extends LazyLogging {
     *
     * @see
     *      [[lomrf.mln.learning.supervision.graphs.kNNConnector]]
-    *      [[lomrf.mln.learning.supervision.metric.Matcher]]
     *      [[lomrf.mln.learning.structure.ModeDeclaration]]
     * @param k the number of nearest neighbors to be retained
     * @param mln an MLN
     * @param modes mode declarations
     * @param annotationDB an annotation database
     * @param querySignature the query signature of interest
-    * @param matcher a matcher
+    * @param metric a metric for atomic formula
     * @param groupByDomains a set of domains to group by the evidence (optional)
     * @param numericalDomains a set of domains to be considered as numerical (optional)
     * @return a kNN supervision graph instance
@@ -711,10 +673,10 @@ object SupervisionGraph extends LazyLogging {
       modes: ModeDeclarations,
       annotationDB: EvidenceDB,
       querySignature: AtomSignature,
-      matcher: Matcher[Double],
+      metric: Metric[_ <: AtomicFormula],
       groupByDomains: Option[Set[String]] = None,
       numericalDomains: Option[Set[String]] = None): SupervisionGraph =
-    apply(mln, modes, annotationDB, querySignature, kNNConnector(k), matcher, groupByDomains, numericalDomains)
+    apply(mln, modes, annotationDB, querySignature, kNNConnector(k), metric, groupByDomains, numericalDomains)
 
   /**
     * Constructs a eNN connected graph. Essentially the eNN graph connects nodes that have distance
@@ -724,14 +686,13 @@ object SupervisionGraph extends LazyLogging {
     *
     * @see
     *      [[lomrf.mln.learning.supervision.graphs.eNNConnector]]
-    *      [[lomrf.mln.learning.supervision.metric.Matcher]]
     *      [[lomrf.mln.learning.structure.ModeDeclaration]]
     * @param epsilon the threshold epsilon
     * @param mln an MLN
     * @param modes mode declarations
     * @param annotationDB an annotation database
     * @param querySignature the query signature of interest
-    * @param matcher a matcher
+    * @param metric a metric for atomic formula
     * @param groupByDomains a set of domain to group by the evidence (optional)
     * @param numericalDomains a set of domains to be considered as numerical (optional)
     * @return a eNN supervision graph instance
@@ -742,10 +703,10 @@ object SupervisionGraph extends LazyLogging {
       modes: ModeDeclarations,
       annotationDB: EvidenceDB,
       querySignature: AtomSignature,
-      matcher: Matcher[Double],
+      metric: Metric[_ <: AtomicFormula],
       groupByDomains: Option[Set[String]] = None,
       numericalDomains: Option[Set[String]] = None): SupervisionGraph =
-    apply(mln, modes, annotationDB, querySignature, eNNConnector(epsilon), matcher, groupByDomains, numericalDomains)
+    apply(mln, modes, annotationDB, querySignature, eNNConnector(epsilon), metric, groupByDomains, numericalDomains)
 
   /**
     * Constructs a fully connected graph. The nodes are constructed given an MLN, an annotation
@@ -754,13 +715,12 @@ object SupervisionGraph extends LazyLogging {
     *
     * @see
     *      [[lomrf.mln.learning.supervision.graphs.FullConnector]]
-    *      [[lomrf.mln.learning.supervision.metric.Matcher]]
     *      [[lomrf.mln.learning.structure.ModeDeclaration]]
     * @param mln an MLN
     * @param modes mode declarations
     * @param annotationDB an annotation database
     * @param querySignature the query signature of interest
-    * @param matcher a matcher
+    * @param metric a metric for atomic formula
     * @param groupByDomains a set of domains to group by the evidence (optional)
     * @param numericalDomains a set of domains to be considered as numerical (optional)
     * @return a fully connected supervision graph
@@ -770,8 +730,8 @@ object SupervisionGraph extends LazyLogging {
       modes: ModeDeclarations,
       annotationDB: EvidenceDB,
       querySignature: AtomSignature,
-      matcher: Matcher[Double],
+      metric: Metric[_ <: AtomicFormula],
       groupByDomains: Option[Set[String]] = None,
       numericalDomains: Option[Set[String]] = None): SupervisionGraph =
-    apply(mln, modes, annotationDB, querySignature, FullConnector, matcher, groupByDomains, numericalDomains)
+    apply(mln, modes, annotationDB, querySignature, FullConnector, metric, groupByDomains, numericalDomains)
 }

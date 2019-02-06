@@ -30,7 +30,7 @@ final class StructureMetricSpecTest extends FunSpec with Matchers {
 
   describe("Distances over predicates having NO functions.") {
 
-    val metric = StructureMetric()
+    val metric = StructureMetric(HungarianMatcher)
 
     val predicateA =
       EvidenceAtom.asTrue(
@@ -132,7 +132,7 @@ final class StructureMetricSpecTest extends FunSpec with Matchers {
     builder.functions += FunctionMapping("Walking_A", "walking", Vector(Constant("A")))
     builder.functions += FunctionMapping("Walking_B", "walking", Vector(Constant("B")))
 
-    val metric = StructureMetric(builder.result().db)
+    val metric = StructureMetric(builder.result().db, HungarianMatcher)
 
     val predicateA =
       EvidenceAtom.asTrue(
@@ -238,7 +238,7 @@ final class StructureMetricSpecTest extends FunSpec with Matchers {
     builder.functions += FunctionMapping("Tiny_R_Box", "tinyBox", Vector("R").map(Constant))
     builder.functions += FunctionMapping("Tiny_G_Box", "tinyBox", Vector("G").map(Constant))
 
-    val metric = StructureMetric(builder.result().db)
+    val metric = StructureMetric(builder.result().db, HungarianMatcher)
 
     val predicateA =
       EvidenceAtom.asTrue(
@@ -300,7 +300,7 @@ final class StructureMetricSpecTest extends FunSpec with Matchers {
     builder.functions += FunctionMapping("AvgSpeed_4354_85", "avg_speed", Vector("4354", "85").map(Constant))
     builder.functions += FunctionMapping("AvgSpeed_4354_35", "avg_speed", Vector("4354", "35").map(Constant))
 
-    val metric = StructureMetric(predicateSchema, builder.result().db)
+    val metric = StructureMetric(predicateSchema, builder.result().db, HungarianMatcher)
       .makeNumeric((x: Double, y: Double) => math.abs(x - y) / (x + y), Set("speed"))
 
     val predicateA =

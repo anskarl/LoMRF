@@ -25,7 +25,7 @@ import lomrf.logic.AtomSignatureOps._
 import lomrf.mln.learning.structure.ModeParser
 import lomrf.mln.learning.supervision.graphs.SupervisionGraph
 import lomrf.mln.learning.supervision.graphs.SupervisionGraph._
-import lomrf.mln.learning.supervision.metric.HungarianMatcher
+import lomrf.mln.learning.supervision.metric._
 import lomrf.mln.model.{ AtomEvidenceDB, Evidence, KB, MLN }
 import lomrf.util.NaturalComparator
 import lomrf.util.evaluation.{ Evaluate, Metrics }
@@ -63,6 +63,9 @@ object SemiSupervisionCLI extends CLIApp {
 
   // The set of numerical domains
   private var _numericalDomains: Option[Set[String]] = None
+
+  // By default run using atomic distance
+  private var _distance = "atomic"
 
   // By default run using a kNN connector
   private var _kNNConnector = true
@@ -116,6 +119,16 @@ object SemiSupervisionCLI extends CLIApp {
 
   opt("nD", "numerical-domains", "<string>", "Comma separated domains to be considered as numerical.", {
     v: String => _numericalDomains = Some(v.split(',').toSet)
+  })
+
+  opt("d", "distance", "<binary | atomic | structure>", "Specify a distance over atoms (default is atomic).", {
+    v: String =>
+      v.trim.toLowerCase match {
+        case "binary"    => _distance = "binary"
+        case "atomic"    => _distance = "atomic"
+        case "structure" => _distance = "structure"
+        case _           => logger.fatal(s"Unknown distance of type '$v'.")
+      }
   })
 
   opt("c", "connector", "<kNN | eNN>", "Specify a connection heuristic for the graph (default is kNN).", {
@@ -178,6 +191,7 @@ object SemiSupervisionCLI extends CLIApp {
       + "\n\t(ne) Non-evidence predicate(s): " + _nonEvidenceAtoms.map(_.toString).mkString(", ")
       + "\n\t(gD) GroupBy domains: " + _groupByDomains.getOrElse(Set("None")).mkString(", ")
       + "\n\t(nD) Numerical domains: " + _numericalDomains.getOrElse(Set("None")).mkString(", ")
+      + "\n\t(distance) Distance metric for atomic formula: " + _distance
       + "\n\t(connector) Graph connection heuristic: " + (if (_kNNConnector) "kNN" else "eNN")
       + "\n\t(kappa) k parameter for the kNN connector: " + _k
       + "\n\t(epsilon) Epsilon parameter for the eNN connector: " + _epsilon
@@ -224,16 +238,21 @@ object SemiSupervisionCLI extends CLIApp {
       val evidence = new Evidence(trainingEvidence.constants, atomStateDB, trainingEvidence.functionMappers)
       val mln = MLN(kb.schema, evidence, _nonEvidenceAtoms, Vector.empty[Clause])
 
+      val distance =
+        if (_distance == "binary") BinaryMetric(HungarianMatcher)
+        else if (_distance == "atomic") AtomMetric(HungarianMatcher)
+        else StructureMetric(mln, HungarianMatcher)
+
       // Create or update supervision graphs for each given non evidence atom
       _nonEvidenceAtoms.foreach { querySignature =>
         (_kNNConnector, _cacheLabels, supervisionGraphs.get(querySignature).isEmpty) match {
           case (true, _, true) | (true, false, false) =>
             supervisionGraphs +=
-              querySignature -> kNNGraph(_k, mln, modes, annotationDB, querySignature, HungarianMatcher, _groupByDomains, _numericalDomains)
+              querySignature -> kNNGraph(_k, mln, modes, annotationDB, querySignature, distance, _groupByDomains, _numericalDomains)
 
           case (false, _, true) | (false, false, false) =>
             supervisionGraphs +=
-              querySignature -> eNNGraph(_epsilon, mln, modes, annotationDB, querySignature, HungarianMatcher, _groupByDomains, _numericalDomains)
+              querySignature -> eNNGraph(_epsilon, mln, modes, annotationDB, querySignature, distance, _groupByDomains, _numericalDomains)
 
           case (_, true, false) =>
             supervisionGraphs += querySignature -> (supervisionGraphs(querySignature) ++ (mln, annotationDB, modes))

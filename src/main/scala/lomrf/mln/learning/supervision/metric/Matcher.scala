@@ -37,7 +37,7 @@ import breeze.optimize.linear.KuhnMunkres
   *
   * @see https://en.wikipedia.org/wiki/Assignment_problem
   */
-trait Matcher[T] extends (CostMatrix[T] => T)
+sealed trait Matcher extends (CostMatrix[Double] => Double)
 
 /**
   * The Hungarian matcher is a combinatorial optimization algorithm that solves the assignment problem in
@@ -45,7 +45,7 @@ trait Matcher[T] extends (CostMatrix[T] => T)
   *
   * @see https://en.wikipedia.org/wiki/Hungarian_algorithm
   */
-object HungarianMatcher extends Matcher[Double] {
+object HungarianMatcher extends Matcher {
 
   /**
     * It solves the assignment problem for the given cost matrix. The cost
@@ -76,7 +76,7 @@ object HungarianMatcher extends Matcher[Double] {
   *      Distance Between Herbrand Interpretations: A Measure for Approximations
   *      to a Target Concept (1997)
   */
-object HausdorffMatcher extends Matcher[Double] {
+object HausdorffMatcher extends Matcher {
 
   /**
     * It solves the assignment problem for a given cost matrix. The cost

@@ -26,7 +26,7 @@ import lomrf.mln.model.EvidenceDB
 
 package object metric {
 
-  type CostMatrix[T] = Seq[Seq[T]]
+  type CostMatrix[T] = IndexedSeq[IndexedSeq[T]]
 
   /**
     * An AuxConstruct represents an auxiliary ground predicate structure.
@@ -48,7 +48,7 @@ package object metric {
     * @param evidenceDB an evidence database
     * @return a map from function return constants to auxiliary constructs
     */
-  private[metric] def collectAuxConstructs(evidenceDB: EvidenceDB) =
+  private[metric] def collectAuxConstructs(evidenceDB: EvidenceDB): Map[Constant, AuxConstruct] =
     for {
       (signature, db) <- evidenceDB.filter { case (signature, _) => signature.symbol.contains(PREFIX) }
       id <- db.identity.indices.filter(db(_) == TRUE)

@@ -20,17 +20,16 @@
 
 package lomrf.mln.learning.supervision.metric
 
-import lomrf.logic.AtomicFormula
-import lomrf.mln.model.Evidence
+import lomrf.logic._
 
 /**
-  * A metric for atomic formulas is defined by a distance function over atoms and
-  * a distance function over sequences of atoms by specifying a matcher.
+  * A binary metric is a very simple distance for atomic formulas where an atom
+  * has zero distance to another atom only if they are identical. Otherwise, their
+  * distance is always one.
+  *
+  * @param matcher a matcher function
   */
-trait Metric[A <: AtomicFormula] {
-
-  // Matcher used for finding a mapping between atoms sequences
-  protected val matcher: Matcher
+final case class BinaryMetric(override protected val matcher: Matcher) extends Metric[AtomicFormula] {
 
   /**
     * Distance for atoms. The function must obey to the following properties:
@@ -46,24 +45,6 @@ trait Metric[A <: AtomicFormula] {
     * @param yAtom another atom
     * @return a distance for the given atoms
     */
-  def distance(xAtom: A, yAtom: A): Double
-
-  /**
-    * Distance over sequences of atoms.
-    *
-    * @param xAtomSeq a sequence of atoms
-    * @param yAtomSeq another sequence of atoms
-    * @return a distance for the given sequences of atoms
-    */
-  final def distance(xAtomSeq: IndexedSeq[A], yAtomSeq: IndexedSeq[A]): Double = matcher {
-    xAtomSeq map (x => yAtomSeq map (y => distance(x, y)))
-  }
-
-  /**
-    * Append evidence information to the metric.
-    *
-    * @param evidence an evidence database
-    * @return an updated metric
-    */
-  def ++(evidence: Evidence): Metric[A] = this
+  override def distance(xAtom: AtomicFormula, yAtom: AtomicFormula): Double =
+    if (xAtom.signature != yAtom.signature || xAtom.constants != yAtom.constants) 1 else 0
 }

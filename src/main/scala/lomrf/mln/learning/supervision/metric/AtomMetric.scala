@@ -22,7 +22,15 @@ package lomrf.mln.learning.supervision.metric
 
 import lomrf.logic._
 
-final class AtomMetric extends Metric[AtomicFormula] {
+/**
+  * A atomic metric is a distance for atomic formulas that measures the distance
+  * between atoms as the structure metric does, but ignores the variables.
+  *
+  * @see [[lomrf.mln.learning.supervision.metric.StructureMetric]]
+  *
+  * @param matcher a matcher function
+  */
+final case class AtomMetric(override protected val matcher: Matcher) extends Metric[AtomicFormula] {
 
   /**
     * Distance for atoms. The function must obey to the following properties:

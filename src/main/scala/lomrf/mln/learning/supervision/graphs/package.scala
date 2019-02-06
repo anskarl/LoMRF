@@ -35,6 +35,25 @@ package object graphs {
   val UNCONNECTED = 0.0
 
   /**
+    * Combine maps into a single map by merging their values for shared keys.
+    *
+    * @param mapA a map
+    * @param mapB another map
+    * @return a combination of the given maps containing all their values
+    */
+  private[graphs] def combine[K, V](
+      mapA: Map[K, IndexedSeq[V]],
+      mapB: Map[K, IndexedSeq[V]]): Map[K, IndexedSeq[V]] = {
+
+    val keySet = mapA.keySet & mapB.keySet
+
+    val merged = keySet.map(key =>
+      key -> (mapA(key) ++ mapB(key))).toMap
+
+    merged ++ mapA.filterKeys(!keySet.contains(_)) ++ mapB.filterKeys(!keySet.contains(_))
+  }
+
+  /**
     * Hoeffding bound is a tool that can be used as a probabilistic estimator of the generalization
     * error of a model (true expected error on the entire input), given its empirical error (observed
     * error on a training subset). Given a random variable X and the observed mean of X after N

@@ -7,7 +7,7 @@ final class AtomMetricSpecTest extends FunSpec with Matchers {
 
   describe("Distances over predicates having NO functions and ONLY constants.") {
 
-    val metric = new AtomMetric
+    val metric = AtomMetric(HungarianMatcher)
 
     val predicateA =
       AtomicFormula(
@@ -72,7 +72,7 @@ final class AtomMetricSpecTest extends FunSpec with Matchers {
 
   describe("Distances over predicates having NO functions and BOTH constants and variables.") {
 
-    val metric = new AtomMetric
+    val metric = AtomMetric(HungarianMatcher)
 
     val predicateA =
       AtomicFormula(
@@ -137,7 +137,7 @@ final class AtomMetricSpecTest extends FunSpec with Matchers {
 
   describe("Distances over predicates having one level functions and ONLY constants.") {
 
-    val metric = new AtomMetric
+    val metric = AtomMetric(HungarianMatcher)
 
     val predicateA =
       AtomicFormula(
@@ -198,7 +198,7 @@ final class AtomMetricSpecTest extends FunSpec with Matchers {
 
   describe("Distances over predicates having one level functions and BOTH constants and variables.") {
 
-    val metric = new AtomMetric
+    val metric = AtomMetric(HungarianMatcher)
 
     val predicateA =
       AtomicFormula(

@@ -21,7 +21,7 @@
 package lomrf.mln.learning.supervision.metric
 
 import lomrf.logic.{ Constant, EvidenceAtom }
-import lomrf.mln.model.{ EvidenceDB, MLN, PredicateSchema }
+import lomrf.mln.model.{ Evidence, EvidenceDB, MLN, PredicateSchema }
 
 /**
   * A structural metric space is a measure of distance for logical interpretations. Such a measure
@@ -56,7 +56,8 @@ final class StructureMetric private (
     predicateSchema: PredicateSchema,
     auxConstructs: Map[Constant, AuxConstruct],
     numericDistance: Option[(Double, Double) => Double] = None,
-    numericDomains: Option[Set[String]] = None) extends Metric[EvidenceAtom] {
+    numericDomains: Option[Set[String]] = None,
+    override protected val matcher: Matcher) extends Metric[EvidenceAtom] {
 
   /**
     * Distance for ground evidence atoms. The function must obey to the following properties:
@@ -72,7 +73,7 @@ final class StructureMetric private (
     * @param yAtom another evidence atom
     * @return a distance for the given evidence atoms
     */
-  override def distance(xAtom: EvidenceAtom, yAtom: EvidenceAtom): Double =
+  override def distance(xAtom: EvidenceAtom, yAtom: EvidenceAtom): Double = // TODO Can we use atomic formulas too?
     if (xAtom.state != yAtom.state || xAtom.symbol != yAtom.symbol) 1
     else constantSeqDistance(xAtom.terms, yAtom.terms, predicateSchema.get(xAtom.signature))
 
@@ -131,24 +132,19 @@ final class StructureMetric private (
 
   /**
     * Returns a structure metric space stemming from the concatenation of this one and a given one.
-    *
-    * @param mln an MLN
-    * @return an extended metric space
-    */
-  def ++(mln: MLN): StructureMetric = ++(mln.evidence.db)
-
-  /**
     * that contains the auxiliary predicates for both metric spaces
     *
-    * @param evidenceDB an evidence database
+    * @param evidence an evidence database
     * @return an extended structure metric space
     */
-  def ++(evidenceDB: EvidenceDB): StructureMetric =
+  override def ++(evidence: Evidence): StructureMetric =
     new StructureMetric(
       predicateSchema,
-      auxConstructs ++ collectAuxConstructs(evidenceDB),
+      auxConstructs ++ collectAuxConstructs(evidence.db),
       numericDistance,
-      numericDomains)
+      numericDomains,
+      matcher
+    )
 
   /**
     *
@@ -157,7 +153,7 @@ final class StructureMetric private (
     * @return an extended structure metric that
     */
   def makeNumeric(distance: (Double, Double) => Double, domains: Set[String]): StructureMetric =
-    new StructureMetric(predicateSchema, auxConstructs, Some(distance), Some(domains))
+    new StructureMetric(predicateSchema, auxConstructs, Some(distance), Some(domains), matcher)
 }
 
 /**
@@ -169,29 +165,29 @@ object StructureMetric {
   /**
     * @return a structure metric agnostic of any domain
     */
-  def apply(): StructureMetric =
-    new StructureMetric(Map.empty, Map.empty)
+  def apply(matcher: Matcher): StructureMetric =
+    new StructureMetric(Map.empty, Map.empty, None, None, matcher)
 
   /**
     * @param mln a given MLN
     * @return a structure metric based on the given MLN
     */
-  def apply(mln: MLN): StructureMetric =
-    apply(mln.schema.predicates, mln.evidence.db)
+  def apply(mln: MLN, matcher: Matcher): StructureMetric =
+    apply(mln.schema.predicates, mln.evidence.db, matcher)
 
   /**
     *
     * @param evidenceDB an evidence database
     * @return a structure metric based on the given evidence database
     */
-  def apply(evidenceDB: EvidenceDB): StructureMetric =
-    apply(Map.empty, evidenceDB)
+  def apply(evidenceDB: EvidenceDB, matcher: Matcher): StructureMetric =
+    apply(Map.empty, evidenceDB, matcher)
 
   /**
     * @param predicateSchema a predicate schema
     * @param evidenceDB an evidence database
     * @return a structure metric based on the given predicate schema and evidence database
     */
-  def apply(predicateSchema: PredicateSchema, evidenceDB: EvidenceDB): StructureMetric =
-    new StructureMetric(predicateSchema, collectAuxConstructs(evidenceDB))
+  def apply(predicateSchema: PredicateSchema, evidenceDB: EvidenceDB, matcher: Matcher): StructureMetric =
+    new StructureMetric(predicateSchema, collectAuxConstructs(evidenceDB), None, None, matcher)
 }
