@@ -58,6 +58,9 @@ object SemiSupervisionCLI extends CLIApp {
   // The set of non evidence atoms (in the form of AtomName/Arity)
   private var _nonEvidenceAtoms = Set.empty[AtomSignature]
 
+  // By default output the negatives
+  private var _outputNegatives: Boolean = true
+
   // By default run using atomic distance
   private var _distance = "atomic"
 
@@ -134,6 +137,10 @@ object SemiSupervisionCLI extends CLIApp {
     v: Double => if (v < 0 || v > 1) logger.fatal("Epsilon value must be any number greater or equal to zero and less or equal to one, but you gave: " + v) else _epsilon = v
   })
 
+  flagOpt("skip-negatives", "skip-negatives", "Do not output negative labels into the resulted files.", {
+    _outputNegatives = false
+  })
+
   flagOpt("cache", "cache-labels", "Cache labels for online supervision completion.", {
     _cacheLabels = true
   })
@@ -179,6 +186,7 @@ object SemiSupervisionCLI extends CLIApp {
       + "\n\t(connector) Graph connection heuristic: " + (if (_kNNConnector) "kNN" else "eNN")
       + "\n\t(kappa) k parameter for the kNN connector: " + _k
       + "\n\t(epsilon) Epsilon parameter for the eNN connector: " + _epsilon
+      + "\n\t(negatives) Output negative labels: " + _outputNegatives
       + "\n\t(cache) Cache labels for online supervision completion: " + _cacheLabels)
 
     // Init all statistics values to zero
@@ -195,6 +203,7 @@ object SemiSupervisionCLI extends CLIApp {
       else StructureMetric(modes, HungarianMatcher)
 
     val start = System.currentTimeMillis
+
     for (step <- strTrainingFileNames.indices) {
 
       logger.info(s"Step ${step + 1} / ${strTrainingFileNames.length}. Processing chunk ${strTrainingFileNames(step)}")
@@ -202,14 +211,16 @@ object SemiSupervisionCLI extends CLIApp {
       val currentTrainingFile = new File(strTrainingFileNames(step))
 
       // Do not force CWA in order to complete UNKNOWN query atoms
-      val trainingEvidence =
-        Evidence.fromFiles(kb, constants,
-                           _nonEvidenceAtoms,
-                           Set.empty[AtomSignature],
+      val trainingEvidence = Evidence.fromFiles(
+          kb,
+          constants,
+          _nonEvidenceAtoms,
+          Set.empty[AtomSignature],
           kb.predicateSchema.keySet -- _nonEvidenceAtoms,
-                           List(currentTrainingFile),
-                           convertFunctions = true,
-                           forceCWAForAll   = false)
+          List(currentTrainingFile),
+          convertFunctions = true,
+          forceCWAForAll   = false
+        )
 
       // Partition the training data into annotation and evidence databases
       var (annotationDB, atomStateDB) = trainingEvidence.db.partition(e => _nonEvidenceAtoms.contains(e._1))
@@ -256,8 +267,9 @@ object SemiSupervisionCLI extends CLIApp {
        */
       val resultsFolder = new File(
         currentTrainingFile.getParentFile.getParent + "/" +
-          (if (_kNNConnector) "kNN." + _k else "eNN." + _epsilon) + ".batch." +
-          (if (_cacheLabels) "cache" else "no.cache"))
+          (if (_kNNConnector) "kNN." + _k else "eNN." + _epsilon) + "." + _distance + ".batch." +
+          (if (_cacheLabels) "cache" else "no.cache")
+      )
       resultsFolder.mkdirs()
 
       val completedBatch = new PrintStream(
@@ -279,11 +291,11 @@ object SemiSupervisionCLI extends CLIApp {
             val atomIDF = atomDB.identity
 
             /*
-           * We cannot decode the ids using the mln because the indices are allocated
-           * in a different way, so there would be a problem.
-           *
-           * Note: Keep only positive. Negatives may be too many. We have CWA during learning.
-           */
+             * We cannot decode the ids using the mln because the indices are allocated
+             * in a different way, so there would be a problem.
+             *
+             * Note: Keep only positive. Negatives may be too many. We have CWA during learning.
+             */
             atomIDF.indices.flatMap { id =>
               atomIDF.decode(id) match {
                 case Success(terms) if atomDB(id) == TRUE =>
@@ -293,18 +305,18 @@ object SemiSupervisionCLI extends CLIApp {
               }
             }.sortWith(NaturalComparator.compareBool).foreach(completedBatch.println)
 
-            // TODO negatives are too many, should be removed
-            completedBatch.println(s"// Negatives for $signature")
+            if (_outputNegatives) {
+              completedBatch.println(s"// Negatives for $signature")
 
-            atomIDF.indices.flatMap { id =>
-              atomIDF.decode(id) match {
-                case Success(terms) if atomDB(id) == FALSE =>
-                  Some(s"!${signature.symbol}(${terms.mkString(",")})")
-                case Failure(exception) => throw exception
-                case _                  => None
-              }
-            }.sortWith(NaturalComparator.compareBool).foreach(completedBatch.println)
-
+              atomIDF.indices.flatMap { id =>
+                atomIDF.decode(id) match {
+                  case Success(terms) if atomDB(id) == FALSE =>
+                    Some(s"!${signature.symbol}(${terms.mkString(",")})")
+                  case Failure(exception) => throw exception
+                  case _ => None
+                }
+              }.sortWith(NaturalComparator.compareBool).foreach(completedBatch.println)
+            }
         }
       }
 
@@ -315,19 +327,23 @@ object SemiSupervisionCLI extends CLIApp {
 
         val currentAnnotationFile = new File(strAnnotationFileNames(step))
 
-        if (resultsStream != System.out)
-          resultsStream.println(s"Step ${step + 1} / ${strTrainingFileNames.length}:\n" +
-            s"Chunk ${currentTrainingFile.getName}\nAnnotation ${currentAnnotationFile.getName}")
+        if (resultsStream != System.out) resultsStream.println(
+          s"Step ${step + 1} / ${strTrainingFileNames.length}:\n" +
+            s"Chunk ${currentTrainingFile.getName}\n" +
+            s"Annotation ${currentAnnotationFile.getName}"
+        )
 
         // At this point force CWA because annotation cannot have UNKNOWN atoms.
-        val fullAnnotationDB =
-          Evidence.fromFiles(kb, trainingEvidence.constants,
-                             _nonEvidenceAtoms,
-                             Set.empty[AtomSignature],
+        val fullAnnotationDB = Evidence.fromFiles(
+            kb,
+            trainingEvidence.constants,
+            _nonEvidenceAtoms,
+            Set.empty[AtomSignature],
             kb.predicateSchema.keySet -- _nonEvidenceAtoms,
-                             List(currentAnnotationFile),
-                             convertFunctions = false,
-                             forceCWAForAll   = true)
+            List(currentAnnotationFile),
+            convertFunctions = false,
+            forceCWAForAll   = true
+        )
 
         _nonEvidenceAtoms.foreach { querySignature =>
           actualPositive += fullAnnotationDB.db(querySignature).numberOfTrue
@@ -336,7 +352,7 @@ object SemiSupervisionCLI extends CLIApp {
 
         stats = Evaluate(completedEvidenceAtoms.toSeq.par, fullAnnotationDB.db, Some(stats))
         if (stats != Evaluate.empty) Metrics.report(stats, resultsStream)
-        resultsStream.println(s"Positive: $positiveFound/$actualPositive Negative: $negativeFound/$actualNegative\n")
+        resultsStream.println(s"Positives: $positiveFound/$actualPositive Negatives: $negativeFound/$actualNegative\n")
       }
 
     }

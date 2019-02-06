@@ -20,9 +20,9 @@
 
 package lomrf.mln.learning.supervision.metric
 
-import lomrf.logic.{Constant, EvidenceAtom}
+import lomrf.logic.{ Constant, EvidenceAtom }
 import lomrf.mln.learning.structure.PlaceMarker
-import lomrf.mln.model.{Evidence, ModeDeclarations}
+import lomrf.mln.model.{ Evidence, ModeDeclarations }
 
 /**
   * A structural metric space is a measure of distance for logical interpretations.
@@ -124,8 +124,8 @@ final class StructureMetric private (
   @inline private def constantDistance(xConstant: Constant, yConstant: Constant, isNumeric: Boolean = false): Double =
     (auxConstructs.get(xConstant), auxConstructs.get(yConstant)) match {
       case (Some(functionA), Some(functionB)) => functionDistance(functionA, functionB)
-      case _ if isNumeric => distance(xConstant.symbol.toDouble, yConstant.symbol.toDouble)
-      case _ => if (xConstant == yConstant) 0 else 1
+      case _ if isNumeric                     => distance(xConstant.symbol.toDouble, yConstant.symbol.toDouble)
+      case _                                  => if (xConstant == yConstant) 0 else 1
     }
 
   /**
