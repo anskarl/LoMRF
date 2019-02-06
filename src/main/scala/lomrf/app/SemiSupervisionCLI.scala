@@ -58,9 +58,6 @@ object SemiSupervisionCLI extends CLIApp {
   // The set of non evidence atoms (in the form of AtomName/Arity)
   private var _nonEvidenceAtoms = Set.empty[AtomSignature]
 
-  // The set of numerical domains
-  private var _numericalDomains: Option[Set[String]] = None
-
   // By default run using atomic distance
   private var _distance = "atomic"
 
@@ -108,10 +105,6 @@ object SemiSupervisionCLI extends CLIApp {
 
   opt("m", "modes", "<mode file>", "Mode declarations file.", {
     v: String => _modesFileName = Some(v)
-  })
-
-  opt("nD", "numerical-domains", "<string>", "Comma separated domains to be considered as numerical.", {
-    v: String => _numericalDomains = Some(v.split(',').toSet)
   })
 
   opt("d", "distance", "<binary | atomic | structure>", "Specify a distance over atoms (default is atomic).", {
@@ -182,7 +175,6 @@ object SemiSupervisionCLI extends CLIApp {
 
     logger.info("Parameters:"
       + "\n\t(ne) Non-evidence predicate(s): " + _nonEvidenceAtoms.map(_.toString).mkString(", ")
-      + "\n\t(nD) Numerical domains: " + _numericalDomains.getOrElse(Set("None")).mkString(", ")
       + "\n\t(distance) Distance metric for atomic formula: " + _distance
       + "\n\t(connector) Graph connection heuristic: " + (if (_kNNConnector) "kNN" else "eNN")
       + "\n\t(kappa) k parameter for the kNN connector: " + _k
@@ -196,6 +188,11 @@ object SemiSupervisionCLI extends CLIApp {
 
     // Create a knowledge base and convert all functions
     val (kb, constants) = KB.fromFile(strMLNFileName, convertFunctions = true)
+
+    val distance: Metric[_ <: AtomicFormula] =
+      if (_distance == "binary") BinaryMetric(HungarianMatcher)
+      else if (_distance == "atomic") AtomMetric(HungarianMatcher)
+      else StructureMetric(modes, HungarianMatcher)
 
     val start = System.currentTimeMillis
     for (step <- strTrainingFileNames.indices) {
@@ -230,21 +227,16 @@ object SemiSupervisionCLI extends CLIApp {
       val evidence = new Evidence(trainingEvidence.constants, atomStateDB, trainingEvidence.functionMappers)
       val mln = MLN(kb.schema, evidence, _nonEvidenceAtoms, Vector.empty[Clause])
 
-      val distance =
-        if (_distance == "binary") BinaryMetric(HungarianMatcher)
-        else if (_distance == "atomic") AtomMetric(HungarianMatcher)
-        else StructureMetric(mln, HungarianMatcher)
-
       // Create or update supervision graphs for each given non evidence atom
       _nonEvidenceAtoms.foreach { querySignature =>
         (_kNNConnector, _cacheLabels, supervisionGraphs.get(querySignature).isEmpty) match {
           case (true, _, true) | (true, false, false) =>
             supervisionGraphs +=
-              querySignature -> kNNGraph(_k, mln, modes, annotationDB, querySignature, distance, _numericalDomains)
+              querySignature -> kNNGraph(_k, mln, modes, annotationDB, querySignature, distance)
 
           case (false, _, true) | (false, false, false) =>
             supervisionGraphs +=
-              querySignature -> eNNGraph(_epsilon, mln, modes, annotationDB, querySignature, distance, _numericalDomains)
+              querySignature -> eNNGraph(_epsilon, mln, modes, annotationDB, querySignature, distance)
 
           case (_, true, false) =>
             supervisionGraphs += querySignature -> (supervisionGraphs(querySignature) ++ (mln, annotationDB, modes))

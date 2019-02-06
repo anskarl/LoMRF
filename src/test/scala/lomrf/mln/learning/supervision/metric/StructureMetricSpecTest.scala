@@ -25,6 +25,7 @@ import lomrf.mln.model.ConstantsSet
 import lomrf.mln.model.builders.EvidenceBuilder
 import org.scalatest.{ FunSpec, Matchers }
 import lomrf.{ AUX_PRED_PREFIX => PREFIX }
+import lomrf.mln.learning.structure.ModeParser
 
 final class StructureMetricSpecTest extends FunSpec with Matchers {
 
@@ -132,7 +133,7 @@ final class StructureMetricSpecTest extends FunSpec with Matchers {
     builder.functions += FunctionMapping("Walking_A", "walking", Vector(Constant("A")))
     builder.functions += FunctionMapping("Walking_B", "walking", Vector(Constant("B")))
 
-    val metric = StructureMetric(builder.result().db, HungarianMatcher)
+    val metric = StructureMetric(builder.result(), HungarianMatcher)
 
     val predicateA =
       EvidenceAtom.asTrue(
@@ -238,7 +239,7 @@ final class StructureMetricSpecTest extends FunSpec with Matchers {
     builder.functions += FunctionMapping("Tiny_R_Box", "tinyBox", Vector("R").map(Constant))
     builder.functions += FunctionMapping("Tiny_G_Box", "tinyBox", Vector("G").map(Constant))
 
-    val metric = StructureMetric(builder.result().db, HungarianMatcher)
+    val metric = StructureMetric(builder.result(), HungarianMatcher)
 
     val predicateA =
       EvidenceAtom.asTrue(
@@ -300,8 +301,10 @@ final class StructureMetricSpecTest extends FunSpec with Matchers {
     builder.functions += FunctionMapping("AvgSpeed_4354_85", "avg_speed", Vector("4354", "85").map(Constant))
     builder.functions += FunctionMapping("AvgSpeed_4354_35", "avg_speed", Vector("4354", "35").map(Constant))
 
-    val metric = StructureMetric(predicateSchema, builder.result().db, HungarianMatcher)
-      .makeNumeric((x: Double, y: Double) => math.abs(x - y) / (x + y), Set("speed"))
+    // List of mode declarations to be parsed along with an annotation of the results
+    val modes = List("modeF(2, avg_speed(-, n-))").map(ModeParser.parseFrom).toMap
+
+    val metric = StructureMetric(modes, builder.result(), HungarianMatcher)
 
     val predicateA =
       EvidenceAtom.asTrue(

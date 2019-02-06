@@ -33,6 +33,13 @@ trait Metric[A <: AtomicFormula] {
   protected val matcher: Matcher
 
   /**
+    * @return the absolute normalized distance
+    */
+  protected def distance(x: Double, y: Double): Double =
+    if (x == 0 && y == 0) 0
+    else math.abs(x - y) / (x + y)
+
+  /**
     * Distance for atoms. The function must obey to the following properties:
     *
     * {{{
@@ -61,6 +68,9 @@ trait Metric[A <: AtomicFormula] {
 
   /**
     * Append evidence information to the metric.
+    *
+    * @note It should be extended by metrics that can
+    *       exploit evidence information.
     *
     * @param evidence an evidence database
     * @return an updated metric

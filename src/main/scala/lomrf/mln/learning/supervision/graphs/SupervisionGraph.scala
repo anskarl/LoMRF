@@ -45,17 +45,17 @@ import scala.language.existentials
   *      [[lomrf.mln.learning.supervision.metric.StructureMetric]]
   *
   * @param nodes an indexed sequence of nodes. Labeled nodes appear before unlabelled
+  * @param querySignature the query signature of interest
   * @param connector a graph connector
   * @param metric a metric for atomic formula
-  * @param numericalDomains a set of domains to be considered as numerical (optional)
   * @param supervisionBuilder a supervision evidence builder that contains the completed annotation
+  * @param nodeCache a cache for frequent patterns
   */
 final class SupervisionGraph private (
     nodes: IndexedSeq[Node],
     querySignature: AtomSignature,
     connector: GraphConnector,
     metric: Metric[_ <: AtomicFormula],
-    numericalDomains: Option[Set[String]],
     supervisionBuilder: EvidenceBuilder,
     nodeCache: Set[(Clause, Long)] = Set.empty) extends LazyLogging {
 
@@ -95,7 +95,6 @@ final class SupervisionGraph private (
         s"of evidence atoms [${nodes.map(_.size).distinct.mkString(", ")}].\n" +
         s"\t\t- Labeled Nodes: $numberOfLabeled\n" +
         s"\t\t- Unlabeled Nodes: $numberOfUnlabeled\n" +
-        s"\t\t- Numerical Domains: ${numericalDomains.getOrElse("None")}\n" +
         s"\t\t- Query Signature: $querySignature")
 
     val startGraphConnection = System.currentTimeMillis()
@@ -173,7 +172,6 @@ final class SupervisionGraph private (
         s"of evidence atoms [${nodes.map(_.size).distinct.mkString(", ")}].\n" +
         s"\t\t- Labeled Nodes: $numberOfLabeled\n" +
         s"\t\t- Unlabeled Nodes: $numberOfUnlabeled\n" +
-        s"\t\t- Numerical Domains: ${numericalDomains.getOrElse("None")}\n" +
         s"\t\t- Query Signature: $querySignature")
 
     val startGraphConnection = System.currentTimeMillis()
@@ -285,7 +283,6 @@ final class SupervisionGraph private (
         querySignature,
         connector,
         metric ++ mln.evidence,
-        numericalDomains,
         annotationBuilder,
         nodeCache)
     else {
@@ -358,7 +355,6 @@ final class SupervisionGraph private (
         querySignature,
         connector,
         metric ++ mln.evidence,
-        numericalDomains,
         annotationBuilder,
         updatedNodeCache)
     }
@@ -411,42 +407,42 @@ object SupervisionGraph extends LazyLogging {
 
     if (auxiliary.isEmpty) logger.warn(s"No auxiliary predicates found in the evidence database.")
 
-    /**
-      * Recursively constructs a map of domains to constants by flattening all given pairs
-      * of domain-constant corresponding to function return types (auxiliary predicates).
-      *
-      * @param constants an sequence of constants
-      * @param domains a sequence of domains for each constant
-      * @return a map of flattened domains to constants
-      */
-    def domain2Constants(constants: IndexedSeq[Constant], domains: Seq[String]): Map[String, IndexedSeq[Constant]] =
-      (constants zip domains).foldLeft(Map.empty[String, IndexedSeq[Constant]]) {
-        case (result, (constant, domain)) => auxiliary.get(constant) match {
-          case None => result.updated(domain, result.getOrElse(domain, Vector.empty) :+ constant)
-          case Some((signature, indexedSeq)) =>
-            combine(result, domain2Constants(indexedSeq, predicateSchema(signature).tail))
+      /**
+        * Recursively constructs a map of domains to constants by flattening all given pairs
+        * of domain-constant corresponding to function return types (auxiliary predicates).
+        *
+        * @param constants an sequence of constants
+        * @param domains a sequence of domains for each constant
+        * @return a map of flattened domains to constants
+        */
+      def domain2Constants(constants: IndexedSeq[Constant], domains: Seq[String]): Map[String, IndexedSeq[Constant]] =
+        (constants zip domains).foldLeft(Map.empty[String, IndexedSeq[Constant]]) {
+          case (result, (constant, domain)) => auxiliary.get(constant) match {
+            case None => result.updated(domain, result.getOrElse(domain, Vector.empty) :+ constant)
+            case Some((signature, indexedSeq)) =>
+              combine(result, domain2Constants(indexedSeq, predicateSchema(signature).tail))
+          }
+        }
+
+      /**
+        * Recursively find all possible flattened domain sequences that
+        * can be produced by valid function replacements.
+        *
+        * @param domains a sequence of domains
+        * @return a sequence of all possible flattened domain sequences
+        */
+      def flattenDomains(domains: Seq[String]): Seq[Seq[String]] = {
+        domains.foldLeft(Seq(Seq.empty[String])) { (result, domain) =>
+
+          val flatSeq = auxPredicateSchema
+            .filter { case (_, domainSeq) => domainSeq.head == domain }
+            .map { case (_, domainSeq) => domainSeq.tail }
+            .flatMap(flattenDomains).toSeq
+
+          if (flatSeq.nonEmpty) result.map(seq => flatSeq.flatMap(_ ++ seq))
+          else result.map(_ ++ Seq(domain))
         }
       }
-
-    /**
-      * Recursively find all possible flattened domain sequences that
-      * can be produced by valid function replacements.
-      *
-      * @param domains a sequence of domains
-      * @return a sequence of all possible flattened domain sequences
-      */
-    def flattenDomains(domains: Seq[String]): Seq[Seq[String]] = {
-      domains.foldLeft(Seq(Seq.empty[String])) { (result, domain) =>
-
-        val flatSeq = auxPredicateSchema
-          .filter { case (_, domainSeq) => domainSeq.head == domain }
-          .map { case (_, domainSeq) => domainSeq.tail }
-          .flatMap(flattenDomains).toSeq
-
-        if (flatSeq.nonEmpty) result.map(seq => flatSeq.flatMap(_ ++ seq))
-        else result.map(_ ++ Seq(domain))
-      }
-    }
 
     // Clean the given evidence database by removing auxiliary predicates and query atoms.
     val evidenceDB = mln.evidence.db.filterNot {
@@ -534,7 +530,6 @@ object SupervisionGraph extends LazyLogging {
     * @param querySignature the query signature of interest
     * @param connector a graph connector
     * @param metric a metric for atomic formula
-    * @param numericDomains a set of domains to be considered as numerical (optional)
     * @return a supervision graph instance
     */
   def apply(
@@ -543,8 +538,7 @@ object SupervisionGraph extends LazyLogging {
       annotationDB: EvidenceDB,
       querySignature: AtomSignature,
       connector: GraphConnector,
-      metric: Metric[_ <: AtomicFormula],
-      numericDomains: Option[Set[String]]): SupervisionGraph = {
+      metric: Metric[_ <: AtomicFormula]): SupervisionGraph = {
 
     // Group the given data into nodes
     val nodes = partition(mln, modes, annotationDB, querySignature)
@@ -609,7 +603,6 @@ object SupervisionGraph extends LazyLogging {
       querySignature,
       connector,
       metric ++ mln.evidence,
-      numericDomains,
       annotationBuilder,
       nodeCache
     )
@@ -630,7 +623,6 @@ object SupervisionGraph extends LazyLogging {
     * @param annotationDB an annotation database
     * @param querySignature the query signature of interest
     * @param metric a metric for atomic formula
-    * @param numericalDomains a set of domains to be considered as numerical (optional)
     * @return a kNN supervision graph instance
     */
   def kNNGraph(
@@ -639,9 +631,8 @@ object SupervisionGraph extends LazyLogging {
       modes: ModeDeclarations,
       annotationDB: EvidenceDB,
       querySignature: AtomSignature,
-      metric: Metric[_ <: AtomicFormula],
-      numericalDomains: Option[Set[String]] = None): SupervisionGraph =
-    apply(mln, modes, annotationDB, querySignature, kNNConnector(k), metric, numericalDomains)
+      metric: Metric[_ <: AtomicFormula]): SupervisionGraph =
+    apply(mln, modes, annotationDB, querySignature, kNNConnector(k), metric)
 
   /**
     * Constructs a eNN connected graph. Essentially the eNN graph connects nodes that have distance
@@ -658,7 +649,6 @@ object SupervisionGraph extends LazyLogging {
     * @param annotationDB an annotation database
     * @param querySignature the query signature of interest
     * @param metric a metric for atomic formula
-    * @param numericalDomains a set of domains to be considered as numerical (optional)
     * @return a eNN supervision graph instance
     */
   def eNNGraph(
@@ -667,9 +657,8 @@ object SupervisionGraph extends LazyLogging {
       modes: ModeDeclarations,
       annotationDB: EvidenceDB,
       querySignature: AtomSignature,
-      metric: Metric[_ <: AtomicFormula],
-      numericalDomains: Option[Set[String]] = None): SupervisionGraph =
-    apply(mln, modes, annotationDB, querySignature, eNNConnector(epsilon), metric, numericalDomains)
+      metric: Metric[_ <: AtomicFormula]): SupervisionGraph =
+    apply(mln, modes, annotationDB, querySignature, eNNConnector(epsilon), metric)
 
   /**
     * Constructs a fully connected graph. The nodes are constructed given an MLN, an annotation
@@ -684,7 +673,6 @@ object SupervisionGraph extends LazyLogging {
     * @param annotationDB an annotation database
     * @param querySignature the query signature of interest
     * @param metric a metric for atomic formula
-    * @param numericalDomains a set of domains to be considered as numerical (optional)
     * @return a fully connected supervision graph
     */
   def fullyConnectedGraph(
@@ -692,7 +680,6 @@ object SupervisionGraph extends LazyLogging {
       modes: ModeDeclarations,
       annotationDB: EvidenceDB,
       querySignature: AtomSignature,
-      metric: Metric[_ <: AtomicFormula],
-      numericalDomains: Option[Set[String]] = None): SupervisionGraph =
-    apply(mln, modes, annotationDB, querySignature, FullConnector, metric, numericalDomains)
+      metric: Metric[_ <: AtomicFormula]): SupervisionGraph =
+    apply(mln, modes, annotationDB, querySignature, FullConnector, metric)
 }

@@ -20,13 +20,14 @@
 
 package lomrf.mln.learning.supervision.metric
 
-import lomrf.logic.{ Constant, EvidenceAtom }
-import lomrf.mln.model.{ Evidence, EvidenceDB, MLN, PredicateSchema }
+import lomrf.logic.{Constant, EvidenceAtom}
+import lomrf.mln.learning.structure.PlaceMarker
+import lomrf.mln.model.{Evidence, ModeDeclarations}
 
 /**
-  * A structural metric space is a measure of distance for logical interpretations. Such a measure
-  * enables the calculation of distances based on the structural similarity of atoms. Moreover, it can
-  * be extended given a numerical function for calculating numerical distances over specific domains.
+  * A structural metric space is a measure of distance for logical interpretations.
+  * Such a measure enables the calculation of distances based on the structural similarity
+  * of atoms. Moreover, it can compute numerical distances over specific domains.
   *
   * === Example ===
   * {{{
@@ -47,16 +48,13 @@ import lomrf.mln.model.{ Evidence, EvidenceDB, MLN, PredicateSchema }
   * @see Distance Between Herbrand Interpretations: A Measure for Approximations
   *      to a Target Concept (1997)
   *
-  * @param predicateSchema predicate schema
+  * @param modes mode declarations
   * @param auxConstructs a map from return constants to auxiliary constructs
-  * @param numericDistance a numerical distance (optional)
-  * @param numericDomains a set of numerical domains (optional)
+  * @param matcher a matcher function
   */
 final class StructureMetric private (
-    predicateSchema: PredicateSchema,
+    modes: ModeDeclarations,
     auxConstructs: Map[Constant, AuxConstruct],
-    numericDistance: Option[(Double, Double) => Double] = None,
-    numericDomains: Option[Set[String]] = None,
     override protected val matcher: Matcher) extends Metric[EvidenceAtom] {
 
   /**
@@ -68,28 +66,31 @@ final class StructureMetric private (
     * 3. d(x, y) + d(y, z) >= d(x, z) for all x, y, z (triangle inequality)
     * }}}
     *
-    * @see [[lomrf.logic.EvidenceAtom]]
     * @param xAtom an evidence atom
     * @param yAtom another evidence atom
     * @return a distance for the given evidence atoms
     */
-  override def distance(xAtom: EvidenceAtom, yAtom: EvidenceAtom): Double = // TODO Can we use atomic formulas too?
-    if (xAtom.state != yAtom.state || xAtom.symbol != yAtom.symbol) 1
-    else constantSeqDistance(xAtom.terms, yAtom.terms, predicateSchema.get(xAtom.signature))
+  override def distance(xAtom: EvidenceAtom, yAtom: EvidenceAtom): Double =
+    if (xAtom.state != yAtom.state || xAtom.signature != yAtom.signature) 1
+    else modes.get(xAtom.signature) match {
+      case Some(mode) =>
+        constantSeqDistance(xAtom.terms, yAtom.terms, Some(mode.placeMarkers))
+      case None =>
+        constantSeqDistance(xAtom.terms, yAtom.terms, None)
+    }
 
   /**
     * Distance for auxiliary predicates, e.g., functions.
     *
-    * @see [[lomrf.mln.learning.supervision.metric.AuxConstruct]]
     * @param xConstruct an auxiliary predicate
     * @param yConstruct another auxiliary predicate
     * @return a distance in the interval [0, 1] for the given auxiliary predicates.
     */
   @inline private def functionDistance(xConstruct: AuxConstruct, yConstruct: AuxConstruct): Double =
     if (xConstruct.signature != yConstruct.signature) 1
-    else predicateSchema.get(xConstruct.signature) match {
-      case Some(domains) => constantSeqDistance(xConstruct.constants, yConstruct.constants, Some(domains.tail))
-      case None          => constantSeqDistance(xConstruct.constants, yConstruct.constants, None)
+    else modes.get(xConstruct.signature) match {
+      case Some(mode) => constantSeqDistance(xConstruct.constants, yConstruct.constants, Some(mode.placeMarkers.tail))
+      case None       => constantSeqDistance(xConstruct.constants, yConstruct.constants, None)
     }
 
   /**
@@ -102,13 +103,11 @@ final class StructureMetric private (
   @inline private def constantSeqDistance(
       constantSeqA: IndexedSeq[Constant],
       constantSeqB: IndexedSeq[Constant],
-      domains: Option[Seq[String]]): Double = domains match {
+      markers: Option[Vector[PlaceMarker]]): Double = markers match {
     case None => (constantSeqA zip constantSeqB)
       .map { case (a, b) => constantDistance(a, b) }.sum / (2d * constantSeqA.length)
-
-    case Some(domainSeq) =>
-      (constantSeqA zip constantSeqB zip domainSeq.map(numericDomains.getOrElse(Set.empty).contains))
-        .map { case ((a, b), isNumeric) => constantDistance(a, b, isNumeric) }.sum / (2d * constantSeqA.length)
+    case Some(x) => (constantSeqA zip constantSeqB zip x.map(_.numeric))
+      .map { case ((a, b), isNumeric) => constantDistance(a, b, isNumeric) }.sum / (2d * constantSeqA.length)
   }
 
   /**
@@ -125,8 +124,7 @@ final class StructureMetric private (
   @inline private def constantDistance(xConstant: Constant, yConstant: Constant, isNumeric: Boolean = false): Double =
     (auxConstructs.get(xConstant), auxConstructs.get(yConstant)) match {
       case (Some(functionA), Some(functionB)) => functionDistance(functionA, functionB)
-      case _ if numericDistance.isDefined && isNumeric && xConstant.symbol.matches("-?\\d+") =>
-        numericDistance.get(xConstant.symbol.toDouble, yConstant.symbol.toDouble)
+      case _ if isNumeric => distance(xConstant.symbol.toDouble, yConstant.symbol.toDouble)
       case _ => if (xConstant == yConstant) 0 else 1
     }
 
@@ -138,22 +136,7 @@ final class StructureMetric private (
     * @return an extended structure metric space
     */
   override def ++(evidence: Evidence): StructureMetric =
-    new StructureMetric(
-      predicateSchema,
-      auxConstructs ++ collectAuxConstructs(evidence.db),
-      numericDistance,
-      numericDomains,
-      matcher
-    )
-
-  /**
-    *
-    * @param distance a numerical distance function
-    * @param domains a set of numerical domains
-    * @return an extended structure metric that
-    */
-  def makeNumeric(distance: (Double, Double) => Double, domains: Set[String]): StructureMetric =
-    new StructureMetric(predicateSchema, auxConstructs, Some(distance), Some(domains), matcher)
+    new StructureMetric(modes, auxConstructs ++ collectAuxConstructs(evidence.db), matcher)
 }
 
 /**
@@ -166,28 +149,23 @@ object StructureMetric {
     * @return a structure metric agnostic of any domain
     */
   def apply(matcher: Matcher): StructureMetric =
-    new StructureMetric(Map.empty, Map.empty, None, None, matcher)
+    new StructureMetric(Map.empty, Map.empty, matcher)
 
   /**
-    * @param mln a given MLN
+    * @param modes a given MLN
     * @return a structure metric based on the given MLN
     */
-  def apply(mln: MLN, matcher: Matcher): StructureMetric =
-    apply(mln.schema.predicates, mln.evidence.db, matcher)
+  def apply(modes: ModeDeclarations, matcher: Matcher): StructureMetric =
+    new StructureMetric(modes, Map.empty, matcher)
 
   /**
     *
-    * @param evidenceDB an evidence database
+    * @param evidence an evidence database
     * @return a structure metric based on the given evidence database
     */
-  def apply(evidenceDB: EvidenceDB, matcher: Matcher): StructureMetric =
-    apply(Map.empty, evidenceDB, matcher)
+  def apply(evidence: Evidence, matcher: Matcher): StructureMetric =
+    new StructureMetric(Map.empty, collectAuxConstructs(evidence.db), matcher)
 
-  /**
-    * @param predicateSchema a predicate schema
-    * @param evidenceDB an evidence database
-    * @return a structure metric based on the given predicate schema and evidence database
-    */
-  def apply(predicateSchema: PredicateSchema, evidenceDB: EvidenceDB, matcher: Matcher): StructureMetric =
-    new StructureMetric(predicateSchema, collectAuxConstructs(evidenceDB), None, None, matcher)
+  def apply(modes: ModeDeclarations, evidence: Evidence, matcher: Matcher): StructureMetric =
+    new StructureMetric(modes, collectAuxConstructs(evidence.db), matcher)
 }

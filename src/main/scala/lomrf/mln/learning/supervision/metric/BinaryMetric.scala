@@ -20,7 +20,7 @@
 
 package lomrf.mln.learning.supervision.metric
 
-import lomrf.logic._
+import lomrf.logic.AtomicFormula
 
 /**
   * A binary metric is a very simple distance for atomic formulas where an atom
