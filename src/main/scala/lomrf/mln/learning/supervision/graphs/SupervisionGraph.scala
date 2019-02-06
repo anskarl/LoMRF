@@ -40,9 +40,7 @@ import scala.language.existentials
   * strategy and can be solved in order to label the unlabeled ground query atoms.
   *
   * @see [[lomrf.mln.learning.supervision.graphs.Node]]
-  *      [[lomrf.mln.learning.supervision.graphs.GraphConnector]]
   *      [[lomrf.mln.learning.supervision.metric.Matcher]]
-  *      [[lomrf.mln.learning.supervision.metric.StructureMetric]]
   *
   * @param nodes an indexed sequence of nodes. Labeled nodes appear before unlabelled
   * @param querySignature the query signature of interest
@@ -69,9 +67,10 @@ final class SupervisionGraph private (
   val numberOfUnlabeled: Int = unlabeledNodes.length
 
   /**
-    * @return a set of labeled query atoms along the fully labeled annotation database
+    * @return a set of labeled query atoms along the fully labeled
+    *         annotation database.
     */
-  def completeSupervision: (Set[EvidenceAtom], Evidence) = {
+  def completeSupervisionGraphCut: (Set[EvidenceAtom], Evidence) = {
     if (unlabeledNodes.isEmpty) {
       logger.warn("No unlabeled query atoms found!")
       (Set.empty[EvidenceAtom], supervisionBuilder.result())
@@ -85,9 +84,27 @@ final class SupervisionGraph private (
     } else (graphCut, supervisionBuilder.result())
   }
 
+  /**
+    * @return a set of labeled query atoms along the fully labeled
+    *         annotation database.
+    */
+  def completeSupervisionNN: (Set[EvidenceAtom], Evidence) = {
+    if (unlabeledNodes.isEmpty) {
+      logger.warn("No unlabeled query atoms found!")
+      (Set.empty[EvidenceAtom], supervisionBuilder.result())
+    } else if (labeledNodes.isEmpty) {
+      logger.warn("No labeled query atoms found. Set all unlabeled to FALSE due to close world assumption!")
+      val unlabeledAtoms = unlabeledNodes.map { node =>
+        EvidenceAtom.asFalse(node.query.symbol, node.query.terms)
+      }.toSet
+      supervisionBuilder.evidence ++= unlabeledAtoms
+      (unlabeledAtoms, supervisionBuilder.result())
+    } else (nearestNeighbor, supervisionBuilder.result())
+  }
+
   private def nearestNeighbor: Set[EvidenceAtom] = {
 
-    // Cost symmetric matrix U x L
+    // Cost matrix U x L
     val W = DenseMatrix.zeros[Double](numberOfUnlabeled, numberOfLabeled)
 
     logger.info(
@@ -95,9 +112,10 @@ final class SupervisionGraph private (
         s"of evidence atoms [${nodes.map(_.size).distinct.mkString(", ")}].\n" +
         s"\t\t- Labeled Nodes: $numberOfLabeled\n" +
         s"\t\t- Unlabeled Nodes: $numberOfUnlabeled\n" +
-        s"\t\t- Query Signature: $querySignature")
+        s"\t\t- Query Signature: $querySignature"
+    )
 
-    val startGraphConnection = System.currentTimeMillis()
+    val startGraphConnection = System.currentTimeMillis
 
     for (i <- unlabeledNodes.indices) {
       val neighborCosts = DenseVector.zeros[Double](numberOfLabeled)
@@ -121,22 +139,19 @@ final class SupervisionGraph private (
 
     logger.info(msecTimeToTextUntilNow(s"Graph connected in: ", startGraphConnection))
 
-    val startSolution = System.currentTimeMillis()
+    val startSolution = System.currentTimeMillis
 
-    val labeledEvidenceAtoms = for {
-      (node, idx) <- unlabeledNodes.zipWithIndex
-    } yield {
-      val nearest = W(idx, ::).inner.toArray.zipWithIndex
+    val labeledEvidenceAtoms = unlabeledNodes.zipWithIndex.map { case (node, i) =>
+
+      val nearest = W(i, ::).inner.toArray.zipWithIndex
         .withFilter { case (v, _) => v != UNCONNECTED }
-        .map {
-          case (v, i) =>
-            val freq = nodeCache.find { case (c, _) => c =~= labeledNodes(i).clause.get } match {
-              case Some((_, count)) => count
-              case None => logger.fatal(
-                s"Pattern ${labeledNodes(i).clause.get.toText()} is not unique, but it does not exist in the frequency set.")
+        .map { case (v, j) =>
+            val freq = nodeCache.find { case (c, _) => c =~= labeledNodes(j).clause.get } match {
+              case Some((_, frequency)) => frequency
+              case None => logger.fatal(s"Pattern ${labeledNodes(j).clause.get.toText()} not found.")
             }
 
-            v -> (labeledNodes(i).isPositive, freq)
+            v -> (labeledNodes(j).isPositive, freq)
         }
 
       val (positive, negative) = nearest.partition { case (_, (tv, _)) => tv }
@@ -145,10 +160,6 @@ final class SupervisionGraph private (
         if (positive.map(_._2._2).sum > negative.map(_._2._2).sum) true
         else if (negative.map(_._2._2).sum > positive.map(_._2._2).sum) false
         else nearest.maxBy { case (v, _) => v }._2._1
-
-      println(node)
-      println(positive.map(_._2._2).sum)
-      println(negative.map(_._2._2).sum)
 
       EvidenceAtom(node.query.symbol, node.query.terms, value)
     }
@@ -172,9 +183,10 @@ final class SupervisionGraph private (
         s"of evidence atoms [${nodes.map(_.size).distinct.mkString(", ")}].\n" +
         s"\t\t- Labeled Nodes: $numberOfLabeled\n" +
         s"\t\t- Unlabeled Nodes: $numberOfUnlabeled\n" +
-        s"\t\t- Query Signature: $querySignature")
+        s"\t\t- Query Signature: $querySignature"
+    )
 
-    val startGraphConnection = System.currentTimeMillis()
+    val startGraphConnection = System.currentTimeMillis
 
     for (i <- nodes.indices) {
       val neighborCosts = DenseVector.zeros[Double](numberOfNodes)

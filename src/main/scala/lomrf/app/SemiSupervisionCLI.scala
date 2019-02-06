@@ -23,8 +23,7 @@ package lomrf.app
 import lomrf.logic._
 import lomrf.logic.AtomSignatureOps._
 import lomrf.mln.learning.structure.ModeParser
-import lomrf.mln.learning.supervision.graphs.SupervisionGraph
-import lomrf.mln.learning.supervision.graphs.SupervisionGraph._
+import lomrf.mln.learning.supervision.graphs._
 import lomrf.mln.learning.supervision.metric._
 import lomrf.mln.model.{ AtomEvidenceDB, Evidence, KB, MLN }
 import lomrf.util.NaturalComparator
@@ -61,20 +60,20 @@ object SemiSupervisionCLI extends CLIApp {
   // By default output the negatives
   private var _outputNegatives: Boolean = true
 
+  // By default run using harmonic graph cut
+  private var _solver = "hgc"
+
   // By default run using atomic distance
   private var _distance = "atomic"
 
   // By default run using a kNN connector
-  private var _kNNConnector = true
+  private var _connector = "knn"
 
   // Epsilon threshold for the eNN graph
   private var _epsilon = 0.75
 
   // K value for the kNN graph
   private var _k = 2
-
-  // Cache labels for online supervision completion
-  private var _cacheLabels = false
 
   opt("i", "input", "<kb file>", "Markov Logic file defining the predicate and function schema.", {
     v: String => _mlnFileName = Some(v)
@@ -110,6 +109,15 @@ object SemiSupervisionCLI extends CLIApp {
     v: String => _modesFileName = Some(v)
   })
 
+  opt("s", "solver", "<nn | hgc >", "Specify a solver for completion (default is hgc).", {
+    v: String =>
+      v.trim.toLowerCase match {
+        case "nn"  => _solver = "nn"
+        case "hgc" => _solver = "hgc"
+        case _     => logger.fatal(s"Unknown solver of type '$v'.")
+      }
+  })
+
   opt("d", "distance", "<binary | atomic | structure>", "Specify a distance over atoms (default is atomic).", {
     v: String =>
       v.trim.toLowerCase match {
@@ -120,12 +128,13 @@ object SemiSupervisionCLI extends CLIApp {
       }
   })
 
-  opt("c", "connector", "<kNN | eNN>", "Specify a connection heuristic for the graph (default is kNN).", {
+  opt("c", "connector", "<kNN | eNN | Full>", "Specify a connection heuristic for the graph (default is kNN).", {
     v: String =>
       v.trim.toLowerCase match {
-        case "knn" => _kNNConnector = true
-        case "enn" => _kNNConnector = false
-        case _     => logger.fatal(s"Unknown connector of type '$v'.")
+        case "knn"  => _connector = "kNN"
+        case "enn"  => _connector = "eNN"
+        case "full" => _connector = "full"
+        case _      => logger.fatal(s"Unknown connector of type '$v'.")
       }
   })
 
@@ -139,10 +148,6 @@ object SemiSupervisionCLI extends CLIApp {
 
   flagOpt("skip-negatives", "skip-negatives", "Do not output negative labels into the resulted files.", {
     _outputNegatives = false
-  })
-
-  flagOpt("cache", "cache-labels", "Cache labels for online supervision completion.", {
-    _cacheLabels = true
   })
 
   flagOpt("v", "version", "Print LoMRF version.", sys.exit(0))
@@ -183,11 +188,10 @@ object SemiSupervisionCLI extends CLIApp {
     logger.info("Parameters:"
       + "\n\t(ne) Non-evidence predicate(s): " + _nonEvidenceAtoms.map(_.toString).mkString(", ")
       + "\n\t(distance) Distance metric for atomic formula: " + _distance
-      + "\n\t(connector) Graph connection heuristic: " + (if (_kNNConnector) "kNN" else "eNN")
+      + "\n\t(connector) Graph connection heuristic: " + _connector
       + "\n\t(kappa) k parameter for the kNN connector: " + _k
       + "\n\t(epsilon) Epsilon parameter for the eNN connector: " + _epsilon
-      + "\n\t(negatives) Output negative labels: " + _outputNegatives
-      + "\n\t(cache) Cache labels for online supervision completion: " + _cacheLabels)
+      + "\n\t(negatives) Output negative labels: " + _outputNegatives)
 
     // Init all statistics values to zero
     var actualPositive, actualNegative, positiveFound, negativeFound = 0
@@ -196,6 +200,11 @@ object SemiSupervisionCLI extends CLIApp {
 
     // Create a knowledge base and convert all functions
     val (kb, constants) = KB.fromFile(strMLNFileName, convertFunctions = true)
+
+    val connector =
+      if (_connector == "kNN") kNNConnector(_k)
+      else if (_connector == "eNN") eNNConnector(_epsilon)
+      else FullConnector
 
     val distance: Metric[_ <: AtomicFormula] =
       if (_distance == "binary") BinaryMetric(HungarianMatcher)
@@ -212,15 +221,15 @@ object SemiSupervisionCLI extends CLIApp {
 
       // Do not force CWA in order to complete UNKNOWN query atoms
       val trainingEvidence = Evidence.fromFiles(
-          kb,
-          constants,
-          _nonEvidenceAtoms,
-          Set.empty[AtomSignature],
-          kb.predicateSchema.keySet -- _nonEvidenceAtoms,
-          List(currentTrainingFile),
-          convertFunctions = true,
-          forceCWAForAll   = false
-        )
+        kb,
+        constants,
+        _nonEvidenceAtoms,
+        Set.empty[AtomSignature],
+        kb.predicateSchema.keySet -- _nonEvidenceAtoms,
+        List(currentTrainingFile),
+        convertFunctions = true,
+        forceCWAForAll   = false
+      )
 
       // Partition the training data into annotation and evidence databases
       var (annotationDB, atomStateDB) = trainingEvidence.db.partition(e => _nonEvidenceAtoms.contains(e._1))
@@ -240,23 +249,16 @@ object SemiSupervisionCLI extends CLIApp {
 
       // Create or update supervision graphs for each given non evidence atom
       _nonEvidenceAtoms.foreach { querySignature =>
-        (_kNNConnector, _cacheLabels, supervisionGraphs.get(querySignature).isEmpty) match {
-          case (true, _, true) | (true, false, false) =>
-            supervisionGraphs +=
-              querySignature -> kNNGraph(_k, mln, modes, annotationDB, querySignature, distance)
-
-          case (false, _, true) | (false, false, false) =>
-            supervisionGraphs +=
-              querySignature -> eNNGraph(_epsilon, mln, modes, annotationDB, querySignature, distance)
-
-          case (_, true, false) =>
-            supervisionGraphs += querySignature -> (supervisionGraphs(querySignature) ++ (mln, annotationDB, modes))
+        supervisionGraphs.get(querySignature) match {
+          case Some(graph) => supervisionGraphs += querySignature -> (graph ++ (mln, annotationDB, modes))
+          case None => supervisionGraphs += querySignature -> SupervisionGraph(mln, modes, annotationDB, querySignature, connector, distance)
         }
       }
 
       // Run supervision completion for all given non evidence atoms and collect the results
-      val (completedEvidenceAtoms, completedEvidenceSet) =
-        supervisionGraphs.values.map(_.completeSupervision).foldLeft(Set.empty[EvidenceAtom] -> Set.empty[Evidence]) {
+      val (completedEvidenceAtoms, completedEvidenceSet) = supervisionGraphs.values
+        .map(graph => if (_solver == "nn") graph.completeSupervisionNN else graph.completeSupervisionGraphCut)
+        .foldLeft(Set.empty[EvidenceAtom] -> Set.empty[Evidence]) {
           case ((atoms, evidenceSet), tuple) => (atoms ++ tuple._1, evidenceSet + tuple._2)
         }
 
@@ -265,15 +267,10 @@ object SemiSupervisionCLI extends CLIApp {
       /*
        * OK, lets store the resulted completed supervision
        */
-      val resultsFolder = new File(
-        currentTrainingFile.getParentFile.getParent + "/" +
-          (if (_kNNConnector) "kNN." + _k else "eNN." + _epsilon) + "." + _distance + ".batch." +
-          (if (_cacheLabels) "cache" else "no.cache")
-      )
-      resultsFolder.mkdirs()
+      val resultsFolder = new File(s"${currentTrainingFile.getParentFile.getParent}/$connector.$distance.${_solver}")
+      resultsFolder.mkdirs
 
-      val completedBatch = new PrintStream(
-        new File(resultsFolder.getCanonicalPath + "/" + currentTrainingFile.getName))
+      val completedBatch = new PrintStream(resultsFolder.getCanonicalPath + "/" + currentTrainingFile.getName)
 
       val inputStream = Source.fromFile(currentTrainingFile)
       inputStream.getLines.filter { line =>
@@ -313,7 +310,7 @@ object SemiSupervisionCLI extends CLIApp {
                   case Success(terms) if atomDB(id) == FALSE =>
                     Some(s"!${signature.symbol}(${terms.mkString(",")})")
                   case Failure(exception) => throw exception
-                  case _ => None
+                  case _                  => None
                 }
               }.sortWith(NaturalComparator.compareBool).foreach(completedBatch.println)
             }
@@ -335,14 +332,14 @@ object SemiSupervisionCLI extends CLIApp {
 
         // At this point force CWA because annotation cannot have UNKNOWN atoms.
         val fullAnnotationDB = Evidence.fromFiles(
-            kb,
-            trainingEvidence.constants,
-            _nonEvidenceAtoms,
-            Set.empty[AtomSignature],
-            kb.predicateSchema.keySet -- _nonEvidenceAtoms,
-            List(currentAnnotationFile),
-            convertFunctions = false,
-            forceCWAForAll   = true
+          kb,
+          trainingEvidence.constants,
+          _nonEvidenceAtoms,
+          Set.empty[AtomSignature],
+          kb.predicateSchema.keySet -- _nonEvidenceAtoms,
+          List(currentAnnotationFile),
+          convertFunctions = false,
+          forceCWAForAll   = true
         )
 
         _nonEvidenceAtoms.foreach { querySignature =>
