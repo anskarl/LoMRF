@@ -63,7 +63,7 @@ final case class kNNConnector(k: Int) extends GraphConnector {
     */
   override def apply(neighbors: DenseVector[Double]): DenseVector[Double] = {
     // find distinct costs in the neighbor vector
-    val distinctCosts = DenseVector(neighbors.data.distinct)
+    val distinctCosts = DenseVector(neighbors.toArray.distinct)
 
     if (distinctCosts.length > k) {
       val topK = argtopk(distinctCosts, k).map(distinctCosts.apply)
