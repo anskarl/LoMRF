@@ -58,10 +58,9 @@ object LogicOps {
     matchingLiterals.foreach { l =>
       Unify(current.sentence, l.sentence) match {
         case Some(x) if current.substitute(x) == l =>
-          isUnifiable((thisLiterals - current).map(_.substitute(x)), otherLiterals) match {
-            case true  => return true
-            case false => // do nothing, proceed to the next matching literal (backtracking)
-          }
+          if (isUnifiable((thisLiterals - current).map(_.substitute(x)), otherLiterals)) return true
+          else {} // do nothing, proceed to the next matching literal (backtracking)
+
         case Some(x) if x.size < l.sentence.variables.size => return false // avoid bidirectional cycles of unification
         case None => // do nothing, proceed to the next matching literal (backtracking)
       }
@@ -84,7 +83,9 @@ object LogicOps {
       * @return a boolean value being true if the set of definite clauses can be decomposed and a collection
       *         of the grouped definite clauses by atom signature.
       */
-    def collectAndMerge(implicit predicateSchema: PredicateSchema, functionSchema: FunctionSchema): Try[(Boolean, DefiniteClausesDB)] = Try {
+    def collectAndMerge(implicit
+        predicateSchema: PredicateSchema,
+        functionSchema: FunctionSchema): Try[(Boolean, DefiniteClausesDB)] = Try {
 
       val eqBuilder = new DynEqualsBuilder
       val dcDB = mutable.HashMap[AtomSignature, mutable.HashMap[AtomicFormula, mutable.HashSet[DefiniteClauseConstruct]]]()
@@ -104,15 +105,15 @@ object LogicOps {
           case Some(mapping) => mapping.get(currentHead) match {
 
             /*
-               * It also contains clauses having exactly the same head predicate (same constants and/or variables in the arguments).
-               * Consequently, put the current clause together with the rest clauses.
-               */
+             * It also contains clauses having exactly the same head predicate (same constants and/or variables in the arguments).
+             * Consequently, put the current clause together with the rest clauses.
+             */
             case Some(storedBodies) => storedBodies += currentClause.clause.body
 
             /*
-                 * It does not contain any clauses having exactly the same head predicate (same constants and/or variables in the arguments).
-                 * Therefore, check if any unification exists with an already stored head predicates in order to merge them.
-                 */
+             * It does not contain any clauses having exactly the same head predicate (same constants and/or variables in the arguments).
+             * Therefore, check if any unification exists with an already stored head predicates in order to merge them.
+             */
             case None => mapping.find(entry => Unify(entry._1, currentHead).isDefined) match {
 
               // There is no such unification, so just create an entry for this head predicate
@@ -124,26 +125,26 @@ object LogicOps {
                 case Some(generalisedHead) =>
 
                   // collect only Variable -> Variable mappings
-                  def collectVariablesToRename(theta: Map[Term, Term]) = theta.filter {
-                      case (v1: Variable, v2: Variable) => true
-                      case _                            => false
+                  def collectVariablesToRename(theta: Theta): Theta = theta.filter {
+                      case (_: Variable, _: Variable) => true
+                      case _                          => false
                     }
 
                   /*
-                        * --- 1. Update current clause body ---
-                        * In case where the current "head predicate" is not the same with the "generalised head predicate",
-                        * cover the differences by renaming its variables and introduce additional atoms (equals) to the body.
-                        */
+                   * --- 1. Update current clause body ---
+                   * In case where the current "head predicate" is not the same with the "generalised head predicate",
+                   * cover the differences by renaming its variables and introduce additional atoms (equals) to the body.
+                   */
                   val currentClauseBody = {
                     if (currentHead != generalisedHead) {
 
                       /*
-                             * Substitute variables of the current head predicate with unique named auxiliary
-                             * variables, before unification, in order to avoid the case which variables are
-                             * symmetrical between the two predicates.
-                             *
-                             * Example Head(v1, v2) and Head(v2, v1)
-                             */
+                       * Substitute variables of the current head predicate with unique named auxiliary
+                       * variables, before unification, in order to avoid the case which variables are
+                       * symmetrical between the two predicates.
+                       *
+                       * Example Head(v1, v2) and Head(v2, v1)
+                       */
                       val theta: Theta = currentHead.variables.map(v => v -> Variable("$" + v.symbol)).toMap
                       val substitutedHead = currentHead.substitute(theta)
                       val substitutedBody = currentClause.clause.body.substitute(theta)
@@ -162,18 +163,19 @@ object LogicOps {
                               yield eqBuilder(Vector(v, t))
 
                           additionalAtomsStored.foldLeft(bodyVarRenamed)((rest, atom) => And(atom, rest))
-                        case _ =>
-                          throw new UnsupportedOperationException(s"Cannot unify '${generalisedHead.toText}' with '${substitutedHead.toText}' (possible bug?)")
+                        case _ => throw new UnsupportedOperationException(
+                          s"Cannot unify '${generalisedHead.toText}' with '${substitutedHead.toText}' (possible bug?)")
                       }
 
                     } else currentClause.clause.body
                   }
 
-                  /* --- 2. Update previously stored bodies ---
-                         * In case where the previously stored head predicate is not the same with the generalised head predicate,
-                         * cover the differences by renaming its variables and introduce additional atoms (equals) to the bodies.
-                         * Otherwise, simply insert the current clause body.
-                         */
+                  /*
+                   * --- 2. Update previously stored bodies ---
+                   * In case where the previously stored head predicate is not the same with the generalised head predicate,
+                   * cover the differences by renaming its variables and introduce additional atoms (equals) to the bodies.
+                   * Otherwise, simply insert the current clause body.
+                   */
                   if (storedHead != generalisedHead) {
                     Unify(storedHead, generalisedHead) match {
                       case Some(thetaStored) =>
@@ -202,25 +204,25 @@ object LogicOps {
                         updatedBodies += currentClauseBody
 
                         /*
-                               * Replace the previously stored head predicate with the generalised head predicate,
-                               * associated with the updated collection of bodies.
-                               */
+                         * Replace the previously stored head predicate with the generalised head predicate,
+                         * associated with the updated collection of bodies.
+                         */
                         dcDB(storedHead.signature).remove(storedHead)
                         dcDB(generalisedHead.signature).put(generalisedHead, updatedBodies)
 
-                      case None =>
-                        throw new UnsupportedOperationException(s"Cannot unify '${generalisedHead.toText}' with '${storedHead.toText}' (possible bug?)")
+                      case None => throw new UnsupportedOperationException(
+                        s"Cannot unify '${generalisedHead.toText}' with '${storedHead.toText}' (possible bug?)")
                     }
 
                   } else {
                     /*
-                           * No need to perform any update to the previously stored bodies,
-                           * thus we simply insert the current clause body.
-                           */
+                     * No need to perform any update to the previously stored bodies,
+                     * thus we simply insert the current clause body.
+                     */
                     dcDB(storedHead.signature)(storedHead) += currentClauseBody
                   }
-                case None =>
-                  throw new UnsupportedOperationException(s"Failed to find a generalised predicate from '${storedHead.toText}' and '${currentHead.toText}' (possible bug?).")
+                case None => throw new UnsupportedOperationException(
+                  s"Failed to find a generalised predicate from '${storedHead.toText}' and '${currentHead.toText}' (possible bug?).")
               }
             }
           } // case Some(mapping) ends here
@@ -232,7 +234,7 @@ object LogicOps {
   }
 
   /**
-    * Implicit class for clauses operations
+    * Implicit class for clauses operations.
     */
   implicit class ClauseOps(val clause: Clause) extends AnyVal {
 
@@ -394,7 +396,7 @@ object LogicOps {
     }
 
     /**
-      * @return All atom signatures existing in this formula.
+      * @return all atom signatures existing in this formula
       */
     def signatures: Set[AtomSignature] = formula match {
       case atom: AtomicFormula => Set(atom.signature)
@@ -414,8 +416,7 @@ object LogicOps {
     }
 
     /**
-      * Replace a target atomic formula appearing in this formula with a given replacement
-      * formula construct.
+      * Replace a target atomic formula appearing in this formula with a given formula construct.
       *
       * @param targetAtom the target atomic formula
       * @param replacement the replacement formula construct
@@ -462,7 +463,7 @@ object LogicOps {
             val bodyOpt = mkReplacement(clause.body).asInstanceOf[Option[DefiniteClauseConstruct]]
 
             val headOpt: Option[AtomicFormula] = replacement match {
-              case a: AtomicFormula => mkReplacement(clause.head).asInstanceOf[Option[AtomicFormula]]
+              case _: AtomicFormula => mkReplacement(clause.head).asInstanceOf[Option[AtomicFormula]]
               case _                => None
             }
 

@@ -34,12 +34,13 @@ package object logic {
   trait TermIterable extends Iterable[Term]
 
   /**
-    * Gives (if exists) the most general predicate, for example consider the following cases:
+    * Gives (if exists) the most general predicate. Consider for example the following cases:
+    *
     * <ul>
-    * <li> The mgp of InitiatedAt(meet(x,y),t) and InitiatedAt(meet(x,A),t) is:  InitiatedAt(meet(x,y),t) </li>
-    * <li> The mgp of InitiatedAt(meet(A,y),t) and InitiatedAt(meet(x,A),t) is:  InitiatedAt(meet(x,y),t) </li>
-    * <li> The mgp of InitiatedAt(meet(A,y),t) and InitiatedAt(meet(A,B),t) is:  InitiatedAt(meet(A,y),t) </li>
-    * <li> The mgp of InitiatedAt(meet(x,y),t) and InitiatedAt(f,t)  is:  InitiatedAt(f,t) </li>
+    *   <li> The mgp of InitiatedAt(meet(x,y),t) and InitiatedAt(meet(x,A),t) is:  InitiatedAt(meet(x,y),t) </li>
+    *   <li> The mgp of InitiatedAt(meet(A,y),t) and InitiatedAt(meet(x,A),t) is:  InitiatedAt(meet(x,y),t) </li>
+    *   <li> The mgp of InitiatedAt(meet(A,y),t) and InitiatedAt(meet(A,B),t) is:  InitiatedAt(meet(A,y),t) </li>
+    *   <li> The mgp of InitiatedAt(meet(x,y),t) and InitiatedAt(f,t)  is:  InitiatedAt(f,t) </li>
     * </ul>
     *
     * @param atom1 first atom
@@ -47,7 +48,10 @@ package object logic {
     *
     * @return the generalisation of the given atoms
     */
-  def generalisation(atom1: AtomicFormula, atom2: AtomicFormula)(implicit predicateSchema: PredicateSchema, functionSchema: FunctionSchema): Option[AtomicFormula] = {
+  def generalisation(
+      atom1: AtomicFormula,
+      atom2: AtomicFormula)
+    (implicit predicateSchema: PredicateSchema, functionSchema: FunctionSchema): Option[AtomicFormula] = {
 
     if (atom1.signature != atom2.signature) None // the signatures are different, thus MGP cannot be applied.
     else if (atom1 == atom2) Some(atom1) // comparing the same atom
@@ -55,7 +59,10 @@ package object logic {
   }
 
   @inline
-  private def generalisationOf(atom1: AtomicFormula, atom2: AtomicFormula)(implicit predicateSchema: PredicateSchema, functionSchema: FunctionSchema): Option[AtomicFormula] = {
+  private def generalisationOf(
+      atom1: AtomicFormula,
+      atom2: AtomicFormula)
+    (implicit predicateSchema: PredicateSchema, functionSchema: FunctionSchema): Option[AtomicFormula] = {
 
     val generalizedArgs: Vector[Term] =
       (for ((pair, idx) <- atom1.terms.zip(atom2.terms).zipWithIndex) yield pair match {
@@ -74,7 +81,11 @@ package object logic {
     Some(AtomicFormula(atom1.symbol, generalizedArgs))
   }
 
-  private def generalisationOf(f1: TermFunction, f2: TermFunction, level: Int = 0)(implicit functionSchema: FunctionSchema): Option[TermFunction] = {
+  private def generalisationOf(
+      f1: TermFunction,
+      f2: TermFunction,
+      level: Int = 0)
+    (implicit functionSchema: FunctionSchema): Option[TermFunction] = {
 
     val generalizedArgs: Vector[Term] =
       (for ((pair, idx) <- f1.terms.zip(f2.terms).zipWithIndex) yield pair match {
@@ -362,7 +373,11 @@ package object logic {
     * @return a resulting vector of terms matching the given function
     *         each list of terms, or an empty vector if none is found
     */
-  def matchedTerms(sources: Iterable[TermIterable], matcher: Term => Boolean)(implicit tag: ClassTag[TermIterable]): Vector[Vector[Term]] = {
+  def matchedTerms(
+      sources: Iterable[TermIterable],
+      matcher: Term => Boolean)
+    (implicit tag: ClassTag[TermIterable]): Vector[Vector[Term]] = {
+
     val stack = mutable.Stack[Term]()
     var result = Vector[Vector[Term]]()
 
@@ -411,6 +426,14 @@ package object logic {
     matchedTerms
   }
 
+  /**
+    * Collect all variables given a term iterable.
+    *
+    * @see [[lomrf.logic.Term]]
+    *
+    * @param terms an iterable of terms
+    * @return a vector of variables
+    */
   def variableLeafs(terms: TermIterable): Vector[Variable] = {
     val stack = mutable.Stack[Term]()
     stack.pushAll(terms)
@@ -424,6 +447,14 @@ package object logic {
     result
   }
 
+  /**
+    * Collect all constants given a term iterable.
+    *
+    * @see [[lomrf.logic.Term]]
+    *
+    * @param terms an iterable of terms
+    * @return a vector of constant
+    */
   def constantLeafs(terms: TermIterable): Vector[Constant] = {
     val stack = mutable.Stack[Term]()
     stack.pushAll(terms)
@@ -437,6 +468,14 @@ package object logic {
     result
   }
 
+  /**
+    * Collect all unique variables given a term iterable.
+    *
+    * @see [[lomrf.logic.Term]]
+    *
+    * @param terms an iterable of terms
+    * @return a set of variables
+    */
   def uniqueVariableLeafs(terms: TermIterable): Set[Variable] = {
     val queue = mutable.Queue[Term]()
     queue ++= terms
@@ -450,6 +489,14 @@ package object logic {
     result
   }
 
+  /**
+    * Collect all unique constants given a term iterable.
+    *
+    * @see [[lomrf.logic.Term]]
+    *
+    * @param terms an iterable of terms
+    * @return a set of constant
+    */
   def uniqueConstantLeafs(terms: TermIterable): Set[Constant] = {
     val queue = mutable.Queue[Term]()
     queue ++= terms
@@ -464,8 +511,7 @@ package object logic {
   }
 
   /**
-    * Variabilize the given atomic formula. Replace all constants appearing in the
-    * formula with variables.
+    * Replace all constants appearing in the formula with variables.
     *
     * @param atom the given atomic formula to be variabilized
     * @return a variabilized atomic formula
@@ -475,16 +521,18 @@ package object logic {
 
       def variabilizeTerms(terms: Vector[_ <: Term], currentSchema: Seq[String]): Vector[_ <: Term] = {
         terms.zip(currentSchema).map {
-          case (v: Variable, t: String) => v
-          case (c: Constant, t: String) =>
+          case (v: Variable, _: String) => v
+          case (_: Constant, t: String) =>
             val symbol = s"var_$anonVarCounter"
             anonVarCounter += 1
             Variable(symbol, t)
 
-          case (f: TermFunction, t: String) =>
+          case (f: TermFunction, _: String) =>
             val schemaOfTerms = functionSchema(f.signature)._2
             val fTerms = variabilizeTerms(f.terms, schemaOfTerms)
             TermFunction(f.symbol, fTerms, f.domain)
+
+          case (other: Term, _) => other
         }
       }
 

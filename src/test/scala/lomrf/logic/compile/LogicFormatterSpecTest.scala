@@ -18,13 +18,12 @@
  *
  */
 
-package lomrf.mln.model
+package lomrf.logic.compile
 
-import lomrf.logic._
+import lomrf.logic.AtomSignature
 import lomrf.logic.LogicOps._
 import lomrf.logic.parser.KBParser
-import lomrf.{ AUX_PRED_PREFIX => FUNC_PREFIX }
-import lomrf.{ FUNC_RET_VAR_PREFIX => RET_VAR }
+import lomrf.{ AUX_PRED_PREFIX => FUNC_PREFIX, FUNC_RET_VAR_PREFIX => RET_VAR }
 import org.scalatest.{ FunSpec, Matchers }
 
 /**
@@ -99,7 +98,8 @@ final class LogicFormatterSpecTest extends FunSpec with Matchers {
   describe("Unsupported clause formatter operations (introduce functions when having positive auxiliary predicates)") {
 
     val clauses = NormalForm.compileCNF(Seq(
-      s"Happens(${RET_VAR}0, t) v ${FUNC_PREFIX}foo(${RET_VAR}0, id1) v HoldsAt(${RET_VAR}1, t) v ${FUNC_PREFIX}qax(${RET_VAR}1, id1, id2).").map(parser.parseLogicalSentence))
+      s"Happens(${RET_VAR}0, t) v ${FUNC_PREFIX}foo(${RET_VAR}0, id1) v HoldsAt(${RET_VAR}1, t) v ${FUNC_PREFIX}qax(${RET_VAR}1, id1, id2)."
+    ).map(parser.parseLogicalSentence))
 
     info(s"Initial set of clauses:\n${clauses.map(_.toText(weighted = false)).mkString("\n")}")
 
@@ -158,7 +158,8 @@ final class LogicFormatterSpecTest extends FunSpec with Matchers {
   describe("Unsupported definite clause formatter operations (introduce functions when having negated auxiliary predicates)") {
 
     val definiteClauses = Seq(
-      s"InitiatedAt(${RET_VAR}1, t) :- !${FUNC_PREFIX}qax(${RET_VAR}1, id1, id2) ^ Happens(${RET_VAR}2, t) ^ !${FUNC_PREFIX}foo(${RET_VAR}2, id1)").map(parser.parseDefiniteClause)
+      s"InitiatedAt(${RET_VAR}1, t) :- !${FUNC_PREFIX}qax(${RET_VAR}1, id1, id2) ^ Happens(${RET_VAR}2, t) ^ !${FUNC_PREFIX}foo(${RET_VAR}2, id1)"
+    ).map(parser.parseDefiniteClause)
 
     info(s"Initial set of definite clauses:\n${definiteClauses.map(_.toText).mkString("\n")}")
 

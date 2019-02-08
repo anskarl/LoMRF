@@ -21,6 +21,7 @@
 package lomrf.logic
 
 import lomrf.logic.LogicOps._
+import lomrf.logic.compile.NormalForm
 import lomrf.mln.model.ConstantsSet
 
 /**

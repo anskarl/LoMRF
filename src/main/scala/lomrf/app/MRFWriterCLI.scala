@@ -22,21 +22,19 @@ package lomrf.app
 
 import java.io.{ BufferedWriter, FileWriter }
 import java.text.DecimalFormat
-
 import lomrf.util.opt.OptionParser
 import lomrf.logic._
 import lomrf.logic.AtomSignatureOps._
 import lomrf.mln.model.AtomIdentityFunctionOps
 import AtomIdentityFunctionOps._
 import com.typesafe.scalalogging.LazyLogging
-import lomrf.logic.PredicateCompletionMode._
+import lomrf.logic.compile.PredicateCompletionMode._
 import lomrf.logic.dynamic.{ DynamicAtomBuilder, DynamicFunctionBuilder }
 import lomrf.mln.grounding.MRFBuilder
 import lomrf.mln.model.MLN
 import lomrf.mln.model.mrf.MRF
 import lomrf.util._
 import lomrf.util.logging.Implicits._
-
 import scala.collection.mutable.ArrayBuffer
 
 /**

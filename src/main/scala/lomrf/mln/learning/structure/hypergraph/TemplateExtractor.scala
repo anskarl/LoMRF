@@ -25,7 +25,7 @@ import lomrf.logic._
 import lomrf.util.logging.Implicits._
 import lomrf.mln.model.{ ConstantsDomain, KB }
 import lomrf.logic.LogicOps._
-
+import lomrf.logic.compile.{ NormalForm, PredicateCompletion }
 import scala.util.{ Failure, Success, Try }
 
 /**

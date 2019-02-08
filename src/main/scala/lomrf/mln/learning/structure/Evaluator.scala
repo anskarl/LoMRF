@@ -22,7 +22,8 @@ package lomrf.mln.learning.structure
 
 import com.typesafe.scalalogging.Logger
 import lomrf.logic.LogicOps._
-import lomrf.logic.{ Clause, NormalForm, WeightedDefiniteClause, WeightedFormula }
+import lomrf.logic.compile.NormalForm
+import lomrf.logic.{ Clause, WeightedDefiniteClause, WeightedFormula }
 import lomrf.mln.grounding.MRFBuilder
 import lomrf.mln.model._
 import lomrf.mln.model.mrf.MRFState

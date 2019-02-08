@@ -27,6 +27,7 @@ import lomrf.mln.learning.structure.hypergraph.{ HyperGraph, PathTemplate, Templ
 import lomrf.mln.model._
 import lomrf.logic.LogicOps._
 import lomrf.logic.AtomSignatureOps._
+import lomrf.logic.compile.PredicateCompletion
 import lomrf.mln.model.mrf.{ MRF, MRFState }
 import lomrf.util.time._
 import lomrf.util.logging.Implicits._

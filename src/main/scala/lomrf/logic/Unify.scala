@@ -24,18 +24,21 @@ import annotation.tailrec
 import LogicOps._
 
 /**
-  * A utility object for applying the Unification operator between MLN expressions. Unification operator
-  * search for a mapping of terms (theta-substitution) in order to transform the former expression into
-  * latter one.
+  * An object for applying the logical Unification operator to logical formulas. The Unification
+  * operator searches for a mapping of terms (theta-substitution) in order to transform the
+  * former expression into latter one.
   *
+  * @example
   * {{{
-  *   Unify Happens(x,t) with Happens(Event,t) = Map((x->Event))
-  *   Unify Happens(x,10) with Happens(Event,t) =  Map((x->Event), (t->10))
+  *   Unify Happens(x,t) with Happens(Event,t) should give Map((x->Event))
+  *   Unify Happens(x,10) with Happens(Event,t) should give Map((x->Event), (t->10))
   * }}}
   *
-  * @see Wikipedia article [[http://en.wikipedia.org/wiki/Unification_(computing)#Definition_of_unification_for_first-order_logic]]
-  * @see Russell, S.J. and Norvig, P. and Canny, J.F. and Malik, J. and Edwards, D.D. Artificial Intelligence: A Modern Approach, chapter 9.2.2 Unification [[http://aima.cs.berkeley.edu/]]
-  *
+  * @see Wikipedia article:
+  *      [[http://en.wikipedia.org/wiki/Unification_(computing)#Definition_of_unification_for_first-order_logic]]
+  * @see Russell, S.J., Norvig, P., Canny, J.F., Malik, J. and Edwards, D.D.
+  *      Artificial Intelligence: A Modern Approach, Chapter 9.2.2 Unification
+  *      [[http://aima.cs.berkeley.edu/]]
   */
 object Unify {
 
@@ -43,10 +46,11 @@ object Unify {
 
   def apply[T](x: T, y: T): ThetaOpt = apply(x, y, Some(Map[Term, Term]()))
 
-  def apply[T](x: T, y: T, theta: ThetaOpt)(implicit m: Manifest[Term]): ThetaOpt = x match {
-    case p: Term          => unifyTerm(p, y.asInstanceOf[Term], theta)
-    case f: AtomicFormula => unifyAtomicFormula(f, y.asInstanceOf[AtomicFormula], theta)
-    case l: Vector[Term]  => unifyTerms(l, y.asInstanceOf[Vector[Term]], theta)
+  def apply[T](x: T, y: T, theta: ThetaOpt): ThetaOpt = (x, y) match {
+    case (a: Term, b: Term) => unifyTerm(a, b, theta)
+    case (a: AtomicFormula, b: AtomicFormula) => unifyAtomicFormula(a, b, theta)
+    case (va: Vector[Term @unchecked], vb: Vector[Term @unchecked]) => unifyTerms(va, vb, theta)
+    case _ => None
   }
 
   def apply(x: AtomicFormula, f: FormulaConstruct): ThetaOpt = unifyFormula(x, f, Some(Map[Term, Term]()))
@@ -68,7 +72,7 @@ object Unify {
   @tailrec
   private def unifyTerms(x: Vector[Term], y: Vector[Term], theta: ThetaOpt): ThetaOpt = theta match {
     case None => None // failure
-    case Some(m) =>
+    case Some(_) =>
       (x, y) match {
         case (aX +: restX, aY +: restY)   => unifyTerms(restX, restY, unifyTerm(aX, aY, theta))
         case (IndexedSeq(), IndexedSeq()) => theta

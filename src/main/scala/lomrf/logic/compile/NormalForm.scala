@@ -18,14 +18,13 @@
  *
  */
 
-package lomrf.logic
+package lomrf.logic.compile
 
-import com.typesafe.scalalogging.LazyLogging
+import lomrf.logic._
 import lomrf.mln.model.ConstantsSet
-import lomrf.util.Cartesian.CartesianIterator
-
-import annotation.tailrec
-import collection.mutable
+import scala.annotation.tailrec
+import scala.collection.mutable
+import com.typesafe.scalalogging.LazyLogging
 
 /**
   * Contains functions that convert a First Order Logic (FOL) formula into a normal form,
@@ -386,7 +385,7 @@ object NormalForm extends LazyLogging {
   }
 
   /**
-    * Extracts clauses from the given formula (produced by [[lomrf.logic.NormalForm.distribute]]).
+    * Extracts clauses from the given formula (produced by [[lomrf.logic.compile.NormalForm.distribute]]).
     *
     * <p>
     * In an effort to preserve the original formula as much as possible, all single literals
@@ -402,7 +401,7 @@ object NormalForm extends LazyLogging {
     * 1 R(x) v S(x)
     * }}}
     *
-    * @param formula the input formula as it is resulted from  [[lomrf.logic.NormalForm.distribute]]
+    * @param formula the input formula as it is resulted from  [[lomrf.logic.compile.NormalForm.distribute]]
     *
     * @return the extracted clauses
     */

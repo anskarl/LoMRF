@@ -18,31 +18,32 @@
  *
  */
 
-package lomrf.logic
+package lomrf.logic.compile
 
 import lomrf.logic.parser.KBParser
-import org.scalatest.{ FunSpec, Matchers }
+import lomrf.logic.{ AtomSignature, Clause, Literal, Variable }
 import lomrf.mln.model.{ ConstantsSet, MLN }
 import lomrf.tests.TestData
+import org.scalatest.{ FunSpec, Matchers }
 
 /**
-  * A series of spec tests for the computation of normal forms (e.g., CNF, NNF, etc).
+  * A series of specification tests for the computation of normal forms (e.g., CNF, NNF, etc).
   */
 final class NormalFormSpecTest extends FunSpec with Matchers {
 
   private val testFilesPath = TestData.TestFilesPath
 
-  private implicit val constants = Map[String, ConstantsSet](
+  private implicit val constants: Map[String, ConstantsSet] = Map(
     "time" -> ConstantsSet("1", "2", "3", "4"),
     "event" -> ConstantsSet("Abrupt", "Walking", "Running", "Active", "Inactive", "Exit"),
     "fluent" -> ConstantsSet("Fight", "Move", "Meet", "Leaving_object"),
     "dist" -> ConstantsSet("24", "30", "35"),
     "id" -> ConstantsSet("ID1", "ID2", "ID3"),
-
     "a" -> ConstantsSet((1 to 4).map(_.toString): _*),
-    "b" -> ConstantsSet("B1", "B2"))
+    "b" -> ConstantsSet("B1", "B2")
+  )
 
-  private val predicateSchema = Map[AtomSignature, Vector[String]](
+  private val predicateSchema = Map(
     AtomSignature("InitiatedAt", 2) -> Vector("fluent", "time"),
     AtomSignature("TerminatedAt", 2) -> Vector("fluent", "time"),
     AtomSignature("Initiates", 3) -> Vector("event", "fluent", "time"),
@@ -58,9 +59,10 @@ final class NormalFormSpecTest extends FunSpec with Matchers {
 
     AtomSignature("Predicate1", 1) -> Vector("a"),
     AtomSignature("Predicate2", 2) -> Vector("a", "b"),
-    AtomSignature("Predicate3", 1) -> Vector("b"))
+    AtomSignature("Predicate3", 1) -> Vector("b")
+  )
 
-  private val functionsSchema = Map[AtomSignature, (String, Vector[String])](
+  private val functionsSchema = Map(
     AtomSignature("walking", 1) -> ("event", Vector("id")),
     AtomSignature("abrupt", 1) -> ("event", Vector("id")),
     AtomSignature("running", 1) -> ("event", Vector("id")),
@@ -70,7 +72,8 @@ final class NormalFormSpecTest extends FunSpec with Matchers {
     AtomSignature("fight", 2) -> ("fluent", Vector("id", "id")),
     AtomSignature("move", 2) -> ("fluent", Vector("id", "id")),
     AtomSignature("meet", 2) -> ("fluent", Vector("id", "id")),
-    AtomSignature("leaving_object", 2) -> ("fluent", Vector("id", "id")))
+    AtomSignature("leaving_object", 2) -> ("fluent", Vector("id", "id"))
+  )
 
   private val kbParser = new KBParser(predicateSchema, functionsSchema)
 
@@ -245,20 +248,10 @@ final class NormalFormSpecTest extends FunSpec with Matchers {
       evidenceFileName = testFilesPath + "DEC.db",
       queryAtoms       = Set(AtomSignature("HoldsAt", 2)),
       cwa              = Set(AtomSignature("Happens", 2), AtomSignature("Close", 4), AtomSignature("Next", 2)),
-      owa              = Set(AtomSignature("Initiates", 3), AtomSignature("Terminates", 3), AtomSignature("StartsAt", 3), AtomSignature("StopsAt", 3)))
+      owa              = Set(AtomSignature("Initiates", 3), AtomSignature("Terminates", 3), AtomSignature("StartsAt", 3), AtomSignature("StopsAt", 3))
+    )
 
     info(mln.toString)
-
-    /*it("should contain 14 formulas"){
-      mln.formulas.size should be (14)
-
-      for {
-        f <- mln.formulas
-        clauses = f.toCNF(constants)} {
-        clInfo("Formula '" + f.toText + "'", clauses)
-        assert(clauses.nonEmpty)
-      }
-    }*/
 
     it("should constants 5 constants sets (domains)") {
       mln.evidence.constants.size should be(5)
@@ -323,10 +316,5 @@ final class NormalFormSpecTest extends FunSpec with Matchers {
         case _       => false
       }
     }
-  }
-
-  private def clInfo(decName: String, clauses: Iterable[Clause]) {
-    info(decName + " produced the following " + clauses.size + " clauses:\n"
-      + clauses.foldRight("")((clause, txt) => clause.toString + "\n" + txt))
   }
 }

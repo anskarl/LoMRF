@@ -22,10 +22,11 @@ package lomrf.mln.learning.structure
 
 import lomrf.logic._
 import lomrf.logic.LogicOps._
+import lomrf.logic.compile.{ LogicFormatter, NormalForm }
 import lomrf.mln.learning.structure.ClauseConstructor.ClauseType.ClauseType
 import lomrf.mln.learning.structure.hypergraph.HPath
 import lomrf.mln.model._
-import scala.util.{ Success, Failure, Try }
+import scala.util.{ Failure, Success, Try }
 import spire.syntax.cfor._
 
 /**
@@ -48,7 +49,7 @@ object ClauseConstructor {
     */
   private def toCNF(source: Formula)(implicit constants: Map[String, ConstantsSet] = Map.empty): Set[Clause] = {
 
-    import lomrf.logic.NormalForm._
+    import lomrf.logic.compile.NormalForm._
 
       def normaliseConstruct(f: FormulaConstruct) = {
         hybridDistribute(

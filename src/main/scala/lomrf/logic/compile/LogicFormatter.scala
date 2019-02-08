@@ -18,12 +18,11 @@
  *
  */
 
-package lomrf.mln.model
+package lomrf.logic.compile
 
 import lomrf.logic._
 import lomrf.logic.LogicOps._
-import lomrf.{ AUX_PRED_PREFIX => FUNC_PREFIX }
-import lomrf.{ FUNC_RET_VAR_PREFIX => RET_VAR }
+import lomrf.{ AUX_PRED_PREFIX => FUNC_PREFIX, FUNC_RET_VAR_PREFIX => RET_VAR }
 
 /**
   * Logic formatter performs operations over clauses and definite clauses. These operations
@@ -155,7 +154,7 @@ object LogicFormatter {
           }
 
         val replacedLiterals = (literalsFunctions map eliminateFunctions) ++
-          functionMap.map { case (function, (variable, literal)) => eliminateFunctions(literal) }
+          functionMap.map { case (_, (_, literal)) => eliminateFunctions(literal) }
 
         Clause(literalsNoFunctions ++ replacedLiterals, clause.weight)
       } else clause
@@ -280,7 +279,7 @@ object LogicFormatter {
           }
 
         val replacedLiterals = (literalsFunctions map eliminateFunctions) ++
-          functionMap.map { case (function, (variable, literal)) => eliminateFunctions(literal) }
+          functionMap.map { case (_, (_, literal)) => eliminateFunctions(literal) }
 
         val replacedHead = replacedLiterals.find(_.sentence.symbol == definiteClause.head.symbol).get
 

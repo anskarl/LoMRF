@@ -23,7 +23,7 @@ package lomrf.app
 import java.io.{ FileOutputStream, PrintStream }
 import lomrf.logic._
 import lomrf.logic.AtomSignatureOps._
-import lomrf.logic.PredicateCompletionMode._
+import lomrf.logic.compile.PredicateCompletionMode._
 import lomrf.logic.dynamic.{ DynamicAtomBuilder, DynamicFunctionBuilder }
 import lomrf.mln.grounding.MRFBuilder
 import lomrf.mln.inference._

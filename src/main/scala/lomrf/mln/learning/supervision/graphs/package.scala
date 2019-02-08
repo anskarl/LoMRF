@@ -21,7 +21,8 @@
 package lomrf.mln.learning.supervision
 
 import lomrf.logic._
-import lomrf.mln.model.{ LogicFormatter, MLN, ModeDeclarations }
+import lomrf.logic.compile.LogicFormatter
+import lomrf.mln.model.{ MLN, ModeDeclarations }
 import scala.util.{ Failure, Success, Try }
 import lomrf.{ AUX_PRED_PREFIX => PREFIX }
 

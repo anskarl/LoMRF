@@ -22,11 +22,11 @@ package lomrf.app
 
 import java.io.FileWriter
 import java.text.DecimalFormat
-
 import lomrf.util.opt.OptionParser
 import com.typesafe.scalalogging.LazyLogging
 import lomrf.logic._
-import lomrf.logic.PredicateCompletionMode._
+import lomrf.logic.compile.PredicateCompletion
+import lomrf.logic.compile.PredicateCompletionMode._
 import lomrf.logic.dynamic.{ DynamicAtomBuilder, DynamicFunctionBuilder }
 import lomrf.mln.model.{ KB, MLNSchema }
 import lomrf.util.ImplFinder

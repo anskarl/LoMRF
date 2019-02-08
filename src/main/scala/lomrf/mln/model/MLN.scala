@@ -22,8 +22,8 @@ package lomrf.mln.model
 
 import java.io.{ File, PrintStream }
 import java.text.DecimalFormat
-
 import lomrf.logic._
+import lomrf.logic.compile._
 import lomrf.util.Cartesian.CartesianIterator
 import lomrf.util._
 import lomrf.util.logging.Implicits._
@@ -244,8 +244,7 @@ object MLN {
     * @param queryAtoms the set of query atoms
     * @param cwa the set of closed world assumption atoms
     * @param owa the set of open world assumption atoms
-    * @param pcm the predicate completion mode to perform [[lomrf.logic.PredicateCompletion]]
-    *
+    * @param pcm the predicate completion mode to perform [[lomrf.logic.compile.PredicateCompletion]]
     * @return an MLN instance
     */
   def fromFile(
@@ -354,7 +353,7 @@ object MLN {
     * @param mlnFileName the path to the MLN file (.mln)
     * @param trainingFileNames the path to the training file(s) (.db)
     * @param nonEvidenceAtoms the set of non evidence atoms
-    * @param pcm the predicate completion mode to perform [[lomrf.logic.PredicateCompletion]]
+    * @param pcm the predicate completion mode to perform [[lomrf.logic.compile.PredicateCompletion]]
     * @param addUnitClauses add a unit clause for each predicate definition to the mln instance
     *
     * @return an MLN instance

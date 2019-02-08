@@ -18,60 +18,66 @@
  *
  */
 
-package lomrf.logic
+package lomrf.logic.compile
 
+import lomrf.logic._
+import lomrf.logic.LogicOps._
 import lomrf.logic.Unify.ThetaOpt
+import lomrf.logic.{ AtomSignature, AtomicFormula, DefiniteClauseConstruct }
 import lomrf.mln.model.{ ConstantsDomain, FunctionSchema, PredicateSchema }
 import lomrf.util.Cartesian.CartesianIterator
 import lomrf.util.collectByKey
 import lomrf.util.logging.Implicits._
-
-import collection.mutable
-import LogicOps._
-import com.typesafe.scalalogging.LazyLogging
-
+import scala.collection.mutable
 import scala.util.{ Failure, Success }
+import com.typesafe.scalalogging.LazyLogging
 
 /**
   * Perform circumscription by predicate completion.</br>
   *
-  * <p> By default all definite clauses are circumscribed. The algorithm collects all
-  * head predicates of definite clauses and computes their completion. All variables
-  * in the body that do not appear in the head predicate are existentially quantified.
+  * <p>
+  *   By default all definite clauses are circumscribed. The algorithm collects all
+  *   head predicates of definite clauses and computes their completion. All variables
+  *   in the body that do not appear in the head predicate are existentially quantified.
   * </p>
   *
   * For example, consider the following definite clauses:
-  * {{{
-  * InitiatedAt(meeting(x,y), t) :- Happens(Event1(x),t) ^ Happens(Event2(y),t)                     (1)
   *
-  * InitiatedAt(meeting(x,y), t) :- Happens(Event3(x),t) ^ !HoldsAt(moving(y),t') ^ t' < t          (2)
+  * {{{
+  *   InitiatedAt(meeting(x,y), t) :- Happens(Event1(x),t) ^ Happens(Event2(y),t)                     (1)
+  *
+  *   InitiatedAt(meeting(x,y), t) :- Happens(Event3(x),t) ^ !HoldsAt(moving(y),t') ^ t' < t          (2)
   * }}}
-  * <p> In rule (1), both head and body predicates contain the same variables.
-  * However, in rule (2) the body predicate !HoldsAt(moving(Y), t') contains the variable t',
-  * which does not appear in the head predicate. As a result, this variable will be existentially quantified.
+  *
+  * <p>
+  *   In rule (1), both head and body predicates contain the same variables. However, in rule (2)
+  *   the body predicate !HoldsAt(moving(Y), t') contains the variable t', which does not appear
+  *   in the head predicate. As a result, this variable will be existentially quantified.
   * </p>
+  *
   * The resulting formulas of the predicate completion are the following:
+  *
   * {{{
-  * InitiatedAt(meeting(x,y), t) <=>
-  *   (Happens(Event1(x),t) ^ Happens(Event2(y),t)) v
-  *   (Exist t' Happens(Event3(x),t) ^ !HoldsAt(moving(y),t') ^ t' < t )                            (3)
+  *   InitiatedAt(meeting(x,y), t) <=>
+  *     (Happens(Event1(x),t) ^ Happens(Event2(y),t)) v
+  *     (Exist t' Happens(Event3(x),t) ^ !HoldsAt(moving(y),t') ^ t' < t )                            (3)
   * }}}
   *
-  * <p> Rule (3) is a combination of the rules (1) and (2). The right side of the resulting rule (3) contains the bodies
-  * of (1) and (2), separated with a disjunction. The body from rule (1) is directly included in (3), as contains the
-  * same variables with its head. However, in the body from rule (2) the variable "t'" is existentially quantified, as
-  * it does not appear to the head predicate.
+  * <p>
+  *   Rule (3) is a combination of the rules (1) and (2). The right side of the resulting rule (3)
+  *   contains the bodies of (1) and (2), separated with a disjunction. The body from rule (1) is directly
+  *   included in (3), as contains the same variables with its head. However, in the body from rule (2)
+  *   the variable "t'" is existentially quantified, as it does not appear to the head predicate.
   * </p>
   *
   * Other features:
-  * <ul>
-  * <li>The algorithm can exploit the equivalences created by the predicate completion (e.g. rule (3)) and
-  * simplify the formulas in the knowledge base. </li>
-  * <li>the algorithm can manage more complex cases, where the definite clauses contain different naming
-  * in the variables, as well as cases where some head predicates contain constant values </li>
-  * </ul>
-  * </p>
   *
+  * <ul>
+  *   <li>The algorithm can exploit the equivalences created by the predicate completion (e.g. rule (3)) and
+  *   simplify the formulas in the knowledge base. </li>
+  *   <li>the algorithm can manage more complex cases, where the definite clauses contain different naming
+  *   in the variables, as well as cases where some head predicates contain constant values </li>
+  * </ul>
   */
 object PredicateCompletion extends LazyLogging {
 
@@ -80,16 +86,23 @@ object PredicateCompletion extends LazyLogging {
   private type DefiniteClausesDB = mutable.HashMap[AtomSignature, mutable.HashMap[AtomicFormula, mutable.HashSet[DefiniteClauseConstruct]]]
 
   /**
-    * Performs predicate completion with simplification (see [[lomrf.logic.PredicateCompletion]]).
+    * Performs predicate completion with simplification.
     *
-    * @param formulas the input set of formulas [[lomrf.logic.FormulaConstruct]]
-    * @param definiteClauses the input set of definite clauses [[lomrf.logic.DefiniteClause]]
-    * @param predicateSchema predicate schema [[lomrf.mln.model.MLN]]
-    * @param functionSchema function schema [[lomrf.mln.model.MLN]]
+    * @see [[lomrf.logic.compile.PredicateCompletion]]
+    * @see [[lomrf.logic.FormulaConstruct]]
+    * @see [[lomrf.mln.model.MLN]]
+    *
+    * @param formulas the input set of formulas
+    * @param definiteClauses the input set of definite clauses
+    * @param predicateSchema a predicate schema
+    * @param functionSchema a function schema
     *
     * @return a logically stronger knowledge base (set of formulas)
     */
-  def apply(formulas: Set[WeightedFormula], definiteClauses: Set[WeightedDefiniteClause])(implicit
+  def apply(
+      formulas: Set[WeightedFormula],
+      definiteClauses: Set[WeightedDefiniteClause])
+    (implicit
       predicateSchema: PredicateSchema,
       functionSchema: FunctionSchema,
       constants: ConstantsDomain): Set[WeightedFormula] = {
@@ -98,84 +111,101 @@ object PredicateCompletion extends LazyLogging {
   }
 
   /**
-    * Creates a logically stronger knowledge base from the given formulas, by performing predicate completion.
-    * Optionally, the method can simplify the given formulas when mode is set to Simplification.
-    * Predicate completion is performed only for the head predicates that appear in the input set of definite clauses.
-    * <br/>
-    * <br/>
+    * Creates a logically stronger knowledge base from the given formulas, by performing predicate
+    * completion. Optionally, the method can simplify the given formulas when mode is set to Simplification.
+    * Predicate completion is performed only for the head predicates that appear in the input set
+    * of definite clauses.<br/><br/>
+    *
     * In particular, the following modes are supported: <br/>
     *
-    * '''Simplification:''' the algorithm will exploit the equivalences that are created by the predicate completion
-    * in order to simplify the formulas in the knowledge base. For example, consider the predicate completion result (3):
-    * {{{
-    * InitiatedAt(meeting(x,y), t) <=>
-    *  (Happens(Event1(x),t) ^ Happens(Event2(y),t)) v
-    *  (Exist t' Happens(Event3(x),t) ^ !HoldsAt(moving(y),t') ^ t' < t )                                   (3)
-    * }}}
-    * and the following two Discrete Event Calculus axioms:
-    * {{{
-    * Next(t1,t0) ^ InitiatedAt(f,t0) => HoldsAt(f, t0).                                                    (4)
+    * '''Simplification:''' the algorithm will exploit the equivalences that are created by the predicate
+    * completion in order to simplify the formulas in the knowledge base. For example, consider the predicate
+    * completion result (3):
     *
-    * Next(t1,t0) ^ !HoldsAt(f,t0) ^ !InitiatedAt(f,t0) => !HoldsAt(f,t0).                                  (5)
+    * {{{
+    *   InitiatedAt(meeting(x,y), t) <=>
+    *     (Happens(Event1(x),t) ^ Happens(Event2(y),t)) v
+    *     (Exist t' Happens(Event3(x),t) ^ !HoldsAt(moving(y),t') ^ t' < t )                               (3)
+    * }}}
+    *
+    * and the following Discrete Event Calculus axioms:
+    *
+    * {{{
+    *   Next(t1,t0) ^ InitiatedAt(f,t0) => HoldsAt(f, t0).                                                 (4)
+    *
+    *   Next(t1,t0) ^ !HoldsAt(f,t0) ^ !InitiatedAt(f,t0) => !HoldsAt(f,t0).                               (5)
     * }}}
     *
     * The algorithm performs the following two steps:</br>
+    *
     * <ol>
-    * <li>The algorithm will substitute (4) and (5) with "f = meeting(x,y)", producing the formulas below:
-    * {{{
-    * Next(t1,t0) ^ InitiatedAt(meeting(x,y),t0) => HoldsAt(meeting(x,y), t0).                              (6)
+    *   <li>The algorithm will substitute (4) and (5) with "f = meeting(x,y)", producing the formulas below:
+    *   {{{
+    *     Next(t1,t0) ^ InitiatedAt(meeting(x,y),t0) => HoldsAt(meeting(x,y), t0).                         (6)
     *
-    * Next(t1,t0) ^ !HoldsAt(f,t0) ^ !InitiatedAt(meeting(x,y),t0) => !HoldsAt(meeting(x,y),t0).            (7)
-    * }}}
-    * </li>
-    * <li>Thereafter, the algorithm will replace the predicate InitiatedAt(meeting(x,y),t0) with its equivalence from (3).
-    * Note, the variable "t" in (3) will be renamed as "t0". The resulting formulas are the following:
-    * {{{
-    * Next(t1,t0) ^ (
-    * (Happens(Event1(x),t) ^ Happens(Event2(y),t)) v (Exist t' Happens(Event3(x),t) ^ !HoldsAt(moving(y),t') ^ t' < t )
-    * ) => HoldsAt(meeting(x,y), t0).
+    *     Next(t1,t0) ^ !HoldsAt(f,t0) ^ !InitiatedAt(meeting(x,y),t0) => !HoldsAt(meeting(x,y),t0).       (7)
+    *   }}}
+    *   </li>
     *
-    * Next(t1,t0) ^ !HoldsAt(f,t0) ^ !(
-    * (Happens(Event1(x),t) ^ Happens(Event2(y),t)) v (Exist t' Happens(Event3(x),t) ^ !HoldsAt(moving(y),t') ^ t' < t )
-    * ) => !HoldsAt(meeting(x,y),t0).
-    * }}}
-    * </li>
+    *   <li>Thereafter, the algorithm will replace the predicate InitiatedAt(meeting(x,y),t0) with
+    *   its equivalence from (3). Note, the variable "t" in (3) will be renamed as "t0". The resulting
+    *   formulas are the following:
+    *   {{{
+    *     Next(t1,t0) ^ (
+    *       (Happens(Event1(x),t) ^ Happens(Event2(y),t)) v (Exist t' Happens(Event3(x),t) ^ !HoldsAt(moving(y),t') ^ t' < t )
+    *     ) => HoldsAt(meeting(x,y), t0).
+    *
+    *     Next(t1,t0) ^ !HoldsAt(f,t0) ^ !(
+    *       (Happens(Event1(x),t) ^ Happens(Event2(y),t)) v (Exist t' Happens(Event3(x),t) ^ !HoldsAt(moving(y),t') ^ t' < t )
+    *     ) => !HoldsAt(meeting(x,y),t0).
+    *   }}}
+    *   </li>
     * </ol>
     *
-    *
     * '''Decomposed:''' created equivalences are decomposed into two implications, for example the equivalence below.
+    *
     * {{{
-    * InitiatedAt(meeting(x,y), t) <=>
-    *  (Happens(Event1(x),t) ^ Happens(Event2(y),t)) v
-    *  (Exist t' Happens(Event3(x),t) ^ !HoldsAt(moving(y),t') ^ t' < t )
+    *   InitiatedAt(meeting(x,y), t) <=>
+    *   (Happens(Event1(x),t) ^ Happens(Event2(y),t)) v
+    *   (Exist t' Happens(Event3(x),t) ^ !HoldsAt(moving(y),t') ^ t' < t )
     * }}}
+    *
     * will be decomposed into the following implications:
+    *
     * {{{
-    * Happens(Event1(x),t) ^ Happens(Event2(y),t) => InitiatedAt(meeting(x,y), t)
+    *   Happens(Event1(x),t) ^ Happens(Event2(y),t) => InitiatedAt(meeting(x,y), t)
     *
-    * Happens(Event3(x),t) ^ !HoldsAt(moving(y),t') ^ t' < t => InitiatedAt(meeting(x,y), t)
+    *   Happens(Event3(x),t) ^ !HoldsAt(moving(y),t') ^ t' < t => InitiatedAt(meeting(x,y), t)
     *
-    * InitiatedAt(meeting(x,y), t) =>
-    *  (Happens(Event1(x),t) ^ Happens(Event2(y),t)) v
-    *  (Exist t' Happens(Event3(x),t) ^ !HoldsAt(moving(y),t') ^ t' < t )
+    *   InitiatedAt(meeting(x,y), t) =>
+    *     (Happens(Event1(x),t) ^ Happens(Event2(y),t)) v
+    *     (Exist t' Happens(Event3(x),t) ^ !HoldsAt(moving(y),t') ^ t' < t )
     * }}}
     *
     * '''Standard:''' for standard predicate completion.
+    *
     * {{{
-    * InitiatedAt(meeting(x,y), t) <=>
-    *  (Happens(Event1(x),t) ^ Happens(Event2(y),t)) v
-    *  (Exist t' Happens(Event3(x),t) ^ !HoldsAt(moving(y),t') ^ t' < t )
+    *   InitiatedAt(meeting(x,y), t) <=>
+    *     (Happens(Event1(x),t) ^ Happens(Event2(y),t)) v
+    *     (Exist t' Happens(Event3(x),t) ^ !HoldsAt(moving(y),t') ^ t' < t )
     * }}}
     *
-    * @param formulas  the input set of formulas [[lomrf.logic.FormulaConstruct]]
-    * @param definiteClauses   the input set of definite clauses [[lomrf.logic.DefiniteClause]]
-    * @param mode  predicate completion mode to use
-    * @param predicateSchema   MLN predicate schema [[lomrf.mln.model.MLN]]
-    * @param functionSchema  MLN function schema [[lomrf.mln.model.MLN]]
+    * @see [[lomrf.logic.FormulaConstruct]]
+    * @see [[lomrf.mln.model.MLN]]
+    *
+    * @param formulas the input set of formulas
+    * @param definiteClauses the input set of definite clauses
+    * @param mode predicate completion mode to use
+    * @param predicateSchema a predicate schema
+    * @param functionSchema a function schema
     *
     * @return  a logically stronger knowledge base (set of formulas)
     */
-  def apply(formulas: Set[WeightedFormula], definiteClauses: Set[WeightedDefiniteClause], mode: PredicateCompletionMode)(implicit
+  def apply(
+      formulas: Set[WeightedFormula],
+      definiteClauses: Set[WeightedDefiniteClause],
+      mode: PredicateCompletionMode)
+    (implicit
       predicateSchema: PredicateSchema,
       functionSchema: FunctionSchema,
       constants: ConstantsDomain): Set[WeightedFormula] = {
@@ -228,13 +258,16 @@ object PredicateCompletion extends LazyLogging {
   }
 
   /**
-    * Computes predicate completion with simplification (see [[lomrf.logic.PredicateCompletion]])
+    * Computes predicate completion with simplification.
+    *
+    * @see [[lomrf.logic.compile.PredicateCompletion]]
     *
     * @param formulas the set of FOL formulas (non-definite clauses) in the input KB
     * @param dcDB database of collected/merged definite clauses
     * @return the resulting KB
     */
   private def applyPCSimplification(formulas: Set[WeightedFormula], dcDB: DefiniteClausesDB): Set[WeightedFormula] = {
+
     val targetSignatures = dcDB.keySet
     var pcResultingKB = Set[WeightedFormula]()
     pcResultingKB ++= formulas
@@ -263,7 +296,9 @@ object PredicateCompletion extends LazyLogging {
   }
 
   /**
-    * Standard predicate completion (see [[lomrf.logic.PredicateCompletion]])
+    * Standard predicate completion.
+    *
+    * @see [[lomrf.logic.compile.PredicateCompletion]]
     *
     * @param formulas the set of FOL formulas (non-definite clauses) in the input KB
     * @param dcDB database of collected/merged definite clauses
@@ -286,7 +321,9 @@ object PredicateCompletion extends LazyLogging {
   }
 
   /**
-    * Predicate completion with decomposed equivalences (see [[lomrf.logic.PredicateCompletion]]).<br/>
+    * Predicate completion with decomposed equivalences.
+    *
+    * @see [[lomrf.logic.compile.PredicateCompletion]]
     *
     * @param formulas the set of FOL formulas (non-definite clauses) in the input KB
     * @param definiteClauses the original set of definite clauses
@@ -298,12 +335,12 @@ object PredicateCompletion extends LazyLogging {
       formulas: Set[WeightedFormula],
       definiteClauses: Set[WeightedDefiniteClause],
       dcDB: DefiniteClausesDB,
-      constants: ConstantsDomain)(implicit
-      predicateSchema: PredicateSchema,
-      functionSchema: FunctionSchema): Set[WeightedFormula] = {
+      constants: ConstantsDomain)
+    (implicit predicateSchema: PredicateSchema, functionSchema: FunctionSchema): Set[WeightedFormula] = {
 
       def extractTheta(theta: ThetaOpt) = theta.getOrElse(Map.empty).map {
         case (k: Variable, v: Term) => k -> v.symbol
+        case (k: Term, _)           => logger.fatal(s"Term $k is not a variable!")
       }
 
     var pcResultingKB = Set[WeightedFormula]()
@@ -363,11 +400,12 @@ object PredicateCompletion extends LazyLogging {
 /**
   * Choose the type of predicate completion:
   * <ul>
-  * <li>Standard --- standard predicate completion</li>
-  * <li>Decomposed --- computes predicate completion and decomposes the created equivalences into two implications</li>
-  * <li>Simplification --- computes predicate completion and simplifies the given formulas based on the created equivalences</li>
+  *   <li> Standard --- standard predicate completion</li>
+  *   <li> Decomposed --- computes predicate completion and decomposes the created equivalences into two implications</li>
+  *   <li> Simplification --- computes predicate completion and simplifies the given formulas based on the created equivalences</li>
   * </ul>
-  * @see for further description: [[lomrf.logic.PredicateCompletion]]
+  *
+  * @see [[lomrf.logic.compile.PredicateCompletion]]
   */
 object PredicateCompletionMode extends Enumeration {
   type PredicateCompletionMode = Value
