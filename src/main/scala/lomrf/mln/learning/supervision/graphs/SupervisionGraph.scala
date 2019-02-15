@@ -141,27 +141,30 @@ final class SupervisionGraph private (
 
     val startSolution = System.currentTimeMillis
 
-    val labeledEvidenceAtoms = unlabeledNodes.zipWithIndex.flatMap { case (node, i) =>
+    val labeledEvidenceAtoms = unlabeledNodes.zipWithIndex.flatMap {
+      case (node, i) =>
 
-      val nearest = W(i, ::).inner.toArray.zipWithIndex
-        .withFilter { case (v, _) => v != UNCONNECTED }
-        .map { case (v, j) =>
-            val freq = nodeCache.find { case (c, _) => c =~= labeledNodes(j).clause.get } match {
-              case Some((_, frequency)) => frequency
-              case None => logger.fatal(s"Pattern ${labeledNodes(j).clause.get.toText()} not found.")
-            }
+        val nearest = W(i, ::).inner.toArray.zipWithIndex
+          .withFilter { case (v, _) => v != UNCONNECTED }
+          .map {
+            case (v, j) =>
+              val freq = nodeCache.find { case (c, _) => c =~= labeledNodes(j).clause.get } match {
+                case Some((_, frequency)) => frequency
+                case None                 => logger.fatal(s"Pattern ${labeledNodes(j).clause.get.toText()} not found.")
+              }
 
-            v -> (labeledNodes(j).isPositive, freq)
-        }
+              v -> (labeledNodes(j).isPositive, freq)
+          }
 
-      val (positive, negative) = nearest.partition { case (_, (tv, _)) => tv }
+        val (positive, negative) = nearest.partition { case (_, (tv, _)) => tv }
 
-      val value =
-        if (positive.map(_._2._2).sum > negative.map(_._2._2).sum) true
-        else if (negative.map(_._2._2).sum > positive.map(_._2._2).sum) false
-        else nearest.maxBy { case (v, _) => v }._2._1
+        val value =
+          if (nearest.length == 0) false
+          else if (positive.map(_._2._2).sum > negative.map(_._2._2).sum) true
+          else if (negative.map(_._2._2).sum > positive.map(_._2._2).sum) false
+          else nearest.maxBy { case (v, _) => v }._2._1
 
-      node.labelUsingValue(value)
+        node.labelUsingValue(value)
     }
 
     logger.info(msecTimeToTextUntilNow(s"Labeling solution found in: ", startSolution))
@@ -198,9 +201,9 @@ final class SupervisionGraph private (
         else if (nodes(i).isLabeled && nodes(j).isLabeled) neighborCosts(j) = UNCONNECTED
         else neighborCosts(j) = 1 - {
           metric match {
-            case x: StructureMetric => x.distance(unlabeledNodes(i).evidence, labeledNodes(j).evidence)
-            case x: AtomMetric      => x.distance(unlabeledNodes(i).atoms, labeledNodes(j).atoms)
-            case x: BinaryMetric    => x.distance(unlabeledNodes(i).atoms, labeledNodes(j).atoms)
+            case x: StructureMetric => x.distance(nodes(i).evidence, nodes(j).evidence)
+            case x: AtomMetric      => x.distance(nodes(i).atoms, nodes(j).atoms)
+            case x: BinaryMetric    => x.distance(nodes(i).atoms, nodes(j).atoms)
           }
         }
 

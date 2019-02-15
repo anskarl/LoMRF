@@ -250,8 +250,10 @@ object SemiSupervisionCLI extends CLIApp {
       // Create or update supervision graphs for each given non evidence atom
       _nonEvidenceAtoms.foreach { querySignature =>
         supervisionGraphs.get(querySignature) match {
-          case Some(graph) => supervisionGraphs += querySignature -> (graph ++ (mln, annotationDB, modes))
-          case None => supervisionGraphs += querySignature -> SupervisionGraph(mln, modes, annotationDB, querySignature, connector, distance)
+          case Some(graph) => supervisionGraphs += querySignature ->
+            (graph ++ (mln, annotationDB, modes))
+          case None => supervisionGraphs += querySignature ->
+            SupervisionGraph(mln, modes, annotationDB, querySignature, connector, distance)
         }
       }
 
@@ -267,7 +269,7 @@ object SemiSupervisionCLI extends CLIApp {
       /*
        * OK, lets store the resulted completed supervision
        */
-      val resultsFolder = new File(s"${currentTrainingFile.getParentFile.getParent}/$connector.$distance.${_solver}")
+      val resultsFolder = new File(s"${currentTrainingFile.getParentFile.getParent}/$connector.${_distance}.${_solver}")
       resultsFolder.mkdirs
 
       val completedBatch = new PrintStream(resultsFolder.getCanonicalPath + "/" + currentTrainingFile.getName)

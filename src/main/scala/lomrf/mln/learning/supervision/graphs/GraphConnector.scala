@@ -42,7 +42,7 @@ object FullConnector extends GraphConnector {
     */
   override def apply(neighbors: DenseVector[Double]): DenseVector[Double] = neighbors
 
-  override def toString(): String = s"full"
+  override def toString(): String = "full"
 }
 
 /**
