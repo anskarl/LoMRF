@@ -449,7 +449,6 @@ final class KBParserSpecTest extends FunSpec with Matchers {
       parsed.functions.size shouldEqual 0
     }
 
-
     val dynamicFormula4 = "HoldsAt(f, t1) ^ HoldsAt(f, t2) ^ t1 != t2."
     it(s"$dynamicFormula4 should be a valid FOL sentence") {
       val parsed = parser.parseLogicalSentence(dynamicFormula4)
@@ -603,7 +602,7 @@ final class KBParserSpecTest extends FunSpec with Matchers {
             And(Or(
               AtomicFormula("Happens", Vector(Variable("e", "event"), functionDiv(Variable("t1", "time"), Variable("t2", "time"), "time"))),
               AtomicFormula("Happens", Vector(Variable("e", "event"), functionMod(Variable("t1", "time"), Variable("t2", "time"), "time")))),
-              lessThan(Vector(Variable("t1", "time"), Variable("t2", "time"))))))
+                lessThan(Vector(Variable("t1", "time"), Variable("t2", "time"))))))
 
       parsed.variables.size shouldEqual 4
       parsed.constants.size shouldEqual 0
@@ -617,8 +616,8 @@ final class KBParserSpecTest extends FunSpec with Matchers {
       parsed shouldEqual
         WeightedFormula(
           Double.NaN, Equivalence(
-              AtomicFormula("HoldsAt", Vector(TermFunction("meet", Vector(Constant("BOB"), Constant("ALICE")), "fluent"), Variable("t", "time"))),
-              AtomicFormula("Close", Vector(functionConcat(Constant("B"), Constant("OB"), "id"), Constant("ALICE"), Constant("25"), Variable("t", "time")))
+            AtomicFormula("HoldsAt", Vector(TermFunction("meet", Vector(Constant("BOB"), Constant("ALICE")), "fluent"), Variable("t", "time"))),
+            AtomicFormula("Close", Vector(functionConcat(Constant("B"), Constant("OB"), "id"), Constant("ALICE"), Constant("25"), Variable("t", "time")))
           )
         )
 

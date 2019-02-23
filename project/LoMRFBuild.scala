@@ -84,8 +84,8 @@ object LoMRFBuild extends AutoPlugin {
   private lazy val baseProjectSettings: Seq[Setting[_]] = Seq(
 
     organization := "com.github.anskarl",
-    scalaVersion := "2.12.7",
-    crossScalaVersions := Seq("2.12.7", "2.11.12"),
+    scalaVersion := "2.12.8",
+    crossScalaVersions := Seq("2.12.8", "2.11.12"),
     name := "LoMRF",
     headerMappings := headerMappings.value + (HeaderFileType.scala -> HeaderCommentStyle.cStyleBlockComment),
     headerLicense := Some(HeaderLicense.Custom(logo + "\n\n")),
@@ -175,6 +175,15 @@ object LoMRFBuild extends AutoPlugin {
         case "2.12" =>
           // Scala compiler settings for Scala 2.12+
           // see https://tpolecat.github.io/2017/04/25/scalac-flags.html
+          Seq(
+            "-deprecation",       // Emit warning and location for usages of deprecated APIs.
+            "-unchecked",         // Enable additional warnings where generated code depends on assumptions.
+            "-feature",           // Emit warning and location for usages of features that should be imported explicitly.
+            "-target:jvm-1.8",    // Target JVM version 1.8
+            "-Ywarn-dead-code"    // Warn when dead code is identified.
+          )
+
+        case "2.13" =>
           Seq(
             "-deprecation",       // Emit warning and location for usages of deprecated APIs.
             "-unchecked",         // Enable additional warnings where generated code depends on assumptions.

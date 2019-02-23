@@ -24,9 +24,9 @@ import sbt.Keys._
 object Dependencies {
 
   object v {
-    final val Akka = "2.5.14"
+    final val Akka = "2.5.21"
 
-    final val ScalaLogging = "3.9.0"
+    final val ScalaLogging = "3.9.2"
     final val Logback = "1.2.3"
     final val SLF4J = "1.7.25"
     final val JANSI = "1.11"
