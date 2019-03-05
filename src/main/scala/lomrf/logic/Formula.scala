@@ -233,6 +233,11 @@ final case class And(left: FormulaConstruct, right: FormulaConstruct) extends De
   override def substitute(theta: Theta): And = {
     And(left.substitute(theta), right.substitute(theta))
   }
+
+  override def equals(obj: Any): Boolean = obj match {
+    case _@ And(l, r) => (l == left && r == right) || (l == right && r == left)
+    case _            => false
+  }
 }
 
 /**
@@ -261,6 +266,11 @@ final case class Or(left: FormulaConstruct, right: FormulaConstruct) extends For
 
   override def substitute(theta: Theta): Or = {
     Or(left.substitute(theta), right.substitute(theta))
+  }
+
+  override def equals(obj: Any): Boolean = obj match {
+    case _@ Or(l, r) => (l == left && r == right) || (l == right && r == left)
+    case _           => false
   }
 }
 
@@ -305,6 +315,11 @@ final case class Equivalence(left: FormulaConstruct, right: FormulaConstruct) ex
 
   override def substitute(theta: Theta): Equivalence = {
     Equivalence(left.substitute(theta), right.substitute(theta))
+  }
+
+  override def equals(obj: Any): Boolean = obj match {
+    case _@ Equivalence(l, r) => (l == left && r == right) || (l == right && r == left)
+    case _                    => false
   }
 }
 
