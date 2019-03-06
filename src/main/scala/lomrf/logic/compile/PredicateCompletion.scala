@@ -396,18 +396,3 @@ object PredicateCompletion extends LazyLogging {
     pcResultingKB
   }
 }
-
-/**
-  * Choose the type of predicate completion:
-  * <ul>
-  *   <li> Standard --- standard predicate completion</li>
-  *   <li> Decomposed --- computes predicate completion and decomposes the created equivalences into two implications</li>
-  *   <li> Simplification --- computes predicate completion and simplifies the given formulas based on the created equivalences</li>
-  * </ul>
-  *
-  * @see [[lomrf.logic.compile.PredicateCompletion]]
-  */
-object PredicateCompletionMode extends Enumeration {
-  type PredicateCompletionMode = Value
-  val Standard, Decomposed, Simplification = Value
-}

@@ -22,73 +22,13 @@ package lomrf.app
 
 import lomrf.mln.model.MLN
 import lomrf.logic.AtomSignature
-import java.io.FileWriter
+import java.io.PrintStream
 import lomrf.util.logging.Implicits._
 
 /**
-  * Command line tool for knowledge base difference checking. In particular using this tool we can perform
-  * difference checking given two knowledge bases.
+  * Command line tool for knowledge base difference checking.
   */
 object KBDifferenceCLI extends CLIApp {
-
-  private def compare(source: IndexedSeq[String], evidence: IndexedSeq[String], prefixOpt: Option[String]) {
-
-    if (source.size != evidence.size)
-      logger.fatal("The number of input files and evidence files must be the same.")
-
-    val combinations = source.view.zip(evidence).combinations(2).zipWithIndex
-
-    val queryAtoms = Set.empty[AtomSignature]
-
-    val prefix = prefixOpt.map(_.trim) match {
-      case Some(p) if p.nonEmpty => p + "-"
-      case _                     => ""
-    }
-
-    for {
-      (combination, index) <- combinations
-      (sourceAlpha, evidenceAlpha) = combination.head
-      (sourceBeta, evidenceBeta) = combination.last
-      mlnAlpha = MLN.fromFile(sourceAlpha, queryAtoms, evidenceAlpha)
-      mlnBeta = MLN.fromFile(sourceBeta, queryAtoms, evidenceBeta)
-    } {
-
-      logger.info(
-        "\nSource KB 1: " + sourceAlpha + "\n" +
-          "\tFound " + mlnAlpha.clauses.size + " clauses.\n" +
-          "\tFound " + mlnAlpha.schema.predicates.size + " predicates.\n" +
-          "\tFound " + mlnAlpha.schema.functions.size + " functions.\n" +
-          "\nSource KB 2: " + sourceBeta + "\n" +
-          "\tFound " + mlnBeta.clauses.size + " clauses.\n" +
-          "\tFound " + mlnBeta.schema.predicates.size + " predicates.\n" +
-          "\tFound " + mlnBeta.schema.functions.size + " functions.")
-
-      val targetFileName = prefix +
-        sourceAlpha.substring(0, sourceAlpha.lastIndexOf('.')) + "-" +
-        sourceBeta.substring(0, sourceBeta.lastIndexOf('.'))
-
-      val fileWriter = new FileWriter(targetFileName)
-
-      val diff1 = mlnAlpha.clauses.par.filter(x => !mlnBeta.clauses.contains(x))
-      val diff2 = mlnBeta.clauses.par.filter(x => !mlnAlpha.clauses.contains(x))
-
-      if (diff1.nonEmpty) {
-        fileWriter.write(s"KB 1 ($sourceAlpha) does not contain the following clauses:\n\n")
-        diff1.seq.foreach(clause => fileWriter.write(clause.toString + "\n"))
-      }
-
-      if (diff2.nonEmpty) {
-        fileWriter.write(s"KB 2 ($sourceBeta ) does not contain the following clauses:\n\n")
-        diff2.seq.foreach(clause => fileWriter.write(clause.toString + "\n"))
-      }
-
-      if (diff1.isEmpty && diff2.isEmpty) logger.info("KBs are exactly the same!")
-
-      fileWriter.flush()
-      fileWriter.close()
-
-    }
-  }
 
   // Input file(s) (path)
   var inputFileName: Option[IndexedSeq[String]] = None
@@ -105,7 +45,7 @@ object KBDifferenceCLI extends CLIApp {
         val fileNames = v.split(',').map(_.trim)
 
         if (fileNames.length < 2)
-          logger.fatal("At least two input files are required, in order to perform difference operation.")
+          logger.fatal("At least two input files are required in order to compute difference.")
 
         inputFileName = Some(fileNames)
       }
@@ -117,7 +57,7 @@ object KBDifferenceCLI extends CLIApp {
         val fileNames = v.split(',').map(_.trim)
 
         if (fileNames.length < 2)
-          logger.fatal("At least two evidence files are required, in order to perform difference operation.")
+          logger.fatal("At least two evidence files are required in order to compute difference.")
 
         evidenceFileName = Some(fileNames)
       }
@@ -134,11 +74,57 @@ object KBDifferenceCLI extends CLIApp {
 
   // Main:
   if (args.length == 0) println(usage)
-  else if (parse(args)) {
-    compare(
-      inputFileName.getOrElse(logger.fatal("Please define the input files.")),
-      evidenceFileName.getOrElse(logger.fatal("Please define the evidence files.")),
-      prefixOpt)
-  }
+  else if (parse(args)) compare(
+    inputFileName.getOrElse(logger.fatal("Please define the input files.")),
+    evidenceFileName.getOrElse(logger.fatal("Please define the evidence files.")),
+    prefixOpt
+  )
 
+  private def compare(source: IndexedSeq[String], evidence: IndexedSeq[String], prefixOpt: Option[String]) {
+
+    if (source.size != evidence.size)
+      logger.fatal("The number of input files and evidence files must be the same.")
+
+    val combinations = source.view.zip(evidence).combinations(2).zipWithIndex
+
+    val prefix = prefixOpt.map(_.trim) match {
+      case Some(p) if p.nonEmpty => p + "-"
+      case _                     => ""
+    }
+
+    for {
+      (combination, _) <- combinations
+      (sourceAlpha, evidenceAlpha) = combination.head
+      (sourceBeta, evidenceBeta) = combination.last
+      mlnAlpha = MLN.fromFile(sourceAlpha, Set.empty[AtomSignature], evidenceAlpha)
+      mlnBeta = MLN.fromFile(sourceBeta, Set.empty[AtomSignature], evidenceBeta)
+    } {
+
+      logger.info(s"\nSource KB 1: $sourceAlpha$mlnAlpha\nSource KB 2: $sourceBeta$mlnBeta")
+
+      val targetFileName = prefix +
+        sourceAlpha.substring(0, sourceAlpha.lastIndexOf('.')) + "-" +
+        sourceBeta.substring(0, sourceBeta.lastIndexOf('.'))
+
+      val output = new PrintStream(targetFileName)
+
+      val diff1 = mlnAlpha.clauses.par.filter(!mlnBeta.clauses.contains(_))
+      val diff2 = mlnBeta.clauses.par.filter(!mlnAlpha.clauses.contains(_))
+
+      if (diff1.nonEmpty) {
+        output.println(s"\nKB 1 ($sourceAlpha) does not contain the following clauses:\n")
+        diff1.seq.foreach(clause => output.println(clause.toText()))
+      }
+
+      if (diff2.nonEmpty) {
+        output.println(s"\nKB 2 ($sourceBeta) does not contain the following clauses:\n")
+        diff2.seq.foreach(clause => output.println(clause.toText()))
+      }
+
+      if (diff1.isEmpty && diff2.isEmpty) logger.info("KBs are identical!")
+
+      output.flush()
+      output.close()
+    }
+  }
 }

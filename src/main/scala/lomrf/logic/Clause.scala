@@ -80,7 +80,7 @@ final class Clause(val weight: Double, val literals: Set[Literal]) extends Subst
     * @return the textual representation of this clause
     */
   def toText(weighted: Boolean = true)(implicit numFormat: DecimalFormat = Clause.defaultNumFormat): String = {
-    if (weighted) {
+    if (weighted && !weight.isNaN) {
       if (isHard) literals.map(_.toText).mkString(" v ") + "."
       else numFormat.format(weight) + " " + literals.map(_.toText).mkString(" v ")
     } else literals.map(_.toText).mkString(" v ")
@@ -105,8 +105,11 @@ final class Clause(val weight: Double, val literals: Set[Literal]) extends Subst
     *         and the same set of literals, false otherwise
     */
   override def equals(that: Any): Boolean = that match {
-    case x: Clause => x.weight == this.weight && this.literals.size == x.literals.size && x.literals == this.literals
-    case _         => false
+    case x: Clause if x.weight.isNaN && weight.isNaN =>
+      literals.size == x.literals.size && literals == x.literals
+    case x: Clause =>
+      weight == x.weight && literals.size == x.literals.size && literals == x.literals
+    case _ => false
   }
 
   /**
@@ -144,11 +147,11 @@ final class Clause(val weight: Double, val literals: Set[Literal]) extends Subst
 
   override def hashCode: Int = hash
 
-  override def toString: String = weight + " {" + literals.map(_.toString()).mkString(" v ") + "}"
+  override def toString: String = weight + " {" + literals.map(_.toString).mkString(" v ") + "}"
 
   private lazy val hash: Int = {
-    var code = weight.hashCode()
-    for (literal <- literals) code ^= literal.hashCode()
+    var code = weight.hashCode
+    for (literal <- literals) code ^= literal.hashCode
     code
   }
 }
