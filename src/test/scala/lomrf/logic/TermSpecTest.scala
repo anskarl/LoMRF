@@ -151,12 +151,12 @@ final class TermSpecTest extends FunSpec with Matchers {
       resultingTerm should not equal Constant("Foo")
     }
 
-    it("prints as 't$10'") {
-      resultingTerm.toText should be("t$10")
+    it("prints as '_t_10'") {
+      resultingTerm.toText should be("_t_10")
     }
 
-    it("toString returns 'x$10:time'") {
-      resultingTerm.toString should be("t$10:time")
+    it("toString returns '_t_10:time'") {
+      resultingTerm.toString should be("_t_10:time")
     }
 
     it("has domain: time") {

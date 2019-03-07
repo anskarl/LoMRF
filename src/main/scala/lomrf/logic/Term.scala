@@ -80,7 +80,7 @@ sealed trait Term extends MLNExpression with Substitutable[Term] {
   *          by the constants `Bob` and `Anna`.
   *
   * @note Due to variable standardization the index may be greater than '0'
-  *       (see [[lomrf.logic.NormalForm]])
+  *       (see [[lomrf.logic.compile.NormalForm]])
   *
   * @param symbol the variable symbol
   * @param domainName the variable domain type (e.g., time, objects, persons, etc.)
@@ -114,16 +114,15 @@ sealed case class Variable(
     * @return the textual representation of this term.
     */
   def toText: String = {
-    val txtSymbol = if (index > 0) symbol + "$" + index else symbol
-
-    if (groundPerConstant) "+" + txtSymbol else txtSymbol
+    val textSymbol = if (index > 0) s"_${symbol}_$index" else symbol
+    if (groundPerConstant) "+" + textSymbol else textSymbol
   }
 
   /**
     * @return a string representation for this variable
     *         containing its `symbol`, its `index` and its `domain`.
     */
-  override def toString: String = symbol + (if (index > 0) "$" + index + ":" else ":") + domain
+  override def toString: String = if (index > 0) s"_${symbol}_$index:$domain" else s"$symbol:$domain"
 
   /**
     * Hash code of a variable produces a value using the hash code of
