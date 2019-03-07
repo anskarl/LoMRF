@@ -48,9 +48,12 @@ private[dynamic] final class DynInfix(
     infixSymbol: String,
     terms: Vector[Term]) extends DynamicAtom(prefixSymbol, terms) {
 
-  require(terms.size == 2)
+  require(terms.size == 2, s"Dynamic atom '$prefixSymbol($infixSymbol)' should only have 2 terms.")
 
-  override def toText: String = terms.head.toText + " " + infixSymbol + " " + terms.last.toText
+  override def toText: String = s"(${terms.head.toText} $infixSymbol ${terms.last.toText})"
+
+  override def substitute(theta: Theta): AtomicFormula =
+    new DynInfix(prefixSymbol, infixSymbol, terms.map(_.substitute(theta)))
 }
 
 // -- Various dynamic atom builders:
