@@ -27,7 +27,7 @@ import lomrf.mln.learning.structure.hypergraph.{ HyperGraph, PathTemplate, Templ
 import lomrf.mln.model._
 import lomrf.logic.LogicOps._
 import lomrf.logic.AtomSignatureOps._
-import lomrf.logic.compile.PredicateCompletion
+import lomrf.logic.compile.{ NormalForm, PredicateCompletion }
 import lomrf.mln.model.mrf.{ MRF, MRFState }
 import lomrf.util.time._
 import lomrf.util.logging.Implicits._
@@ -250,7 +250,7 @@ final class OSLa private (kb: KB, constants: ConstantsDomain, evidenceAtoms: Set
       logger.info("Done predicate completion")
 
       // Perform CNF and filter out any remained axioms
-      val currentClauses = ClauseConstructor.makeCNF(completedFormulas)(trainingEvidence.getEvidence.constants)
+      val currentClauses = NormalForm.compileFastCNF(completedFormulas)(trainingEvidence.getEvidence.constants)
         .filter(!_.literals.map(_.sentence.signature).exists(s => templateAtoms.contains(s)))
 
       findTheoryDependencies(currentClauses)

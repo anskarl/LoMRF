@@ -21,17 +21,14 @@
 package lomrf.logic.compile
 
 import lomrf.logic.parser.KBParser
-import lomrf.logic.{ AtomSignature, Clause, Literal, Variable }
-import lomrf.mln.model.{ ConstantsSet, MLN }
-import lomrf.tests.TestData
+import lomrf.logic.{ AtomSignature, Clause, Literal }
+import lomrf.mln.model.ConstantsSet
 import org.scalatest.{ FunSpec, Matchers }
 
 /**
   * A series of specification tests for the computation of normal forms (e.g., CNF, NNF, etc).
   */
 final class NormalFormSpecTest extends FunSpec with Matchers {
-
-  private val testFilesPath = TestData.TestFilesPath
 
   private implicit val constants: Map[String, ConstantsSet] = Map(
     "time" -> ConstantsSet("1", "2", "3", "4"),
@@ -81,14 +78,18 @@ final class NormalFormSpecTest extends FunSpec with Matchers {
 
     val formula = kbParser.parseLogicalSentence("InitiatedAt(Fight,t) => Happens(Abrupt, t).")
     val clauses = NormalForm.toCNF(formula)
+    val fastClauses = NormalForm.toFastCNF(formula)
 
-    it("results to a single valid clause") {
+    it("should result to a single valid clause") {
       clauses.size shouldEqual 1
-      val literals = clauses.head.literals
-      literals.size shouldBe 2
+      clauses.head.size shouldBe 2
+      assert(clauses.head.literals.contains(kbParser.parseLiteral("!InitiatedAt(Fight,t)")))
+      assert(clauses.head.literals.contains(kbParser.parseLiteral("Happens(Abrupt, t)")))
 
-      assert(literals.contains(kbParser.parseLiteral("!InitiatedAt(Fight,t)")))
-      assert(literals.contains(kbParser.parseLiteral("Happens(Abrupt, t)")))
+      fastClauses.size shouldEqual 1
+      fastClauses.head.size shouldBe 2
+      assert(fastClauses.head.literals.contains(kbParser.parseLiteral("!InitiatedAt(Fight,t)")))
+      assert(fastClauses.head.literals.contains(kbParser.parseLiteral("Happens(Abrupt, t)")))
     }
   }
 
@@ -96,121 +97,159 @@ final class NormalFormSpecTest extends FunSpec with Matchers {
 
     val formula = kbParser.parseLogicalSentence("InitiatedAt(Fight,t) <=> Happens(Abrupt, t).")
     val clauses = NormalForm.toCNF(formula)
+    val fastClauses = NormalForm.toFastCNF(formula)
 
-    it("produces two valid clauses") {
+    it("should produce two valid clauses") {
       clauses.size shouldEqual 2
       assertContainsClause(clauses, "{!InitiatedAt(Fight,t) | Happens(Abrupt, t)}")
       assertContainsClause(clauses, "{InitiatedAt(Fight,t) | !Happens(Abrupt, t)}")
+
+      fastClauses.size shouldEqual 2
+      assertContainsClause(fastClauses, "{!InitiatedAt(Fight,t) | Happens(Abrupt, t)}")
+      assertContainsClause(fastClauses, "{InitiatedAt(Fight,t) | !Happens(Abrupt, t)}")
     }
   }
 
   describe("Formula 'InitiatedAt(Fight,t) <=> Happens(Abrupt, t) ^ Close(10,t).'") {
-    val f0 = kbParser.parseLogicalSentence("InitiatedAt(Fight,t) <=> Happens(Abrupt, t) ^ Close(10,t).")
-    val clauses0 = f0.toCNF(constants)
+    val formula = kbParser.parseLogicalSentence("InitiatedAt(Fight,t) <=> Happens(Abrupt, t) ^ Close(10,t).")
+    val clauses = formula.toCNF(constants)
+    val fastClauses = NormalForm.toFastCNF(formula)(constants)
 
-    it("produces three valid clauses") {
-      clauses0.size shouldBe 3
-      assertContainsClause(clauses0, "{InitiatedAt(Fight, t) | !Happens(Abrupt, t) | !Close(10,t)}")
-      assertContainsClause(clauses0, "{Happens(Abrupt,t) | !InitiatedAt(Fight, t)}")
-      assertContainsClause(clauses0, "{Close(10,t) | !InitiatedAt(Fight, t)}")
+    it("should produce three valid clauses") {
+      clauses.size shouldBe 3
+      assertContainsClause(clauses, "{InitiatedAt(Fight, t) | !Happens(Abrupt, t) | !Close(10,t)}")
+      assertContainsClause(clauses, "{Happens(Abrupt,t) | !InitiatedAt(Fight, t)}")
+      assertContainsClause(clauses, "{Close(10,t) | !InitiatedAt(Fight, t)}")
+
+      fastClauses.size shouldBe 3
+      assertContainsClause(fastClauses, "{InitiatedAt(Fight, t) | !Happens(Abrupt, t) | !Close(10,t)}")
+      assertContainsClause(fastClauses, "{Happens(Abrupt,t) | !InitiatedAt(Fight, t)}")
+      assertContainsClause(fastClauses, "{Close(10,t) | !InitiatedAt(Fight, t)}")
     }
   }
 
-  describe("The formula 'Happens(walking(id1),t) => Initiates(walking(id1), move(id,id2), t).'") {
+  describe("Formula 'Happens(walking(id1),t) => Initiates(walking(id1), move(id,id2), t).'") {
     val f = kbParser.parseLogicalSentence("Happens(walking(id1),t) => Initiates(walking(id1), move(id,id2), t).")
     val clauses = f.toCNF(constants)
+    val fastClauses = NormalForm.toFastCNF(f)(constants)
 
-    it("produces a single clause") {
-      assert(clauses.size == 1)
+    it("should produce a single clause") {
+      clauses.size shouldEqual 1
+      fastClauses.size shouldEqual 1
     }
   }
 
-  describe("The formulas:\n" +
-    "\t 'InitiatedAt(Fight,t) => Happens(Abrupt, t) ^ Close(10,t).' and\n" +
-    "\t 'Happens(Abrupt, t) ^ Close(10,t) => InitiatedAt(Fight,t).'") {
+  describe("Formulas: " +
+    "'InitiatedAt(Fight,t) => Happens(Abrupt, t) ^ Close(10,t).' and " +
+    "'Happens(Abrupt, t) ^ Close(10,t) => InitiatedAt(Fight,t).'") {
 
     val f1 = kbParser.parseLogicalSentence("InitiatedAt(Fight,t) => Happens(Abrupt, t) ^ Close(10,t).")
     val f2 = kbParser.parseLogicalSentence("Happens(Abrupt, t) ^ Close(10,t) => InitiatedAt(Fight,t).")
-    val clauses_1and2 = f1.toCNF(constants) ++ f2.toCNF(constants)
+    val clauses = f1.toCNF(constants) ++ f2.toCNF(constants)
+    val fastClauses = NormalForm.compileFastCNF(Set(f1, f2))(constants)
 
-    they("produce three valid clauses") {
-      clauses_1and2.size shouldBe 3
+    they("should produce three valid clauses") {
+      clauses.size shouldBe 3
 
-      assertContainsClause(clauses_1and2, "{InitiatedAt(Fight, t) | !Happens(Abrupt, t) | !Close(10,t)}")
-      assertContainsClause(clauses_1and2, "{Happens(Abrupt,t) | !InitiatedAt(Fight, t)}")
-      assertContainsClause(clauses_1and2, "{Close(10,t) | !InitiatedAt(Fight, t)}")
+      assertContainsClause(clauses, "{InitiatedAt(Fight, t) | !Happens(Abrupt, t) | !Close(10,t)}")
+      assertContainsClause(clauses, "{Happens(Abrupt,t) | !InitiatedAt(Fight, t)}")
+      assertContainsClause(clauses, "{Close(10,t) | !InitiatedAt(Fight, t)}")
 
+      fastClauses.size shouldBe 3
+
+      assertContainsClause(fastClauses, "{InitiatedAt(Fight, t) | !Happens(Abrupt, t) | !Close(10,t)}")
+      assertContainsClause(fastClauses, "{Happens(Abrupt,t) | !InitiatedAt(Fight, t)}")
+      assertContainsClause(fastClauses, "{Close(10,t) | !InitiatedAt(Fight, t)}")
     }
 
-    they("produce the same clauses with the formula 'InitiatedAt(Fight,t) <=> Happens(Abrupt, t) ^ Close(10,t).'") {
-      val f0 = kbParser.parseLogicalSentence("InitiatedAt(Fight,t) <=> Happens(Abrupt, t) ^ Close(10,t).")
-      val clauses0 = f0.toCNF(constants)
-      clauses_1and2.foreach(c => clauses0.contains(c) shouldEqual true)
+    they("should produce the same clauses as the formula 'InitiatedAt(Fight,t) <=> Happens(Abrupt, t) ^ Close(10,t).'") {
+      val formula = kbParser.parseLogicalSentence("InitiatedAt(Fight,t) <=> Happens(Abrupt, t) ^ Close(10,t).")
+      val formulaClauses = formula.toCNF(constants)
+      val fastFormulaClauses = NormalForm.toFastCNF(formula)(constants)
+
+      clauses.foreach(c => formulaClauses.contains(c) shouldEqual true)
+      clauses.foreach(c => fastFormulaClauses.contains(c) shouldEqual true)
     }
   }
 
-  describe("The weighted formulas:\n" +
-    "\t '1 Happens(Abrupt, t) ^ Close(24,t) ^ !Happens(Inactive,t ) => InitiatedAt(Fight, t)' and\n" +
-    "\t '3 InitiatedAt(Fight,t) => Happens(Abrupt, t) ^ !Happens(Inactive, t) ^ Close(24,t)'") {
+  describe("Weighted formulas: " +
+    "'1 Happens(Abrupt, t) ^ Close(24,t) ^ !Happens(Inactive,t ) => InitiatedAt(Fight, t)' and " +
+    "'3 InitiatedAt(Fight,t) => Happens(Abrupt, t) ^ !Happens(Inactive, t) ^ Close(24,t)'") {
 
     val f0 = kbParser.parseLogicalSentence("1 Happens(Abrupt, t) ^ Close(24,t) ^ !Happens(Inactive,t ) => InitiatedAt(Fight, t)")
     val f1 = kbParser.parseLogicalSentence("3 InitiatedAt(Fight,t) => Happens(Abrupt, t) ^ !Happens(Inactive, t) ^ Close(24,t)")
 
     val clauses01 = f0.toCNF(constants) ++ f1.toCNF(constants)
+    val fastClauses01 = NormalForm.compileFastCNF(Set(f0, f1))(constants)
 
-    they("produce four clauses") {
+    they("should produce four clauses") {
       clauses01.size shouldEqual 4
+      fastClauses01.size shouldEqual 4
     }
 
-    they("produce the same clauses with the weighed formula '4 Happens(Abrupt, t) ^ Close(24,t) ^ !Happens(Inactive,t ) <=> InitiatedAt(Fight, t)'") {
+    they("should produce the same clauses as the weighed formula '4 Happens(Abrupt, t) ^ Close(24,t) ^ !Happens(Inactive,t ) <=> InitiatedAt(Fight, t)'") {
       val f3 = kbParser.parseLogicalSentence("4 Happens(Abrupt, t) ^ Close(24,t) ^ !Happens(Inactive,t ) <=> InitiatedAt(Fight, t)")
       val clauses3 = f3.toCNF(constants)
+      val fastClauses3 = NormalForm.toFastCNF(f3)(constants)
 
       clauses3.size shouldEqual 4
       clauses01.foreach(c => clauses3.contains(c) shouldEqual true)
+
+      fastClauses3.size shouldEqual 4
+      clauses01.foreach(c => fastClauses3.contains(c) shouldEqual true)
     }
   }
 
   describe("Formula 'Exist x,t Happens(walking(x), t).'") {
     val f = kbParser.parseLogicalSentence("Exist x,t Happens(walking(x), t).")
     val clauses = f.toCNF(constants)
+    val fastClauses = NormalForm.toFastCNF(f)(constants)
 
-    it("produces a single clause") {
+    it("should produce a single clause") {
       assert(clauses.size == 1)
+      assert(fastClauses.size == 1)
     }
 
-    it("has 12 literals") {
-      assert(clauses.head.literals.size == 12)
+    it("should have 12 literals") {
+      assert(clauses.head.size == 12)
+      assert(fastClauses.head.size == 12)
     }
   }
 
-  describe("The weighted formulas: \n" +
-    "\t1 Happens(abrupt(p1), t) ^ Close(p1,p2,24,t) ^ !Happens(inactive(p2),t ) => InitiatedAt(fight(p1,p2), t) and" +
-    "\t3 InitiatedAt(fight(p1,p2),t) => Happens(abrupt(p1), t) ^ !Happens(inactive(p2), t) ^ Close(p1,p2,24,t)") {
+  describe("Weighted formulas: " +
+    "1 Happens(abrupt(p1), t) ^ Close(p1,p2,24,t) ^ !Happens(inactive(p2),t ) => InitiatedAt(fight(p1,p2), t) and " +
+    "3 InitiatedAt(fight(p1,p2),t) => Happens(abrupt(p1), t) ^ !Happens(inactive(p2), t) ^ Close(p1,p2,24,t)") {
 
     val f0 = kbParser.parseLogicalSentence("1 Happens(abrupt(p1), t) ^ Close(p1,p2,24,t) ^ !Happens(inactive(p2),t ) => InitiatedAt(fight(p1,p2), t)")
     val f1 = kbParser.parseLogicalSentence("3 InitiatedAt(fight(p1,p2),t) => Happens(abrupt(p1), t) ^ !Happens(inactive(p2), t) ^ Close(p1,p2,24,t)")
     val clauses01 = f0.toCNF(constants) ++ f1.toCNF(constants)
+    val fastClauses01 = NormalForm.compileFastCNF(Set(f0, f1))(constants)
 
-    they("produce four clauses") {
+    they("should produce four clauses") {
       assert(clauses01.size == 4)
+      assert(fastClauses01.size == 4)
     }
 
-    they("produce the same clauses with formula '4 Happens(abrupt(p1), t) ^ Close(p1,p2,24,t) ^ !Happens(inactive(p2),t ) <=> InitiatedAt(fight(p1,p2), t)'") {
+    they("should produce the same clauses with formula '4 Happens(abrupt(p1), t) ^ Close(p1,p2,24,t) ^ !Happens(inactive(p2),t ) <=> InitiatedAt(fight(p1,p2), t)'") {
       val f3 = kbParser.parseLogicalSentence("4 Happens(abrupt(p1), t) ^ Close(p1,p2,24,t) ^ !Happens(inactive(p2),t ) <=> InitiatedAt(fight(p1,p2), t)")
       val clauses3 = f3.toCNF(constants)
+      val fastClause3 = NormalForm.toFastCNF(f3)(constants)
+
       assert(clauses3.size == 4)
       clauses01.foreach(c => assert(clauses3.contains(c)))
-    }
 
+      assert(fastClause3.size == 4)
+      clauses01.foreach(c => assert(fastClause3.contains(c)))
+    }
   }
 
-  describe("Test axiom from Discrete Event Calculus dialects:") {
-    val constants = Map[String, ConstantsSet](
+  describe("Discrete Event Calculus dialects:") {
+    val constants = Map(
       "time" -> ConstantsSet("1", "2", "3", "4"),
       "event" -> ConstantsSet("Abrupt", "Walking", "Running", "Active", "Inactive", "Exit"),
       "fluent" -> ConstantsSet("Fight", "Move", "Meet", "Leaving_object"),
-      "dist" -> ConstantsSet("24", "30", "35"))
+      "dist" -> ConstantsSet("24", "30", "35")
+    )
 
     val decTests = List(
       //DEC v1
@@ -233,37 +272,15 @@ final class NormalFormSpecTest extends FunSpec with Matchers {
 
     for ((axiom, numClauses) <- decTests) describe("Axiom '" + axiom + "'") {
       val dec = kbParser.parseLogicalSentence(axiom)
-      it("produces " + numClauses + " clause(s)") {
+      it("should produce " + numClauses + " clause(s)") {
         val clauses = dec.toCNF(constants)
+        val fastClauses = NormalForm.toFastCNF(dec)(constants)
+
         assert(clauses.size == numClauses)
+        assert(fastClauses.size == numClauses)
       }
     }
 
-  }
-
-  describe("The MLN from file '" + testFilesPath + "DEC.mln' with evidence from file '" + testFilesPath + "DEC.db'") {
-
-    val mln = MLN.fromFile(
-      mlnFileName      = testFilesPath + "DEC.mln",
-      evidenceFileName = testFilesPath + "DEC.db",
-      queryAtoms       = Set(AtomSignature("HoldsAt", 2)),
-      cwa              = Set(AtomSignature("Happens", 2), AtomSignature("Close", 4), AtomSignature("Next", 2)),
-      owa              = Set(AtomSignature("Initiates", 3), AtomSignature("Terminates", 3), AtomSignature("StartsAt", 3), AtomSignature("StopsAt", 3))
-    )
-
-    info(mln.toString)
-
-    it("should constants 5 constants sets (domains)") {
-      mln.evidence.constants.size should be(5)
-    }
-
-    it("should contain 8 predicate schemas") {
-      mln.schema.predicates.size should be(8)
-    }
-
-    it("should contain 11 function schemas") {
-      mln.schema.functions.size should be(11)
-    }
   }
 
   describe("Formula 'InitiatedAt(f,t) => !(Happens(e, t) ^ Exist x Close(x,t))'") {
@@ -285,23 +302,6 @@ final class NormalFormSpecTest extends FunSpec with Matchers {
     it("should produce the PNF clause '(Forall x !InitiatedAt(f,t) v !Happens(e,t) v !Close(x,t))'") {
       val pnf = NormalForm.toPNF(formula)
       assert(pnf.toText == "(Forall x !InitiatedAt(f,t) v !Happens(e,t) v !Close(x,t))")
-    }
-  }
-
-  describe("The formula 'InitiatedAt(f,t) => HoldsAt(f, succ(t)).'") {
-    val dec1 = kbParser.parseLogicalSentence("InitiatedAt(f,t) => HoldsAt(f, succ(t)).")
-
-    it("contains the dynamic function succ(int):int") {
-      assert(dec1.functions.size == 1)
-      val f = dec1.functions.head
-      assert(f.symbol == "succ")
-      assert(f.domain == "time")
-      assert(f.terms.size == 1)
-
-      f.terms.head match {
-        case v: Variable => assert(v.domain == "time")
-        case _           => sys.error("The argument of function " + f + " should be a variable.")
-      }
     }
   }
 
