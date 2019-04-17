@@ -25,14 +25,20 @@ import lomrf.logic.AtomSignatureOps._
 import lomrf.mln.learning.structure.ModeParser
 import lomrf.mln.learning.supervision.graphs._
 import lomrf.mln.learning.supervision.metric._
-import lomrf.mln.model.{ AtomEvidenceDB, Evidence, KB, MLN }
+import lomrf.mln.model.{AtomEvidenceDB, Evidence, KB, MLN}
 import lomrf.util.NaturalComparator
-import lomrf.util.evaluation.{ Evaluate, Metrics }
+import lomrf.util.evaluation.{Evaluate, Metrics}
 import lomrf.util.time._
 import lomrf.util.logging.Implicits._
+
 import scala.io.Source
-import java.io.{ File, FileOutputStream, PrintStream }
-import scala.util.{ Failure, Success }
+import java.io.{File, FileOutputStream, PrintStream}
+
+import lomrf.app.ConnectorType._
+import lomrf.app.GraphSolverType._
+import lomrf.app.DistanceType._
+
+import scala.util.{Failure, Success}
 
 /**
   * Command line tool for supervision completion
@@ -61,13 +67,13 @@ object SemiSupervisionCLI extends CLIApp {
   private var _outputNegatives: Boolean = true
 
   // By default run using harmonic graph cut
-  private var _solver = "hgc"
+  private var _solver: GraphSolverType = HGC
 
   // By default run using atomic distance
-  private var _distance = "atomic"
+  private var _distance: DistanceType = Atomic
 
   // By default run using a kNN connector
-  private var _connector = "knn"
+  private var _connector: ConnectorType = kNN
 
   // Epsilon threshold for the eNN graph
   private var _epsilon = 0.75
@@ -109,21 +115,21 @@ object SemiSupervisionCLI extends CLIApp {
     v: String => _modesFileName = Some(v)
   })
 
-  opt("s", "solver", "<nn | hgc >", "Specify a solver for completion (default is hgc).", {
+  opt("s", "solver", "<nn | hgc>", "Specify a solver for completion (default is hgc).", {
     v: String =>
       v.trim.toLowerCase match {
-        case "nn"  => _solver = "nn"
-        case "hgc" => _solver = "hgc"
+        case "nn"  => _solver = NN
+        case "hgc" => _solver = HGC
         case _     => logger.fatal(s"Unknown solver of type '$v'.")
       }
   })
 
-  opt("d", "distance", "<binary | atomic | structure>", "Specify a distance over atoms (default is atomic).", {
+  opt("d", "distance", "<binary | atomic | evidence>", "Specify a distance over atoms (default is atomic).", {
     v: String =>
       v.trim.toLowerCase match {
-        case "binary"    => _distance = "binary"
-        case "atomic"    => _distance = "atomic"
-        case "structure" => _distance = "structure"
+        case "binary"    => _distance = Binary
+        case "atomic"    => _distance = Atomic
+        case "evidence" => _distance = Structure
         case _           => logger.fatal(s"Unknown distance of type '$v'.")
       }
   })
@@ -131,9 +137,9 @@ object SemiSupervisionCLI extends CLIApp {
   opt("c", "connector", "<kNN | eNN | Full>", "Specify a connection heuristic for the graph (default is kNN).", {
     v: String =>
       v.trim.toLowerCase match {
-        case "knn"  => _connector = "kNN"
-        case "enn"  => _connector = "eNN"
-        case "full" => _connector = "full"
+        case "knn"  => _connector = kNN
+        case "enn"  => _connector = eNN
+        case "full" => _connector = Full
         case _      => logger.fatal(s"Unknown connector of type '$v'.")
       }
   })
@@ -202,13 +208,13 @@ object SemiSupervisionCLI extends CLIApp {
     val (kb, constants) = KB.fromFile(strMLNFileName, convertFunctions = true)
 
     val connector =
-      if (_connector == "kNN") kNNConnector(_k)
-      else if (_connector == "eNN") eNNConnector(_epsilon)
+      if (_connector == kNN) kNNConnector(_k)
+      else if (_connector == eNN) eNNConnector(_epsilon)
       else FullConnector
 
     val distance: Metric[_ <: AtomicFormula] =
-      if (_distance == "binary") BinaryMetric(HungarianMatcher)
-      else if (_distance == "atomic") AtomMetric(HungarianMatcher)
+      if (_distance == Binary) BinaryMetric(HungarianMatcher)
+      else if (_distance == Atomic) AtomMetric(HungarianMatcher)
       else StructureMetric(modes, HungarianMatcher)
 
     val start = System.currentTimeMillis
@@ -259,7 +265,7 @@ object SemiSupervisionCLI extends CLIApp {
 
       // Run supervision completion for all given non evidence atoms and collect the results
       val (completedEvidenceAtoms, completedEvidenceSet) = supervisionGraphs.values
-        .map(graph => if (_solver == "nn") graph.completeSupervisionNN else graph.completeSupervisionGraphCut)
+        .map(graph => if (_solver == NN) graph.completeSupervisionNN else graph.completeSupervisionGraphCut)
         .foldLeft(Set.empty[EvidenceAtom] -> Set.empty[Evidence]) {
           case ((atoms, evidenceSet), tuple) => (atoms ++ tuple._1, evidenceSet + tuple._2)
         }

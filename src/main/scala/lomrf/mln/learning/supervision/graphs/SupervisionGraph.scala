@@ -326,7 +326,8 @@ final class SupervisionGraph private (
               }
             else cache.find { case (c, _) => c =~= pattern } match {
               case Some(entry @ (_, frequency)) => (unique, (cache - entry) + (pattern -> (frequency + 1)))
-              case None                         => logger.fatal(s"Pattern ${pattern.toText()} is not unique, but it does not exist in the frequency set.")
+              case None                         =>
+                logger.fatal(s"Pattern ${pattern.toText()} is not unique, but it does not exist in the frequency set.")
             }
         }
 
@@ -405,7 +406,8 @@ object SupervisionGraph extends LazyLogging {
       mln: MLN,
       modes: ModeDeclarations,
       annotationDB: EvidenceDB,
-      querySignature: AtomSignature): IndexedSeq[Node] = {
+      querySignature: AtomSignature,
+      cluster: Boolean = true): IndexedSeq[Node] = {
 
     val predicateSchema = mln.schema.predicates
     val auxPredicateSchema = predicateSchema.filter { case (signature, _) => signature.symbol.contains(PREFIX) }
@@ -503,9 +505,10 @@ object SupervisionGraph extends LazyLogging {
 
     val start = System.currentTimeMillis
 
-    val unlabeledSet = new NodeSet
+    // A set of cluster nodes used for grouping identical (under unification) unlabeled nodes.
+    val clusterNodes = new NodeSet
 
-    val labeledNodes = (labeled ++ unlabeled).flatMap { queryAtom =>
+    val nodes = (labeled ++ unlabeled).flatMap { queryAtom =>
       val queryDomain2Constants =
         domain2Constants(queryAtom.terms, predicateSchema(querySignature))
 
@@ -524,22 +527,27 @@ object SupervisionGraph extends LazyLogging {
 
       val evidenceSeq = evidence.toIndexedSeq
 
-      if (queryAtom.state == UNKNOWN) asPattern(querySignature, evidenceSeq, mln, modes) match {
-        case Success(body) =>
-          unlabeledSet.insert(Node(queryAtom, evidenceSeq, None, Some(body)))
-          None
-        case Failure(error) => throw error
-      }
-      else asPattern(querySignature, evidenceSeq :+ queryAtom, mln, modes) match {
+      asPattern(querySignature, evidenceSeq :+ queryAtom, mln, modes) match {
         case Success(clause) =>
-          val body = Clause(clause.literals.filterNot(_.sentence.signature == querySignature))
-          Some(Node(queryAtom, evidenceSeq, Some(clause), Some(body)))
+          val (headLiterals, bodyLiterals) = clause.literals.partition(_.sentence.signature == querySignature)
+          val body = Clause(bodyLiterals)
+
+          if (queryAtom.state == UNKNOWN) {
+            val unlabeledNode = Node(queryAtom, evidenceSeq, None, Some(body), headLiterals.head.sentence)
+
+            if (cluster) {
+              clusterNodes.insert(unlabeledNode)
+              None
+            } else Some(unlabeledNode)
+          }
+          else Some(Node(queryAtom, evidenceSeq, Some(clause), Some(body), headLiterals.head.sentence))
+
         case Failure(error) => throw error
       }
     }
 
     logger.info(s"Nodes constructed in ${msecTimeToTextUntilNow(start)}")
-    labeledNodes ++ unlabeledSet.toIndexedSeq
+    nodes ++ clusterNodes.toIndexedSeq
   }
 
   /**
@@ -593,7 +601,8 @@ object SupervisionGraph extends LazyLogging {
             }
           else cache.find { case (c, _) => c =~= pattern } match {
             case Some(entry @ (_, frequency)) => (unique, (cache - entry) + (pattern -> (frequency + 1)))
-            case None                         => logger.fatal(s"Pattern ${pattern.toText()} is not unique, but it does not exist in the frequency set.")
+            case None =>
+              logger.fatal(s"Pattern ${pattern.toText()} is not unique, but it does not exist in the frequency set.")
           }
       }
 

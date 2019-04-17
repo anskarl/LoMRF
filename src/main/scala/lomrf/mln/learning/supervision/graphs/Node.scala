@@ -37,12 +37,20 @@ case class Node(
     query: EvidenceAtom,
     evidence: IndexedSeq[EvidenceAtom],
     clause: Option[Clause],
-    body: Option[Clause]) extends LazyLogging {
+    body: Option[Clause],
+    private val head: AtomicFormula) extends LazyLogging {
 
-  private[graphs] var similarNodeQueryAtoms = scala.collection.mutable.Set.empty[EvidenceAtom]
+  private[graphs] var similarNodeQueryAtoms =
+    scala.collection.mutable.Set.empty[EvidenceAtom]
+
+  lazy val signatures: Set[AtomSignature] =
+    evidence.map(_.signature).toSet
 
   lazy val atoms: IndexedSeq[AtomicFormula] =
-    body.getOrElse(logger.fatal("Body does not exist!")).literals.map(_.sentence).toIndexedSeq
+    literals.map(_.sentence).toIndexedSeq
+
+  lazy val literals: Set[Literal] =
+    body.getOrElse(logger.fatal("Body does not exist!")).literals
 
   /**
     * @param value a value indicating the label of the query atoms
@@ -59,6 +67,32 @@ case class Node(
   def labelUsingValue(value: Boolean): Seq[EvidenceAtom] =
     similarNodeQueryAtoms.toIndexedSeq.map(q => EvidenceAtom(q.symbol, q.terms, value)) :+
       EvidenceAtom(query.symbol, query.terms, value)
+
+  /**
+    * @return the current node as positive.
+    */
+  def asPositive: Node =
+    if (isPositive) this
+    else Node(
+      EvidenceAtom.asTrue(query.symbol, query.terms),
+      evidence,
+      Some(Clause(literals + Literal.asPositive(head))),
+      body,
+      head
+    )
+
+  /**
+    * @return the current node as negative.
+    */
+  def toNegative: Node =
+    if (isNegative) this
+    else Node(
+      EvidenceAtom.asFalse(query.symbol, query.terms),
+      evidence,
+      Some(Clause(literals + Literal.asNegative(head))),
+      body,
+      head
+    )
 
   /**
     * @return true if the node query atom has a KNOWN truth value, false otherwise.
