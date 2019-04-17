@@ -20,14 +20,69 @@
 
 package lomrf.mln.learning.supervision.graphs
 
-import breeze.linalg.{ DenseVector, argtopk }
+import lomrf.logic.{ AtomicFormula, EvidenceAtom }
+import breeze.linalg.{ DenseMatrix, DenseVector, argtopk, sum }
+import lomrf.mln.learning.supervision.metric.Metric
 
 /**
-  * A GraphConnector is a higher order function that changes the number of connected
+  * A graph connector is a higher order function that changes the number of connected
   * neighbors (edges) to the vertex according to a strategy. The edges are represented by a
   * vector containing their costs.
   */
-trait GraphConnector extends (DenseVector[Double] => DenseVector[Double])
+trait GraphConnector extends (DenseVector[Double] => DenseVector[Double]) {
+
+  def connect(x: Node, y: Node)(metric: Metric[_ <: AtomicFormula]): Double =
+    if (!x.isLabeled || !y.isLabeled) 1 - { // connect nodes only if they are not both labeled
+      metric match {
+        case m: Metric[EvidenceAtom]  => m.distance(x.evidence, y.evidence)
+        case m: Metric[AtomicFormula] => m.distance(x.atoms, y.atoms)
+      }
+    }
+    else UNCONNECTED
+
+  def connect(nodes: IndexedSeq[Node])(metric: Metric[_ <: AtomicFormula]): EncodedGraph = {
+    val numberOfNodes = nodes.length
+    val parallelIndices = nodes.indices.par
+
+    val W = DenseMatrix.fill[Double](numberOfNodes, numberOfNodes)(UNCONNECTED)
+    val D = DenseMatrix.zeros[Double](numberOfNodes, numberOfNodes)
+
+    for (i <- nodes.indices) {
+      val neighborCosts = DenseVector.zeros[Double](numberOfNodes)
+      for (j <- parallelIndices if i != j) { // A node cannot be connected to itself
+
+        // W is symmetric and therefore avoid computing both upper and lower triangular
+        if (i > j) neighborCosts(j) = W(j, i)
+        else neighborCosts(j) = connect(nodes(i), nodes(j))(metric)
+      }
+
+      W(i, ::).inner := neighborCosts
+      D(i, i) = sum(W(i, ::))
+    }
+
+    for (i <- parallelIndices) {
+      W(i, ::).inner := apply(W(i, ::).inner)
+      D(i, i) = sum(W(i, ::))
+    }
+
+    W -> D // return the final (fully connected) encoded graph
+  }
+
+  def connect(nodesR: IndexedSeq[Node], nodesC: IndexedSeq[Node])(metric: Metric[_ <: AtomicFormula]): AdjacencyMatrix = {
+    val numberOfCols = nodesC.length
+    val parallelIndices = nodesC.indices.par
+    val W = DenseMatrix.fill[Double](nodesR.length, numberOfCols)(UNCONNECTED)
+
+    for (i <- nodesR.indices) {
+      val neighborCosts = DenseVector.zeros[Double](numberOfCols)
+      for (j <- parallelIndices if i != j) // A node cannot be connected to itself
+        neighborCosts(j) = connect(nodesR(i), nodesC(j))(metric)
+
+      W(i, ::).inner := apply(neighborCosts)
+    }
+    W // return the final (fully connected) adjacency matrix
+  }
+}
 
 /**
   * A FullConnector is used to essentially construct a fully connected graph. Therefore,

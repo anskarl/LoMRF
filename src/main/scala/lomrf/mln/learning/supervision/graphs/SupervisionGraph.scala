@@ -22,13 +22,14 @@ package lomrf.mln.learning.supervision.graphs
 
 import lomrf.logic._
 import lomrf.util.logging.Implicits._
-import breeze.linalg.{ DenseMatrix, DenseVector, sum }
+import breeze.linalg.{ DenseMatrix, DenseVector }
 import com.typesafe.scalalogging.LazyLogging
 import lomrf.mln.learning.supervision.metric._
 import lomrf.mln.model._
 import lomrf.mln.model.builders.EvidenceBuilder
 import lomrf.util.time._
 import lomrf.{ AUX_PRED_PREFIX => PREFIX }
+
 import scala.util.{ Failure, Success }
 import scala.language.existentials
 
@@ -58,9 +59,6 @@ final class SupervisionGraph private (
     nodeCache: Set[(Clause, Long)] = Set.empty) extends LazyLogging {
 
   private val (labeledNodes, unlabeledNodes) = nodes.partition(_.isLabeled)
-
-  private lazy val parallelIndices = nodes.indices.par
-  private lazy val parallelLabeledIndices = labeledNodes.indices.par
 
   val numberOfNodes: Int = nodes.length
   val numberOfLabeled: Int = labeledNodes.length
@@ -104,9 +102,6 @@ final class SupervisionGraph private (
 
   private def nearestNeighbor: Set[EvidenceAtom] = {
 
-    // Cost matrix U x L
-    val W = DenseMatrix.zeros[Double](numberOfUnlabeled, numberOfLabeled)
-
     logger.info(
       s"Supervision graph has $numberOfNodes nodes. Nodes have varying size sequences " +
         s"of evidence atoms [${nodes.map(_.size).distinct.mkString(", ")}].\n" +
@@ -116,27 +111,7 @@ final class SupervisionGraph private (
     )
 
     val startGraphConnection = System.currentTimeMillis
-
-    for (i <- unlabeledNodes.indices) {
-      val neighborCosts = DenseVector.zeros[Double](numberOfLabeled)
-
-      for (j <- parallelLabeledIndices) {
-        neighborCosts(j) = 1 - {
-          metric match {
-            case x: StructureMetric => x.distance(unlabeledNodes(i).evidence, labeledNodes(j).evidence)
-            case x: AtomMetric      => x.distance(unlabeledNodes(i).atoms, labeledNodes(j).atoms)
-            case x: BinaryMetric    => x.distance(unlabeledNodes(i).atoms, labeledNodes(j).atoms)
-          }
-        }
-
-        logger.whenDebugEnabled {
-          logger.debug(s"${unlabeledNodes(i).query.toText} - ${labeledNodes(j).query.toText} = ${neighborCosts(j)}")
-        }
-      }
-
-      W(i, ::).inner := connector(neighborCosts)
-    }
-
+    val W = connector.connect(unlabeledNodes, labeledNodes)(metric)
     logger.info(msecTimeToTextUntilNow(s"Graph connected in: ", startGraphConnection))
 
     val startSolution = System.currentTimeMillis
@@ -175,12 +150,6 @@ final class SupervisionGraph private (
 
   private def graphCut: Set[EvidenceAtom] = {
 
-    // Cost symmetric matrix
-    val W = DenseMatrix.zeros[Double](numberOfNodes, numberOfNodes)
-
-    // Cost degree diagonal matrix
-    val D = DenseMatrix.zeros[Double](numberOfNodes, numberOfNodes)
-
     logger.info(
       s"Supervision graph has $numberOfNodes nodes. Nodes have varying size sequences " +
         s"of evidence atoms [${nodes.map(_.size).distinct.mkString(", ")}].\n" +
@@ -190,36 +159,9 @@ final class SupervisionGraph private (
     )
 
     val startGraphConnection = System.currentTimeMillis
-
-    for (i <- nodes.indices) {
-      val neighborCosts = DenseVector.zeros[Double](numberOfNodes)
-
-      for (j <- parallelIndices if i != j) { // A node cannot be connected to itself
-
-        // W is symmetric and therefore there is no need to compute both upper and lower triangular parts
-        if (i > j) neighborCosts(j) = W(j, i)
-        else if (nodes(i).isLabeled && nodes(j).isLabeled) neighborCosts(j) = UNCONNECTED
-        else neighborCosts(j) = 1 - {
-          metric match {
-            case x: StructureMetric => x.distance(nodes(i).evidence, nodes(j).evidence)
-            case x: AtomMetric      => x.distance(nodes(i).atoms, nodes(j).atoms)
-            case x: BinaryMetric    => x.distance(nodes(i).atoms, nodes(j).atoms)
-          }
-        }
-
-        logger.whenDebugEnabled {
-          if (i <= j) logger.debug(s"${nodes(i).query.toText} - ${nodes(j).query.toText} = ${neighborCosts(j)}")
-        }
-      }
-
-      W(i, ::).inner := neighborCosts
-    }
-
-    for (i <- parallelIndices) {
-      W(i, ::).inner := connector(W(i, ::).inner)
-      D(i, i) = sum(W(i, ::))
-    }
-
+    val encodedGraph = connector.connect(nodes)(metric)
+    val W = encodedGraph._1
+    val D = encodedGraph._2
     logger.info(msecTimeToTextUntilNow(s"Graph connected in: ", startGraphConnection))
 
     val startSolution = System.currentTimeMillis
@@ -233,8 +175,10 @@ final class SupervisionGraph private (
     logger.info(msecTimeToTextUntilNow(s"Labeling solution found in: ", startSolution))
 
     logger.whenDebugEnabled {
-      (unlabeledNodes.map(_.query) zip solution)
-        .map { case (atom, state) => s"$atom = $state" }.mkString("\n")
+      logger.debug {
+        (unlabeledNodes.map(_.query) zip solution)
+          .map { case (atom, state) => s"$atom = $state" }.mkString("\n")
+      }
     }
 
     val labeledEvidenceAtoms = unlabeledNodes.zip(truthValues).flatMap {
@@ -326,7 +270,7 @@ final class SupervisionGraph private (
               }
             else cache.find { case (c, _) => c =~= pattern } match {
               case Some(entry @ (_, frequency)) => (unique, (cache - entry) + (pattern -> (frequency + 1)))
-              case None                         =>
+              case None =>
                 logger.fatal(s"Pattern ${pattern.toText()} is not unique, but it does not exist in the frequency set.")
             }
         }
@@ -539,8 +483,7 @@ object SupervisionGraph extends LazyLogging {
               clusterNodes.insert(unlabeledNode)
               None
             } else Some(unlabeledNode)
-          }
-          else Some(Node(queryAtom, evidenceSeq, Some(clause), Some(body), headLiterals.head.sentence))
+          } else Some(Node(queryAtom, evidenceSeq, Some(clause), Some(body), headLiterals.head.sentence))
 
         case Failure(error) => throw error
       }

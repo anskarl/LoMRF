@@ -25,8 +25,12 @@ import lomrf.logic.compile.LogicFormatter
 import lomrf.mln.model.{ MLN, ModeDeclarations }
 import scala.util.{ Failure, Success, Try }
 import lomrf.{ AUX_PRED_PREFIX => PREFIX }
+import breeze.linalg.DenseMatrix
 
 package object graphs {
+
+  type AdjacencyMatrix = DenseMatrix[Double]
+  type EncodedGraph = (DenseMatrix[Double], DenseMatrix[Double])
 
   /*
    * Use a very close to zero (non zero) value in order to avoid singular

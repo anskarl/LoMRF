@@ -25,20 +25,17 @@ import lomrf.logic.AtomSignatureOps._
 import lomrf.mln.learning.structure.ModeParser
 import lomrf.mln.learning.supervision.graphs._
 import lomrf.mln.learning.supervision.metric._
-import lomrf.mln.model.{AtomEvidenceDB, Evidence, KB, MLN}
+import lomrf.mln.model.{ AtomEvidenceDB, Evidence, KB, MLN }
 import lomrf.util.NaturalComparator
-import lomrf.util.evaluation.{Evaluate, Metrics}
+import lomrf.util.evaluation.{ Evaluate, Metrics }
 import lomrf.util.time._
 import lomrf.util.logging.Implicits._
-
 import scala.io.Source
-import java.io.{File, FileOutputStream, PrintStream}
-
+import java.io.{ File, FileOutputStream, PrintStream }
 import lomrf.app.ConnectorType._
 import lomrf.app.GraphSolverType._
 import lomrf.app.DistanceType._
-
-import scala.util.{Failure, Success}
+import scala.util.{ Failure, Success }
 
 /**
   * Command line tool for supervision completion
@@ -127,10 +124,10 @@ object SemiSupervisionCLI extends CLIApp {
   opt("d", "distance", "<binary | atomic | evidence>", "Specify a distance over atoms (default is atomic).", {
     v: String =>
       v.trim.toLowerCase match {
-        case "binary"    => _distance = Binary
-        case "atomic"    => _distance = Atomic
+        case "binary"   => _distance = Binary
+        case "atomic"   => _distance = Atomic
         case "evidence" => _distance = Structure
-        case _           => logger.fatal(s"Unknown distance of type '$v'.")
+        case _          => logger.fatal(s"Unknown distance of type '$v'.")
       }
   })
 
