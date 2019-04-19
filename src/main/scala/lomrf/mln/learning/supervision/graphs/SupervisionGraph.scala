@@ -22,14 +22,13 @@ package lomrf.mln.learning.supervision.graphs
 
 import lomrf.logic._
 import lomrf.util.logging.Implicits._
-import breeze.linalg.{ DenseMatrix, DenseVector }
+import breeze.linalg.DenseVector
 import com.typesafe.scalalogging.LazyLogging
 import lomrf.mln.learning.supervision.metric._
 import lomrf.mln.model._
 import lomrf.mln.model.builders.EvidenceBuilder
 import lomrf.util.time._
 import lomrf.{ AUX_PRED_PREFIX => PREFIX }
-
 import scala.util.{ Failure, Success }
 import scala.language.existentials
 
@@ -209,7 +208,11 @@ final class SupervisionGraph private (
   def ++(mln: MLN, annotationDB: EvidenceDB, modes: ModeDeclarations): SupervisionGraph = {
 
     // Group the given data into nodes, using the domains of the existing graph
-    val currentNodes = SupervisionGraph.partition(mln, modes, annotationDB, querySignature)
+    val currentNodes = connector match {
+      case _: kNNTemporalConnector | _: eNNTemporalConnector =>
+        SupervisionGraph.partition(mln, modes, annotationDB, querySignature, cluster = false)
+      case _ => SupervisionGraph.partition(mln, modes, annotationDB, querySignature)
+    }
 
     // Partition nodes into labeled and unlabeled. Then find empty unlabeled nodes.
     val (labeled, unlabeled) = currentNodes.partition(_.isLabeled)
@@ -518,7 +521,11 @@ object SupervisionGraph extends LazyLogging {
       metric: Metric[_ <: AtomicFormula]): SupervisionGraph = {
 
     // Group the given data into nodes
-    val nodes = partition(mln, modes, annotationDB, querySignature)
+    val nodes = connector match {
+      case _: kNNTemporalConnector | _: eNNTemporalConnector =>
+        partition(mln, modes, annotationDB, querySignature, cluster = false)
+      case _ => partition(mln, modes, annotationDB, querySignature)
+    }
 
     logger.info("Constructing supervision graph.")
 

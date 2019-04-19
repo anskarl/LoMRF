@@ -32,7 +32,7 @@ import lomrf.util.time._
 import lomrf.util.logging.Implicits._
 import scala.io.Source
 import java.io.{ File, FileOutputStream, PrintStream }
-import lomrf.app.ConnectorType._
+import lomrf.app.ConnectorStrategy._
 import lomrf.app.GraphSolverType._
 import lomrf.app.DistanceType._
 import scala.util.{ Failure, Success }
@@ -70,7 +70,7 @@ object SemiSupervisionCLI extends CLIApp {
   private var _distance: DistanceType = Atomic
 
   // By default run using a kNN connector
-  private var _connector: ConnectorType = kNN
+  private var _connector: ConnectorStrategy = kNN
 
   // Epsilon threshold for the eNN graph
   private var _epsilon = 0.75
@@ -131,15 +131,21 @@ object SemiSupervisionCLI extends CLIApp {
       }
   })
 
-  opt("c", "connector", "<kNN | eNN | Full>", "Specify a connection heuristic for the graph (default is kNN).", {
-    v: String =>
-      v.trim.toLowerCase match {
-        case "knn"  => _connector = kNN
-        case "enn"  => _connector = eNN
-        case "full" => _connector = Full
-        case _      => logger.fatal(s"Unknown connector of type '$v'.")
-      }
-  })
+  opt("c", "connector", "<kNN | kNN-L | kNN-temporal | eNN | eNN-L | eNN-temporal | full>",
+    "Specify a connection strategy for the graph (default is kNN).", {
+      v: String =>
+        v.trim.toLowerCase match {
+          case "knn"          => _connector = kNN
+          case "knn-l"        => _connector = kNNL
+          case "knn-temporal" => _connector = kNNTemporal
+          case "enn"          => _connector = eNN
+          case "enn-l"        => _connector = eNNL
+          case "enn-temporal" => _connector = eNNTemporal
+          case "full"         => _connector = Full
+          case _              => logger.fatal(s"Unknown connector of type '$v'.")
+        }
+    }
+  )
 
   intOpt("k", "kappa", "Kappa parameter for the kNN connector (default is " + _k + ")", {
     v: Int => if (v < 1) logger.fatal("k value must be any integer greater than zero, but you gave: " + v) else _k = v
@@ -149,7 +155,7 @@ object SemiSupervisionCLI extends CLIApp {
     v: Double => if (v < 0 || v > 1) logger.fatal("Epsilon value must be any number greater or equal to zero and less or equal to one, but you gave: " + v) else _epsilon = v
   })
 
-  flagOpt("skip-negatives", "skip-negatives", "Do not output negative labels into the resulted files.", {
+  flagOpt("sn", "skip-negatives", "Do not output negative labels into the resulted files.", {
     _outputNegatives = false
   })
 
@@ -206,7 +212,11 @@ object SemiSupervisionCLI extends CLIApp {
 
     val connector =
       if (_connector == kNN) kNNConnector(_k)
+      else if (_connector == kNNL) kNNLConnector(_k)
+      else if (_connector == kNNTemporal) new kNNTemporalConnector(_k)
       else if (_connector == eNN) eNNConnector(_epsilon)
+      else if (_connector == eNNL) eNNLConnector(_epsilon)
+      else if (_connector == eNNTemporal) new eNNTemporalConnector(_epsilon)
       else FullConnector
 
     val distance: Metric[_ <: AtomicFormula] =

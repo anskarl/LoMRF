@@ -25,12 +25,29 @@ import breeze.linalg.{ DenseMatrix, DenseVector, argtopk, sum }
 import lomrf.mln.learning.supervision.metric.Metric
 
 /**
-  * A graph connector is a higher order function that changes the number of connected
-  * neighbors (edges) to the vertex according to a strategy. The edges are represented by a
-  * vector containing their costs.
+  * A graph connector constructs a graph and changes the number of connected
+  * neighbors (edges) to each vertex according to a strategy.
   */
-trait GraphConnector extends (DenseVector[Double] => DenseVector[Double]) {
+trait GraphConnector extends {
 
+  /**
+    * @param neighbors a vector containing the edge values of neighboring nodes
+    * @param L number of labeled neighbors
+    * @return a sparser vector containing the retained neighbor edges
+    */
+  def sparse(neighbors: DenseVector[Double], L: Int): DenseVector[Double]
+
+  /**
+    * Compute the edge value for a pair of nodes. Pair of labeled
+    * nodes are never connected.
+    *
+    * @note Override the method to implement another connection strategy.
+    *
+    * @param x a node
+    * @param y another node
+    * @param metric a metric for atomic formula
+    * @return the edge value for the given nodes
+    */
   def connect(x: Node, y: Node)(metric: Metric[_ <: AtomicFormula]): Double =
     if (!x.isLabeled || !y.isLabeled) 1 - { // connect nodes only if they are not both labeled
       metric match {
@@ -40,9 +57,19 @@ trait GraphConnector extends (DenseVector[Double] => DenseVector[Double]) {
     }
     else UNCONNECTED
 
+  /**
+    * Connect a graph.
+    *
+    * @note The graph may become sparser by using the appropriate connector type.
+    *
+    * @param nodes a sequence of nodes
+    * @param metric a metric for atomic formula
+    * @return the adjacency and degree matrix of the resulted graph
+    */
   def connect(nodes: IndexedSeq[Node])(metric: Metric[_ <: AtomicFormula]): EncodedGraph = {
     val numberOfNodes = nodes.length
     val parallelIndices = nodes.indices.par
+    val L = nodes.count(_.isLabeled)
 
     val W = DenseMatrix.fill[Double](numberOfNodes, numberOfNodes)(UNCONNECTED)
     val D = DenseMatrix.zeros[Double](numberOfNodes, numberOfNodes)
@@ -61,13 +88,23 @@ trait GraphConnector extends (DenseVector[Double] => DenseVector[Double]) {
     }
 
     for (i <- parallelIndices) {
-      W(i, ::).inner := apply(W(i, ::).inner)
+      W(i, ::).inner := sparse(W(i, ::).inner, L)
       D(i, i) = sum(W(i, ::))
     }
 
-    W -> D // return the final (fully connected) encoded graph
+    W -> D // return the final encoded graph
   }
 
+  /**
+    * Connect a bi-graph using the given sequences of nodes.
+    *
+    * @note The graph may become sparser by using the appropriate connector type.
+    *
+    * @param nodesR a sequence of nodes
+    * @param nodesC another sequence of nodes
+    * @param metric a metric for atomic formula
+    * @return the adjacency matrix of the resulted graph
+    */
   def connect(nodesR: IndexedSeq[Node], nodesC: IndexedSeq[Node])(metric: Metric[_ <: AtomicFormula]): AdjacencyMatrix = {
     val numberOfCols = nodesC.length
     val parallelIndices = nodesC.indices.par
@@ -78,45 +115,48 @@ trait GraphConnector extends (DenseVector[Double] => DenseVector[Double]) {
       for (j <- parallelIndices if i != j) // A node cannot be connected to itself
         neighborCosts(j) = connect(nodesR(i), nodesC(j))(metric)
 
-      W(i, ::).inner := apply(neighborCosts)
+      W(i, ::).inner := sparse(neighborCosts, numberOfCols)
     }
     W // return the final (fully connected) adjacency matrix
   }
 }
 
 /**
-  * A FullConnector is used to essentially construct a fully connected graph. Therefore,
-  * for a given cost vector of a vertex it changes nothing.
+  * A full connector is used to construct a fully connected graph.
   */
 object FullConnector extends GraphConnector {
 
   /**
-    * @param neighbors a vector containing the costs for each neighbor of the vertex
+    * Retains all neighbors.
     *
-    * @return the vector itself
+    * @param neighbors a vector containing the edge values of neighboring nodes
+    * @param L number of labeled neighbors
+    * @return the vector itself (retains all neighbor edges(
     */
-  override def apply(neighbors: DenseVector[Double]): DenseVector[Double] = neighbors
+  override def sparse(neighbors: DenseVector[Double], L: Int): DenseVector[Double] = neighbors
 
-  override def toString(): String = "full"
+  override def toString: String = "full"
 }
 
 /**
-  * A kNNConnector is used to essentially construct a kNN graph. For the neighbors of
-  * the vertex it only keeps the top k nearest neighbors by setting everything else to zero.
+  * A kNN connector is used to construct a kNN graph. For each vertex it
+  * only keeps the top k nearest neighbors by setting everything else to zero.
   *
-  * @note kNN graphs having small k tends to perform better
+  * @note kNN graphs having small k tends to perform better.
   *
   * @param k the number of nearest neighbors to be retained
   */
-final case class kNNConnector(k: Int) extends GraphConnector {
+case class kNNConnector(k: Int) extends GraphConnector {
 
   /**
-    * @param neighbors a vector containing the costs for each neighbor of the vertex
+    * Retains the k nearest neighbors.
     *
-    * @return a vector having costs only for the k nearest neighbors (top k costs),
+    * @param neighbors a vector containing the edge values of neighboring nodes
+    * @param L number of labeled neighbors
+    * @return a sparser vector containing only for the k nearest neighbors (top k costs),
     *         everything else is unconnected (zero)
     */
-  override def apply(neighbors: DenseVector[Double]): DenseVector[Double] = {
+  override def sparse(neighbors: DenseVector[Double], L: Int): DenseVector[Double] = {
     // find distinct costs in the neighbor vector
     val distinctCosts = DenseVector(neighbors.toArray.distinct)
 
@@ -128,25 +168,148 @@ final case class kNNConnector(k: Int) extends GraphConnector {
     } else neighbors
   }
 
-  override def toString(): String = s"kNN.$k"
+  override def toString: String = s"kNN.$k"
 }
 
 /**
-  * A eNNConnector is used to essentially construct an eNN graph. For the neighbors of
-  * the vertex it only keeps the ones having cost greater than a given epsilon value.
+  * A kNNL connector is used to construct a kNN graph on the labeled vertices.
+  * For each vertex it only keeps the top k labeled nearest neighbors by setting
+  * everything else to zero. The unlabeled vertices remain fully connected.
+  *
+  * @note kNN graphs having small k tends to perform better.
+  *
+  * @param k the number of nearest neighbors to be retained
+  */
+case class kNNLConnector(k: Int) extends GraphConnector {
+
+  /**
+    * Retains the k labeled nearest neighbors. All unlabeled neighbors remain connected.
+    *
+    * @param neighbors a vector containing the edge values of neighboring nodes
+    * @param L number of labeled neighbors
+    * @return a sparser vector containing only for the k labeled nearest neighbors (top k costs),
+    *         everything else is unconnected (zero). Unlabeled neighbors remain connected
+    */
+  override def sparse(neighbors: DenseVector[Double], L: Int): DenseVector[Double] = {
+    // find distinct costs in the labeled neighbor vector
+    val distinctLabeledCosts = DenseVector(neighbors.toArray.take(L).distinct)
+
+    if (distinctLabeledCosts.length > k) {
+      val topK = argtopk(distinctLabeledCosts, k).map(distinctLabeledCosts.apply)
+
+      DenseVector.vertcat(
+        neighbors.slice(0, L).map(cost => if (topK.contains(cost)) cost else UNCONNECTED),
+        neighbors.slice(L, neighbors.length)
+      )
+    } else neighbors
+  }
+
+  override def toString: String = s"kNN.$k.L"
+}
+
+/**
+  * A temporal kNN connector is used to construct a kNN graph on the labeled vertices,
+  * while unlabeled vertices are connected temporally (as a sequence). For each vertex
+  * it only keeps the top k labeled nearest neighbors by setting everything else to zero.
+  * The unlabeled vertices are connected as a chain.
+  *
+  * @note kNN graphs having small k tends to perform better.
+  *
+  * @param k the number of nearest neighbors to be retained
+  */
+class kNNTemporalConnector(k: Int) extends kNNLConnector(k) {
+
+  /**
+    * Compute the edge value for a pair of nodes. Pair of labeled
+    * nodes are never connected. Moreover unlabeled nodes are only
+    * connected if they are time-adjacent.
+    *
+    * @note Override the method to implement another connection strategy.
+    *
+    * @param x a node
+    * @param y another node
+    * @param metric a metric for atomic formula
+    * @return the edge value for the given nodes
+    */
+  override def connect(x: Node, y: Node)(metric: Metric[_ <: AtomicFormula]): Double = {
+
+    val timeAdjacent = math.abs(x.query.terms.last.symbol.toLong - y.query.terms.last.symbol.toLong) == 1
+
+    if ((x.isLabeled && y.isLabeled) || (x.isUnlabeled && y.isUnlabeled && !timeAdjacent)) UNCONNECTED
+    else 1 - {
+      metric match {
+        case m: Metric[EvidenceAtom]  => m.distance(x.evidence, y.evidence)
+        case m: Metric[AtomicFormula] => m.distance(x.atoms, y.atoms)
+      }
+    }
+  }
+
+  override def toString: String = s"kNN.$k.temporal"
+}
+
+/**
+  * A eNN connector is used to construct an eNN graph. For each vertex it
+  * only keeps the neighbors having cost greater than a given epsilon value.
   *
   * @param epsilon the threshold epsilon
   */
 final case class eNNConnector(epsilon: Double) extends GraphConnector {
 
   /**
-    * @param neighbors a vector containing the costs for each neighbor of a vertex
+    * Retains all epsilon nearest neighbors. All unlabeled neighbors remain connected.
     *
-    * @return a vector having retained only costs that are greater than epsilon,
-    *         everything else unconnected (zero)
+    * @param neighbors a vector containing the edge values of neighboring nodes
+    * @param L number of labeled neighbors
+    * @return a sparser vector containing only for the epsilon labeled nearest neighbors,
+    *         everything else is unconnected (zero). Unlabeled neighbors remain connected
     */
-  override def apply(neighbors: DenseVector[Double]): DenseVector[Double] =
+  override def sparse(neighbors: DenseVector[Double], L: Int): DenseVector[Double] =
     neighbors.map(cost => if (cost < epsilon) UNCONNECTED else cost)
 
-  override def toString(): String = s"eNN.$epsilon"
+  override def toString: String = s"eNN.$epsilon"
+}
+
+/**
+  * A eNN connector is used to construct an eNN graph on the labeled vertices.
+  * For each vertex it only keeps the neighbors having cost greater than
+  * a given epsilon value. The unlabeled neighbors remain fully connected.
+  *
+  * @param epsilon the threshold epsilon
+  */
+case class eNNLConnector(epsilon: Double) extends GraphConnector {
+
+  /**
+    * Retains all epsilon labeled nearest neighbors. All unlabeled neighbors remain connected.
+    *
+    * @param neighbors a vector containing the edge values of neighboring nodes
+    * @param L number of labeled neighbors
+    * @return a sparser vector containing only for the epsilon labeled nearest neighbors,
+    *         everything else is unconnected (zero). Unlabeled neighbors remain connected
+    */
+  override def sparse(neighbors: DenseVector[Double], L: Int): DenseVector[Double] = {
+    DenseVector.vertcat(
+      neighbors.slice(0, L).map(cost => if (cost < epsilon) UNCONNECTED else cost),
+      neighbors.slice(L, neighbors.length)
+    )
+  }
+
+  override def toString: String = s"eNN.$epsilon.L"
+}
+
+class eNNTemporalConnector(epsilon: Double) extends eNNLConnector(epsilon) {
+
+  override def connect(x: Node, y: Node)(metric: Metric[_ <: AtomicFormula]): Double = {
+
+    val timeAdjacent = math.abs(x.query.terms.last.symbol.toLong - y.query.terms.last.symbol.toLong) == 1
+
+    if ((x.isLabeled && y.isLabeled) || (x.isUnlabeled && y.isUnlabeled && !timeAdjacent)) UNCONNECTED
+    else 1 - {
+      metric match {
+        case m: Metric[EvidenceAtom]  => m.distance(x.evidence, y.evidence)
+        case m: Metric[AtomicFormula] => m.distance(x.atoms, y.atoms)
+      }
+    }
+  }
+
+  override def toString: String = s"eNN.$epsilon.temporal"
 }

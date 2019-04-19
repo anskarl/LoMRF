@@ -54,18 +54,21 @@ package object app {
     case object LGC extends GraphSolverType("lgc")
   }
 
-  sealed class ConnectorType(override val entryName: String) extends EnumEntry {
+  sealed class ConnectorStrategy(override val entryName: String) extends EnumEntry {
     override def toString: String = entryName
   }
 
-  object ConnectorType extends Enum[ConnectorType] {
+  object ConnectorStrategy extends Enum[ConnectorStrategy] {
 
-    val values: immutable.IndexedSeq[ConnectorType] = findValues
+    val values: immutable.IndexedSeq[ConnectorStrategy] = findValues
 
-    case object Full extends ConnectorType("full")
-    case object Temporal extends ConnectorType("temporal")
-    case object eNN extends ConnectorType("enn")
-    case object kNN extends ConnectorType("kNN")
+    case object Full extends ConnectorStrategy("full")
+    case object eNN extends ConnectorStrategy("eNN")
+    case object eNNL extends ConnectorStrategy("eNN-labeled")
+    case object eNNTemporal extends ConnectorStrategy("eNN-temporal")
+    case object kNN extends ConnectorStrategy("kNN")
+    case object kNNL extends ConnectorStrategy("kNN-labeled")
+    case object kNNTemporal extends ConnectorStrategy("kNN-temporal")
   }
 
   sealed class DistanceType(override val entryName: String) extends EnumEntry {
