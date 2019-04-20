@@ -34,7 +34,6 @@ import scala.io.Source
 import java.io.{ File, FileOutputStream, PrintStream }
 import lomrf.app.ConnectorStrategy._
 import lomrf.app.GraphSolverType._
-import lomrf.app.DistanceType._
 import scala.util.{ Failure, Success }
 
 /**
@@ -67,7 +66,7 @@ object SemiSupervisionCLI extends CLIApp {
   private var _solver: GraphSolverType = HGC
 
   // By default run using atomic distance
-  private var _distance: DistanceType = Atomic
+  private var _distance: DistanceType = DistanceType.Atomic
 
   // By default run using a kNN connector
   private var _connector: ConnectorStrategy = kNN
@@ -124,9 +123,9 @@ object SemiSupervisionCLI extends CLIApp {
   opt("d", "distance", "<binary | atomic | evidence>", "Specify a distance over atoms (default is atomic).", {
     v: String =>
       v.trim.toLowerCase match {
-        case "binary"   => _distance = Binary
-        case "atomic"   => _distance = Atomic
-        case "evidence" => _distance = Structure
+        case "binary"   => _distance = DistanceType.Binary
+        case "atomic"   => _distance = DistanceType.Atomic
+        case "evidence" => _distance = DistanceType.Evidence
         case _          => logger.fatal(s"Unknown distance of type '$v'.")
       }
   })
@@ -220,9 +219,9 @@ object SemiSupervisionCLI extends CLIApp {
       else FullConnector
 
     val distance: Metric[_ <: AtomicFormula] =
-      if (_distance == Binary) BinaryMetric(HungarianMatcher)
-      else if (_distance == Atomic) AtomMetric(HungarianMatcher)
-      else StructureMetric(modes, HungarianMatcher)
+      if (_distance == DistanceType.Binary) BinaryMetric(HungarianMatcher)
+      else if (_distance == DistanceType.Atomic) AtomMetric(HungarianMatcher)
+      else EvidenceMetric(modes, HungarianMatcher)
 
     val start = System.currentTimeMillis
 

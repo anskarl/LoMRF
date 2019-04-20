@@ -29,7 +29,7 @@ import lomrf.logic.AtomicFormula
   *
   * @param matcher a matcher function
   */
-final case class BinaryMetric(override protected val matcher: Matcher) extends Metric[AtomicFormula] {
+final case class BinaryMetric(override protected val matcher: Matcher) extends StructureMetric[AtomicFormula] {
 
   /**
     * Distance for atoms. The function must obey to the following properties:
@@ -40,7 +40,6 @@ final case class BinaryMetric(override protected val matcher: Matcher) extends M
     * 3. d(x, y) + d(y, z) >= d(x, z) for all x, y, z (triangle inequality)
     * }}}
     *
-    * @see [[lomrf.logic.AtomicFormula]]
     * @param xAtom an atom
     * @param yAtom another atom
     * @return a distance for the given atoms

@@ -27,11 +27,11 @@ import org.scalatest.{ FunSpec, Matchers }
 import lomrf.{ AUX_PRED_PREFIX => PREFIX }
 import lomrf.mln.learning.structure.ModeParser
 
-final class StructureMetricSpecTest extends FunSpec with Matchers {
+final class EvidenceMetricSpecTest extends FunSpec with Matchers {
 
   describe("Distances over predicates having NO functions.") {
 
-    val metric = StructureMetric(HungarianMatcher)
+    val metric = EvidenceMetric(HungarianMatcher)
 
     val predicateA =
       EvidenceAtom.asTrue(
@@ -133,7 +133,7 @@ final class StructureMetricSpecTest extends FunSpec with Matchers {
     builder.functions += FunctionMapping("Walking_A", "walking", Vector(Constant("A")))
     builder.functions += FunctionMapping("Walking_B", "walking", Vector(Constant("B")))
 
-    val metric = StructureMetric(builder.result(), HungarianMatcher)
+    val metric = EvidenceMetric(builder.result(), HungarianMatcher)
 
     val predicateA =
       EvidenceAtom.asTrue(
@@ -239,7 +239,7 @@ final class StructureMetricSpecTest extends FunSpec with Matchers {
     builder.functions += FunctionMapping("Tiny_R_Box", "tinyBox", Vector("R").map(Constant))
     builder.functions += FunctionMapping("Tiny_G_Box", "tinyBox", Vector("G").map(Constant))
 
-    val metric = StructureMetric(builder.result(), HungarianMatcher)
+    val metric = EvidenceMetric(builder.result(), HungarianMatcher)
 
     val predicateA =
       EvidenceAtom.asTrue(
@@ -304,7 +304,7 @@ final class StructureMetricSpecTest extends FunSpec with Matchers {
     // List of mode declarations to be parsed along with an annotation of the results
     val modes = List("modeF(2, avg_speed(-, n-))").map(ModeParser.parseFrom).toMap
 
-    val metric = StructureMetric(modes, builder.result(), HungarianMatcher)
+    val metric = EvidenceMetric(modes, builder.result(), HungarianMatcher)
 
     val predicateA =
       EvidenceAtom.asTrue(

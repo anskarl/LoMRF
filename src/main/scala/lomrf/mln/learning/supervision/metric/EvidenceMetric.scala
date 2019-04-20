@@ -25,9 +25,8 @@ import lomrf.mln.learning.structure.PlaceMarker
 import lomrf.mln.model.{ Evidence, ModeDeclarations }
 
 /**
-  * A structural metric space is a measure of distance for logical interpretations.
-  * Such a measure enables the calculation of distances based on the structural similarity
-  * of atoms. Moreover, it can compute numerical distances over specific domains.
+  * An evidence metric is a measure of distance for logical interpretations.
+  * Such a measure enables calculates of structural distance of ground atoms.
   *
   * === Example ===
   * {{{
@@ -52,10 +51,10 @@ import lomrf.mln.model.{ Evidence, ModeDeclarations }
   * @param auxConstructs a map from return constants to auxiliary constructs
   * @param matcher a matcher function
   */
-final class StructureMetric private (
+final class EvidenceMetric private(
     modes: ModeDeclarations,
     auxConstructs: Map[Constant, AuxConstruct],
-    override protected val matcher: Matcher) extends Metric[EvidenceAtom] {
+    override protected val matcher: Matcher) extends StructureMetric[EvidenceAtom] {
 
   /**
     * Distance for ground evidence atoms. The function must obey to the following properties:
@@ -115,7 +114,6 @@ final class StructureMetric private (
     *
     * @note If the given constants belong to some function return type, then the
     *       distance for their corresponding auxiliary constructs is measured.
-    * @see [[lomrf.logic.Constant]]
     * @param xConstant a constant
     * @param yConstant another constant
     * @return a distance in the interval [0, 1] for the given constants. If constants are identical
@@ -129,43 +127,47 @@ final class StructureMetric private (
     }
 
   /**
-    * Returns a structure metric space stemming from the concatenation of this one and a given one.
-    * that contains the auxiliary predicates for both metric spaces
+    * Returns an evidence metric extended by the auxiliary predicates
+    * of the given evidence database.
     *
     * @param evidence an evidence database
-    * @return an extended structure metric space
+    * @return an extended evidence metric space
     */
-  override def ++(evidence: Evidence): StructureMetric =
-    new StructureMetric(modes, auxConstructs ++ collectAuxConstructs(evidence.db), matcher)
+  override def ++(evidence: Evidence): EvidenceMetric =
+    new EvidenceMetric(modes, auxConstructs ++ collectAuxConstructs(evidence.db), matcher)
 }
 
-/**
-  * Structure metric space object that enables the construction of metric spaces
-  * either agnostic, based on a given an MLN or a predicate schema and an evidence database.
-  */
-object StructureMetric {
+object EvidenceMetric {
 
   /**
-    * @return a structure metric agnostic of any domain
+    * @param matcher a matcher function
+    * @return a evidence metric agnostic of any domain
     */
-  def apply(matcher: Matcher): StructureMetric =
-    new StructureMetric(Map.empty, Map.empty, matcher)
+  def apply(matcher: Matcher): EvidenceMetric =
+    new EvidenceMetric(Map.empty, Map.empty, matcher)
 
   /**
-    * @param modes a given MLN
-    * @return a structure metric based on the given MLN
+    * @param modes mode declarations
+    * @param matcher a matcher function
+    * @return an evidence metric based on the given MLN
     */
-  def apply(modes: ModeDeclarations, matcher: Matcher): StructureMetric =
-    new StructureMetric(modes, Map.empty, matcher)
+  def apply(modes: ModeDeclarations, matcher: Matcher): EvidenceMetric =
+    new EvidenceMetric(modes, Map.empty, matcher)
 
   /**
-    *
     * @param evidence an evidence database
-    * @return a structure metric based on the given evidence database
+    * @param matcher a matcher function
+    * @return an evidence metric based on the given evidence database
     */
-  def apply(evidence: Evidence, matcher: Matcher): StructureMetric =
-    new StructureMetric(Map.empty, collectAuxConstructs(evidence.db), matcher)
+  def apply(evidence: Evidence, matcher: Matcher): EvidenceMetric =
+    new EvidenceMetric(Map.empty, collectAuxConstructs(evidence.db), matcher)
 
-  def apply(modes: ModeDeclarations, evidence: Evidence, matcher: Matcher): StructureMetric =
-    new StructureMetric(modes, collectAuxConstructs(evidence.db), matcher)
+  /**
+    * @param modes mode declarations
+    * @param evidence an evidence database
+    * @param matcher a matcher function
+    * @return an evidence metric based on the given evidence database
+    */
+  def apply(modes: ModeDeclarations, evidence: Evidence, matcher: Matcher): EvidenceMetric =
+    new EvidenceMetric(modes, collectAuxConstructs(evidence.db), matcher)
 }

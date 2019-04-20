@@ -35,7 +35,7 @@ trait GraphConnector extends {
     * @param L number of labeled neighbors
     * @return a sparser vector containing the retained neighbor edges
     */
-  def sparse(neighbors: DenseVector[Double], L: Int): DenseVector[Double]
+  def sparse(neighbors: DenseVector[Double], L: Int = 0): DenseVector[Double]
 
   /**
     * Compute the edge value for a pair of nodes. Pair of labeled
@@ -133,7 +133,7 @@ object FullConnector extends GraphConnector {
     * @param L number of labeled neighbors
     * @return the vector itself (retains all neighbor edges(
     */
-  override def sparse(neighbors: DenseVector[Double], L: Int): DenseVector[Double] = neighbors
+  override def sparse(neighbors: DenseVector[Double], L: Int = 0): DenseVector[Double] = neighbors
 
   override def toString: String = "full"
 }
@@ -156,7 +156,7 @@ case class kNNConnector(k: Int) extends GraphConnector {
     * @return a sparser vector containing only for the k nearest neighbors (top k costs),
     *         everything else is unconnected (zero)
     */
-  override def sparse(neighbors: DenseVector[Double], L: Int): DenseVector[Double] = {
+  override def sparse(neighbors: DenseVector[Double], L: Int = 0): DenseVector[Double] = {
     // find distinct costs in the neighbor vector
     val distinctCosts = DenseVector(neighbors.toArray.distinct)
 
@@ -190,7 +190,7 @@ case class kNNLConnector(k: Int) extends GraphConnector {
     * @return a sparser vector containing only for the k labeled nearest neighbors (top k costs),
     *         everything else is unconnected (zero). Unlabeled neighbors remain connected
     */
-  override def sparse(neighbors: DenseVector[Double], L: Int): DenseVector[Double] = {
+  override def sparse(neighbors: DenseVector[Double], L: Int = 0): DenseVector[Double] = {
     // find distinct costs in the labeled neighbor vector
     val distinctLabeledCosts = DenseVector(neighbors.toArray.take(L).distinct)
 
@@ -263,7 +263,7 @@ final case class eNNConnector(epsilon: Double) extends GraphConnector {
     * @return a sparser vector containing only for the epsilon labeled nearest neighbors,
     *         everything else is unconnected (zero). Unlabeled neighbors remain connected
     */
-  override def sparse(neighbors: DenseVector[Double], L: Int): DenseVector[Double] =
+  override def sparse(neighbors: DenseVector[Double], L: Int = 0): DenseVector[Double] =
     neighbors.map(cost => if (cost < epsilon) UNCONNECTED else cost)
 
   override def toString: String = s"eNN.$epsilon"
@@ -286,7 +286,7 @@ case class eNNLConnector(epsilon: Double) extends GraphConnector {
     * @return a sparser vector containing only for the epsilon labeled nearest neighbors,
     *         everything else is unconnected (zero). Unlabeled neighbors remain connected
     */
-  override def sparse(neighbors: DenseVector[Double], L: Int): DenseVector[Double] = {
+  override def sparse(neighbors: DenseVector[Double], L: Int = 0): DenseVector[Double] = {
     DenseVector.vertcat(
       neighbors.slice(0, L).map(cost => if (cost < epsilon) UNCONNECTED else cost),
       neighbors.slice(L, neighbors.length)

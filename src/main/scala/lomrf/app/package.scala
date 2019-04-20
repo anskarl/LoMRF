@@ -81,6 +81,6 @@ package object app {
 
     case object Binary extends DistanceType("binary")
     case object Atomic extends DistanceType("atomic")
-    case object Structure extends DistanceType("structure")
+    case object Evidence extends DistanceType("evidence")
   }
 }
