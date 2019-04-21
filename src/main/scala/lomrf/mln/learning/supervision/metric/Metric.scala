@@ -134,4 +134,15 @@ case class HybridMetric[A <: AtomicFormula](metrics: Set[Metric[A]]) extends Met
     */
   def distance(xAtomSeq: IndexedSeq[A], yAtomSeq: IndexedSeq[A]): Double =
     metrics.foldLeft(0.0) { case (sum, metric) => sum + metric.distance(xAtomSeq, yAtomSeq) } / metrics.size
+
+  /**
+    * Append evidence information to the metric.
+    *
+    * @note It should be extended by metrics that can
+    *       exploit evidence information.
+    *
+    * @param evidence an evidence database
+    * @return an updated metric
+    */
+  override def ++(evidence: Evidence): Metric[A] = HybridMetric(metrics.map(_ ++ evidence))
 }
