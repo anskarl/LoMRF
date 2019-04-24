@@ -30,17 +30,17 @@ object GraphCut extends LazyLogging {
       W: DenseMatrix[Double],
       D: DenseMatrix[Double],
       Y: DenseVector[Double],
-      alpha: Double): DenseVector[Double] = {
+      alpha: Double = 0.99): DenseVector[Double] = {
 
     val Dp = mpow(D, -0.5)
     val S = Dp * W * Dp
     val I = DenseMatrix.eye[Double](S.rows)
     val IS = I - alpha * S
 
-    Try(pinv(IS) * Y) match {
+    Try((1 - alpha) * pinv(IS) * Y) match {
       case Success(solution) => solution
       case Failure(_) =>
-        logger.warn("Not converged. Set everything to FALSE.")
+        logger.warn("Not converged or matrix is singular. Set everything to FALSE.")
         Y.map(x => if (x == 0) -1 else x)
     }
   }
@@ -64,7 +64,7 @@ object GraphCut extends LazyLogging {
     Try((-pinv(Luu) * Lul) * fl) match {
       case Success(solution) => solution
       case Failure(_) =>
-        logger.warn("Not converged. Set everything to FALSE.")
+        logger.warn("Not converged or matrix is singular. Set everything to FALSE.")
         DenseVector.fill(numberOfUnlabeled)(-1.0)
     }
   }
