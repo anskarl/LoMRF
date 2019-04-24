@@ -104,9 +104,8 @@ trait StructureMetric[A <: AtomicFormula] extends Metric[A] {
   * averaging their corresponding distances.
   *
   * @param metrics a set of metrics to combine
-  * @tparam A the type of atomic formula
   */
-case class HybridMetric[A <: AtomicFormula](metrics: Set[Metric[A]]) extends Metric[A] {
+case class HybridMetric(metrics: Set[Metric[AtomicFormula]]) extends Metric[AtomicFormula] {
 
   /**
     * Distance for atoms. The function may obey to the following properties:
@@ -122,7 +121,7 @@ case class HybridMetric[A <: AtomicFormula](metrics: Set[Metric[A]]) extends Met
     * @param yAtom another atom
     * @return a distance for the given atoms
     */
-  def distance(xAtom: A, yAtom: A): Double =
+  def distance(xAtom: AtomicFormula, yAtom: AtomicFormula): Double =
     metrics.foldLeft(0.0) { case (sum, metric) => sum + metric.distance(xAtom, yAtom) } / metrics.size
 
   /**
@@ -132,7 +131,7 @@ case class HybridMetric[A <: AtomicFormula](metrics: Set[Metric[A]]) extends Met
     * @param yAtomSeq another sequence of atoms
     * @return a distance for the given sequences of atoms
     */
-  def distance(xAtomSeq: IndexedSeq[A], yAtomSeq: IndexedSeq[A]): Double =
+  def distance(xAtomSeq: IndexedSeq[AtomicFormula], yAtomSeq: IndexedSeq[AtomicFormula]): Double =
     metrics.foldLeft(0.0) { case (sum, metric) => sum + metric.distance(xAtomSeq, yAtomSeq) } / metrics.size
 
   /**
@@ -144,5 +143,5 @@ case class HybridMetric[A <: AtomicFormula](metrics: Set[Metric[A]]) extends Met
     * @param evidence an evidence database
     * @return an updated metric
     */
-  override def ++(evidence: Evidence): Metric[A] = HybridMetric(metrics.map(_ ++ evidence))
+  override def ++(evidence: Evidence): Metric[AtomicFormula] = HybridMetric(metrics.map(_ ++ evidence))
 }
