@@ -71,6 +71,17 @@ trait Metric[A <: AtomicFormula] {
     * @return an updated metric
     */
   def ++(evidence: Evidence): Metric[A] = this
+
+  /**
+    * Append information from atom sequences to the metric.
+    *
+    * @note It should be extended by metrics that can
+    *       exploit atom sequences (bottom clauses).
+    *
+    * @param atomSeqSeq a sequence of atom sequences.
+    * @return an updated metric
+    */
+  def ++(atomSeqSeq: Seq[Seq[AtomicFormula]]): Metric[A] = this
 }
 
 /**
@@ -143,5 +154,18 @@ case class HybridMetric(metrics: Set[Metric[AtomicFormula]]) extends Metric[Atom
     * @param evidence an evidence database
     * @return an updated metric
     */
-  override def ++(evidence: Evidence): Metric[AtomicFormula] = HybridMetric(metrics.map(_ ++ evidence))
+  override def ++(evidence: Evidence): Metric[AtomicFormula] =
+    HybridMetric(metrics.map(_ ++ evidence))
+
+  /**
+    * Append information from atom sequences to the metric.
+    *
+    * @note It should be extended by metrics that can
+    *       exploit atom sequences (bottom clauses).
+    *
+    * @param atomSeqSeq a sequence of atom sequences.
+    * @return an updated metric
+    */
+  override def ++(atomSeqSeq: Seq[Seq[AtomicFormula]]): Metric[AtomicFormula] =
+    HybridMetric(metrics.map(_ ++ atomSeqSeq))
 }

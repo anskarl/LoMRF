@@ -71,7 +71,7 @@ case class Node(
   /**
     * @return the current node as positive.
     */
-  def asPositive: Node =
+  def toPositive: Node =
     if (isPositive) this
     else Node(
       EvidenceAtom.asTrue(query.symbol, query.terms),

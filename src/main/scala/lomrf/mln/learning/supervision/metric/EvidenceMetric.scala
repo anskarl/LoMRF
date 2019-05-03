@@ -51,7 +51,7 @@ import lomrf.mln.model.{ Evidence, ModeDeclarations }
   * @param auxConstructs a map from return constants to auxiliary constructs
   * @param matcher a matcher function
   */
-final class EvidenceMetric private(
+final class EvidenceMetric private (
     modes: ModeDeclarations,
     auxConstructs: Map[Constant, AuxConstruct],
     override protected val matcher: Matcher) extends StructureMetric[EvidenceAtom] {

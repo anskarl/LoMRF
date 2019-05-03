@@ -120,15 +120,21 @@ object SemiSupervisionCLI extends CLIApp {
       }
   })
 
-  opt("d", "distance", "<binary | atomic | evidence>", "Specify a distance over atoms (default is atomic).", {
-    v: String =>
-      v.trim.toLowerCase match {
-        case "binary"   => _distance = DistanceType.Binary
-        case "atomic"   => _distance = DistanceType.Atomic
-        case "evidence" => _distance = DistanceType.Evidence
-        case _          => logger.fatal(s"Unknown distance of type '$v'.")
-      }
-  })
+  opt("d", "distance", "<binary | atomic | evidence | mass.map | mass.tree | hybrid.map | hybrid.tree>",
+    "Specify a distance over atoms (default is atomic).", {
+      v: String =>
+        v.trim.toLowerCase match {
+          case "binary"      => _distance = DistanceType.Binary
+          case "atomic"      => _distance = DistanceType.Atomic
+          case "evidence"    => _distance = DistanceType.Evidence
+          case "mass.map"    => _distance = DistanceType.MassMap
+          case "mass.tree"   => _distance = DistanceType.MassTree
+          case "hybrid.map"  => _distance = DistanceType.HybridMap
+          case "hybrid.tree" => _distance = DistanceType.HybridTree
+          case _             => logger.fatal(s"Unknown distance of type '$v'.")
+        }
+    }
+  )
 
   opt("c", "connector", "<kNN | kNN-L | kNN-temporal | eNN | eNN-L | eNN-temporal | full>",
     "Specify a connection strategy for the graph (default is kNN).", {
@@ -219,7 +225,17 @@ object SemiSupervisionCLI extends CLIApp {
       else FullConnector
 
     val distance: Metric[_ <: AtomicFormula] =
-      if (_distance == DistanceType.Binary) BinaryMetric(HungarianMatcher)
+      if (_distance == DistanceType.MassMap) MassMapMetric(kb.predicateSchema.keySet -- _nonEvidenceAtoms)
+      else if (_distance == DistanceType.MassTree) MassTreeMetric(kb.predicateSchema.keySet -- _nonEvidenceAtoms)
+      else if (_distance == DistanceType.HybridMap) HybridMetric(Set(
+        AtomMetric(HungarianMatcher),
+        MassMapMetric(kb.predicateSchema.keySet -- _nonEvidenceAtoms)
+      ))
+      else if (_distance == DistanceType.HybridTree) HybridMetric(Set(
+        AtomMetric(HungarianMatcher),
+        MassTreeMetric(kb.predicateSchema.keySet -- _nonEvidenceAtoms)
+      ))
+      else if (_distance == DistanceType.Binary) BinaryMetric(HungarianMatcher)
       else if (_distance == DistanceType.Atomic) AtomMetric(HungarianMatcher)
       else EvidenceMetric(modes, HungarianMatcher)
 

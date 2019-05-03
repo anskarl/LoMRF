@@ -248,7 +248,7 @@ final class SupervisionGraph private (
         nodes.takeWhile(_.isLabeled) ++ nonEmptyUnlabeled,
         querySignature,
         connector,
-        metric ++ mln.evidence,
+        metric ++ mln.evidence ++ nodes.map(_.atoms),
         annotationBuilder,
         nodeCache)
     else {
@@ -321,7 +321,7 @@ final class SupervisionGraph private (
         cleanedUniqueLabeled ++ nonEmptyUnlabeled,
         querySignature,
         connector,
-        metric ++ mln.evidence,
+        metric ++ mln.evidence ++ nodes.map(_.atoms),
         annotationBuilder,
         updatedNodeCache)
     }
@@ -587,7 +587,7 @@ object SupervisionGraph extends LazyLogging {
       uniqueLabeled ++ nonEmptyUnlabeled,
       querySignature,
       connector,
-      metric ++ mln.evidence,
+      metric ++ mln.evidence ++ nodes.map(_.atoms),
       annotationBuilder,
       nodeCache
     )
