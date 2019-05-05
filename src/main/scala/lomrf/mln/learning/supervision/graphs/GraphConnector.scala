@@ -204,7 +204,7 @@ case class kNNLConnector(k: Int) extends GraphConnector {
     } else neighbors
   }
 
-  override def toString: String = s"kNN.$k.L"
+  override def toString: String = s"kNN.$k.labeled"
 }
 
 /**
@@ -293,7 +293,7 @@ case class eNNLConnector(epsilon: Double) extends GraphConnector {
     )
   }
 
-  override def toString: String = s"eNN.$epsilon.L"
+  override def toString: String = s"eNN.$epsilon.labeled"
 }
 
 class eNNTemporalConnector(epsilon: Double) extends eNNLConnector(epsilon) {

@@ -136,16 +136,16 @@ object SemiSupervisionCLI extends CLIApp {
     }
   )
 
-  opt("c", "connector", "<kNN | kNN-L | kNN-temporal | eNN | eNN-L | eNN-temporal | full>",
+  opt("c", "connector", "<kNN | kNN.labeled | kNN.temporal | eNN | eNN.labeled | eNN.temporal | full>",
     "Specify a connection strategy for the graph (default is kNN).", {
       v: String =>
         v.trim.toLowerCase match {
           case "knn"          => _connector = kNN
-          case "knn-l"        => _connector = kNNL
-          case "knn-temporal" => _connector = kNNTemporal
+          case "knn.labeled"  => _connector = kNNLabeled
+          case "knn.temporal" => _connector = kNNTemporal
           case "enn"          => _connector = eNN
-          case "enn-l"        => _connector = eNNL
-          case "enn-temporal" => _connector = eNNTemporal
+          case "enn.labeled"  => _connector = eNNLabeled
+          case "enn.temporal" => _connector = eNNTemporal
           case "full"         => _connector = Full
           case _              => logger.fatal(s"Unknown connector of type '$v'.")
         }
@@ -217,10 +217,10 @@ object SemiSupervisionCLI extends CLIApp {
 
     val connector =
       if (_connector == kNN) kNNConnector(_k)
-      else if (_connector == kNNL) kNNLConnector(_k)
+      else if (_connector == kNNLabeled) kNNLConnector(_k)
       else if (_connector == kNNTemporal) new kNNTemporalConnector(_k)
       else if (_connector == eNN) eNNConnector(_epsilon)
-      else if (_connector == eNNL) eNNLConnector(_epsilon)
+      else if (_connector == eNNLabeled) eNNLConnector(_epsilon)
       else if (_connector == eNNTemporal) new eNNTemporalConnector(_epsilon)
       else FullConnector
 

@@ -54,8 +54,11 @@ final class MassMapMetric(
     * @param yAtomSeq another sequence of atoms
     * @return a distance for the given sequences of atoms
     */
-  override def distance(xAtomSeq: IndexedSeq[AtomicFormula], yAtomSeq: IndexedSeq[AtomicFormula]): Double =
-    table(expand(xAtomSeq.map(_.signature).toSet).intersect(expand(yAtomSeq.map(_.signature).toSet))) / size
+  override def distance(xAtomSeq: IndexedSeq[AtomicFormula], yAtomSeq: IndexedSeq[AtomicFormula]): Double = {
+    val x = expand(xAtomSeq.map(_.signature).toSet).intersect(expand(yAtomSeq.map(_.signature).toSet))
+    if (x.nonEmpty) table(x) / size
+    else 1.0
+  }
 
   /**
     * Append information from atom sequences to the metric.

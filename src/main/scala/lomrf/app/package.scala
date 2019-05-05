@@ -64,11 +64,11 @@ package object app {
 
     case object Full extends ConnectorStrategy("full")
     case object eNN extends ConnectorStrategy("eNN")
-    case object eNNL extends ConnectorStrategy("eNN-labeled")
-    case object eNNTemporal extends ConnectorStrategy("eNN-temporal")
+    case object eNNLabeled extends ConnectorStrategy("eNN.labeled")
+    case object eNNTemporal extends ConnectorStrategy("eNN.temporal")
     case object kNN extends ConnectorStrategy("kNN")
-    case object kNNL extends ConnectorStrategy("kNN-labeled")
-    case object kNNTemporal extends ConnectorStrategy("kNN-temporal")
+    case object kNNLabeled extends ConnectorStrategy("kNN.labeled")
+    case object kNNTemporal extends ConnectorStrategy("kNN.temporal")
   }
 
   sealed class DistanceType(override val entryName: String) extends EnumEntry {
