@@ -20,15 +20,15 @@
 
 package lomrf.mln.learning.supervision.graphs
 
-import lomrf.logic.{ AtomicFormula, EvidenceAtom }
+import lomrf.logic.AtomicFormula
 import breeze.linalg.{ DenseMatrix, DenseVector, argtopk, sum }
-import lomrf.mln.learning.supervision.metric.Metric
+import lomrf.mln.learning.supervision.metric.{ Metric, EvidenceMetric }
 
 /**
   * A graph connector constructs a graph and changes the number of connected
   * neighbors (edges) to each vertex according to a strategy.
   */
-trait GraphConnector extends {
+trait GraphConnector {
 
   /**
     * @param neighbors a vector containing the edge values of neighboring nodes
@@ -51,7 +51,7 @@ trait GraphConnector extends {
   def connect(x: Node, y: Node)(metric: Metric[_ <: AtomicFormula]): Double =
     if (!x.isLabeled || !y.isLabeled) 1 - { // connect nodes only if they are not both labeled
       metric match {
-        case m: Metric[EvidenceAtom]  => m.distance(x.evidence, y.evidence)
+        case m: EvidenceMetric        => m.distance(x.evidence, y.evidence)
         case m: Metric[AtomicFormula] => m.distance(x.atoms, y.atoms)
       }
     }
@@ -84,7 +84,6 @@ trait GraphConnector extends {
       }
 
       W(i, ::).inner := neighborCosts
-      D(i, i) = sum(W(i, ::))
     }
 
     for (i <- parallelIndices) {
@@ -238,7 +237,7 @@ class kNNTemporalConnector(k: Int) extends kNNLConnector(k) {
     if ((x.isLabeled && y.isLabeled) || (x.isUnlabeled && y.isUnlabeled && !timeAdjacent)) UNCONNECTED
     else 1 - {
       metric match {
-        case m: Metric[EvidenceAtom]  => m.distance(x.evidence, y.evidence)
+        case m: EvidenceMetric        => m.distance(x.evidence, y.evidence)
         case m: Metric[AtomicFormula] => m.distance(x.atoms, y.atoms)
       }
     }
@@ -305,7 +304,7 @@ class eNNTemporalConnector(epsilon: Double) extends eNNLConnector(epsilon) {
     if ((x.isLabeled && y.isLabeled) || (x.isUnlabeled && y.isUnlabeled && !timeAdjacent)) UNCONNECTED
     else 1 - {
       metric match {
-        case m: Metric[EvidenceAtom]  => m.distance(x.evidence, y.evidence)
+        case m: EvidenceMetric        => m.distance(x.evidence, y.evidence)
         case m: Metric[AtomicFormula] => m.distance(x.atoms, y.atoms)
       }
     }

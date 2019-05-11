@@ -168,7 +168,7 @@ final class SupervisionGraph private (
     // Vector holding the labeled values
     val fl = DenseVector(labeledNodes.map(_.value).toArray)
 
-    val solution = GraphCut.HFc(W, D, fl).toArray
+    val solution = GraphOps.HFc(W, D, fl).toArray
     val truthValues = solution.map(value => if (value <= UNCONNECTED) FALSE else TRUE)
 
     logger.info(msecTimeToTextUntilNow(s"Labeling solution found in: ", startSolution))
@@ -592,79 +592,4 @@ object SupervisionGraph extends LazyLogging {
       nodeCache
     )
   }
-
-  /**
-    * Constructs a kNN connected graph. Essentially the kNN graph connects each node only to the
-    * k nearest neighbors, the ones having the top k distances. The nodes are constructed given an
-    * MLN, an annotation database, a query signature and optionally a list of domains to group by.
-    * Moreover, a matcher is required in order to be able to label the unlabeled ground query atoms.
-    *
-    * @see
-    *      [[lomrf.mln.learning.supervision.graphs.kNNConnector]]
-    *      [[lomrf.mln.learning.structure.ModeDeclaration]]
-    * @param k the number of nearest neighbors to be retained
-    * @param mln an MLN
-    * @param modes mode declarations
-    * @param annotationDB an annotation database
-    * @param querySignature the query signature of interest
-    * @param metric a metric for atomic formula
-    * @return a kNN supervision graph instance
-    */
-  def kNNGraph(
-      k: Int,
-      mln: MLN,
-      modes: ModeDeclarations,
-      annotationDB: EvidenceDB,
-      querySignature: AtomSignature,
-      metric: Metric[_ <: AtomicFormula]): SupervisionGraph =
-    apply(mln, modes, annotationDB, querySignature, kNNConnector(k), metric)
-
-  /**
-    * Constructs a eNN connected graph. Essentially the eNN graph connects nodes that have distance
-    * greater than a given epsilon value. The nodes are constructed given an MLN, an annotation database,
-    * a query signature and optionally a list of domains to group by. Moreover, a matcher is required in
-    * order to be able to label the unlabeled ground query atoms.
-    *
-    * @see
-    *      [[lomrf.mln.learning.supervision.graphs.eNNConnector]]
-    *      [[lomrf.mln.learning.structure.ModeDeclaration]]
-    * @param epsilon the threshold epsilon
-    * @param mln an MLN
-    * @param modes mode declarations
-    * @param annotationDB an annotation database
-    * @param querySignature the query signature of interest
-    * @param metric a metric for atomic formula
-    * @return a eNN supervision graph instance
-    */
-  def eNNGraph(
-      epsilon: Double,
-      mln: MLN,
-      modes: ModeDeclarations,
-      annotationDB: EvidenceDB,
-      querySignature: AtomSignature,
-      metric: Metric[_ <: AtomicFormula]): SupervisionGraph =
-    apply(mln, modes, annotationDB, querySignature, eNNConnector(epsilon), metric)
-
-  /**
-    * Constructs a fully connected graph. The nodes are constructed given an MLN, an annotation
-    * database, a query signature and optionally a list of domains to group by. Moreover, a matcher
-    * is required in order to be able to label the unlabeled ground query atoms.
-    *
-    * @see
-    *      [[lomrf.mln.learning.supervision.graphs.FullConnector]]
-    *      [[lomrf.mln.learning.structure.ModeDeclaration]]
-    * @param mln an MLN
-    * @param modes mode declarations
-    * @param annotationDB an annotation database
-    * @param querySignature the query signature of interest
-    * @param metric a metric for atomic formula
-    * @return a fully connected supervision graph
-    */
-  def fullyConnectedGraph(
-      mln: MLN,
-      modes: ModeDeclarations,
-      annotationDB: EvidenceDB,
-      querySignature: AtomSignature,
-      metric: Metric[_ <: AtomicFormula]): SupervisionGraph =
-    apply(mln, modes, annotationDB, querySignature, FullConnector, metric)
 }

@@ -24,7 +24,7 @@ import breeze.linalg.{ DenseMatrix, DenseVector, mpow, pinv }
 import com.typesafe.scalalogging.LazyLogging
 import scala.util.{ Failure, Success, Try }
 
-object GraphCut extends LazyLogging {
+object GraphOps extends LazyLogging {
 
   def LGCc(
       W: DenseMatrix[Double],
