@@ -138,6 +138,44 @@ object FullConnector extends GraphConnector {
 }
 
 /**
+  * A aNN connector is used to construct an aNN graph. For each vertex it
+  * only keeps the nearest neighbors representing the 1/3 of the total mass
+  * by setting everything else to zero.
+  */
+object aNNConnector extends GraphConnector {
+
+  /**
+    * Retain nearest neighbors adaptively.
+    *
+    * @param neighbors a vector containing the edge values of neighboring nodes
+    * @param L number of labeled neighbors
+    * @return a vector holding costs only for the nearest neighbors representing the
+    *         1/3 of the total mass, everything else is unconnected (zero)
+    */
+  override def sparse(neighbors: DenseVector[Double], L: Int = 0): DenseVector[Double] = {
+
+    val distinctCosts = neighbors.toArray.distinct
+    val distinctVector = DenseVector(distinctCosts)
+    val sortedCosts = distinctCosts.sortWith(_ > _)
+    val summed = sortedCosts.sum
+    val normalizedCosts = sortedCosts.map(_ / summed)
+
+    var k = 1
+    while (k < sortedCosts.length && normalizedCosts.take(k).sum < 0.33)
+      k += 1
+
+    if (distinctVector.length > k) {
+      val topK = argtopk(distinctVector, k).map(distinctVector.apply)
+      neighbors.map {
+        cost => if (topK.contains(cost)) cost else UNCONNECTED
+      }
+    } else neighbors
+  }
+
+  override def toString: String = "aNN"
+}
+
+/**
   * A kNN connector is used to construct a kNN graph. For each vertex it
   * only keeps the top k nearest neighbors by setting everything else to zero.
   *

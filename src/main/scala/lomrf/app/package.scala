@@ -63,6 +63,7 @@ package object app {
     val values: immutable.IndexedSeq[ConnectorStrategy] = findValues
 
     case object Full extends ConnectorStrategy("full")
+    case object aNN extends ConnectorStrategy("aNN")
     case object eNN extends ConnectorStrategy("eNN")
     case object eNNLabeled extends ConnectorStrategy("eNN.labeled")
     case object eNNTemporal extends ConnectorStrategy("eNN.temporal")

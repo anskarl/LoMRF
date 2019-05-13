@@ -136,7 +136,7 @@ object SemiSupervisionCLI extends CLIApp {
     }
   )
 
-  opt("c", "connector", "<kNN | kNN.labeled | kNN.temporal | eNN | eNN.labeled | eNN.temporal | full>",
+  opt("c", "connector", "<kNN | kNN.labeled | kNN.temporal | eNN | eNN.labeled | eNN.temporal | full | aNN>",
     "Specify a connection strategy for the graph (default is kNN).", {
       v: String =>
         v.trim.toLowerCase match {
@@ -147,6 +147,7 @@ object SemiSupervisionCLI extends CLIApp {
           case "enn.labeled"  => _connector = eNNLabeled
           case "enn.temporal" => _connector = eNNTemporal
           case "full"         => _connector = Full
+          case "aNN"          => _connector = aNN
           case _              => logger.fatal(s"Unknown connector of type '$v'.")
         }
     }
@@ -222,6 +223,7 @@ object SemiSupervisionCLI extends CLIApp {
       else if (_connector == eNN) eNNConnector(_epsilon)
       else if (_connector == eNNLabeled) eNNLConnector(_epsilon)
       else if (_connector == eNNTemporal) new eNNTemporalConnector(_epsilon)
+      else if (_connector == aNN) aNNConnector
       else FullConnector
 
     val distance: Metric[_ <: AtomicFormula] =
