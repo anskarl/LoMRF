@@ -21,7 +21,6 @@
 package lomrf.mln.learning.structure
 
 import java.io.{ BufferedReader, File, FileReader }
-
 import lomrf.util.logging.Implicits._
 import com.typesafe.scalalogging.LazyLogging
 import lomrf.logic.AtomSignature
@@ -67,14 +66,28 @@ class ModeParser extends CommonModeParser with LazyLogging {
         case "modeP" ~ "(" ~ "*" ~ "," ~ predicateSymbol ~ "(" ~ values ~ ")" ~ atoms ~ ")" => (
           AtomSignature(predicateSymbol, values.length),
           ModeDeclaration(
-            placeMarkers           = values.map(symbol => PlaceMarker(symbol.contains("+"), symbol.contains("-"), symbol.contains("#"), symbol.contains("n"))).toVector,
+            placeMarkers           = values.map(symbol =>
+              PlaceMarker(
+                symbol.contains("+"),
+                symbol.contains("-"),
+                symbol.contains("#"),
+                symbol.contains("n"),
+                symbol.contains("o"),
+                symbol.contains("p"))).toVector,
             incompatibleSignatures = atoms.getOrElse(Set.empty[AtomSignature]).toSet))
 
         case "modeP" ~ "(" ~ limit ~ "," ~ predicateSymbol ~ "(" ~ values ~ ")" ~ atoms ~ ")" => (
           AtomSignature(predicateSymbol, values.length),
           ModeDeclaration(
             limit.toInt,
-            values.map(symbol => PlaceMarker(symbol.contains("+"), symbol.contains("-"), symbol.contains("#"), symbol.contains("n"))).toVector,
+            values.map(symbol =>
+              PlaceMarker(
+                symbol.contains("+"),
+                symbol.contains("-"),
+                symbol.contains("#"),
+                symbol.contains("n"),
+                symbol.contains("o"),
+                symbol.contains("p"))).toVector,
             atoms.getOrElse(Set.empty[AtomSignature]).toSet))
       }
 
@@ -87,14 +100,26 @@ class ModeParser extends CommonModeParser with LazyLogging {
         case "modeF" ~ "(" ~ "*" ~ "," ~ functionSymbol ~ "(" ~ values ~ ")" ~ atoms ~ ")" => (
           AtomSignature(lomrf.AUX_PRED_PREFIX + functionSymbol.trim, values.length + 1),
           ModeDeclaration(
-            placeMarkers           = (PlaceMarker.input :: values.map(symbol => PlaceMarker(symbol.contains("+"), symbol.contains("-"), symbol.contains("#"), symbol.contains("n")))).toVector,
+            placeMarkers           = (PlaceMarker.input :: values.map(symbol => PlaceMarker(
+              symbol.contains("+"),
+              symbol.contains("-"),
+              symbol.contains("#"),
+              symbol.contains("n"),
+              symbol.contains("o"),
+              symbol.contains("p")))).toVector,
             incompatibleSignatures = atoms.getOrElse(Set.empty[AtomSignature]).toSet))
 
         case "modeF" ~ "(" ~ limit ~ "," ~ functionSymbol ~ "(" ~ values ~ ")" ~ atoms ~ ")" => (
           AtomSignature(lomrf.AUX_PRED_PREFIX + functionSymbol.trim, values.length + 1),
           ModeDeclaration(
             limit.toInt,
-            (PlaceMarker.input :: values.map(symbol => PlaceMarker(symbol.contains("+"), symbol.contains("-"), symbol.contains("#"), symbol.contains("n")))).toVector,
+            (PlaceMarker.input :: values.map(symbol => PlaceMarker(
+              symbol.contains("+"),
+              symbol.contains("-"),
+              symbol.contains("#"),
+              symbol.contains("n"),
+              symbol.contains("o"),
+              symbol.contains("p")))).toVector,
             atoms.getOrElse(Set.empty[AtomSignature]).toSet))
       }
 
@@ -159,7 +184,8 @@ object ModeParser extends LazyLogging {
 
     parser.parseAll(parser.modeDeclarations, fileReader) match {
       case parser.Success(expr: ModeDeclarations, _) => expr
-      case x                                         => logger.fatal("Can't parse the following expression: " + x + " in file: " + modesFile.getPath)
+      case x =>
+        logger.fatal("Can't parse the following expression: " + x + " in file: " + modesFile.getPath)
     }
   }
 }
@@ -171,9 +197,13 @@ object ModeParser extends LazyLogging {
   * @param placeMarkers vector of modes for each variable in the predicate or function
   * @param incompatibleSignatures a set of incompatible atom signatures
   */
-final case class ModeDeclaration(recall: Int = Int.MaxValue, placeMarkers: Vector[PlaceMarker], incompatibleSignatures: Set[AtomSignature]) {
+final case class ModeDeclaration(
+    recall: Int = Int.MaxValue,
+    placeMarkers: Vector[PlaceMarker],
+    incompatibleSignatures: Set[AtomSignature]) {
+
   override def toString: String =
-    "mode(" + (if (recall == Int.MaxValue) "*" else recall) + "," + placeMarkers.mkString(",") + ", " + incompatibleSignatures.toString + ")"
+    s"mode(${if (recall == Int.MaxValue) "*" else recall},${placeMarkers.mkString(",")},${incompatibleSignatures.toString})"
 }
 
 /**
@@ -183,7 +213,13 @@ final case class ModeDeclaration(recall: Int = Int.MaxValue, placeMarkers: Vecto
   * @param output is output variable
   * @param constant the argument would remain constant
   */
-final case class PlaceMarker(input: Boolean, output: Boolean, constant: Boolean, numeric: Boolean) {
+final case class PlaceMarker(
+    input: Boolean,
+    output: Boolean,
+    constant: Boolean,
+    numeric: Boolean,
+    ordered: Boolean,
+    partition: Boolean) {
 
   def isInputOrOutput: Boolean = input || output
 
@@ -195,79 +231,96 @@ final case class PlaceMarker(input: Boolean, output: Boolean, constant: Boolean,
 
   def isNumeric: Boolean = numeric
 
+  def isOrdered: Boolean = ordered
+
+  def isPartition: Boolean = ordered
+
   override def toString: String = {
     val marker = StringBuilder.newBuilder
     if (constant) marker.append('#')
     if (numeric) marker.append('n')
+    if (ordered) marker.append('o')
+    if (partition) marker.append('p')
     if (!input && !output) marker.append('.')
     else if (input) marker.append('+')
     else if (output) marker.append('-')
     marker.result()
   }
+
+  override def hashCode(): Int =
+    (input, output, constant, numeric, ordered, partition).##
+
+  override def equals(obj: Any): Boolean = obj match {
+    case that: PlaceMarker =>
+      that.input == input &&
+        that.output == output &&
+        that.constant == constant &&
+        that.numeric == numeric &&
+        that.ordered == ordered &&
+        that.partition == partition
+    case _ => false
+  }
 }
 
-/**
-  * Object for [[lomrf.mln.learning.structure.PlaceMarker]]
-  */
 object PlaceMarker {
 
   /**
     * An input place marker
     */
-  lazy val input = new PlaceMarker(true, false, false, false)
+  lazy val input = new PlaceMarker(true, false, false, false, false, false)
 
   /**
     * An input and constant place marker
     */
-  lazy val inputConstant = new PlaceMarker(true, false, true, false)
+  lazy val inputConstant = new PlaceMarker(true, false, true, false, false, false)
 
   /**
     * An input and numeric place marker
     */
-  lazy val inputNumeric = new PlaceMarker(true, false, false, true)
+  lazy val inputNumeric = new PlaceMarker(true, false, false, true, false, false)
 
   /**
     * An input, numeric and constant place marker
     */
-  lazy val inputNumericConstant = new PlaceMarker(true, false, true, true)
+  lazy val inputNumericConstant = new PlaceMarker(true, false, true, true, false, false)
 
   /**
     * An output place marker
     */
-  lazy val output = new PlaceMarker(false, true, false, false)
+  lazy val output = new PlaceMarker(false, true, false, false, false, false)
 
   /**
     * An output and constant place marker
     */
-  lazy val outputConstant = new PlaceMarker(false, true, true, false)
+  lazy val outputConstant = new PlaceMarker(false, true, true, false, false, false)
 
   /**
     * An output and numeric place marker
     */
-  lazy val outputNumeric = new PlaceMarker(false, true, false, true)
+  lazy val outputNumeric = new PlaceMarker(false, true, false, true, false, false)
 
   /**
     * An output, numeric and constant place marker
     */
-  lazy val outputNumericConstant = new PlaceMarker(false, true, true, true)
+  lazy val outputNumericConstant = new PlaceMarker(false, true, true, true, false, false)
 
   /**
     * An ignore place marker
     */
-  lazy val ignore = new PlaceMarker(false, false, false, false)
+  lazy val ignore = new PlaceMarker(false, false, false, false, false, false)
 
   /**
     * An ignore and constant place marker
     */
-  lazy val ignoreConstant = new PlaceMarker(false, false, true, false)
+  lazy val ignoreConstant = new PlaceMarker(false, false, true, false, false, false)
 
   /**
     * An output and numeric place marker
     */
-  lazy val ignoreNumeric = new PlaceMarker(false, false, false, true)
+  lazy val ignoreNumeric = new PlaceMarker(false, false, false, true, false, false)
 
   /**
     * An output, numeric and constant place marker
     */
-  lazy val ignoreNumericConstant = new PlaceMarker(false, false, true, true)
+  lazy val ignoreNumericConstant = new PlaceMarker(false, false, true, true, false, false)
 }

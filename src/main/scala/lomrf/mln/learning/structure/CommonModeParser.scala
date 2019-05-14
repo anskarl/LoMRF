@@ -32,7 +32,7 @@ trait CommonModeParser extends JavaTokenParsers with RegexParsers {
   protected val recall: Regex = """([0]|[1-9][0-9]*|\*)""".r
   protected val predicate: Regex = """([A-Z0-9]([a-zA-Z0-9]|_[a-zA-Z0-9])*)""".r
   protected val function: Regex = """([a-z]([a-zA-Z0-9]|_[a-zA-Z0-9])*)""".r
-  protected val placeMarker: Regex = """(#)?(n)?(\+|-|\.)""".r
+  protected val placeMarker: Regex = """(#)?(n)?(o)?(p)?(\+|-|\.)""".r
 
   protected override val whiteSpace: Regex = """(\s|//.*\n|(/\*(?:.|[\n\r])*?\*/))+""".r
 }
