@@ -456,7 +456,8 @@ object SupervisionGraph extends LazyLogging {
     // A set of cluster nodes used for grouping identical (under unification) unlabeled nodes.
     val clusterNodes = new NodeSet
 
-    val nodes = (labeled ++ unlabeled).flatMap { queryAtom =>
+    val nodes = (labeled ++ unlabeled).groupBy(_.constants).flatMap { case (_, queryAtomGroup) =>
+      val queryAtom = queryAtomGroup.head
       val queryDomain2Constants =
         domain2Constants(queryAtom.terms, predicateSchema(querySignature))
 
@@ -481,17 +482,40 @@ object SupervisionGraph extends LazyLogging {
           val body = Clause(bodyLiterals)
 
           if (queryAtom.state == UNKNOWN) {
-            val unlabeledNode = Node(queryAtom, evidenceSeq, None, Some(body), headLiterals.head.sentence, orderIndex, partitionIndices)
+            val unlabeledNode = Node(
+              queryAtom,
+              evidenceSeq,
+              None,
+              Some(body),
+              headLiterals.head.sentence,
+              orderIndex,
+              partitionIndices)
+
+            // append identical query atoms, e.g., Q(A,B,1) is the same as Q(B,A,1)
+            unlabeledNode.similarNodeQueryAtoms ++= queryAtomGroup.tail
 
             if (cluster) {
               clusterNodes.insert(unlabeledNode)
               None
             } else Some(unlabeledNode)
-          } else Some(Node(queryAtom, evidenceSeq, Some(clause), Some(body), headLiterals.head.sentence, orderIndex, partitionIndices))
+          } else {
+            val labeledNode = Node(
+              queryAtom,
+              evidenceSeq,
+              Some(clause),
+              Some(body),
+              headLiterals.head.sentence,
+              orderIndex,
+              partitionIndices)
+
+            // append identical query atoms, e.g., Q(A,B,1) is the same as Q(B,A,1)
+            labeledNode.similarNodeQueryAtoms ++= queryAtomGroup.tail
+            Some(labeledNode)
+          }
 
         case Failure(error) => throw error
       }
-    }
+    }.toIndexedSeq
 
     logger.info(s"Nodes constructed in ${msecTimeToTextUntilNow(start)}")
     nodes ++ clusterNodes.toIndexedSeq
