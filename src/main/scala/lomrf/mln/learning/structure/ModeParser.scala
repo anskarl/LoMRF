@@ -100,26 +100,28 @@ class ModeParser extends CommonModeParser with LazyLogging {
         case "modeF" ~ "(" ~ "*" ~ "," ~ functionSymbol ~ "(" ~ values ~ ")" ~ atoms ~ ")" => (
           AtomSignature(lomrf.AUX_PRED_PREFIX + functionSymbol.trim, values.length + 1),
           ModeDeclaration(
-            placeMarkers           = (PlaceMarker.input :: values.map(symbol => PlaceMarker(
-              symbol.contains("+"),
-              symbol.contains("-"),
-              symbol.contains("#"),
-              symbol.contains("n"),
-              symbol.contains("o"),
-              symbol.contains("p")))).toVector,
+            placeMarkers           = (PlaceMarker.input :: values.map(symbol =>
+              PlaceMarker(
+                symbol.contains("+"),
+                symbol.contains("-"),
+                symbol.contains("#"),
+                symbol.contains("n"),
+                symbol.contains("o"),
+                symbol.contains("p")))).toVector,
             incompatibleSignatures = atoms.getOrElse(Set.empty[AtomSignature]).toSet))
 
         case "modeF" ~ "(" ~ limit ~ "," ~ functionSymbol ~ "(" ~ values ~ ")" ~ atoms ~ ")" => (
           AtomSignature(lomrf.AUX_PRED_PREFIX + functionSymbol.trim, values.length + 1),
           ModeDeclaration(
             limit.toInt,
-            (PlaceMarker.input :: values.map(symbol => PlaceMarker(
-              symbol.contains("+"),
-              symbol.contains("-"),
-              symbol.contains("#"),
-              symbol.contains("n"),
-              symbol.contains("o"),
-              symbol.contains("p")))).toVector,
+            (PlaceMarker.input :: values.map(symbol =>
+              PlaceMarker(
+                symbol.contains("+"),
+                symbol.contains("-"),
+                symbol.contains("#"),
+                symbol.contains("n"),
+                symbol.contains("o"),
+                symbol.contains("p")))).toVector,
             atoms.getOrElse(Set.empty[AtomSignature]).toSet))
       }
 
@@ -201,6 +203,8 @@ final case class ModeDeclaration(
     recall: Int = Int.MaxValue,
     placeMarkers: Vector[PlaceMarker],
     incompatibleSignatures: Set[AtomSignature]) {
+
+  require(placeMarkers.count(_.isOrdered) < 2, "Only one ordered position is allowed!")
 
   override def toString: String =
     s"mode(${if (recall == Int.MaxValue) "*" else recall},${placeMarkers.mkString(",")},${incompatibleSignatures.toString})"

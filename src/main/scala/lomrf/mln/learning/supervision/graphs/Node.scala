@@ -33,15 +33,25 @@ import com.typesafe.scalalogging.LazyLogging
   * @param clause a clausal representation for the node (optional)
   * @param body a disjunction of all evidence atoms present in the node (optional)
   */
-case class Node(
+final case class Node(
     query: EvidenceAtom,
     evidence: IndexedSeq[EvidenceAtom],
     clause: Option[Clause],
     body: Option[Clause],
-    private val head: AtomicFormula) extends LazyLogging {
+    private val head: AtomicFormula,
+    private val orderIndex: Int = -1,
+    private val partitionIndices: Vector[Int] = Vector.empty) extends Ordered[Node] with LazyLogging {
+
+  private lazy val orderedTerm: Int =
+    if (orderIndex > -1) query.terms(orderIndex).symbol.toInt
+    else 0
 
   private[graphs] var similarNodeQueryAtoms =
     scala.collection.mutable.Set.empty[EvidenceAtom]
+
+  lazy val partitionTerms: Set[Term] =
+    if (partitionIndices.isEmpty) query.terms.toSet
+    else partitionIndices.map(query.terms).toSet
 
   lazy val signatures: Set[AtomSignature] =
     evidence.map(_.signature).toSet
@@ -78,7 +88,9 @@ case class Node(
       evidence,
       Some(Clause(literals + Literal.asPositive(head))),
       body,
-      head
+      head,
+      orderIndex,
+      partitionIndices
     )
 
   /**
@@ -91,7 +103,9 @@ case class Node(
       evidence,
       Some(Clause(literals + Literal.asNegative(head))),
       body,
-      head
+      head,
+      orderIndex,
+      partitionIndices
     )
 
   /**
@@ -144,6 +158,8 @@ case class Node(
     */
   override def toString: String =
     s"[ $query = ${query.state} ]\n${evidence.map(_.toText).mkString("\n")}"
+
+  override def compare(that: Node): Int = that.orderedTerm - this.orderedTerm
 
   override def hashCode(): Int = body.get.hashCode
 

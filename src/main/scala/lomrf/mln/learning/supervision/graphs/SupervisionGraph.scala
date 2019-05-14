@@ -447,7 +447,8 @@ object SupervisionGraph extends LazyLogging {
      * ordered node sequence.
      */
     val (unlabeled, labeled) = queryAtoms.partition(_.state == UNKNOWN)
-
+    val orderIndex = modes(querySignature).placeMarkers.indexWhere(_.isOrdered)
+    val partitionIndices = modes(querySignature).placeMarkers.zipWithIndex.withFilter(_._1.isPartition).map(_._2)
     if (labeled.isEmpty) logger.warn("There are no labeled query atoms in the annotation database!")
 
     val start = System.currentTimeMillis
@@ -480,13 +481,13 @@ object SupervisionGraph extends LazyLogging {
           val body = Clause(bodyLiterals)
 
           if (queryAtom.state == UNKNOWN) {
-            val unlabeledNode = Node(queryAtom, evidenceSeq, None, Some(body), headLiterals.head.sentence)
+            val unlabeledNode = Node(queryAtom, evidenceSeq, None, Some(body), headLiterals.head.sentence, orderIndex, partitionIndices)
 
             if (cluster) {
               clusterNodes.insert(unlabeledNode)
               None
             } else Some(unlabeledNode)
-          } else Some(Node(queryAtom, evidenceSeq, Some(clause), Some(body), headLiterals.head.sentence))
+          } else Some(Node(queryAtom, evidenceSeq, Some(clause), Some(body), headLiterals.head.sentence, orderIndex, partitionIndices))
 
         case Failure(error) => throw error
       }
