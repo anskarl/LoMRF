@@ -41,7 +41,7 @@ package object graphs {
   // Node set used for grouping similar nodes
   private[graphs] class NodeSet extends scala.collection.mutable.HashSet[Node] {
     def insert(entry: Node): Unit = this.findEntry(entry) match {
-      case Some(node) => node.similarNodeQueryAtoms += entry.query
+      case Some(node) => node.similarNodeQueryAtoms ++= (entry.similarNodeQueryAtoms + entry.query)
       case None       => this += entry
     }
   }
