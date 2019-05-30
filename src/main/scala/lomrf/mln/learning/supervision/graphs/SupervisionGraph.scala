@@ -456,65 +456,66 @@ object SupervisionGraph extends LazyLogging {
     // A set of cluster nodes used for grouping identical (under unification) unlabeled nodes.
     val clusterNodes = new NodeSet
 
-    val nodes = (labeled ++ unlabeled).groupBy(_.constants).flatMap { case (_, queryAtomGroup) =>
-      val queryAtom = queryAtomGroup.head
-      val queryDomain2Constants =
-        domain2Constants(queryAtom.terms, predicateSchema(querySignature))
+    val nodes = (labeled ++ unlabeled).groupBy(_.constants).flatMap {
+      case (_, queryAtomGroup) =>
+        val queryAtom = queryAtomGroup.head
+        val queryDomain2Constants =
+          domain2Constants(queryAtom.terms, predicateSchema(querySignature))
 
-      // TODO: Check if a predicate has no common domain at all with the query atom
-      val evidence = evidenceAtoms.flatMap {
-        case (atom, domain2Constants) =>
-          if (domain2Constants.forall {
-            case (domain, constants) =>
-              queryDomain2Constants.get(domain) match {
-                case None                 => true
-                case Some(otherConstants) => constants.forall(otherConstants.contains)
-              }
-          } && domain2Constants.keys.exists(queryDomain2Constants.keySet.contains)) Some(atom)
-          else None
-      }
+        // TODO: Check if a predicate has no common domain at all with the query atom
+        val evidence = evidenceAtoms.flatMap {
+          case (atom, domain2Constants) =>
+            if (domain2Constants.forall {
+              case (domain, constants) =>
+                queryDomain2Constants.get(domain) match {
+                  case None                 => true
+                  case Some(otherConstants) => constants.forall(otherConstants.contains)
+                }
+            } && domain2Constants.keys.exists(queryDomain2Constants.keySet.contains)) Some(atom)
+            else None
+        }
 
-      val evidenceSeq = evidence.toIndexedSeq
+        val evidenceSeq = evidence.toIndexedSeq
 
-      asPattern(querySignature, evidenceSeq :+ queryAtom, mln, modes) match {
-        case Success(clause) =>
-          val (headLiterals, bodyLiterals) = clause.literals.partition(_.sentence.signature == querySignature)
-          val body = Clause(bodyLiterals)
+        asPattern(querySignature, evidenceSeq :+ queryAtom, mln, modes) match {
+          case Success(clause) =>
+            val (headLiterals, bodyLiterals) = clause.literals.partition(_.sentence.signature == querySignature)
+            val body = Clause(bodyLiterals)
 
-          if (queryAtom.state == UNKNOWN) {
-            val unlabeledNode = Node(
-              queryAtom,
-              evidenceSeq,
-              None,
-              Some(body),
-              headLiterals.head.sentence,
-              orderIndex,
-              partitionIndices)
+            if (queryAtom.state == UNKNOWN) {
+              val unlabeledNode = Node(
+                queryAtom,
+                evidenceSeq,
+                None,
+                Some(body),
+                headLiterals.head.sentence,
+                orderIndex,
+                partitionIndices)
 
-            // append identical query atoms, e.g., Q(A,B,1) is the same as Q(B,A,1)
-            unlabeledNode.similarNodeQueryAtoms ++= queryAtomGroup.tail
+              // append identical query atoms, e.g., Q(A,B,1) is the same as Q(B,A,1)
+              unlabeledNode.similarNodeQueryAtoms ++= queryAtomGroup.tail
 
-            if (cluster) {
-              clusterNodes.insert(unlabeledNode)
-              None
-            } else Some(unlabeledNode)
-          } else {
-            val labeledNode = Node(
-              queryAtom,
-              evidenceSeq,
-              Some(clause),
-              Some(body),
-              headLiterals.head.sentence,
-              orderIndex,
-              partitionIndices)
+              if (cluster) {
+                clusterNodes.insert(unlabeledNode)
+                None
+              } else Some(unlabeledNode)
+            } else {
+              val labeledNode = Node(
+                queryAtom,
+                evidenceSeq,
+                Some(clause),
+                Some(body),
+                headLiterals.head.sentence,
+                orderIndex,
+                partitionIndices)
 
-            // append identical query atoms, e.g., Q(A,B,1) is the same as Q(B,A,1)
-            labeledNode.similarNodeQueryAtoms ++= queryAtomGroup.tail
-            Some(labeledNode)
-          }
+              // append identical query atoms, e.g., Q(A,B,1) is the same as Q(B,A,1)
+              labeledNode.similarNodeQueryAtoms ++= queryAtomGroup.tail
+              Some(labeledNode)
+            }
 
-        case Failure(error) => throw error
-      }
+          case Failure(error) => throw error
+        }
     }.toIndexedSeq
 
     logger.info(s"Nodes constructed in ${msecTimeToTextUntilNow(start)}")

@@ -102,7 +102,7 @@ package object graphs {
       constants <- db.identity.decode(id).toOption
     } yield Constant(constants.head) -> (signature, constants.map(Constant))
 
-    // flatten evidence atoms by adding auxiliary predicates
+    // Flatten evidence atoms by adding auxiliary predicates
     val flattenEvidence = atoms
       .foldLeft(Set.empty[EvidenceAtom]) {
         case (result, atom) =>

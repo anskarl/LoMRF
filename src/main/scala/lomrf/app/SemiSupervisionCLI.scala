@@ -62,6 +62,9 @@ object SemiSupervisionCLI extends CLIApp {
   // By default output the negatives
   private var _outputNegatives: Boolean = true
 
+  // By default do not compress results
+  private var _compressResults: Boolean = false
+
   // By default run using harmonic graph cut
   private var _solver: GraphSolverType = HGC
 
@@ -163,6 +166,10 @@ object SemiSupervisionCLI extends CLIApp {
 
   flagOpt("sn", "skip-negatives", "Do not output negative labels into the resulted files.", {
     _outputNegatives = false
+  })
+
+  flagOpt("cr", "compressed-results", "Output all results in a single file.", {
+    _compressResults = true
   })
 
   flagOpt("v", "version", "Print LoMRF version.", sys.exit(0))
@@ -296,71 +303,90 @@ object SemiSupervisionCLI extends CLIApp {
 
       logger.info(msecTimeToTextUntilNow("Supervision completion time until now: ", start))
 
+        @inline
+        def outputCompletedResults(output: PrintStream): Unit = {
+
+          output.println("\n// Completed supervision")
+
+          completedEvidenceSet.map(_.db).foreach { evidenceDB =>
+            evidenceDB.foreach {
+              case (signature, atomDB) =>
+
+                output.println(s"// Positives for $signature")
+                val atomIDF = atomDB.identity
+
+                /*
+               * We cannot decode the ids using the mln because the indices are allocated
+               * in a different way, so there would be a problem.
+               *
+               * Note: Keep only positive. Negatives may be too many. We have CWA during learning.
+               */
+                atomIDF.indices.flatMap { id =>
+                  atomIDF.decode(id) match {
+                    case Success(terms) if atomDB(id) == TRUE =>
+                      Some(s"${signature.symbol}(${terms.mkString(",")})")
+                    case Failure(exception) => throw exception
+                    case _                  => None
+                  }
+                }.sortWith(NaturalComparator.compareBool).foreach(output.println)
+
+                if (_outputNegatives) {
+                  output.println(s"// Negatives for $signature")
+
+                  atomIDF.indices.flatMap { id =>
+                    atomIDF.decode(id) match {
+                      case Success(terms) if atomDB(id) == FALSE =>
+                        Some(s"!${signature.symbol}(${terms.mkString(",")})")
+                      case Failure(exception) => throw exception
+                      case _                  => None
+                    }
+                  }.sortWith(NaturalComparator.compareBool).foreach(output.println)
+                }
+            }
+          }
+          output.close()
+        }
+
       /*
        * OK, lets store the resulted completed supervision
        */
-      val resultsFolder = new File(s"${currentTrainingFile.getParentFile.getParent}/$connector.${_distance}.${_solver}")
-      resultsFolder.mkdirs
-
-      val completedBatch = new PrintStream(resultsFolder.getCanonicalPath + "/" + currentTrainingFile.getName)
-
-      val inputStream = Source.fromFile(currentTrainingFile)
-      inputStream.getLines.filter { line =>
-        _nonEvidenceAtoms.map(_.symbol).forall(!line.contains(_)) && line.nonEmpty
-      }.foreach(completedBatch.println)
-      inputStream.close()
-
-      completedBatch.println("\n// Completed supervision")
-
-      completedEvidenceSet.map(_.db).foreach { evidenceDB =>
-        evidenceDB.foreach {
-          case (signature, atomDB) =>
-
-            completedBatch.println(s"// Positives for $signature")
-            val atomIDF = atomDB.identity
-
-            /*
-             * We cannot decode the ids using the mln because the indices are allocated
-             * in a different way, so there would be a problem.
-             *
-             * Note: Keep only positive. Negatives may be too many. We have CWA during learning.
-             */
-            atomIDF.indices.flatMap { id =>
-              atomIDF.decode(id) match {
-                case Success(terms) if atomDB(id) == TRUE =>
-                  Some(s"${signature.symbol}(${terms.mkString(",")})")
-                case Failure(exception) => throw exception
-                case _                  => None
-              }
-            }.sortWith(NaturalComparator.compareBool).foreach(completedBatch.println)
-
-            if (_outputNegatives) {
-              completedBatch.println(s"// Negatives for $signature")
-
-              atomIDF.indices.flatMap { id =>
-                atomIDF.decode(id) match {
-                  case Success(terms) if atomDB(id) == FALSE =>
-                    Some(s"!${signature.symbol}(${terms.mkString(",")})")
-                  case Failure(exception) => throw exception
-                  case _                  => None
-                }
-              }.sortWith(NaturalComparator.compareBool).foreach(completedBatch.println)
-            }
+      if (_compressResults) {
+        val compressedOutput = new PrintStream(
+          new FileOutputStream(s"${currentTrainingFile.getParentFile.getParent}/$connector.${_distance}.${_solver}.db", true))
+        compressedOutput.println {
+          s"""
+             |Step ${step + 1} / ${strTrainingFileNames.length}:
+             |Chunk ${currentTrainingFile.getName}
+           """.stripMargin
         }
-      }
+        outputCompletedResults(compressedOutput)
+      } else {
+        val resultsFolder = new File(s"${currentTrainingFile.getParentFile.getParent}/$connector.${_distance}.${_solver}")
+        resultsFolder.mkdirs
 
-      completedBatch.close()
+        val completedBatch = new PrintStream(resultsFolder.getCanonicalPath + "/" + currentTrainingFile.getName)
+
+        val inputStream = Source.fromFile(currentTrainingFile)
+        inputStream.getLines.filter { line =>
+          _nonEvidenceAtoms.map(_.symbol).forall(!line.contains(_)) && line.nonEmpty
+        }.foreach(completedBatch.println)
+        inputStream.close()
+
+        outputCompletedResults(completedBatch)
+      }
 
       // In case annotation files are given, output statistics
       if (strAnnotationFileNames.nonEmpty) {
 
         val currentAnnotationFile = new File(strAnnotationFileNames(step))
 
-        if (resultsStream != System.out) resultsStream.println(
-          s"Step ${step + 1} / ${strTrainingFileNames.length}:\n" +
-            s"Chunk ${currentTrainingFile.getName}\n" +
-            s"Annotation ${currentAnnotationFile.getName}"
-        )
+        if (resultsStream != System.out) resultsStream.println {
+          s"""
+             |Step ${step + 1} / ${strTrainingFileNames.length}:
+             |Chunk ${currentTrainingFile.getName}
+             |Annotation ${currentAnnotationFile.getName}
+           """.stripMargin
+        }
 
         // At this point force CWA because annotation cannot have UNKNOWN atoms.
         val fullAnnotationDB = Evidence.fromFiles(
