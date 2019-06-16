@@ -284,6 +284,8 @@ object SemiSupervisionCLI extends CLIApp {
       val evidence = new Evidence(trainingEvidence.constants, atomStateDB, trainingEvidence.functionMappers)
       val mln = MLN(kb.schema, evidence, _nonEvidenceAtoms, Vector.empty[Clause])
 
+      val startSC = System.currentTimeMillis
+
       // Create or update supervision graphs for each given non evidence atom
       _nonEvidenceAtoms.foreach { querySignature =>
         supervisionGraphs.get(querySignature) match {
@@ -301,6 +303,7 @@ object SemiSupervisionCLI extends CLIApp {
           case ((atoms, evidenceSet), tuple) => (atoms ++ tuple._1, evidenceSet + tuple._2)
         }
 
+      logger.info(msecTimeToTextUntilNow("Supervision completion time for current batch only: ", startSC))
       logger.info(msecTimeToTextUntilNow("Supervision completion time until now: ", start))
 
         @inline
