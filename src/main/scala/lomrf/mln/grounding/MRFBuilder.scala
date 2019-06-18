@@ -96,7 +96,7 @@ final class MRFBuilder(
 
   private val system = ActorSystem.create("MRFBuilder")
   private implicit val executionContext: ExecutionContextExecutor = system.dispatcher
-  private implicit val timeout: Timeout = Timeout(214748363 seconds)
+  private implicit val timeout: Timeout = Timeout(21474800 seconds) // todo should fix this
 
   def buildNetwork: MRF = {
     val latch = new CountDownLatch(1)
