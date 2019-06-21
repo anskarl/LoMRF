@@ -316,11 +316,11 @@ final class MaxMarginLearner(mrf: MRF, annotationDB: Map[AtomSignature, AtomEvid
        */
 
       cfor(0) (_ < 2 * numberOfClauses, _ + 1) { clauseIdx: Int =>
-        LPVars.putIfAbsent(clauseIdx, MPFloatVar("w" + clauseIdx, 0)) // bounds are [0.0, inf] because L1 norm has absolute values
+        LPVars.putIfAbsent(clauseIdx, MPFloatVar.positive("w" + clauseIdx)) // bounds are [0.0, inf] because L1 norm has absolute values
         expressions :+= LPVars.get(clauseIdx)
       }
 
-      LPVars.putIfAbsent(2 * numberOfClauses, MPFloatVar("slack", 0)) // bounds are [0.0, inf]
+      LPVars.putIfAbsent(2 * numberOfClauses, MPFloatVar.positive("slack")) // bounds are [0.0, inf]
       expressions ::= (C * LPVars.get(numberOfClauses))
     } else {
       /*
@@ -339,7 +339,7 @@ final class MaxMarginLearner(mrf: MRF, annotationDB: Map[AtomSignature, AtomEvid
         expressions :+= (0.5 * LPVars.get(clauseIdx) * LPVars.get(clauseIdx))
       }
 
-      LPVars.putIfAbsent(numberOfClauses, MPFloatVar("slack", 0)) // bounds are [0.0, inf]
+      LPVars.putIfAbsent(numberOfClauses, MPFloatVar.positive("slack")) // bounds are [0.0, inf]
       expressions ::= (C * LPVars.get(numberOfClauses))
     }
 

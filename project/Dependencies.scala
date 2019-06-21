@@ -24,7 +24,7 @@ import sbt.Keys._
 object Dependencies {
 
   object v {
-    final val Akka = "2.5.21"
+    final val Akka = "2.5.23"
 
     final val ScalaLogging = "3.9.2"
     final val Logback = "1.2.3"
@@ -38,10 +38,10 @@ object Dependencies {
 
     final val Enums = "1.5.13"
 
-    final val Optimus = "3.0.0"
-    final val Breeze = "0.13.2"
+    final val Optimus = "3.2.0"
+    final val Breeze = "1.0"
 
-    final val Spire = "0.13.0"
+    final val Spire = "0.17.0-M1"
   }
 
   // Akka.io
@@ -81,8 +81,8 @@ object Dependencies {
 
     "com.beachape" %% "enumeratum" % v.Enums,
 
-    "org.spire-math" %% "spire" % v.Spire,
-    "org.spire-math" %% "spire-macros" % v.Spire
+    "org.typelevel" %% "spire" % v.Spire,
+    "org.typelevel" %% "spire-macros" % v.Spire
   )
 
   // Optimus library for linear and quadratic optimization
