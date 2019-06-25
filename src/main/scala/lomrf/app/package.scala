@@ -52,6 +52,7 @@ package object app {
     case object NN extends GraphSolverType("nn")
     case object HGC extends GraphSolverType("hgc")
     case object LGC extends GraphSolverType("lgc")
+    case object TLP extends GraphSolverType("tlp")
   }
 
   sealed class ConnectorStrategy(override val entryName: String) extends EnumEntry {
@@ -88,6 +89,7 @@ package object app {
     case object MassTree extends DistanceType("mass.tree")
     case object HybridMap extends DistanceType("hybrid.map")
     case object HybridTree extends DistanceType("hybrid.tree")
+    case object HybridTree2 extends DistanceType("hybrid.tree2")
   }
 
   sealed class FilterType(override val entryName: String) extends EnumEntry {

@@ -77,11 +77,17 @@ object SemiSupervisionCLI extends CLIApp {
   // By default run using a kNN connector
   private var _connector: ConnectorStrategy = kNN
 
+  // By default cluster similar nodes
+  private var _cluster: Boolean = true
+
   // Epsilon threshold for the eNN graph
   private var _epsilon = 0.75
 
   // K value for the kNN graph
   private var _k = 2
+
+  // Memory for streaming synopsis
+  private var _memory = 2
 
   opt("i", "input", "<kb file>", "Markov Logic file defining the predicate and function schema.", {
     v: String => _mlnFileName = Some(v)
@@ -117,11 +123,12 @@ object SemiSupervisionCLI extends CLIApp {
     v: String => _modesFileName = Some(v)
   })
 
-  opt("s", "solver", "<nn | hgc>", "Specify a solver for completion (default is hgc).", {
+  opt("s", "solver", "<nn | hgc | tlp>", "Specify a solver for completion (default is hgc).", {
     v: String =>
       v.trim.toLowerCase match {
         case "nn"  => _solver = NN
         case "hgc" => _solver = HGC
+        case "tlp" => _solver = TLP
         case _     => logger.fatal(s"Unknown solver of type '$v'.")
       }
   })
@@ -129,9 +136,9 @@ object SemiSupervisionCLI extends CLIApp {
   opt("f", "filter", "<simple | hoeffding>", "Specify a filter for noisy examples (default is hoeffding).", {
     v: String =>
       v.trim.toLowerCase match {
-        case "simple"  => _filter = FilterType.Simple
+        case "simple"    => _filter = FilterType.Simple
         case "hoeffding" => _filter = FilterType.Hoeffding
-        case _     => logger.fatal(s"Unknown solver of type '$v'.")
+        case _           => logger.fatal(s"Unknown solver of type '$v'.")
       }
   })
 
@@ -139,15 +146,16 @@ object SemiSupervisionCLI extends CLIApp {
     "Specify a distance over atoms (default is atomic).", {
       v: String =>
         v.trim.toLowerCase match {
-          case "binary"      => _distance = DistanceType.Binary
-          case "atomic"      => _distance = DistanceType.Atomic
-          case "atomConst"   => _distance = DistanceType.AtomConst
-          case "evidence"    => _distance = DistanceType.Evidence
-          case "mass.map"    => _distance = DistanceType.MassMap
-          case "mass.tree"   => _distance = DistanceType.MassTree
-          case "hybrid.map"  => _distance = DistanceType.HybridMap
-          case "hybrid.tree" => _distance = DistanceType.HybridTree
-          case _             => logger.fatal(s"Unknown distance of type '$v'.")
+          case "binary"       => _distance = DistanceType.Binary
+          case "atomic"       => _distance = DistanceType.Atomic
+          case "atomic.const" => _distance = DistanceType.AtomConst
+          case "evidence"     => _distance = DistanceType.Evidence
+          case "mass.map"     => _distance = DistanceType.MassMap
+          case "mass.tree"    => _distance = DistanceType.MassTree
+          case "hybrid.map"   => _distance = DistanceType.HybridMap
+          case "hybrid.tree"  => _distance = DistanceType.HybridTree
+          case "hybrid.tree2" => _distance = DistanceType.HybridTree2
+          case _              => logger.fatal(s"Unknown distance of type '$v'.")
         }
     }
   )
@@ -183,6 +191,16 @@ object SemiSupervisionCLI extends CLIApp {
 
   flagOpt("cr", "compressed-results", "Output all results in a single file.", {
     _compressResults = true
+  })
+
+  flagOpt("dc", "disable-clustering", "Disable clustering on similar nodes.", {
+    _cluster = false
+  })
+
+  intOpt("mem", "memory", "Memory parameter (default is " + _memory + ")", {
+    v: Int =>
+      if (v < 1) logger.fatal("memory value must be any integer greater than zero, but you gave: " + v)
+      else _memory = v
   })
 
   flagOpt("v", "version", "Print LoMRF version.", sys.exit(0))
@@ -230,7 +248,7 @@ object SemiSupervisionCLI extends CLIApp {
 
     // Init all statistics values to zero
     var actualPositive, actualNegative, positiveFound, negativeFound = 0
-    var supervisionGraphs = Map.empty[AtomSignature, SupervisionGraph]
+    var supervisionGraphs = Map.empty[AtomSignature, Either[SupervisionGraph, StreamingGraph]]
     var stats = Evaluate.empty
 
     // Create a knowledge base and convert all functions
@@ -255,6 +273,10 @@ object SemiSupervisionCLI extends CLIApp {
       ))
       else if (_distance == DistanceType.HybridTree) HybridMetric(Set(
         AtomMetric(HungarianMatcher),
+        MassTreeMetric(kb.predicateSchema.keySet -- _nonEvidenceAtoms)
+      ))
+      else if (_distance == DistanceType.HybridTree2) HybridMetric(Set(
+        AtomConstMetric(HungarianMatcher),
         MassTreeMetric(kb.predicateSchema.keySet -- _nonEvidenceAtoms)
       ))
       else if (_distance == DistanceType.Binary) BinaryMetric(HungarianMatcher)
@@ -301,16 +323,26 @@ object SemiSupervisionCLI extends CLIApp {
       // Create or update supervision graphs for each given non evidence atom
       _nonEvidenceAtoms.foreach { querySignature =>
         supervisionGraphs.get(querySignature) match {
-          case Some(graph) => supervisionGraphs += querySignature ->
-            (graph ++ (mln, annotationDB, modes))
-          case None => supervisionGraphs += querySignature ->
-            SupervisionGraph(mln, modes, annotationDB, querySignature, connector, distance, _filter == FilterType.Hoeffding)
+          case Some(graph) if graph.isLeft =>
+            supervisionGraphs += querySignature -> Left(graph.left.get ++ (mln, annotationDB, modes))
+          case Some(graph) if graph.isRight =>
+            supervisionGraphs += querySignature -> Right(graph.right.get ++ (mln, annotationDB, modes))
+          case None if _solver == TLP =>
+            supervisionGraphs += querySignature ->
+              Right(StreamingGraph(mln, modes, annotationDB, querySignature, connector, distance, _memory, _filter == FilterType.Hoeffding))
+          case _ =>
+            supervisionGraphs += querySignature ->
+              Left(SupervisionGraph(mln, modes, annotationDB, querySignature, connector, distance, _filter == FilterType.Hoeffding, _cluster))
         }
       }
 
       // Run supervision completion for all given non evidence atoms and collect the results
       val (completedEvidenceAtoms, completedEvidenceSet) = supervisionGraphs.values
-        .map(graph => if (_solver == NN) graph.completeSupervisionNN else graph.completeSupervisionGraphCut)
+        .map(graph =>
+          if (graph.isLeft && _solver == NN) graph.left.get.completeSupervisionNN
+          else if (graph.isLeft) graph.left.get.completeSupervisionGraphCut
+          else graph.right.get.completeSupervisionGraphCut
+        )
         .foldLeft(Set.empty[EvidenceAtom] -> Set.empty[Evidence]) {
           case ((atoms, evidenceSet), tuple) => (atoms ++ tuple._1, evidenceSet + tuple._2)
         }
@@ -364,9 +396,11 @@ object SemiSupervisionCLI extends CLIApp {
       /*
        * OK, lets store the resulted completed supervision
        */
+      val clusterTag = if (_solver == TLP) "no.cluster" else if (_cluster) "clustered" else "no.cluster"
+      val memoryTag = if (_solver == TLP) s".m${_memory}" else ""
       if (_compressResults) {
         val compressedOutput = new PrintStream(
-          new FileOutputStream(s"${currentTrainingFile.getParentFile.getParent}/$connector.${_distance}.${_filter}.${_solver}.db", true))
+          new FileOutputStream(s"${currentTrainingFile.getParentFile.getParent}/$connector.$clusterTag.${_distance}.${_filter}.${_solver}$memoryTag.db", true))
         compressedOutput.println {
           s"""
              |Step ${step + 1} / ${strTrainingFileNames.length}:
@@ -375,7 +409,7 @@ object SemiSupervisionCLI extends CLIApp {
         }
         outputCompletedResults(compressedOutput)
       } else {
-        val resultsFolder = new File(s"${currentTrainingFile.getParentFile.getParent}/$connector.${_distance}.${_solver}")
+        val resultsFolder = new File(s"${currentTrainingFile.getParentFile.getParent}/$connector.$clusterTag.${_distance}.${_filter}.${_solver}$memoryTag")
         resultsFolder.mkdirs
 
         val completedBatch = new PrintStream(resultsFolder.getCanonicalPath + "/" + currentTrainingFile.getName)

@@ -161,7 +161,13 @@ final case class Node(
 
   override def compare(that: Node): Int = that.orderedTerm - this.orderedTerm
 
-  override def hashCode(): Int = body.get.hashCode
+  override lazy val hashCode: Int = {
+    val x = body.get
+    var code = x.weight.##
+    for (l <- x.literals)
+      code ^= (l.isPositive.## ^ l.sentence.signature.## ^ l.sentence.constants.##)
+    code
+  }
 
   override def equals(that: Any): Boolean = that match {
     case x: Node => x.body.get =~= this.body.get

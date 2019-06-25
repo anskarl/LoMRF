@@ -56,7 +56,8 @@ final class SupervisionGraph private (
     metric: Metric[_ <: AtomicFormula],
     supervisionBuilder: EvidenceBuilder,
     nodeCache: Set[(Clause, Long)] = Set.empty,
-    hoeffding: Boolean) extends LazyLogging {
+    hoeffding: Boolean,
+    cluster: Boolean) extends LazyLogging {
 
   private val (labeledNodes, unlabeledNodes) = nodes.partition(_.isLabeled)
 
@@ -198,7 +199,6 @@ final class SupervisionGraph private (
     HoeffdingBound(fx, fy, N.toLong) && x < y
   }
 
-
   /**
     * Extends this supervision graph to include nodes produced by a given MLN and
     * an annotation database. Only the labeled nodes are retained from this graph
@@ -222,7 +222,9 @@ final class SupervisionGraph private (
     val currentNodes = connector match {
       case _: kNNTemporalConnector | _: eNNTemporalConnector =>
         SupervisionGraph.partition(mln, modes, annotationDB, querySignature, cluster = false)
-      case _ => SupervisionGraph.partition(mln, modes, annotationDB, querySignature)
+      case _ =>
+        if (cluster) SupervisionGraph.partition(mln, modes, annotationDB, querySignature)
+        else SupervisionGraph.partition(mln, modes, annotationDB, querySignature, cluster = false)
     }
 
     // Partition nodes into labeled and unlabeled. Then find empty unlabeled nodes.
@@ -262,7 +264,8 @@ final class SupervisionGraph private (
         metric ++ mln.evidence ++ nodes.map(_.atoms),
         annotationBuilder,
         nodeCache,
-        hoeffding)
+        hoeffding,
+        cluster)
     else {
 
       val startCacheUpdate = System.currentTimeMillis
@@ -296,7 +299,7 @@ final class SupervisionGraph private (
         updatedNodeCache.foreach { case (clause, freq) => logger.debug(s"${clause.toText()} -> $freq") }
       }
 
-      val filter = if (hoeffding) HoeffdingFilter _ else SimpleFilter _
+      val filterOut = if (hoeffding) HoeffdingFilter _ else SimpleFilter _
 
       /*
        * For each unique labeled node, search for an inverse pattern. Inverse patterns,
@@ -319,9 +322,9 @@ final class SupervisionGraph private (
               val (headLiteral, bodyLiterals) = c.literals.partition(_.sentence.signature == querySignature)
               headLiteral.head.positive != node.isPositive && Clause(bodyLiterals) =~= nodeBody
           } match {
-            case Some((_, inversePatternFreq)) if !filter(nodeFrequency, inversePatternFreq) => result :+ node
+            case Some((_, inversePatternFreq)) if !filterOut(nodeFrequency, inversePatternFreq) => result :+ node
             case None => result :+ node
-            case _    => result
+            case _ => result
           }
       }
 
@@ -335,7 +338,8 @@ final class SupervisionGraph private (
         metric ++ mln.evidence ++ nodes.map(_.atoms),
         annotationBuilder,
         updatedNodeCache,
-        hoeffding)
+        hoeffding,
+        cluster)
     }
   }
 }
@@ -361,7 +365,7 @@ object SupervisionGraph extends LazyLogging {
     * @param querySignature the query signature of interest
     * @return an indexed sequence of nodes. Labeled nodes appear before unlabelled
     */
-  private def partition(
+  private[graphs] def partition(
       mln: MLN,
       modes: ModeDeclarations,
       annotationDB: EvidenceDB,
@@ -557,13 +561,16 @@ object SupervisionGraph extends LazyLogging {
       querySignature: AtomSignature,
       connector: GraphConnector,
       metric: Metric[_ <: AtomicFormula],
-      hoeffding: Boolean): SupervisionGraph = {
+      hoeffding: Boolean,
+      cluster: Boolean): SupervisionGraph = {
 
     // Group the given data into nodes
     val nodes = connector match {
       case _: kNNTemporalConnector | _: eNNTemporalConnector =>
         partition(mln, modes, annotationDB, querySignature, cluster = false)
-      case _ => partition(mln, modes, annotationDB, querySignature)
+      case _ =>
+        if (cluster) partition(mln, modes, annotationDB, querySignature)
+        else partition(mln, modes, annotationDB, querySignature, cluster = false)
     }
 
     logger.info("Constructing supervision graph.")
@@ -629,7 +636,8 @@ object SupervisionGraph extends LazyLogging {
       metric ++ mln.evidence ++ nodes.map(_.atoms),
       annotationBuilder,
       nodeCache,
-      hoeffding
+      hoeffding,
+      cluster
     )
   }
 }
