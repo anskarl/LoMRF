@@ -65,6 +65,9 @@ object SemiSupervisionCLI extends CLIApp {
   // By default do not compress results
   private var _compressResults: Boolean = false
 
+  // By default use Hoeffding filtering
+  private var _filter: FilterType = FilterType.Hoeffding
+
   // By default run using harmonic graph cut
   private var _solver: GraphSolverType = HGC
 
@@ -119,6 +122,15 @@ object SemiSupervisionCLI extends CLIApp {
       v.trim.toLowerCase match {
         case "nn"  => _solver = NN
         case "hgc" => _solver = HGC
+        case _     => logger.fatal(s"Unknown solver of type '$v'.")
+      }
+  })
+
+  opt("f", "filter", "<simple | hoeffding>", "Specify a filter for noisy examples (default is hoeffding).", {
+    v: String =>
+      v.trim.toLowerCase match {
+        case "simple"  => _filter = FilterType.Simple
+        case "hoeffding" => _filter = FilterType.Hoeffding
         case _     => logger.fatal(s"Unknown solver of type '$v'.")
       }
   })
@@ -292,7 +304,7 @@ object SemiSupervisionCLI extends CLIApp {
           case Some(graph) => supervisionGraphs += querySignature ->
             (graph ++ (mln, annotationDB, modes))
           case None => supervisionGraphs += querySignature ->
-            SupervisionGraph(mln, modes, annotationDB, querySignature, connector, distance)
+            SupervisionGraph(mln, modes, annotationDB, querySignature, connector, distance, _filter == FilterType.Hoeffding)
         }
       }
 
@@ -354,7 +366,7 @@ object SemiSupervisionCLI extends CLIApp {
        */
       if (_compressResults) {
         val compressedOutput = new PrintStream(
-          new FileOutputStream(s"${currentTrainingFile.getParentFile.getParent}/$connector.${_distance}.${_solver}.db", true))
+          new FileOutputStream(s"${currentTrainingFile.getParentFile.getParent}/$connector.${_distance}.${_filter}.${_solver}.db", true))
         compressedOutput.println {
           s"""
              |Step ${step + 1} / ${strTrainingFileNames.length}:

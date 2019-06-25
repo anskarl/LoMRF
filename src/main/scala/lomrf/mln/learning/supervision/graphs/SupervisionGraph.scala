@@ -55,7 +55,8 @@ final class SupervisionGraph private (
     connector: GraphConnector,
     metric: Metric[_ <: AtomicFormula],
     supervisionBuilder: EvidenceBuilder,
-    nodeCache: Set[(Clause, Long)] = Set.empty) extends LazyLogging {
+    nodeCache: Set[(Clause, Long)] = Set.empty,
+    hoeffding: Boolean) extends LazyLogging {
 
   private val (labeledNodes, unlabeledNodes) = nodes.partition(_.isLabeled)
 
@@ -188,6 +189,16 @@ final class SupervisionGraph private (
     labeledEvidenceAtoms.toSet
   }
 
+  private def SimpleFilter(x: Double, y: Double): Boolean = x < y
+
+  private def HoeffdingFilter(x: Double, y: Double): Boolean = {
+    val N = x + y
+    val fx = x / N
+    val fy = y / N
+    HoeffdingBound(fx, fy, N.toLong) && x < y
+  }
+
+
   /**
     * Extends this supervision graph to include nodes produced by a given MLN and
     * an annotation database. Only the labeled nodes are retained from this graph
@@ -250,7 +261,8 @@ final class SupervisionGraph private (
         connector,
         metric ++ mln.evidence ++ nodes.map(_.atoms),
         annotationBuilder,
-        nodeCache)
+        nodeCache,
+        hoeffding)
     else {
 
       val startCacheUpdate = System.currentTimeMillis
@@ -284,6 +296,8 @@ final class SupervisionGraph private (
         updatedNodeCache.foreach { case (clause, freq) => logger.debug(s"${clause.toText()} -> $freq") }
       }
 
+      val filter = if (hoeffding) HoeffdingFilter _ else SimpleFilter _
+
       /*
        * For each unique labeled node, search for an inverse pattern. Inverse patterns,
        * are patterns having identical body but inverse sense in the head. For the inverse
@@ -305,10 +319,7 @@ final class SupervisionGraph private (
               val (headLiteral, bodyLiterals) = c.literals.partition(_.sentence.signature == querySignature)
               headLiteral.head.positive != node.isPositive && Clause(bodyLiterals) =~= nodeBody
           } match {
-            case Some((_, inversePatternFreq)) if !(HoeffdingBound(
-              nodeFrequency.toDouble / (nodeFrequency + inversePatternFreq).toDouble,
-              inversePatternFreq.toDouble / (nodeFrequency + inversePatternFreq).toDouble,
-              nodeFrequency + inversePatternFreq) && nodeFrequency < inversePatternFreq) => result :+ node
+            case Some((_, inversePatternFreq)) if !filter(nodeFrequency, inversePatternFreq) => result :+ node
             case None => result :+ node
             case _    => result
           }
@@ -323,7 +334,8 @@ final class SupervisionGraph private (
         connector,
         metric ++ mln.evidence ++ nodes.map(_.atoms),
         annotationBuilder,
-        updatedNodeCache)
+        updatedNodeCache,
+        hoeffding)
     }
   }
 }
@@ -544,7 +556,8 @@ object SupervisionGraph extends LazyLogging {
       annotationDB: EvidenceDB,
       querySignature: AtomSignature,
       connector: GraphConnector,
-      metric: Metric[_ <: AtomicFormula]): SupervisionGraph = {
+      metric: Metric[_ <: AtomicFormula],
+      hoeffding: Boolean): SupervisionGraph = {
 
     // Group the given data into nodes
     val nodes = connector match {
@@ -615,7 +628,8 @@ object SupervisionGraph extends LazyLogging {
       connector,
       metric ++ mln.evidence ++ nodes.map(_.atoms),
       annotationBuilder,
-      nodeCache
+      nodeCache,
+      hoeffding
     )
   }
 }
