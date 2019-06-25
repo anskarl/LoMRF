@@ -45,6 +45,7 @@ final case class AtomConstMetric(override protected val matcher: Matcher) extend
     */
   override def distance(xAtom: AtomicFormula, yAtom: AtomicFormula): Double =
     if (xAtom.signature != yAtom.signature) 1
+    else if (xAtom.constants.isEmpty) 0
     else termSeqDistance(xAtom.terms.filter(_.isConstant), yAtom.terms.filter(_.isConstant))
 
   /**
