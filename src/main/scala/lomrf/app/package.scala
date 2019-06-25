@@ -82,6 +82,7 @@ package object app {
 
     case object Binary extends DistanceType("binary")
     case object Atomic extends DistanceType("atomic")
+    case object AtomConst extends DistanceType("atomic.const")
     case object Evidence extends DistanceType("evidence")
     case object MassMap extends DistanceType("mass.map")
     case object MassTree extends DistanceType("mass.tree")

@@ -123,12 +123,13 @@ object SemiSupervisionCLI extends CLIApp {
       }
   })
 
-  opt("d", "distance", "<binary | atomic | evidence | mass.map | mass.tree | hybrid.map | hybrid.tree>",
+  opt("d", "distance", "<binary | atomic | atomic.const | evidence | mass.map | mass.tree | hybrid.map | hybrid.tree>",
     "Specify a distance over atoms (default is atomic).", {
       v: String =>
         v.trim.toLowerCase match {
           case "binary"      => _distance = DistanceType.Binary
           case "atomic"      => _distance = DistanceType.Atomic
+          case "atomConst"   => _distance = DistanceType.AtomConst
           case "evidence"    => _distance = DistanceType.Evidence
           case "mass.map"    => _distance = DistanceType.MassMap
           case "mass.tree"   => _distance = DistanceType.MassTree
@@ -246,6 +247,7 @@ object SemiSupervisionCLI extends CLIApp {
       ))
       else if (_distance == DistanceType.Binary) BinaryMetric(HungarianMatcher)
       else if (_distance == DistanceType.Atomic) AtomMetric(HungarianMatcher)
+      else if (_distance == DistanceType.AtomConst) AtomConstMetric(HungarianMatcher)
       else EvidenceMetric(modes, HungarianMatcher)
 
     val start = System.currentTimeMillis
@@ -284,8 +286,6 @@ object SemiSupervisionCLI extends CLIApp {
       val evidence = new Evidence(trainingEvidence.constants, atomStateDB, trainingEvidence.functionMappers)
       val mln = MLN(kb.schema, evidence, _nonEvidenceAtoms, Vector.empty[Clause])
 
-      val startSC = System.currentTimeMillis
-
       // Create or update supervision graphs for each given non evidence atom
       _nonEvidenceAtoms.foreach { querySignature =>
         supervisionGraphs.get(querySignature) match {
@@ -303,7 +303,6 @@ object SemiSupervisionCLI extends CLIApp {
           case ((atoms, evidenceSet), tuple) => (atoms ++ tuple._1, evidenceSet + tuple._2)
         }
 
-      logger.info(msecTimeToTextUntilNow("Supervision completion time for current batch only: ", startSC))
       logger.info(msecTimeToTextUntilNow("Supervision completion time until now: ", start))
 
         @inline
