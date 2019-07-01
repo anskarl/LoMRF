@@ -56,7 +56,6 @@ final class SupervisionGraph private (
     metric: Metric[_ <: AtomicFormula],
     supervisionBuilder: EvidenceBuilder,
     nodeCache: Set[(Clause, Long)] = Set.empty,
-    hoeffding: Boolean,
     cluster: Boolean) extends LazyLogging {
 
   private val (labeledNodes, unlabeledNodes) = nodes.partition(_.isLabeled)
@@ -190,8 +189,6 @@ final class SupervisionGraph private (
     labeledEvidenceAtoms.toSet
   }
 
-  private def SimpleFilter(x: Double, y: Double): Boolean = x < y
-
   private def HoeffdingFilter(x: Double, y: Double): Boolean = {
     val N = x + y
     val fx = x / N
@@ -264,7 +261,6 @@ final class SupervisionGraph private (
         metric ++ mln.evidence ++ nodes.map(_.atoms),
         annotationBuilder,
         nodeCache,
-        hoeffding,
         cluster)
     else {
 
@@ -299,8 +295,6 @@ final class SupervisionGraph private (
         updatedNodeCache.foreach { case (clause, freq) => logger.debug(s"${clause.toText()} -> $freq") }
       }
 
-      val filterOut = if (hoeffding) HoeffdingFilter _ else SimpleFilter _
-
       /*
        * For each unique labeled node, search for an inverse pattern. Inverse patterns,
        * are patterns having identical body but inverse sense in the head. For the inverse
@@ -322,7 +316,7 @@ final class SupervisionGraph private (
               val (headLiteral, bodyLiterals) = c.literals.partition(_.sentence.signature == querySignature)
               headLiteral.head.positive != node.isPositive && Clause(bodyLiterals) =~= nodeBody
           } match {
-            case Some((_, inversePatternFreq)) if !filterOut(nodeFrequency, inversePatternFreq) => result :+ node
+            case Some((_, inversePatternFreq)) if !HoeffdingFilter(nodeFrequency, inversePatternFreq) => result :+ node
             case None => result :+ node
             case _ => result
           }
@@ -338,7 +332,6 @@ final class SupervisionGraph private (
         metric ++ mln.evidence ++ nodes.map(_.atoms),
         annotationBuilder,
         updatedNodeCache,
-        hoeffding,
         cluster)
     }
   }
@@ -561,7 +554,6 @@ object SupervisionGraph extends LazyLogging {
       querySignature: AtomSignature,
       connector: GraphConnector,
       metric: Metric[_ <: AtomicFormula],
-      hoeffding: Boolean,
       cluster: Boolean): SupervisionGraph = {
 
     // Group the given data into nodes
@@ -636,7 +628,6 @@ object SupervisionGraph extends LazyLogging {
       metric ++ mln.evidence ++ nodes.map(_.atoms),
       annotationBuilder,
       nodeCache,
-      hoeffding,
       cluster
     )
   }

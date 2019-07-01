@@ -65,9 +65,6 @@ object SemiSupervisionCLI extends CLIApp {
   // By default do not compress results
   private var _compressResults: Boolean = false
 
-  // By default use Hoeffding filtering
-  private var _filter: FilterType = FilterType.Hoeffding
-
   // By default run using harmonic graph cut
   private var _solver: GraphSolverType = HGC
 
@@ -130,15 +127,6 @@ object SemiSupervisionCLI extends CLIApp {
         case "hgc" => _solver = HGC
         case "tlp" => _solver = TLP
         case _     => logger.fatal(s"Unknown solver of type '$v'.")
-      }
-  })
-
-  opt("f", "filter", "<simple | hoeffding>", "Specify a filter for noisy examples (default is hoeffding).", {
-    v: String =>
-      v.trim.toLowerCase match {
-        case "simple"    => _filter = FilterType.Simple
-        case "hoeffding" => _filter = FilterType.Hoeffding
-        case _           => logger.fatal(s"Unknown solver of type '$v'.")
       }
   })
 
@@ -284,6 +272,15 @@ object SemiSupervisionCLI extends CLIApp {
       else if (_distance == DistanceType.AtomConst) AtomConstMetric(HungarianMatcher)
       else EvidenceMetric(modes, HungarianMatcher)
 
+    val clusterTag = if (_solver == TLP) "no.cluster" else if (_cluster) "clustered" else "no.cluster"
+    val memoryTag = if (_solver == TLP) s".m${_memory}" else ""
+    val defaultName = s"$connector.$clusterTag.${_distance}.${_solver}$memoryTag"
+
+    val resultName = _resultsFileName match {
+      case Some(path) => new File(path).getName.reverse.dropWhile(_ != '.').reverse
+      case None => defaultName
+    }
+
     val start = System.currentTimeMillis
 
     for (step <- strTrainingFileNames.indices) {
@@ -329,10 +326,10 @@ object SemiSupervisionCLI extends CLIApp {
             supervisionGraphs += querySignature -> Right(graph.right.get ++ (mln, annotationDB, modes))
           case None if _solver == TLP =>
             supervisionGraphs += querySignature ->
-              Right(StreamingGraph(mln, modes, annotationDB, querySignature, connector, distance, _memory, _filter == FilterType.Hoeffding))
+              Right(StreamingGraph(mln, modes, annotationDB, querySignature, connector, distance, _memory))
           case _ =>
             supervisionGraphs += querySignature ->
-              Left(SupervisionGraph(mln, modes, annotationDB, querySignature, connector, distance, _filter == FilterType.Hoeffding, _cluster))
+              Left(SupervisionGraph(mln, modes, annotationDB, querySignature, connector, distance, _cluster))
         }
       }
 
@@ -396,11 +393,9 @@ object SemiSupervisionCLI extends CLIApp {
       /*
        * OK, lets store the resulted completed supervision
        */
-      val clusterTag = if (_solver == TLP) "no.cluster" else if (_cluster) "clustered" else "no.cluster"
-      val memoryTag = if (_solver == TLP) s".m${_memory}" else ""
       if (_compressResults) {
         val compressedOutput = new PrintStream(
-          new FileOutputStream(s"${currentTrainingFile.getParentFile.getParent}/$connector.$clusterTag.${_distance}.${_filter}.${_solver}$memoryTag.db", true))
+          new FileOutputStream(s"${currentTrainingFile.getParentFile.getParent}/$resultName.db", true))
         compressedOutput.println {
           s"""
              |Step ${step + 1} / ${strTrainingFileNames.length}:
@@ -409,7 +404,7 @@ object SemiSupervisionCLI extends CLIApp {
         }
         outputCompletedResults(compressedOutput)
       } else {
-        val resultsFolder = new File(s"${currentTrainingFile.getParentFile.getParent}/$connector.$clusterTag.${_distance}.${_filter}.${_solver}$memoryTag")
+        val resultsFolder = new File(s"${currentTrainingFile.getParentFile.getParent}/$resultName")
         resultsFolder.mkdirs
 
         val completedBatch = new PrintStream(resultsFolder.getCanonicalPath + "/" + currentTrainingFile.getName)

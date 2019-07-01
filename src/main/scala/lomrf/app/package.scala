@@ -91,16 +91,4 @@ package object app {
     case object HybridTree extends DistanceType("hybrid.tree")
     case object HybridTree2 extends DistanceType("hybrid.tree2")
   }
-
-  sealed class FilterType(override val entryName: String) extends EnumEntry {
-    override def toString: String = entryName
-  }
-
-  object FilterType extends Enum[DistanceType] {
-
-    val values: immutable.IndexedSeq[DistanceType] = findValues
-
-    case object Simple extends FilterType("simple")
-    case object Hoeffding extends FilterType("hoeffding")
-  }
 }

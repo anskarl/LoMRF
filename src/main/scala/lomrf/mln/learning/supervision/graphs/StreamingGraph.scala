@@ -38,8 +38,7 @@ final class StreamingGraph private (
     supervisionBuilder: EvidenceBuilder,
     adjacencyMatrix: AdjacencyMatrix,
     memory: Int,
-    nodeCache: Set[(Clause, Long)] = Set.empty,
-    hoeffding: Boolean) extends LazyLogging {
+    nodeCache: Set[(Clause, Long)] = Set.empty) extends LazyLogging {
 
   private var W = adjacencyMatrix
 
@@ -204,8 +203,6 @@ final class StreamingGraph private (
     labeledEvidenceAtoms.toSet
   }
 
-  private def SimpleFilter(x: Double, y: Double): Boolean = x < y
-
   private def HoeffdingFilter(x: Double, y: Double): Boolean = {
     val N = x + y
     val fx = x / N
@@ -263,8 +260,7 @@ final class StreamingGraph private (
         annotationBuilder,
         W.copy, // copy avoids memory leak
         memory,
-        nodeCache,
-        hoeffding)
+        nodeCache)
     else {
 
       val startCacheUpdate = System.currentTimeMillis
@@ -296,8 +292,6 @@ final class StreamingGraph private (
 
       //updatedNodeCache.foreach { case (clause, freq) => logger.info(s"${clause.toText()} -> $freq") }
 
-      val filter = if (hoeffding) HoeffdingFilter _ else SimpleFilter _
-
       /*
        * For each unique labeled node, search for an inverse pattern. Inverse patterns,
        * are patterns having identical body but inverse sense in the head. For the inverse
@@ -319,7 +313,7 @@ final class StreamingGraph private (
               val (headLiteral, bodyLiterals) = c.literals.partition(_.sentence.signature == querySignature)
               headLiteral.head.positive != node.isPositive && Clause(bodyLiterals) =~= nodeBody
           } match {
-            case Some((_, inversePatternFreq)) if !filter(nodeFrequency, inversePatternFreq) => result :+ node
+            case Some((_, inversePatternFreq)) if !HoeffdingFilter(nodeFrequency, inversePatternFreq) => result :+ node
             case None => result :+ node
             case _ =>
               //logger.error(s"Removing ${node.clause.get.toText()}")
@@ -342,8 +336,7 @@ final class StreamingGraph private (
         annotationBuilder,
         W.copy,
         memory,
-        updatedNodeCache,
-        hoeffding)
+        updatedNodeCache)
     }
   }
 }
@@ -357,8 +350,7 @@ object StreamingGraph extends LazyLogging {
       querySignature: AtomSignature,
       connector: GraphConnector,
       metric: Metric[_ <: AtomicFormula],
-      memory: Int,
-      hoeffding: Boolean): StreamingGraph = {
+      memory: Int): StreamingGraph = {
 
     // Group the given data into nodes
     val nodes = SupervisionGraph.partition(mln, modes, annotationDB, querySignature, cluster = false)
@@ -427,8 +419,7 @@ object StreamingGraph extends LazyLogging {
       annotationBuilder,
       DenseMatrix.zeros[Double](2, 2), // One entry for each labeled/unlabeled cluster of nodes
       memory,
-      nodeCache,
-      hoeffding
+      nodeCache
     )
   }
 }
