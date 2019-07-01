@@ -21,56 +21,168 @@
 package lomrf.mln.learning.supervision.graph
 
 import lomrf.logic._
-import lomrf.mln.learning.supervision.graph.caching.{ FastNodeCache, NodeCache, NodeHashSet }
-import lomrf.mln.model.builders.EvidenceBuilder
-import lomrf.util.time._
-import lomrf.mln.learning.supervision.metric.Metric
-import lomrf.mln.model.{ Evidence, EvidenceDB, MLN, ModeDeclarations }
 import lomrf.util.logging.Implicits._
+import breeze.linalg.DenseVector
+import com.typesafe.scalalogging.LazyLogging
+import lomrf.mln.learning.supervision.graph.caching.{ FastNodeCache, NodeCache, NodeHashSet }
+import lomrf.mln.learning.supervision.metric._
+import lomrf.mln.model._
+import lomrf.util.time._
 import lomrf.{ AUX_PRED_PREFIX => PREFIX }
 import scala.util.{ Failure, Success }
-import com.typesafe.scalalogging.LazyLogging
+import scala.language.existentials
 
-abstract class SupervisionGraph(
+/**
+  * Supervision graph represents a graph having nodes for a given query signature. These
+  * nodes contain a single ground query atom and a sequence of evidence atoms sharing
+  * constants to the corresponding query atom. Nodes can be either labeled (the ground query
+  * atom is TRUE or FALSE) or unlabeled. The graph is connected using a specified connector
+  * strategy and can be solved in order to label the unlabeled ground query atoms.
+  *
+  * @see [[lomrf.mln.learning.supervision.graph.Node]]
+  *      [[lomrf.mln.learning.supervision.metric.Matcher]]
+  * @param nodes an indexed sequence of nodes. Labeled nodes appear before unlabelled
+  * @param querySignature the query signature of interest
+  * @param connector a graph connector
+  * @param metric a metric for atomic formula
+  * @param supervisionBuilder a supervision evidence builder that contains the completed annotation
+  * @param nodeCache a cache for frequent patterns
+  */
+final class SPLICE private (
     nodes: IndexedSeq[Node],
     querySignature: AtomSignature,
     connector: GraphConnector,
     metric: Metric[_ <: AtomicFormula],
     supervisionBuilder: EvidenceBuilder,
-    nodeCache: NodeCache) extends LazyLogging {
+    nodeCache: NodeCache,
+    cluster: Boolean) extends LazyLogging {
 
-  protected val (labeledNodes, unlabeledNodes) = nodes.partition(_.isLabeled)
+  private val (labeledNodes, unlabeledNodes) = nodes.partition(_.isLabeled)
 
-  lazy val numberOfNodes: Int = nodes.length
-  lazy val numberOfLabeled: Int = labeledNodes.length
-  lazy val numberOfUnlabeled: Int = unlabeledNodes.length
+  val numberOfNodes: Int = nodes.length
+  val numberOfLabeled: Int = labeledNodes.length
+  val numberOfUnlabeled: Int = unlabeledNodes.length
 
   /**
-    * @param potentials potentials for nodes
     * @return a set of labeled query atoms along the fully labeled
     *         annotation database.
     */
-  def completeSupervision(potentials: Map[EvidenceAtom, Double] = Map.empty): (Set[EvidenceAtom], Evidence) = {
+  def completeSupervisionGraphCut: (Set[EvidenceAtom], Evidence) = {
     if (unlabeledNodes.isEmpty) {
-      logger.warn("No unlabeled nodes found!")
+      logger.warn("No unlabeled query atoms found!")
       (Set.empty[EvidenceAtom], supervisionBuilder.result())
     } else if (labeledNodes.isEmpty) {
-      logger.warn("No labeled nodes found. Set all unlabeled nodes to FALSE due to close world assumption!")
-      val unlabeledAtoms = unlabeledNodes.head.labelUsingValue(FALSE).toSet
+      logger.warn("No labeled query atoms found. Set all unlabeled to FALSE due to close world assumption!")
+      val unlabeledAtoms = unlabeledNodes.map { node =>
+        EvidenceAtom.asFalse(node.query.symbol, node.query.terms)
+      }.toSet
       supervisionBuilder.evidence ++= unlabeledAtoms
       (unlabeledAtoms, supervisionBuilder.result())
-    } else {
-      val completedAtoms = optimize(potentials)
-      supervisionBuilder.evidence ++= completedAtoms
-      (completedAtoms, supervisionBuilder.result())
-    }
+    } else (graphCut, supervisionBuilder.result())
   }
 
   /**
-    * @param potentials potentials for nodes
-    * @return a set of complete evidence atoms.
+    * @return a set of labeled query atoms along the fully labeled
+    *         annotation database.
     */
-  protected def optimize(potentials: Map[EvidenceAtom, Double]): Set[EvidenceAtom]
+  def completeSupervisionNN: (Set[EvidenceAtom], Evidence) = {
+    if (unlabeledNodes.isEmpty) {
+      logger.warn("No unlabeled query atoms found!")
+      (Set.empty[EvidenceAtom], supervisionBuilder.result())
+    } else if (labeledNodes.isEmpty) {
+      logger.warn("No labeled query atoms found. Set all unlabeled to FALSE due to close world assumption!")
+      val unlabeledAtoms = unlabeledNodes.map { node =>
+        EvidenceAtom.asFalse(node.query.symbol, node.query.terms)
+      }.toSet
+      supervisionBuilder.evidence ++= unlabeledAtoms
+      (unlabeledAtoms, supervisionBuilder.result())
+    } else (nearestNeighbor, supervisionBuilder.result())
+  }
+
+  private def nearestNeighbor: Set[EvidenceAtom] = {
+
+    logger.info(
+      s"Supervision graph has $numberOfNodes nodes. Nodes have varying size sequences " +
+        s"of evidence atoms [${nodes.map(_.size).distinct.mkString(", ")}].\n" +
+        s"\t\t- Labeled Nodes: $numberOfLabeled\n" +
+        s"\t\t- Unlabeled Nodes: $numberOfUnlabeled\n" +
+        s"\t\t- Query Signature: $querySignature"
+    )
+
+    val startGraphConnection = System.currentTimeMillis
+    val W = connector.connect(unlabeledNodes, labeledNodes)(metric)
+    logger.info(msecTimeToTextUntilNow(s"Graph connected in: ", startGraphConnection))
+
+    val startSolution = System.currentTimeMillis
+
+    val labeledEvidenceAtoms = unlabeledNodes.zipWithIndex.flatMap {
+      case (node, i) =>
+
+        val nearest = W(i, ::).inner.toArray.zipWithIndex
+          .withFilter { case (v, _) => v != UNCONNECTED }
+          .map {
+            case (v, j) =>
+              val freq = nodeCache.getOrElse(labeledNodes(j), logger.fatal(s"Pattern ${labeledNodes(j).clause.get.toText()} not found."))
+              v -> (labeledNodes(j).isPositive, freq)
+          }
+
+        val (positive, negative) = nearest.partition { case (_, (tv, _)) => tv }
+
+        val value =
+          if (nearest.length == 0) false
+          else if (positive.map(_._2._2).sum > negative.map(_._2._2).sum) true
+          else if (negative.map(_._2._2).sum > positive.map(_._2._2).sum) false
+          else nearest.maxBy { case (v, _) => v }._2._1
+
+        node.labelUsingValue(value)
+    }
+
+    logger.info(msecTimeToTextUntilNow(s"Labeling solution found in: ", startSolution))
+
+    supervisionBuilder.evidence ++= labeledEvidenceAtoms
+    labeledEvidenceAtoms.toSet
+  }
+
+  private def graphCut: Set[EvidenceAtom] = {
+
+    logger.info(
+      s"Supervision graph has $numberOfNodes nodes. Nodes have varying size sequences " +
+        s"of evidence atoms [${nodes.map(_.size).distinct.mkString(", ")}].\n" +
+        s"\t\t- Labeled Nodes: $numberOfLabeled\n" +
+        s"\t\t- Unlabeled Nodes: $numberOfUnlabeled\n" +
+        s"\t\t- Query Signature: $querySignature"
+    )
+
+    val startGraphConnection = System.currentTimeMillis
+    val encodedGraph = connector.connect(nodes, labeledNodes, unlabeledNodes)(metric)
+    val W = encodedGraph._1
+    val D = encodedGraph._2
+    logger.info(msecTimeToTextUntilNow(s"Graph connected in: ", startGraphConnection))
+
+    val startSolution = System.currentTimeMillis
+
+    // Vector holding the labeled values
+    val fl = DenseVector(labeledNodes.map(_.value).toArray)
+
+    val solution = GraphOps.HFc(W, D, fl).toArray
+    val truthValues = solution.map(value => if (value <= UNCONNECTED) FALSE else TRUE)
+
+    logger.info(msecTimeToTextUntilNow(s"Labeling solution found in: ", startSolution))
+
+    logger.whenDebugEnabled {
+      logger.debug {
+        (unlabeledNodes.map(_.query) zip solution)
+          .map { case (atom, state) => s"$atom = $state" }.mkString("\n")
+      }
+    }
+
+    val labeledEvidenceAtoms = unlabeledNodes.zip(truthValues).flatMap {
+      case (node, value) => node.labelUsingValue(value)
+    }
+
+    supervisionBuilder.evidence ++= labeledEvidenceAtoms
+    labeledEvidenceAtoms.toSet
+  }
 
   /**
     * Extends this supervision graph to include nodes produced by a given MLN and
@@ -89,10 +201,91 @@ abstract class SupervisionGraph(
     * @return a supervision graph having only the labeled nodes of this one
     *         and all nodes produced by the given MLN and annotation database
     */
-  def ++(mln: MLN, annotationDB: EvidenceDB, modes: ModeDeclarations): SupervisionGraph
+  def ++(mln: MLN, annotationDB: EvidenceDB, modes: ModeDeclarations): SPLICE = {
+
+    // Group the given data into nodes, using the domains of the existing graph
+    val currentNodes = connector match {
+      case _: kNNTemporalConnector | _: eNNTemporalConnector =>
+        SPLICE.partition(mln, modes, annotationDB, querySignature, clusterUnlabeled = false)
+      case _ =>
+        if (cluster) SPLICE.partition(mln, modes, annotationDB, querySignature)
+        else SPLICE.partition(mln, modes, annotationDB, querySignature, clusterUnlabeled = false)
+    }
+
+    // Partition nodes into labeled and unlabeled. Then find empty unlabeled nodes.
+    val (labeled, unlabeled) = currentNodes.partition(_.isLabeled)
+    val (nonEmptyUnlabeled, emptyUnlabeled) = unlabeled.partition(_.nonEmpty)
+
+    // Labeled query atoms and empty unlabeled query atoms as FALSE.
+    val labeledEntries =
+      labeled.map(_.query) ++ emptyUnlabeled.flatMap(_.labelUsingValue(FALSE))
+
+    if (emptyUnlabeled.nonEmpty)
+      logger.warn(s"Found ${emptyUnlabeled.length} empty unlabeled nodes. Set them to FALSE.")
+
+    /*
+     * Create an annotation builder and append every query atom that is TRUE or FALSE,
+     * or every UNKNOWN query atom that has no evidence atoms, everything else
+     * should be labeled by the supervision graph.
+     */
+    val annotationBuilder =
+      EvidenceBuilder(
+        mln.schema.predicates.filter { case (sig, _) => sig == querySignature },
+        Set(querySignature),
+        Set.empty,
+        mln.evidence.constants
+      ).withCWAForAll().evidence ++= labeledEntries
+
+    /*
+     * In case no labeled nodes exist in the given data, then reuse the old ones. In any other
+     * case try to separate old labeled nodes that are dissimilar to the ones in the current batch
+     * of data (the current supervision graph). Moreover remove noisy nodes using the Hoeffding bound.
+     */
+    if (labeled.isEmpty)
+      new SPLICE(
+        nodes.takeWhile(_.isLabeled) ++ nonEmptyUnlabeled,
+        querySignature,
+        connector,
+        metric ++ mln.evidence ++ nodes.map(_.atoms),
+        annotationBuilder,
+        nodeCache,
+        cluster)
+    else {
+      /*
+       * Update the cache using only non empty labeled nodes, i.e., nodes having at least
+       * one evidence predicate in their body
+       *
+       * Cache stores only unique nodes (patterns) along their counts.
+       */
+      val startCacheUpdate = System.currentTimeMillis
+
+      var updatedNodeCache = nodeCache
+      updatedNodeCache ++= labeled.filter(_.nonEmpty)
+      val cleanedUniqueLabeled = updatedNodeCache.collectNodes
+
+      logger.info(msecTimeToTextUntilNow(s"Cache updated in: ", startCacheUpdate))
+      logger.info(s"${cleanedUniqueLabeled.length}/${labeledNodes.length + labeled.length} unique labeled nodes kept.")
+      logger.debug(updatedNodeCache.toString)
+
+      // Labeled nodes MUST appear before unlabeled!
+      new SPLICE(
+        cleanedUniqueLabeled ++ nonEmptyUnlabeled,
+        querySignature,
+        connector,
+        metric ++ mln.evidence ++ nodes.map(_.atoms),
+        annotationBuilder,
+        updatedNodeCache,
+        cluster)
+    }
+  }
 }
 
-object SupervisionGraph extends LazyLogging {
+/**
+  * Supervision graph object enables the construction of various types of supervision
+  * graphs given an MLN, an annotation database, a query atom signature of interest and
+  * a list of domains to group the data.
+  */
+object SPLICE extends LazyLogging {
 
   /**
     * Partitions the given evidence database into nodes according to a given list of domains. The
@@ -281,19 +474,37 @@ object SupervisionGraph extends LazyLogging {
     nodes ++ clusterSet.collectNodes
   }
 
-  def nearestNeighbor(
+  /**
+    * Constructs a supervision graph. The nodes are constructed given an MLN, an annotation database,
+    * a query signature and optionally a list of domains to group by. Moreover, a connector and a matcher
+    * are required in order to be able to label the unlabeled ground query atoms.
+    *
+    * @see [[lomrf.mln.learning.structure.ModeDeclaration]]
+    *
+    * @param mln an MLN
+    * @param modes mode declarations
+    * @param annotationDB an annotation database
+    * @param querySignature the query signature of interest
+    * @param connector a graph connector
+    * @param metric a metric for atomic formula
+    * @return a supervision graph instance
+    */
+  def apply(
       mln: MLN,
       modes: ModeDeclarations,
       annotationDB: EvidenceDB,
       querySignature: AtomSignature,
       connector: GraphConnector,
-      metric: Metric[_ <: AtomicFormula]): Unit = {
+      metric: Metric[_ <: AtomicFormula],
+      cluster: Boolean): SPLICE = {
 
     // Group the given data into nodes
     val nodes = connector match {
       case _: kNNTemporalConnector | _: eNNTemporalConnector =>
         partition(mln, modes, annotationDB, querySignature, clusterUnlabeled = false)
-      case _ => partition(mln, modes, annotationDB, querySignature)
+      case _ =>
+        if (cluster) partition(mln, modes, annotationDB, querySignature)
+        else partition(mln, modes, annotationDB, querySignature, clusterUnlabeled = false)
     }
 
     // Partition nodes into labeled and unlabeled. Then find empty unlabeled nodes.
@@ -335,13 +546,14 @@ object SupervisionGraph extends LazyLogging {
         mln.evidence.constants
       ).withCWAForAll().evidence ++= labeledEntries
 
-    /*new NNGraph(
+    new SPLICE(
       uniqueLabeled ++ nonEmptyUnlabeled,
       querySignature,
       connector,
       metric ++ mln.evidence ++ nodes.map(_.atoms),
       annotationBuilder,
-      nodeCache
-    )*/
+      nodeCache,
+      cluster
+    )
   }
 }

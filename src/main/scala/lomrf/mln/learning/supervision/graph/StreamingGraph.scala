@@ -63,7 +63,6 @@ final class StreamingGraph private (
 
     //currentUnlabeledNodes.map(_.body.get).foreach(c => println(c.toText()))
 
-    val allLabeled = storedLabeled
     val unlabeledNodes = currentUnlabeledNodes
     //val allUnlabeled = storedUnlabeled ++ unlabeledNodes
 
@@ -79,11 +78,11 @@ final class StreamingGraph private (
     for (i <- unlabeledNodes.indices) {
       val x = unlabeledNodes(i)
       val idx = i + (2 + storedUnlabeled.length)
-      val neighborCosts = DenseVector.zeros[Double](allLabeled.length)
+      val neighborCosts = DenseVector.zeros[Double](storedLabeled.length)
 
       // connect to labeled nodes cluster (0 and 1)
-      for (j <- allLabeled.indices) {
-        val y = allLabeled(j)
+      for (j <- storedLabeled.indices) {
+        val y = storedLabeled(j)
         val s = 1 - {
           metric match {
             case m: EvidenceMetric        => m.distance(x.evidence, y.evidence)
@@ -97,7 +96,7 @@ final class StreamingGraph private (
       // select the best labelled neighbors before adding the parallel edges
       val sparse = connector.sparse(neighborCosts)
 
-      allLabeled.zip(sparse.toArray).foreach {
+      storedLabeled.zip(sparse.toArray).foreach {
         case (n, s) =>
           if (n.isNegative) {
             W(idx, 0) += s
@@ -207,17 +206,10 @@ final class StreamingGraph private (
     labeledEvidenceAtoms.toSet
   }
 
-  private def HoeffdingFilter(x: Double, y: Double): Boolean = {
-    val N = x + y
-    val fx = x / N
-    val fy = y / N
-    HoeffdingBound(fx, fy, N.toLong) && x < y
-  }
-
   def ++(mln: MLN, annotationDB: EvidenceDB, modes: ModeDeclarations): StreamingGraph = {
 
     // Group the given data into nodes, using the domains of the existing graph
-    val currentNodes = SupervisionGraph.partition(mln, modes, annotationDB, querySignature, clusterUnlabeled = false)
+    val currentNodes = SPLICE.partition(mln, modes, annotationDB, querySignature, clusterUnlabeled = false)
 
     // Partition nodes into labeled and unlabeled. Then find empty unlabeled nodes.
     val (labeled, unlabeled) = currentNodes.partition(_.isLabeled)
@@ -310,7 +302,7 @@ object StreamingGraph extends LazyLogging {
       memory: Int): StreamingGraph = {
 
     // Group the given data into nodes
-    val nodes = SupervisionGraph.partition(mln, modes, annotationDB, querySignature, clusterUnlabeled = false)
+    val nodes = SPLICE.partition(mln, modes, annotationDB, querySignature, clusterUnlabeled = false)
 
     // Partition nodes into labeled and unlabeled. Then find empty unlabeled nodes.
     val (labeledNodes, unlabeledNodes) = nodes.partition(_.isLabeled)

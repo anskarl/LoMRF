@@ -236,7 +236,7 @@ object SemiSupervisionCLI extends CLIApp {
 
     // Init all statistics values to zero
     var actualPositive, actualNegative, positiveFound, negativeFound = 0
-    var supervisionGraphs = Map.empty[AtomSignature, Either[SupervisionGraph, StreamingGraph]]
+    var supervisionGraphs = Map.empty[AtomSignature, Either[SPLICE, StreamingGraph]]
     var stats = Evaluate.empty
 
     // Create a knowledge base and convert all functions
@@ -329,7 +329,7 @@ object SemiSupervisionCLI extends CLIApp {
               Right(StreamingGraph(mln, modes, annotationDB, querySignature, connector, distance, _memory))
           case _ =>
             supervisionGraphs += querySignature ->
-              Left(SupervisionGraph(mln, modes, annotationDB, querySignature, connector, distance, _cluster))
+              Left(SPLICE(mln, modes, annotationDB, querySignature, connector, distance, _cluster))
         }
       }
 
