@@ -155,7 +155,7 @@ final class SupervisionGraph private (
     )
 
     val startGraphConnection = System.currentTimeMillis
-    val encodedGraph = connector.connect(nodes)(metric)
+    val encodedGraph = connector.connect(nodes, labeledNodes, unlabeledNodes)(metric)
     val W = encodedGraph._1
     val D = encodedGraph._2
     logger.info(msecTimeToTextUntilNow(s"Graph connected in: ", startGraphConnection))

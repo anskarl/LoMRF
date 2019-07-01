@@ -66,7 +66,37 @@ trait GraphConnector {
     * @param metric a metric for atomic formula
     * @return the adjacency and degree matrix of the resulted graph
     */
-  def connect(nodes: IndexedSeq[Node])(metric: Metric[_ <: AtomicFormula]): EncodedGraph = {
+  def connect(nodes: IndexedSeq[Node], labeled: IndexedSeq[Node], unlabeled: IndexedSeq[Node])(metric: Metric[_ <: AtomicFormula]): EncodedGraph = {
+    val numberOfNodes = nodes.length
+    val parallelIndices = nodes.indices.par
+    val L = labeled.length
+
+    val W = DenseMatrix.fill[Double](numberOfNodes, numberOfNodes)(UNCONNECTED)
+    val D = DenseMatrix.zeros[Double](numberOfNodes, numberOfNodes)
+
+    for (ii <- unlabeled.indices) {
+      val i = ii + L
+      for (j <- parallelIndices if i != j) { // A node cannot be connected to itself
+
+        // W is symmetric and therefore avoid computing both upper and lower triangular
+        if (j < L) {
+          W(i, j) = connect(nodes(i), nodes(j))(metric)
+          W(j, i) = W(i, j)
+        } else {
+          if (i > j) W(i, j) = W(j, i)
+          else W(i, j) = connect(nodes(i), nodes(j))(metric)
+        }
+      }
+    }
+
+    for (i <- parallelIndices) {
+      W(i, ::).inner := sparse(W(i, ::).inner, L)
+      D(i, i) = sum(W(i, ::))
+    }
+
+    W -> D // return the final encoded graph
+  }
+  /*def connect(nodes: IndexedSeq[Node])(metric: Metric[_ <: AtomicFormula]): EncodedGraph = {
     val numberOfNodes = nodes.length
     val parallelIndices = nodes.indices.par
     val L = nodes.count(_.isLabeled)
@@ -82,8 +112,6 @@ trait GraphConnector {
         if (i > j) neighborCosts(j) = W(j, i)
         else neighborCosts(j) = connect(nodes(i), nodes(j))(metric)
       }
-
-      W(i, ::).inner := neighborCosts
     }
 
     for (i <- parallelIndices) {
@@ -92,7 +120,7 @@ trait GraphConnector {
     }
 
     W -> D // return the final encoded graph
-  }
+  }*/
 
   /**
     * Connect a bi-graph using the given sequences of nodes.
