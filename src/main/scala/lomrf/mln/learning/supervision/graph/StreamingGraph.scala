@@ -57,6 +57,8 @@ final class StreamingGraph private (
         s"\t\t- Query Signature: $querySignature"
     )
 
+    val startGraphConnection = System.currentTimeMillis
+
     //storedLabeled.map(_.clause.get.toText()).foreach(println)
 
     //currentUnlabeledNodes.map(_.body.get).foreach(c => println(c.toText()))
@@ -172,6 +174,8 @@ final class StreamingGraph private (
     for (i <- 0 until W.rows) {
       D(i, i) = sum(W(i, ::))
     }
+
+    logger.info(msecTimeToTextUntilNow(s"Graph connected in: ", startGraphConnection))
 
     //println("Degree matrix:\n" + D + "\n")
 
@@ -307,8 +311,6 @@ object StreamingGraph extends LazyLogging {
 
     // Group the given data into nodes
     val nodes = SupervisionGraph.partition(mln, modes, annotationDB, querySignature, clusterUnlabeled = false)
-
-    logger.info("Constructing supervision graph.")
 
     // Partition nodes into labeled and unlabeled. Then find empty unlabeled nodes.
     val (labeledNodes, unlabeledNodes) = nodes.partition(_.isLabeled)
