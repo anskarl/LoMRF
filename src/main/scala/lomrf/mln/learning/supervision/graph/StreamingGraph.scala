@@ -18,12 +18,12 @@
  *
  */
 
-package lomrf.mln.learning.supervision.graphs
+package lomrf.mln.learning.supervision.graph
 
 import breeze.linalg.{ Axis, DenseMatrix, DenseVector, sum }
-import lomrf.util.logging.Implicits._
 import com.typesafe.scalalogging.LazyLogging
-import lomrf.logic.{ AtomSignature, AtomicFormula, Clause, EvidenceAtom, FALSE, TRUE }
+import lomrf.logic.{ AtomSignature, AtomicFormula, EvidenceAtom, FALSE, TRUE }
+import lomrf.mln.learning.supervision.graph.caching.{ FastNodeCache, NodeCache }
 import lomrf.mln.learning.supervision.metric.{ EvidenceMetric, Metric }
 import lomrf.mln.model.{ Evidence, EvidenceBuilder, EvidenceDB, MLN, ModeDeclarations }
 import lomrf.util.time.msecTimeToTextUntilNow
@@ -38,7 +38,7 @@ final class StreamingGraph private (
     supervisionBuilder: EvidenceBuilder,
     adjacencyMatrix: AdjacencyMatrix,
     memory: Int,
-    nodeCache: Set[(Clause, Long)] = Set.empty) extends LazyLogging {
+    nodeCache: NodeCache) extends LazyLogging {
 
   private var W = adjacencyMatrix
 
@@ -213,7 +213,7 @@ final class StreamingGraph private (
   def ++(mln: MLN, annotationDB: EvidenceDB, modes: ModeDeclarations): StreamingGraph = {
 
     // Group the given data into nodes, using the domains of the existing graph
-    val currentNodes = SupervisionGraph.partition(mln, modes, annotationDB, querySignature, cluster = false)
+    val currentNodes = SupervisionGraph.partition(mln, modes, annotationDB, querySignature, clusterUnlabeled = false)
 
     // Partition nodes into labeled and unlabeled. Then find empty unlabeled nodes.
     val (labeled, unlabeled) = currentNodes.partition(_.isLabeled)
@@ -262,68 +262,21 @@ final class StreamingGraph private (
         memory,
         nodeCache)
     else {
-
+      /*
+       * Update the cache using only non empty labeled nodes, i.e., nodes having at least
+       * one evidence predicate in their body
+       *
+       * Cache stores only unique nodes (patterns) along their counts.
+       */
       val startCacheUpdate = System.currentTimeMillis
 
-      /*
-       * Update the cache using only non empty labeled nodes, i.e., nodes having at least one
-       * evidence predicate. Keep only unique pattern. Moreover, update the pattern frequencies
-       * present in the cache accordingly.
-       */
-      val (uniqueLabeled, updatedNodeCache) =
-        labeled.filter(_.nonEmpty).foldLeft(storedLabeled -> nodeCache) {
-          case ((unique, cache), node) =>
-
-            val pattern = node.clause.getOrElse(logger.fatal("Cannot construct a pattern!"))
-
-            if (!unique.flatMap(_.clause).exists(_ =~= pattern))
-              cache.find { case (c, _) => c =~= pattern } match {
-                case Some(entry @ (_, frequency)) => (unique :+ node, (cache - entry) + (pattern -> (frequency + 1)))
-                case None                         => (unique :+ node, cache + (pattern -> 1))
-              }
-            else cache.find { case (c, _) => c =~= pattern } match {
-              case Some(entry @ (_, frequency)) => (unique, (cache - entry) + (pattern -> (frequency + 1)))
-              case None =>
-                logger.fatal(s"Pattern ${pattern.toText()} is not unique, but it does not exist in the frequency set.")
-            }
-        }
-
-      //logger.info(s"${uniqueLabeled.length}/${storedLabeled.length + labeled.length} unique labeled nodes kept.")
-
-      //updatedNodeCache.foreach { case (clause, freq) => logger.info(s"${clause.toText()} -> $freq") }
-
-      /*
-       * For each unique labeled node, search for an inverse pattern. Inverse patterns,
-       * are patterns having identical body but inverse sense in the head. For the inverse
-       * pattern and the current node test the Hoeffding bound in order to remove the noisy node.
-       */
-      val cleanedUniqueLabeled = uniqueLabeled.foldLeft(IndexedSeq.empty[Node]) {
-        case (result, node) =>
-
-          val nodeBody = node.body.getOrElse(logger.fatal("Cannot construct a pattern!"))
-          val nodeClause = node.clause.getOrElse(logger.fatal("Cannot construct a pattern!"))
-
-          val nodeFrequency = updatedNodeCache.find { case (c, _) => c =~= nodeClause } match {
-            case Some((_, freq)) => freq
-            case None            => logger.fatal(s"Pattern ${nodeClause.toText()} does not exist in the frequency set.")
-          }
-
-          updatedNodeCache.find {
-            case (c, _) =>
-              val (headLiteral, bodyLiterals) = c.literals.partition(_.sentence.signature == querySignature)
-              headLiteral.head.positive != node.isPositive && Clause(bodyLiterals) =~= nodeBody
-          } match {
-            case Some((_, inversePatternFreq)) if !HoeffdingFilter(nodeFrequency, inversePatternFreq) => result :+ node
-            case None => result :+ node
-            case _ =>
-              //logger.error(s"Removing ${node.clause.get.toText()}")
-              result
-          }
-      }
+      var updatedNodeCache = nodeCache
+      updatedNodeCache ++= labeled.filter(_.nonEmpty)
+      val cleanedUniqueLabeled = updatedNodeCache.collectNodes
 
       logger.info(msecTimeToTextUntilNow(s"Cache updated in: ", startCacheUpdate))
-
-      //cleanedUniqueLabeled.map(_.clause.get.toText()).foreach(println)
+      logger.info(s"${cleanedUniqueLabeled.length}/${storedLabeled.length + labeled.length} unique labeled nodes kept.")
+      logger.debug(updatedNodeCache.toString)
 
       // Labeled nodes MUST appear before unlabeled!
       new StreamingGraph(
@@ -353,7 +306,7 @@ object StreamingGraph extends LazyLogging {
       memory: Int): StreamingGraph = {
 
     // Group the given data into nodes
-    val nodes = SupervisionGraph.partition(mln, modes, annotationDB, querySignature, cluster = false)
+    val nodes = SupervisionGraph.partition(mln, modes, annotationDB, querySignature, clusterUnlabeled = false)
 
     logger.info("Constructing supervision graph.")
 
@@ -361,33 +314,20 @@ object StreamingGraph extends LazyLogging {
     val (labeledNodes, unlabeledNodes) = nodes.partition(_.isLabeled)
     val (nonEmptyUnlabeled, emptyUnlabeled) = unlabeledNodes.partition(_.nonEmpty)
 
-    val startCacheConstruction = System.currentTimeMillis
-
     /*
      * Create a cache using only non empty labeled nodes, i.e., nodes having at least
-     * one evidence predicate. Keep only unique patterns in the cache along their frequencies.
+     * one evidence predicate in their body.
+     *
+     * Cache stores only unique nodes (patterns) along their counts.
      */
-    val (uniqueLabeled, nodeCache) = labeledNodes.filter(_.nonEmpty)
-      .foldLeft(IndexedSeq.empty[Node] -> Set.empty[(Clause, Long)]) {
-        case ((unique, cache), node) =>
-          val pattern = node.clause.getOrElse(logger.fatal("Cannot construct a pattern!"))
+    val startCacheConstruction = System.currentTimeMillis
 
-          if (!unique.flatMap(_.clause).exists(_ =~= pattern))
-            cache.find { case (c, _) => c =~= pattern } match {
-              case Some(entry @ (_, frequency)) => (unique :+ node, (cache - entry) + (pattern -> (frequency + 1)))
-              case None                         => (unique :+ node, cache + (pattern -> 1))
-            }
-          else cache.find { case (c, _) => c =~= pattern } match {
-            case Some(entry @ (_, frequency)) => (unique, (cache - entry) + (pattern -> (frequency + 1)))
-            case None =>
-              logger.fatal(s"Pattern ${pattern.toText()} is not unique, but it does not exist in the frequency set.")
-          }
-      }
+    val nodeCache = FastNodeCache(querySignature) ++ labeledNodes.filter(_.nonEmpty)
+    val uniqueLabeled = nodeCache.collectNodes
 
     logger.info(msecTimeToTextUntilNow(s"Cache constructed in: ", startCacheConstruction))
     logger.info(s"${uniqueLabeled.length} / ${labeledNodes.length} unique labeled nodes kept.")
-
-    nodeCache.foreach { case (clause, freq) => logger.info(s"${clause.toText()} -> $freq") }
+    logger.debug(nodeCache.toString)
 
     // Labeled query atoms and empty unlabeled query atoms as FALSE.
     val labeledEntries =

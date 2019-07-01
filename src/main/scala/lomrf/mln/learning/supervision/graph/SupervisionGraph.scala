@@ -18,12 +18,13 @@
  *
  */
 
-package lomrf.mln.learning.supervision.graphs
+package lomrf.mln.learning.supervision.graph
 
 import lomrf.logic._
 import lomrf.util.logging.Implicits._
 import breeze.linalg.DenseVector
 import com.typesafe.scalalogging.LazyLogging
+import lomrf.mln.learning.supervision.graph.caching.{ FastNodeCache, NodeCache, NodeHashSet }
 import lomrf.mln.learning.supervision.metric._
 import lomrf.mln.model._
 import lomrf.mln.model.builders.EvidenceBuilder
@@ -39,9 +40,8 @@ import scala.language.existentials
   * atom is TRUE or FALSE) or unlabeled. The graph is connected using a specified connector
   * strategy and can be solved in order to label the unlabeled ground query atoms.
   *
-  * @see [[lomrf.mln.learning.supervision.graphs.Node]]
+  * @see [[lomrf.mln.learning.supervision.graph.Node]]
   *      [[lomrf.mln.learning.supervision.metric.Matcher]]
-  *
   * @param nodes an indexed sequence of nodes. Labeled nodes appear before unlabelled
   * @param querySignature the query signature of interest
   * @param connector a graph connector
@@ -55,7 +55,7 @@ final class SupervisionGraph private (
     connector: GraphConnector,
     metric: Metric[_ <: AtomicFormula],
     supervisionBuilder: EvidenceBuilder,
-    nodeCache: Set[(Clause, Long)] = Set.empty,
+    nodeCache: NodeCache,
     cluster: Boolean) extends LazyLogging {
 
   private val (labeledNodes, unlabeledNodes) = nodes.partition(_.isLabeled)
@@ -123,11 +123,7 @@ final class SupervisionGraph private (
           .withFilter { case (v, _) => v != UNCONNECTED }
           .map {
             case (v, j) =>
-              val freq = nodeCache.find { case (c, _) => c =~= labeledNodes(j).clause.get } match {
-                case Some((_, frequency)) => frequency
-                case None                 => logger.fatal(s"Pattern ${labeledNodes(j).clause.get.toText()} not found.")
-              }
-
+              val freq = nodeCache.getOrElse(labeledNodes(j), logger.fatal(s"Pattern ${labeledNodes(j).clause.get.toText()} not found."))
               v -> (labeledNodes(j).isPositive, freq)
           }
 
@@ -189,13 +185,6 @@ final class SupervisionGraph private (
     labeledEvidenceAtoms.toSet
   }
 
-  private def HoeffdingFilter(x: Double, y: Double): Boolean = {
-    val N = x + y
-    val fx = x / N
-    val fy = y / N
-    HoeffdingBound(fx, fy, N.toLong) && x < y
-  }
-
   /**
     * Extends this supervision graph to include nodes produced by a given MLN and
     * an annotation database. Only the labeled nodes are retained from this graph
@@ -218,10 +207,10 @@ final class SupervisionGraph private (
     // Group the given data into nodes, using the domains of the existing graph
     val currentNodes = connector match {
       case _: kNNTemporalConnector | _: eNNTemporalConnector =>
-        SupervisionGraph.partition(mln, modes, annotationDB, querySignature, cluster = false)
+        SupervisionGraph.partition(mln, modes, annotationDB, querySignature, clusterUnlabeled = false)
       case _ =>
         if (cluster) SupervisionGraph.partition(mln, modes, annotationDB, querySignature)
-        else SupervisionGraph.partition(mln, modes, annotationDB, querySignature, cluster = false)
+        else SupervisionGraph.partition(mln, modes, annotationDB, querySignature, clusterUnlabeled = false)
     }
 
     // Partition nodes into labeled and unlabeled. Then find empty unlabeled nodes.
@@ -263,66 +252,21 @@ final class SupervisionGraph private (
         nodeCache,
         cluster)
     else {
-
+      /*
+       * Update the cache using only non empty labeled nodes, i.e., nodes having at least
+       * one evidence predicate in their body
+       *
+       * Cache stores only unique nodes (patterns) along their counts.
+       */
       val startCacheUpdate = System.currentTimeMillis
 
-      /*
-       * Update the cache using only non empty labeled nodes, i.e., nodes having at least one
-       * evidence predicate. Keep only unique pattern. Moreover, update the pattern frequencies
-       * present in the cache accordingly.
-       */
-      val (uniqueLabeled, updatedNodeCache) =
-        labeled.filter(_.nonEmpty).foldLeft(labeledNodes -> nodeCache) {
-          case ((unique, cache), node) =>
-
-            val pattern = node.clause.getOrElse(logger.fatal("Cannot construct a pattern!"))
-
-            if (!unique.flatMap(_.clause).exists(_ =~= pattern))
-              cache.find { case (c, _) => c =~= pattern } match {
-                case Some(entry @ (_, frequency)) => (unique :+ node, (cache - entry) + (pattern -> (frequency + 1)))
-                case None                         => (unique :+ node, cache + (pattern -> 1))
-              }
-            else cache.find { case (c, _) => c =~= pattern } match {
-              case Some(entry @ (_, frequency)) => (unique, (cache - entry) + (pattern -> (frequency + 1)))
-              case None =>
-                logger.fatal(s"Pattern ${pattern.toText()} is not unique, but it does not exist in the frequency set.")
-            }
-        }
-
-      logger.info(s"${uniqueLabeled.length}/${labeledNodes.length + labeled.length} unique labeled nodes kept.")
-
-      logger.whenDebugEnabled {
-        updatedNodeCache.foreach { case (clause, freq) => logger.debug(s"${clause.toText()} -> $freq") }
-      }
-
-      /*
-       * For each unique labeled node, search for an inverse pattern. Inverse patterns,
-       * are patterns having identical body but inverse sense in the head. For the inverse
-       * pattern and the current node test the Hoeffding bound in order to remove the noisy node.
-       */
-      val cleanedUniqueLabeled = uniqueLabeled.foldLeft(IndexedSeq.empty[Node]) {
-        case (result, node) =>
-
-          val nodeBody = node.body.getOrElse(logger.fatal("Cannot construct a pattern!"))
-          val nodeClause = node.clause.getOrElse(logger.fatal("Cannot construct a pattern!"))
-
-          val nodeFrequency = updatedNodeCache.find { case (c, _) => c =~= nodeClause } match {
-            case Some((_, freq)) => freq
-            case None            => logger.fatal(s"Pattern ${nodeClause.toText()} does not exist in the frequency set.")
-          }
-
-          updatedNodeCache.find {
-            case (c, _) =>
-              val (headLiteral, bodyLiterals) = c.literals.partition(_.sentence.signature == querySignature)
-              headLiteral.head.positive != node.isPositive && Clause(bodyLiterals) =~= nodeBody
-          } match {
-            case Some((_, inversePatternFreq)) if !HoeffdingFilter(nodeFrequency, inversePatternFreq) => result :+ node
-            case None => result :+ node
-            case _ => result
-          }
-      }
+      var updatedNodeCache = nodeCache
+      updatedNodeCache ++= labeled.filter(_.nonEmpty)
+      val cleanedUniqueLabeled = updatedNodeCache.collectNodes
 
       logger.info(msecTimeToTextUntilNow(s"Cache updated in: ", startCacheUpdate))
+      logger.info(s"${cleanedUniqueLabeled.length}/${labeledNodes.length + labeled.length} unique labeled nodes kept.")
+      logger.debug(updatedNodeCache.toString)
 
       // Labeled nodes MUST appear before unlabeled!
       new SupervisionGraph(
@@ -350,20 +294,20 @@ object SupervisionGraph extends LazyLogging {
     * relevant to each domain constant and corresponds to a single ground query atom.
     *
     * @note In case no domains are given, all domains are used instead.
-    * @see [[lomrf.mln.learning.supervision.graphs.Node]]
-    *      [[lomrf.mln.learning.structure.ModeDeclaration]]
+    * @see [[lomrf.mln.learning.structure.ModeDeclaration]]
+    *
     * @param mln an MLN
     * @param modes mode declarations
     * @param annotationDB an annotation database
     * @param querySignature the query signature of interest
     * @return an indexed sequence of nodes. Labeled nodes appear before unlabelled
     */
-  private[graphs] def partition(
+  private[graph] def partition(
       mln: MLN,
       modes: ModeDeclarations,
       annotationDB: EvidenceDB,
       querySignature: AtomSignature,
-      cluster: Boolean = true): IndexedSeq[Node] = {
+      clusterUnlabeled: Boolean = true): IndexedSeq[Node] = {
 
     val predicateSchema = mln.schema.predicates
     val auxPredicateSchema = predicateSchema.filter { case (signature, _) => signature.symbol.contains(PREFIX) }
@@ -463,7 +407,7 @@ object SupervisionGraph extends LazyLogging {
     val start = System.currentTimeMillis
 
     // A set of cluster nodes used for grouping identical (under unification) unlabeled nodes.
-    val clusterNodes = new NodeSet
+    val clusterSet = new NodeHashSet()
 
     val nodes = (labeled ++ unlabeled).groupBy(_.constants).flatMap {
       case (_, queryAtomGroup) =>
@@ -504,8 +448,8 @@ object SupervisionGraph extends LazyLogging {
               // append identical query atoms, e.g., Q(A,B,1) is the same as Q(B,A,1)
               unlabeledNode.similarNodeQueryAtoms ++= queryAtomGroup.tail
 
-              if (cluster) {
-                clusterNodes.insert(unlabeledNode)
+              if (clusterUnlabeled) {
+                clusterSet += unlabeledNode
                 None
               } else Some(unlabeledNode)
             } else {
@@ -528,7 +472,7 @@ object SupervisionGraph extends LazyLogging {
     }.toIndexedSeq
 
     logger.info(s"Nodes constructed in ${msecTimeToTextUntilNow(start)}")
-    nodes ++ clusterNodes.toIndexedSeq
+    nodes ++ clusterSet.collectNodes
   }
 
   /**
@@ -536,9 +480,8 @@ object SupervisionGraph extends LazyLogging {
     * a query signature and optionally a list of domains to group by. Moreover, a connector and a matcher
     * are required in order to be able to label the unlabeled ground query atoms.
     *
-    * @see
-    *     [[lomrf.mln.learning.supervision.graphs.GraphConnector]]
-    *     [[lomrf.mln.learning.structure.ModeDeclaration]]
+    * @see [[lomrf.mln.learning.structure.ModeDeclaration]]
+    *
     * @param mln an MLN
     * @param modes mode declarations
     * @param annotationDB an annotation database
@@ -559,47 +502,30 @@ object SupervisionGraph extends LazyLogging {
     // Group the given data into nodes
     val nodes = connector match {
       case _: kNNTemporalConnector | _: eNNTemporalConnector =>
-        partition(mln, modes, annotationDB, querySignature, cluster = false)
+        partition(mln, modes, annotationDB, querySignature, clusterUnlabeled = false)
       case _ =>
         if (cluster) partition(mln, modes, annotationDB, querySignature)
-        else partition(mln, modes, annotationDB, querySignature, cluster = false)
+        else partition(mln, modes, annotationDB, querySignature, clusterUnlabeled = false)
     }
-
-    logger.info("Constructing supervision graph.")
 
     // Partition nodes into labeled and unlabeled. Then find empty unlabeled nodes.
     val (labeledNodes, unlabeledNodes) = nodes.partition(_.isLabeled)
     val (nonEmptyUnlabeled, emptyUnlabeled) = unlabeledNodes.partition(_.nonEmpty)
 
-    val startCacheConstruction = System.currentTimeMillis
-
     /*
      * Create a cache using only non empty labeled nodes, i.e., nodes having at least
-     * one evidence predicate. Keep only unique patterns in the cache along their frequencies.
+     * one evidence predicate in their body.
+     *
+     * Cache stores only unique nodes (patterns) along their counts.
      */
-    val (uniqueLabeled, nodeCache) = labeledNodes.filter(_.nonEmpty)
-      .foldLeft(IndexedSeq.empty[Node] -> Set.empty[(Clause, Long)]) {
-        case ((unique, cache), node) =>
-          val pattern = node.clause.getOrElse(logger.fatal("Cannot construct a pattern!"))
+    val startCacheConstruction = System.currentTimeMillis
 
-          if (!unique.flatMap(_.clause).exists(_ =~= pattern))
-            cache.find { case (c, _) => c =~= pattern } match {
-              case Some(entry @ (_, frequency)) => (unique :+ node, (cache - entry) + (pattern -> (frequency + 1)))
-              case None                         => (unique :+ node, cache + (pattern -> 1))
-            }
-          else cache.find { case (c, _) => c =~= pattern } match {
-            case Some(entry @ (_, frequency)) => (unique, (cache - entry) + (pattern -> (frequency + 1)))
-            case None =>
-              logger.fatal(s"Pattern ${pattern.toText()} is not unique, but it does not exist in the frequency set.")
-          }
-      }
+    val nodeCache = FastNodeCache(querySignature) ++ labeledNodes.filter(_.nonEmpty)
+    val uniqueLabeled = nodeCache.collectNodes
 
     logger.info(msecTimeToTextUntilNow(s"Cache constructed in: ", startCacheConstruction))
     logger.info(s"${uniqueLabeled.length} / ${labeledNodes.length} unique labeled nodes kept.")
-
-    logger.whenDebugEnabled {
-      nodeCache.foreach { case (clause, freq) => logger.debug(s"${clause.toText()} -> $freq") }
-    }
+    logger.debug(nodeCache.toString)
 
     // Labeled query atoms and empty unlabeled query atoms as FALSE.
     val labeledEntries =

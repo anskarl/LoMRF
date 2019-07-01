@@ -18,7 +18,7 @@
  *
  */
 
-package lomrf.mln.learning.supervision.graphs
+package lomrf.mln.learning.supervision.graph
 
 import breeze.linalg.{ DenseMatrix, DenseVector, mpow, pinv }
 import com.typesafe.scalalogging.LazyLogging

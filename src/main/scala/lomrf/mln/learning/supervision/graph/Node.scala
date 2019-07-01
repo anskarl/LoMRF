@@ -18,7 +18,7 @@
  *
  */
 
-package lomrf.mln.learning.supervision.graphs
+package lomrf.mln.learning.supervision.graph
 
 import lomrf.logic._
 import lomrf.util.logging.Implicits._
@@ -46,7 +46,7 @@ final case class Node(
     if (orderIndex > -1) query.terms(orderIndex).symbol.toInt
     else 0
 
-  private[graphs] var similarNodeQueryAtoms =
+  private[graph] var similarNodeQueryAtoms =
     scala.collection.mutable.Set.empty[EvidenceAtom]
 
   lazy val partitionTerms: Set[Term] =
@@ -61,6 +61,8 @@ final case class Node(
 
   lazy val literals: Set[Literal] =
     body.getOrElse(logger.fatal("Body does not exist!")).literals
+
+  lazy val opposite: Node = if (isPositive) toNegative else toPositive
 
   /**
     * @param value a value indicating the label of the query atoms
@@ -160,17 +162,4 @@ final case class Node(
     s"[ $query = ${query.state} ]\n${evidence.map(_.toText).mkString("\n")}"
 
   override def compare(that: Node): Int = that.orderedTerm - this.orderedTerm
-
-  override lazy val hashCode: Int = {
-    val x = body.get
-    var code = x.weight.##
-    for (l <- x.literals)
-      code ^= (l.isPositive.## ^ l.sentence.signature.## ^ l.sentence.constants.##)
-    code
-  }
-
-  override def equals(that: Any): Boolean = that match {
-    case x: Node => x.body.get =~= this.body.get
-    case _       => false
-  }
 }

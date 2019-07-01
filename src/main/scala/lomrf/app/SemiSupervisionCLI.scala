@@ -23,7 +23,7 @@ package lomrf.app
 import lomrf.logic._
 import lomrf.logic.AtomSignatureOps._
 import lomrf.mln.learning.structure.ModeParser
-import lomrf.mln.learning.supervision.graphs._
+import lomrf.mln.learning.supervision.graph._
 import lomrf.mln.learning.supervision.metric._
 import lomrf.mln.model.{ AtomEvidenceDB, Evidence, KB, MLN }
 import lomrf.util.NaturalComparator
@@ -277,8 +277,8 @@ object SemiSupervisionCLI extends CLIApp {
     val defaultName = s"$connector.$clusterTag.${_distance}.${_solver}$memoryTag"
 
     val resultName = _resultsFileName match {
-      case Some(path) => new File(path).getName.reverse.dropWhile(_ != '.').reverse
-      case None => defaultName
+      case Some(path) => new File(path).getName.reverse.dropWhile(_ != '.').tail.reverse
+      case None       => defaultName
     }
 
     val start = System.currentTimeMillis

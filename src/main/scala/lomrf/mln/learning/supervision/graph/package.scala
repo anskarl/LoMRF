@@ -27,7 +27,7 @@ import scala.util.{ Failure, Success, Try }
 import lomrf.{ AUX_PRED_PREFIX => PREFIX }
 import breeze.linalg.DenseMatrix
 
-package object graphs {
+package object graph {
 
   type AdjacencyMatrix = DenseMatrix[Double]
   type EncodedGraph = (DenseMatrix[Double], DenseMatrix[Double])
@@ -38,14 +38,6 @@ package object graphs {
    */
   val UNCONNECTED = 0.0
 
-  // Node set used for grouping similar nodes
-  private[graphs] class NodeSet extends scala.collection.mutable.HashSet[Node] {
-    def insert(entry: Node): Unit = this.findEntry(entry) match {
-      case Some(node) => node.similarNodeQueryAtoms ++= (entry.similarNodeQueryAtoms + entry.query)
-      case None       => this += entry
-    }
-  }
-
   /**
     * Combine maps into a single map by merging their values for shared keys.
     *
@@ -53,7 +45,7 @@ package object graphs {
     * @param mapB another map
     * @return a combination of the given maps containing all their values
     */
-  private[graphs] def combine[K, V](
+  private[graph] def combine[K, V](
       mapA: Map[K, IndexedSeq[V]],
       mapB: Map[K, IndexedSeq[V]]): Map[K, IndexedSeq[V]] = {
 
@@ -78,7 +70,7 @@ package object graphs {
     * @param delta delta parameter (default is 0.0001)
     * @return true in case the bound is satisfied, else false
     */
-  private[graphs] def HoeffdingBound(x: Double, y: Double, N: Long, delta: Double = 0.0001): Boolean =
+  @inline private[graph] def HoeffdingBound(x: Double, y: Double, N: Long, delta: Double = 0.0001): Boolean =
     math.abs(x - y) > math.sqrt(math.log(2 / delta) / (2 * N))
 
   /**
@@ -90,7 +82,7 @@ package object graphs {
     * @param modes mode declarations
     * @return a clause
     */
-  private[graphs] def asPattern(
+  private[graph] def asPattern(
       querySignature: AtomSignature,
       atoms: IndexedSeq[EvidenceAtom],
       mln: MLN, modes: ModeDeclarations): Try[Clause] = {

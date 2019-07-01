@@ -18,7 +18,7 @@
  *
  */
 
-package lomrf.mln.learning.supervision.graphs
+package lomrf.mln.learning.supervision.graph
 
 import breeze.linalg.DenseVector
 import breeze.stats.distributions.Uniform
