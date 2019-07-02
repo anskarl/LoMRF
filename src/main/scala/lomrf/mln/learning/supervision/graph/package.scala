@@ -29,8 +29,8 @@ import breeze.linalg.DenseMatrix
 
 package object graph {
 
-  type AdjacencyMatrix = DenseMatrix[Double]
-  type EncodedGraph = (DenseMatrix[Double], DenseMatrix[Double])
+  type GraphMatrix = DenseMatrix[Double]
+  type EncodedGraph = (GraphMatrix, GraphMatrix)
 
   /*
    * Use a very close to zero (non zero) value in order to avoid singular

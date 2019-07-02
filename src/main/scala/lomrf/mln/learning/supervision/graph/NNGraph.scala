@@ -20,28 +20,38 @@
 
 package lomrf.mln.learning.supervision.graph
 
-import spire.syntax.cfor._
-import breeze.linalg.{ DenseMatrix, DenseVector, sum }
-import lomrf.logic.{ AtomSignature, AtomicFormula, EvidenceAtom, FALSE, TRUE }
+import lomrf.logic._
+import lomrf.util.logging.Implicits._
 import lomrf.mln.learning.supervision.graph.caching.NodeCache
-import lomrf.mln.learning.supervision.metric.Metric
-import lomrf.mln.model.{ EvidenceBuilder, EvidenceDB, MLN, ModeDeclarations }
-import lomrf.util.time.msecTimeToTextUntilNow
+import lomrf.mln.learning.supervision.metric._
+import lomrf.mln.model._
+import lomrf.util.time._
+import scala.language.existentials
 
-final class StreamingGraph private[graph] (
+/**
+  * NN graph represents a nearest neighbor graph having nodes for a given query signature. These
+  * nodes contain a single ground query atom and a sequence of evidence atoms sharing
+  * constants to the corresponding query atom. Nodes can be either labeled (the ground query
+  * atom is TRUE or FALSE) or unlabeled. The graph is connected using a specified connector
+  * strategy and can be solved in order to label the unlabeled ground query atoms.
+  *
+  * @param nodes an indexed sequence of nodes. Labeled nodes appear before unlabelled
+  * @param querySignature the query signature of interest
+  * @param connector a graph connector
+  * @param metric a metric for atomic formula
+  * @param supervisionBuilder a supervision evidence builder that contains the completed annotation
+  * @param nodeCache a node cache for storing labelled nodes
+  * @param enableClusters enables clustering of unlabeled examples
+  */
+final class NNGraph private[graph] (
     nodes: IndexedSeq[Node],
     querySignature: AtomSignature,
     connector: GraphConnector,
     metric: Metric[_ <: AtomicFormula],
     supervisionBuilder: EvidenceBuilder,
     nodeCache: NodeCache,
-    storedUnlabeled: IndexedSeq[Node],
-    previousGraph: GraphMatrix,
-    memory: Int)
+    enableClusters: Boolean)
   extends SupervisionGraph(nodes, querySignature, connector, metric, supervisionBuilder, nodeCache) {
-
-  private var W = previousGraph
-  private val numberOfStoredUnlabeled = storedUnlabeled.length
 
   protected def optimize(potentials: Map[EvidenceAtom, Double]): Set[EvidenceAtom] = {
 
@@ -55,75 +65,50 @@ final class StreamingGraph private[graph] (
     }
 
     val startGraphConnection = System.currentTimeMillis
-
-    val encodedGraph = connector.smartConnect(nodes, unlabeledNodes)(metric)
-    val WW = encodedGraph._1
-
-    W = DenseMatrix.horzcat(
-      DenseMatrix.vertcat(W, DenseMatrix.zeros[Double](numberOfUnlabeled, W.rows)),
-      DenseMatrix.zeros[Double](W.cols + numberOfUnlabeled, numberOfUnlabeled)
-    )
-
-    cfor(0)(_ < numberOfUnlabeled, _ + 1) { i =>
-      val WWi = numberOfLabeled + i
-      val Wi = 2 + storedUnlabeled.length + i
-
-      cfor(0)(_ < numberOfNodes, _ + 1) { j =>
-        if (j < numberOfLabeled) {
-          val clusterId = if (labeledNodes(j).isNegative) 0 else 1
-          W(Wi, clusterId) += WW(WWi, j)
-          W(clusterId, Wi) += WW(j, WWi)
-        } else {
-          val Wj = 2 + storedUnlabeled.length + (numberOfLabeled - j)
-          W(Wi, Wj) = WW(WWi, j)
-          W(Wj, Wi) = WW(j, WWi)
-        }
-      }
-
-      cfor(0)(_ < storedUnlabeled.length, _ + 1) { j =>
-        val weight = connector.connect(unlabeledNodes(i), storedUnlabeled(j))(metric)
-        W(Wi, j + 2) = weight
-        W(j + 2, Wi) = weight
-      }
-    }
-
-    // Delete old nodes that do not fit into memory
-    W = connector.synopsisOf(W, 2, memory)
-
-    val D = DenseMatrix.zeros[Double](W.rows, W.cols)
-    cfor(0)(_ < W.rows, _ + 1) { i => D(i, i) = sum(W(i, ::)) }
-
+    val W = connector.biConnect(unlabeledNodes, labeledNodes)(metric)
     logger.info(msecTimeToTextUntilNow(s"Graph connected in: ", startGraphConnection))
 
     val startSolution = System.currentTimeMillis
 
-    // Vector holding the labeled values
-    val fl = DenseVector(-1d, 1d)
+    val labeledEvidenceAtoms = unlabeledNodes.zipWithIndex.flatMap {
+      case (node, i) =>
 
-    val solution = GraphOps.HFc(W, D, fl).toArray
-    val truthValues = solution.map(value => if (value <= UNCONNECTED) FALSE else TRUE)
+        val nearest = W(i, ::).inner.findAll(_ != UNCONNECTED).map { ii =>
+          val node = labeledNodes(ii)
+          val counts = nodeCache.getOrElse(node, logger.fatal(s"Pattern ${node.clause.get.toText()} not found."))
+          W(i, ii) -> (node.isPositive, counts)
+        }
+
+        val (positives, negatives) = nearest.partition { case (_, (tv, _)) => tv }
+
+        val value =
+          if (nearest.isEmpty) false
+          else {
+            val posCounts = positives.map(_._2._2).sum
+            val negCounts = negatives.map(_._2._2).sum
+            if (posCounts > negCounts) true
+            else if (negCounts > posCounts) false
+            else nearest.maxBy(_._1)._2._1
+          }
+
+        node.labelUsingValue(value)
+    }
 
     logger.info(msecTimeToTextUntilNow(s"Labeling solution found in: ", startSolution))
-
-    logger.whenDebugEnabled {
-      logger.debug {
-        (unlabeledNodes.map(_.query) zip solution.takeRight(numberOfUnlabeled))
-          .map { case (atom, state) => s"$atom = $state" }.mkString("\n")
-      }
-    }
-
-    val labeledEvidenceAtoms = unlabeledNodes.zip(truthValues.takeRight(numberOfUnlabeled)).flatMap {
-      case (node, value) => node.labelUsingValue(value)
-    }
 
     supervisionBuilder.evidence ++= labeledEvidenceAtoms
     labeledEvidenceAtoms.toSet
   }
 
-  def ++(mln: MLN, annotationDB: EvidenceDB, modes: ModeDeclarations): StreamingGraph = {
+  def ++(mln: MLN, annotationDB: EvidenceDB, modes: ModeDeclarations): NNGraph = {
 
     // Group the given data into nodes, using the domains of the existing graph
-    val currentNodes = SupervisionGraph.partition(mln, modes, annotationDB, querySignature)
+    val currentNodes = connector match {
+      case _: kNNTemporalConnector | _: eNNTemporalConnector | _: aNNTemporalConnector =>
+        SupervisionGraph.partition(mln, modes, annotationDB, querySignature)
+      case _ =>
+        SupervisionGraph.partition(mln, modes, annotationDB, querySignature, clusterUnlabeled = enableClusters)
+    }
 
     // Partition nodes into labeled and unlabeled. Then find empty unlabeled nodes.
     val (labeled, unlabeled) = currentNodes.partition(_.isLabeled)
@@ -149,27 +134,20 @@ final class StreamingGraph private[graph] (
         mln.evidence.constants
       ).withCWAForAll().evidence ++= labeledEntries
 
-    val updatedStoredUnlabeled =
-      if (numberOfStoredUnlabeled + numberOfUnlabeled > memory)
-        storedUnlabeled.drop(numberOfStoredUnlabeled + numberOfUnlabeled - memory) ++ unlabeledNodes
-      else storedUnlabeled ++ unlabeledNodes
-
     /*
      * In case no labeled nodes exist in the given data, then reuse the old ones. In any other
      * case try to separate old labeled nodes that are dissimilar to the ones in the current batch
      * of data (the current supervision graph). Moreover remove noisy nodes using the Hoeffding bound.
      */
     if (labeled.isEmpty)
-      new StreamingGraph(
+      new NNGraph(
         labeledNodes ++ nonEmptyUnlabeled,
         querySignature,
         connector,
-        metric ++ mln.evidence ++ currentNodes.map(_.atoms),
+        metric ++ mln.evidence ++ nodes.map(_.atoms),
         annotationBuilder,
         nodeCache,
-        updatedStoredUnlabeled,
-        W.copy,
-        memory)
+        enableClusters)
     else {
       /*
        * Update the cache using only non empty labeled nodes, i.e., nodes having at least
@@ -188,17 +166,14 @@ final class StreamingGraph private[graph] (
       logger.debug(updatedNodeCache.toString)
 
       // Labeled nodes MUST appear before unlabeled!
-      new StreamingGraph(
+      new NNGraph(
         cleanedUniqueLabeled ++ nonEmptyUnlabeled,
         querySignature,
         connector,
-        metric ++ mln.evidence ++ currentNodes.map(_.atoms),
+        metric ++ mln.evidence ++ nodes.map(_.atoms),
         annotationBuilder,
         updatedNodeCache,
-        updatedStoredUnlabeled,
-        W.copy,
-        memory
-      )
+        enableClusters)
     }
   }
 }

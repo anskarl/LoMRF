@@ -66,7 +66,7 @@ object SemiSupervisionCLI extends CLIApp {
   private var _compressResults: Boolean = false
 
   // By default run using harmonic graph cut
-  private var _solver: GraphSolverType = HGC
+  private var _solver: GraphSolverType = HFC_SPLICE
 
   // By default run using atomic distance
   private var _distance: DistanceType = DistanceType.Atomic
@@ -120,13 +120,15 @@ object SemiSupervisionCLI extends CLIApp {
     v: String => _modesFileName = Some(v)
   })
 
-  opt("s", "solver", "<nn | hgc | tlp>", "Specify a solver for completion (default is hgc).", {
+  opt("s", "solver", "<nn | hgc.[splice,tlp] | lgc.[splice,tlp]>", "Specify a solver for completion (default is hgc).", {
     v: String =>
       v.trim.toLowerCase match {
-        case "nn"  => _solver = NN
-        case "hgc" => _solver = HGC
-        case "tlp" => _solver = TLP
-        case _     => logger.fatal(s"Unknown solver of type '$v'.")
+        case "nn"         => _solver = NN
+        case "hfc.splice" => _solver = HFC_SPLICE
+        case "lgc.splice" => _solver = LGC_SPLICE
+        case "hfc.tlp"    => _solver = HFC_TLP
+        case "lgc.tlp"    => _solver = LGC_TLP
+        case _            => logger.fatal(s"Unknown solver of type '$v'.")
       }
   })
 
@@ -148,10 +150,13 @@ object SemiSupervisionCLI extends CLIApp {
     }
   )
 
-  opt("c", "connector", "<kNN | kNN.labeled | kNN.temporal | eNN | eNN.labeled | eNN.temporal | full | aNN>",
+  opt("c", "connector", "<aNN | aNN.labeled | aNN.temporal | kNN | kNN.labeled | kNN.temporal | eNN | eNN.labeled | eNN.temporal | full>",
     "Specify a connection strategy for the graph (default is kNN).", {
       v: String =>
         v.trim.toLowerCase match {
+          case "ann"          => _connector = aNN
+          case "ann.labeled"  => _connector = aNNLabeled
+          case "ann.temporal" => _connector = aNNTemporal
           case "knn"          => _connector = kNN
           case "knn.labeled"  => _connector = kNNLabeled
           case "knn.temporal" => _connector = kNNTemporal
@@ -159,7 +164,6 @@ object SemiSupervisionCLI extends CLIApp {
           case "enn.labeled"  => _connector = eNNLabeled
           case "enn.temporal" => _connector = eNNTemporal
           case "full"         => _connector = Full
-          case "aNN"          => _connector = aNN
           case _              => logger.fatal(s"Unknown connector of type '$v'.")
         }
     }
@@ -236,7 +240,7 @@ object SemiSupervisionCLI extends CLIApp {
 
     // Init all statistics values to zero
     var actualPositive, actualNegative, positiveFound, negativeFound = 0
-    var supervisionGraphs = Map.empty[AtomSignature, Either[SPLICE, StreamingGraph]]
+    var supervisionGraphs = Map.empty[AtomSignature, SupervisionGraph]
     var stats = Evaluate.empty
 
     // Create a knowledge base and convert all functions
@@ -250,6 +254,8 @@ object SemiSupervisionCLI extends CLIApp {
       else if (_connector == eNNLabeled) eNNLConnector(_epsilon)
       else if (_connector == eNNTemporal) new eNNTemporalConnector(_epsilon)
       else if (_connector == aNN) aNNConnector
+      else if (_connector == aNNLabeled) new aNNLConnector
+      else if (_connector == aNNTemporal) new aNNTemporalConnector
       else FullConnector
 
     val distance: Metric[_ <: AtomicFormula] =
@@ -272,8 +278,8 @@ object SemiSupervisionCLI extends CLIApp {
       else if (_distance == DistanceType.AtomConst) AtomConstMetric(HungarianMatcher)
       else EvidenceMetric(modes, HungarianMatcher)
 
-    val clusterTag = if (_solver == TLP) "no.cluster" else if (_cluster) "clustered" else "no.cluster"
-    val memoryTag = if (_solver == TLP) s".m${_memory}" else ""
+    val clusterTag = if (_solver == HFC_TLP || _solver == LGC_TLP) "no.cluster" else if (_cluster) "clustered" else "no.cluster"
+    val memoryTag = if (_solver == HFC_TLP || _solver == LGC_TLP) s".m${_memory}" else ""
     val defaultName = s"$connector.$clusterTag.${_distance}.${_solver}$memoryTag"
 
     val resultName = _resultsFileName match {
@@ -320,26 +326,22 @@ object SemiSupervisionCLI extends CLIApp {
       // Create or update supervision graphs for each given non evidence atom
       _nonEvidenceAtoms.foreach { querySignature =>
         supervisionGraphs.get(querySignature) match {
-          case Some(graph) if graph.isLeft =>
-            supervisionGraphs += querySignature -> Left(graph.left.get ++ (mln, annotationDB, modes))
-          case Some(graph) if graph.isRight =>
-            supervisionGraphs += querySignature -> Right(graph.right.get ++ (mln, annotationDB, modes))
-          case None if _solver == TLP =>
+          case Some(graph) => supervisionGraphs += querySignature -> (graph ++ (mln, annotationDB, modes))
+          case None if _solver == HFC_TLP =>
             supervisionGraphs += querySignature ->
-              Right(StreamingGraph(mln, modes, annotationDB, querySignature, connector, distance, _memory))
-          case _ =>
+              SupervisionGraph.TLP(mln, modes, annotationDB, querySignature, connector, distance, _memory)
+          case None if _solver == HFC_SPLICE =>
             supervisionGraphs += querySignature ->
-              Left(SPLICE(mln, modes, annotationDB, querySignature, connector, distance, _cluster))
+              SupervisionGraph.SPLICE(mln, modes, annotationDB, querySignature, connector, distance, _cluster)
+          case None if _solver == NN =>
+            supervisionGraphs += querySignature ->
+              SupervisionGraph.nearestNeighbor(mln, modes, annotationDB, querySignature, connector, distance, _cluster)
         }
       }
 
       // Run supervision completion for all given non evidence atoms and collect the results
       val (completedEvidenceAtoms, completedEvidenceSet) = supervisionGraphs.values
-        .map(graph =>
-          if (graph.isLeft && _solver == NN) graph.left.get.completeSupervisionNN
-          else if (graph.isLeft) graph.left.get.completeSupervisionGraphCut
-          else graph.right.get.completeSupervisionGraphCut
-        )
+        .map(graph => graph.completeSupervision())
         .foldLeft(Set.empty[EvidenceAtom] -> Set.empty[Evidence]) {
           case ((atoms, evidenceSet), tuple) => (atoms ++ tuple._1, evidenceSet + tuple._2)
         }

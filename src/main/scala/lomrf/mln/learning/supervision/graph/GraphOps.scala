@@ -34,15 +34,14 @@ object GraphOps extends LazyLogging {
 
     val Dp = mpow(D, -0.5)
     val S = Dp * W * Dp
-    val I = DenseMatrix.eye[Double](S.rows)
-    val IS = I - alpha * S
 
-    Try((1 - alpha) * pinv(IS) * Y) match {
-      case Success(solution) => solution
-      case Failure(_) =>
-        logger.warn("Not converged or matrix is singular. Set everything to FALSE.")
-        Y.map(x => if (x == 0) -1 else x)
-    }
+    var Yt = Y; var Yt1 = Y
+    do {
+      Yt = Yt1
+      Yt1 = alpha * S * Yt + (1 - alpha) * Y
+    } while (Yt.toArray.zip(Yt1.toArray).forall { case (a, b) => math.abs(a - b) < 1E-8 })
+
+    Yt1
   }
 
   def HFc(

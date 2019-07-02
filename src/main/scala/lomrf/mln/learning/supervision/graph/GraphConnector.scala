@@ -21,12 +21,13 @@
 package lomrf.mln.learning.supervision.graph
 
 import lomrf.logic.AtomicFormula
-import breeze.linalg.{ DenseMatrix, DenseVector, argtopk, sum }
-import lomrf.mln.learning.supervision.metric.{ Metric, EvidenceMetric }
+import breeze.linalg.{ Axis, DenseMatrix, DenseVector, argtopk, sum }
+import lomrf.mln.learning.supervision.metric.{ EvidenceMetric, Metric }
+import spire.syntax.cfor._
 
 /**
   * A graph connector constructs a graph and changes the number of connected
-  * neighbors (edges) to each vertex according to a strategy.
+  * neighbors (edges) to each vertex according to a given strategy.
   */
 trait GraphConnector {
 
@@ -35,13 +36,12 @@ trait GraphConnector {
     * @param L number of labeled neighbors
     * @return a sparser vector containing the retained neighbor edges
     */
-  def sparse(neighbors: DenseVector[Double], L: Int = 0): DenseVector[Double]
+  def makeSparse(neighbors: DenseVector[Double], L: Int = 0): DenseVector[Double]
 
   /**
-    * Compute the edge value for a pair of nodes. Pair of labeled
-    * nodes are never connected.
+    * Compute the edge value for a pair of nodes.
     *
-    * @note Override the method to implement another connection strategy.
+    * @note Pairs of labeled nodes are never connected.
     *
     * @param x a node
     * @param y another node
@@ -49,32 +49,36 @@ trait GraphConnector {
     * @return the edge value for the given nodes
     */
   def connect(x: Node, y: Node)(metric: Metric[_ <: AtomicFormula]): Double =
-    if (!x.isLabeled || !y.isLabeled) 1 - { // connect nodes only if they are not both labeled
+    if (x.isLabeled && y.isLabeled) UNCONNECTED
+    else 1 - { // connect nodes only if they are not both labeled
       metric match {
         case m: EvidenceMetric        => m.distance(x.evidence, y.evidence)
         case m: Metric[AtomicFormula] => m.distance(x.atoms, y.atoms)
       }
     }
-    else UNCONNECTED
 
   /**
-    * Connect a graph.
+    * Connect graph faster by specifying the unlabeled nodes.
     *
     * @note The graph may become sparser by using the appropriate connector type.
     *
     * @param nodes a sequence of nodes
+    * @param unlabeled a sequence of unlabeled nodes
     * @param metric a metric for atomic formula
     * @return the adjacency and degree matrix of the resulted graph
     */
-  def connect(nodes: IndexedSeq[Node], labeled: IndexedSeq[Node], unlabeled: IndexedSeq[Node])(metric: Metric[_ <: AtomicFormula]): EncodedGraph = {
+  def smartConnect(
+      nodes: IndexedSeq[Node],
+      unlabeled: IndexedSeq[Node])(metric: Metric[_ <: AtomicFormula]): EncodedGraph = {
+
     val numberOfNodes = nodes.length
     val parallelIndices = nodes.indices.par
-    val L = labeled.length
+    val L = nodes.count(_.isLabeled)
 
     val W = DenseMatrix.fill[Double](numberOfNodes, numberOfNodes)(UNCONNECTED)
     val D = DenseMatrix.zeros[Double](numberOfNodes, numberOfNodes)
 
-    for (ii <- unlabeled.indices) {
+    cfor(0)(_ < unlabeled.length, _ + 1) { ii =>
       val i = ii + L
       for (j <- parallelIndices if i != j) { // A node cannot be connected to itself
 
@@ -90,13 +94,23 @@ trait GraphConnector {
     }
 
     for (i <- parallelIndices) {
-      W(i, ::).inner := sparse(W(i, ::).inner, L)
+      W(i, ::).inner := makeSparse(W(i, ::).inner, L)
       D(i, i) = sum(W(i, ::))
     }
 
     W -> D // return the final encoded graph
   }
-  /*def connect(nodes: IndexedSeq[Node])(metric: Metric[_ <: AtomicFormula]): EncodedGraph = {
+
+  /**
+    * Fully connect a graph.
+    *
+    * @note The graph may become sparser by using the appropriate connector type.
+    *
+    * @param nodes a sequence of nodes
+    * @param metric a metric for atomic formula
+    * @return the adjacency and degree matrix of the resulted graph
+    */
+  def fullyConnect(nodes: IndexedSeq[Node])(metric: Metric[_ <: AtomicFormula]): EncodedGraph = {
     val numberOfNodes = nodes.length
     val parallelIndices = nodes.indices.par
     val L = nodes.count(_.isLabeled)
@@ -104,7 +118,7 @@ trait GraphConnector {
     val W = DenseMatrix.fill[Double](numberOfNodes, numberOfNodes)(UNCONNECTED)
     val D = DenseMatrix.zeros[Double](numberOfNodes, numberOfNodes)
 
-    for (i <- nodes.indices) {
+    cfor(0)(_ < numberOfNodes, _ + 1) { i =>
       val neighborCosts = DenseVector.zeros[Double](numberOfNodes)
       for (j <- parallelIndices if i != j) { // A node cannot be connected to itself
 
@@ -115,36 +129,67 @@ trait GraphConnector {
     }
 
     for (i <- parallelIndices) {
-      W(i, ::).inner := sparse(W(i, ::).inner, L)
+      W(i, ::).inner := makeSparse(W(i, ::).inner, L)
       D(i, i) = sum(W(i, ::))
     }
 
     W -> D // return the final encoded graph
-  }*/
+  }
 
   /**
     * Connect a bi-graph using the given sequences of nodes.
     *
     * @note The graph may become sparser by using the appropriate connector type.
     *
-    * @param nodesR a sequence of nodes
-    * @param nodesC another sequence of nodes
+    * @param leftNodes a sequence of nodes
+    * @param rightNodes another sequence of nodes
     * @param metric a metric for atomic formula
     * @return the adjacency matrix of the resulted graph
     */
-  def connect(nodesR: IndexedSeq[Node], nodesC: IndexedSeq[Node])(metric: Metric[_ <: AtomicFormula]): AdjacencyMatrix = {
-    val numberOfCols = nodesC.length
-    val parallelIndices = nodesC.indices.par
-    val W = DenseMatrix.fill[Double](nodesR.length, numberOfCols)(UNCONNECTED)
+  def biConnect(leftNodes: IndexedSeq[Node], rightNodes: IndexedSeq[Node])(metric: Metric[_ <: AtomicFormula]): GraphMatrix = {
+    val numberOfCols = rightNodes.length
+    val parallelIndices = rightNodes.indices.par
+    val W = DenseMatrix.fill[Double](leftNodes.length, rightNodes.length)(UNCONNECTED)
 
-    for (i <- nodesR.indices) {
+    cfor(0)(_ < numberOfCols, _ + 1) { i =>
       val neighborCosts = DenseVector.zeros[Double](numberOfCols)
       for (j <- parallelIndices if i != j) // A node cannot be connected to itself
-        neighborCosts(j) = connect(nodesR(i), nodesC(j))(metric)
+        neighborCosts(j) = connect(leftNodes(i), rightNodes(j))(metric)
 
-      W(i, ::).inner := sparse(neighborCosts, numberOfCols)
+      W(i, ::).inner := makeSparse(neighborCosts, numberOfCols)
     }
     W // return the final (fully connected) adjacency matrix
+  }
+
+  /**
+    * Creates a synopsis of the given graph matrix by keeping only
+    * the first start nodes plus the latest end nodes.
+    *
+    * @param W a weighted graph matrix
+    * @param start retain the first 'start' nodes
+    * @param end retain the latest 'end' nodes
+    * @return a synopsis graph containing only start + end nodes
+    */
+  def synopsisOf(W: GraphMatrix, start: Int, end: Int): GraphMatrix = {
+    var reducedGraph = W
+    for (_ <- 1 to W.cols - (start + end)) {
+
+      // compute degree of the oldest entry
+      val degree = sum(reducedGraph(start, ::))
+
+      for {
+        i <- 0 until reducedGraph.cols if i != start
+        j <- 0 until reducedGraph.cols if j != start
+        if i != j && (i > start || j > start)
+      } {
+        reducedGraph(i, j) += (reducedGraph(i, start) * reducedGraph(start, j)) / degree
+        reducedGraph(j, i) += (reducedGraph(start, i) * reducedGraph(j, start)) / degree
+      }
+
+      // delete oldest entry, denoted by the start pointer
+      reducedGraph = reducedGraph.delete(start, Axis._0).delete(start, Axis._1)
+    }
+    reducedGraph
   }
 }
 
@@ -160,7 +205,7 @@ object FullConnector extends GraphConnector {
     * @param L number of labeled neighbors
     * @return the vector itself (retains all neighbor edges(
     */
-  override def sparse(neighbors: DenseVector[Double], L: Int = 0): DenseVector[Double] = neighbors
+  override def makeSparse(neighbors: DenseVector[Double], L: Int = 0): DenseVector[Double] = neighbors
 
   override def toString: String = "full"
 }
@@ -180,7 +225,7 @@ object aNNConnector extends GraphConnector {
     * @return a vector holding costs only for the nearest neighbors representing the
     *         1/3 of the total mass, everything else is unconnected (zero)
     */
-  override def sparse(neighbors: DenseVector[Double], L: Int = 0): DenseVector[Double] = {
+  override def makeSparse(neighbors: DenseVector[Double], L: Int = 0): DenseVector[Double] = {
 
     val distinctCosts = neighbors.toArray.distinct
     val distinctVector = DenseVector(distinctCosts)
@@ -204,6 +249,82 @@ object aNNConnector extends GraphConnector {
 }
 
 /**
+  * A aNNL connector is used to construct an aNN graph on the labeled vertices.
+  * For each vertex it only keeps the labeled nearest neighbors representing the
+  * 1/3 of the total mass by setting everything else to zero.
+  */
+class aNNLConnector extends GraphConnector {
+
+  /**
+    * Retains the k labeled nearest neighbors. All unlabeled neighbors remain connected.
+    *
+    * @param neighbors a vector containing the edge values of neighboring nodes
+    * @param L number of labeled neighbors
+    * @return a sparser vector containing only for the k labeled nearest neighbors (top k costs),
+    *         everything else is unconnected (zero). Unlabeled neighbors remain connected
+    */
+  override def makeSparse(neighbors: DenseVector[Double], L: Int = 0): DenseVector[Double] = {
+
+    val distinctCosts = neighbors.toArray.take(L).distinct
+    val distinctVector = DenseVector(distinctCosts)
+    val sortedCosts = distinctCosts.sortWith(_ > _)
+    val summed = sortedCosts.sum
+    val normalizedCosts = sortedCosts.map(_ / summed)
+
+    var k = 1
+    while (k < sortedCosts.length && normalizedCosts.take(k).sum < 0.33)
+      k += 1
+
+    if (distinctVector.length > k) {
+      val topK = argtopk(distinctVector, k).map(distinctVector.apply)
+      DenseVector.vertcat(
+        neighbors.slice(0, L).map(cost => if (topK.contains(cost)) cost else UNCONNECTED),
+        neighbors.slice(L, neighbors.length)
+      )
+
+    } else neighbors
+  }
+
+  override def toString: String = s"aNN.labeled"
+}
+
+/**
+  * A temporal aNN connector is used to construct an aNN graph on the labeled vertices,
+  * while unlabeled vertices are connected temporally (as a sequence). For each vertex
+  * it only keeps the top k labeled nearest neighbors by setting everything else to zero.
+  * The unlabeled vertices are connected as a chain.
+  */
+class aNNTemporalConnector extends aNNLConnector {
+
+  /**
+    * Compute the edge value for a pair of nodes. Pair of labeled
+    * nodes are never connected. Moreover unlabeled nodes are only
+    * connected if they are time-adjacent.
+    *
+    * @note Override the method to implement another connection strategy.
+    *
+    * @param x a node
+    * @param y another node
+    * @param metric a metric for atomic formula
+    * @return the edge value for the given nodes
+    */
+  override def connect(x: Node, y: Node)(metric: Metric[_ <: AtomicFormula]): Double = {
+
+    val timeAdjacent = math.abs(x.query.terms.last.symbol.toLong - y.query.terms.last.symbol.toLong) == 1
+
+    if ((x.isLabeled && y.isLabeled) || (x.isUnlabeled && y.isUnlabeled && !timeAdjacent)) UNCONNECTED
+    else 1 - {
+      metric match {
+        case m: EvidenceMetric        => m.distance(x.evidence, y.evidence)
+        case m: Metric[AtomicFormula] => m.distance(x.atoms, y.atoms)
+      }
+    }
+  }
+
+  override def toString: String = s"aNN.temporal"
+}
+
+/**
   * A kNN connector is used to construct a kNN graph. For each vertex it
   * only keeps the top k nearest neighbors by setting everything else to zero.
   *
@@ -221,7 +342,7 @@ case class kNNConnector(k: Int) extends GraphConnector {
     * @return a sparser vector containing only for the k nearest neighbors (top k costs),
     *         everything else is unconnected (zero)
     */
-  override def sparse(neighbors: DenseVector[Double], L: Int = 0): DenseVector[Double] = {
+  override def makeSparse(neighbors: DenseVector[Double], L: Int = 0): DenseVector[Double] = {
     // find distinct costs in the neighbor vector
     val distinctCosts = DenseVector(neighbors.toArray.distinct)
 
@@ -255,7 +376,7 @@ case class kNNLConnector(k: Int) extends GraphConnector {
     * @return a sparser vector containing only for the k labeled nearest neighbors (top k costs),
     *         everything else is unconnected (zero). Unlabeled neighbors remain connected
     */
-  override def sparse(neighbors: DenseVector[Double], L: Int = 0): DenseVector[Double] = {
+  override def makeSparse(neighbors: DenseVector[Double], L: Int = 0): DenseVector[Double] = {
     // find distinct costs in the labeled neighbor vector
     val distinctLabeledCosts = DenseVector(neighbors.toArray.take(L).distinct)
 
@@ -328,7 +449,7 @@ final case class eNNConnector(epsilon: Double) extends GraphConnector {
     * @return a sparser vector containing only for the epsilon labeled nearest neighbors,
     *         everything else is unconnected (zero). Unlabeled neighbors remain connected
     */
-  override def sparse(neighbors: DenseVector[Double], L: Int = 0): DenseVector[Double] =
+  override def makeSparse(neighbors: DenseVector[Double], L: Int = 0): DenseVector[Double] =
     neighbors.map(cost => if (cost < epsilon) UNCONNECTED else cost)
 
   override def toString: String = s"eNN.$epsilon"
@@ -351,7 +472,7 @@ case class eNNLConnector(epsilon: Double) extends GraphConnector {
     * @return a sparser vector containing only for the epsilon labeled nearest neighbors,
     *         everything else is unconnected (zero). Unlabeled neighbors remain connected
     */
-  override def sparse(neighbors: DenseVector[Double], L: Int = 0): DenseVector[Double] = {
+  override def makeSparse(neighbors: DenseVector[Double], L: Int = 0): DenseVector[Double] = {
     DenseVector.vertcat(
       neighbors.slice(0, L).map(cost => if (cost < epsilon) UNCONNECTED else cost),
       neighbors.slice(L, neighbors.length)

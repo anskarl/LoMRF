@@ -50,9 +50,10 @@ package object app {
     val values: immutable.IndexedSeq[GraphSolverType] = findValues
 
     case object NN extends GraphSolverType("nn")
-    case object HGC extends GraphSolverType("hgc")
-    case object LGC extends GraphSolverType("lgc")
-    case object TLP extends GraphSolverType("tlp")
+    case object HFC_SPLICE extends GraphSolverType("hfc.splice")
+    case object LGC_SPLICE extends GraphSolverType("lgc.splice")
+    case object HFC_TLP extends GraphSolverType("hfc.tlp")
+    case object LGC_TLP extends GraphSolverType("lgc.tlp")
   }
 
   sealed class ConnectorStrategy(override val entryName: String) extends EnumEntry {
@@ -65,6 +66,8 @@ package object app {
 
     case object Full extends ConnectorStrategy("full")
     case object aNN extends ConnectorStrategy("aNN")
+    case object aNNLabeled extends ConnectorStrategy("aNN.labeled")
+    case object aNNTemporal extends ConnectorStrategy("aNN.temporal")
     case object eNN extends ConnectorStrategy("eNN")
     case object eNNLabeled extends ConnectorStrategy("eNN.labeled")
     case object eNNTemporal extends ConnectorStrategy("eNN.temporal")

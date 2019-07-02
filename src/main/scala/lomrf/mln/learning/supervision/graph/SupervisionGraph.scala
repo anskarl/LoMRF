@@ -20,6 +20,7 @@
 
 package lomrf.mln.learning.supervision.graph
 
+import breeze.linalg.DenseMatrix
 import lomrf.logic._
 import lomrf.mln.learning.supervision.graph.caching.{ FastNodeCache, NodeCache, NodeHashSet }
 import lomrf.mln.model.builders.EvidenceBuilder
@@ -47,8 +48,7 @@ abstract class SupervisionGraph(
 
   /**
     * @param potentials potentials for nodes
-    * @return a set of labeled query atoms along the fully labeled
-    *         annotation database.
+    * @return a set of labeled query atoms along the fully labeled annotation database.
     */
   def completeSupervision(potentials: Map[EvidenceAtom, Double] = Map.empty): (Set[EvidenceAtom], Evidence) = {
     if (unlabeledNodes.isEmpty) {
@@ -73,21 +73,17 @@ abstract class SupervisionGraph(
   protected def optimize(potentials: Map[EvidenceAtom, Double]): Set[EvidenceAtom]
 
   /**
-    * Extends this supervision graph to include nodes produced by a given MLN and
-    * an annotation database. Only the labeled nodes are retained from this graph
-    * as they are useful for completing the unlabelled query atoms of the given
-    * annotation database.
+    * Extends the graph to include nodes produced by a given MLN and an annotation database.
+    * The labeled nodes are cached as they are useful for labeling the unlabeled query
+    * atoms of the given annotation database.
     *
-    * @note The resulted supervision graph would have identical connection type as the
-    *       old one and also identical matcher function and metric type. Moreover the
-    *       introduced evidence is going to be partitioned based on the old graph
-    *       group by domain. Thus, you cannot partition the introduced evidence based
-    *       on another domain.
+    * @note The resulted graph would have identical connector and metric types as the old one.
+    *
     * @param mln an MLN
     * @param annotationDB an annotation database
-    * @param modes mode declarations
-    * @return a supervision graph having only the labeled nodes of this one
-    *         and all nodes produced by the given MLN and annotation database
+    * @param modes a map from atom signature to mode declarations
+    * @return a graph having only the labeled nodes of this one and all nodes
+    *         produced by the given MLN and annotation database
     */
   def ++(mln: MLN, annotationDB: EvidenceDB, modes: ModeDeclarations): SupervisionGraph
 }
@@ -95,7 +91,7 @@ abstract class SupervisionGraph(
 object SupervisionGraph extends LazyLogging {
 
   /**
-    * Partitions the given evidence database into nodes according to a given list of domains. The
+    * Partitions a given evidence database into nodes according to a given list of domains. The
     * domains must exist in the predicate schema of the query. Each node contains all evidence atoms
     * relevant to each domain constant and corresponds to a single ground query atom.
     *
@@ -103,17 +99,18 @@ object SupervisionGraph extends LazyLogging {
     * @see [[lomrf.mln.learning.structure.ModeDeclaration]]
     *
     * @param mln an MLN
-    * @param modes mode declarations
+    * @param modes a map from atom signature to mode declarations
     * @param annotationDB an annotation database
     * @param querySignature the query signature of interest
+    * @param clusterUnlabeled cluster unlabeled examples according to unification (default is false)
     * @return an indexed sequence of nodes. Labeled nodes appear before unlabelled
     */
-  private[graph] def partition(
+  def partition(
       mln: MLN,
       modes: ModeDeclarations,
       annotationDB: EvidenceDB,
       querySignature: AtomSignature,
-      clusterUnlabeled: Boolean = true): IndexedSeq[Node] = {
+      clusterUnlabeled: Boolean = false): IndexedSeq[Node] = {
 
     val predicateSchema = mln.schema.predicates
     val auxPredicateSchema = predicateSchema.filter { case (signature, _) => signature.symbol.contains(PREFIX) }
@@ -281,19 +278,36 @@ object SupervisionGraph extends LazyLogging {
     nodes ++ clusterSet.collectNodes
   }
 
-  def nearestNeighbor(
+  /**
+    * Constructs a batch supervision graph (SPLICE). The nodes are constructed given an MLN, an annotation
+    * database and a query signature. Moreover, a graph connector and a metric is required in order to be
+    * able to label the unlabeled ground query atoms.
+    *
+    * @see [[lomrf.mln.learning.structure.ModeDeclaration]]
+    *
+    * @param mln an MLN
+    * @param modes a map from atom signature to mode declarations
+    * @param annotationDB an annotation database
+    * @param querySignature the query signature of interest
+    * @param connector a graph connector
+    * @param metric a metric for atomic formula
+    * @param enableClusters enables clustering of unlabeled examples
+    * @return a SPLICE supervision graph instance
+    */
+  def SPLICE(
       mln: MLN,
       modes: ModeDeclarations,
       annotationDB: EvidenceDB,
       querySignature: AtomSignature,
       connector: GraphConnector,
-      metric: Metric[_ <: AtomicFormula]): Unit = {
+      metric: Metric[_ <: AtomicFormula],
+      enableClusters: Boolean): SPLICE = {
 
     // Group the given data into nodes
     val nodes = connector match {
-      case _: kNNTemporalConnector | _: eNNTemporalConnector =>
-        partition(mln, modes, annotationDB, querySignature, clusterUnlabeled = false)
-      case _ => partition(mln, modes, annotationDB, querySignature)
+      case _: kNNTemporalConnector | _: eNNTemporalConnector | _: aNNTemporalConnector =>
+        partition(mln, modes, annotationDB, querySignature)
+      case _ => partition(mln, modes, annotationDB, querySignature, clusterUnlabeled = enableClusters)
     }
 
     // Partition nodes into labeled and unlabeled. Then find empty unlabeled nodes.
@@ -335,13 +349,180 @@ object SupervisionGraph extends LazyLogging {
         mln.evidence.constants
       ).withCWAForAll().evidence ++= labeledEntries
 
-    /*new NNGraph(
+    new SPLICE(
       uniqueLabeled ++ nonEmptyUnlabeled,
       querySignature,
       connector,
       metric ++ mln.evidence ++ nodes.map(_.atoms),
       annotationBuilder,
-      nodeCache
-    )*/
+      nodeCache,
+      enableClusters
+    )
+  }
+
+  /**
+    * Constructs a classic nearest neighbor graph. The nodes are constructed given an MLN, an annotation
+    * database and a query signature. Moreover, a graph connector and a metric is required in order to be
+    * able to label the unlabeled ground query atoms.
+    *
+    * @see [[lomrf.mln.learning.structure.ModeDeclaration]]
+    *
+    * @param mln an MLN
+    * @param modes a map from atom signature to mode declarations
+    * @param annotationDB an annotation database
+    * @param querySignature the query signature of interest
+    * @param connector a graph connector
+    * @param metric a metric for atomic formula
+    * @param enableClusters enables clustering of unlabeled examples
+    * @return a nearest neighbor graph instance
+    */
+  def nearestNeighbor(
+      mln: MLN,
+      modes: ModeDeclarations,
+      annotationDB: EvidenceDB,
+      querySignature: AtomSignature,
+      connector: GraphConnector,
+      metric: Metric[_ <: AtomicFormula],
+      enableClusters: Boolean): NNGraph = {
+
+    // Group the given data into nodes
+    val nodes = connector match {
+      case _: kNNTemporalConnector | _: eNNTemporalConnector | _: aNNTemporalConnector =>
+        partition(mln, modes, annotationDB, querySignature)
+      case _ => partition(mln, modes, annotationDB, querySignature, clusterUnlabeled = enableClusters)
+    }
+
+    // Partition nodes into labeled and unlabeled. Then find empty unlabeled nodes.
+    val (labeledNodes, unlabeledNodes) = nodes.partition(_.isLabeled)
+    val (nonEmptyUnlabeled, emptyUnlabeled) = unlabeledNodes.partition(_.nonEmpty)
+
+    /*
+     * Create a cache using only non empty labeled nodes, i.e., nodes having at least
+     * one evidence predicate in their body.
+     *
+     * Cache stores only unique nodes (patterns) along their counts.
+     */
+    val startCacheConstruction = System.currentTimeMillis
+
+    val nodeCache = FastNodeCache(querySignature) ++ labeledNodes.filter(_.nonEmpty)
+    val uniqueLabeled = nodeCache.collectNodes
+
+    logger.info(msecTimeToTextUntilNow(s"Cache constructed in: ", startCacheConstruction))
+    logger.info(s"${uniqueLabeled.length} / ${labeledNodes.length} unique labeled nodes kept.")
+    logger.debug(nodeCache.toString)
+
+    // Labeled query atoms and empty unlabeled query atoms as FALSE.
+    val labeledEntries =
+      labeledNodes.map(_.query) ++ emptyUnlabeled.flatMap(_.labelUsingValue(FALSE))
+
+    if (emptyUnlabeled.nonEmpty)
+      logger.warn(s"Found ${emptyUnlabeled.length} empty unlabeled nodes. Set them to FALSE.")
+
+    /*
+     * Create an annotation builder and append every query atom that is TRUE or FALSE,
+     * or every UNKNOWN query atom that has no evidence atoms, everything else
+     * should be labeled by the supervision graph.
+     */
+    val annotationBuilder =
+      EvidenceBuilder(
+        mln.schema.predicates.filter { case (sig, _) => sig == querySignature },
+        Set(querySignature),
+        Set.empty,
+        mln.evidence.constants
+      ).withCWAForAll().evidence ++= labeledEntries
+
+    new NNGraph(
+      uniqueLabeled ++ nonEmptyUnlabeled,
+      querySignature,
+      connector,
+      metric ++ mln.evidence ++ nodes.map(_.atoms),
+      annotationBuilder,
+      nodeCache,
+      enableClusters
+    )
+  }
+
+  /**
+    * Constructs a TLP supervision graph. The nodes are constructed given an MLN, an annotation
+    * database and a query signature. Moreover, a graph connector and a metric is required in order to be
+    * able to label the unlabeled ground query atoms.
+    *
+    * @see [[lomrf.mln.learning.structure.ModeDeclaration]]
+    *
+    * @param mln an MLN
+    * @param modes a map from atom signature to mode declarations
+    * @param annotationDB an annotation database
+    * @param querySignature the query signature of interest
+    * @param connector a graph connector
+    * @param metric a metric for atomic formula
+    * @param memory the graph memory (number of unlabeled nodes)
+    * @return a temporal label propagation graph instance
+    */
+  def TLP(
+      mln: MLN,
+      modes: ModeDeclarations,
+      annotationDB: EvidenceDB,
+      querySignature: AtomSignature,
+      connector: GraphConnector,
+      metric: Metric[_ <: AtomicFormula],
+      memory: Int): StreamingGraph = {
+
+    // Group the given data into nodes
+    val nodes = connector match {
+      case _: kNNTemporalConnector | _: eNNTemporalConnector | _: aNNTemporalConnector =>
+        partition(mln, modes, annotationDB, querySignature)
+      case _ => logger.fatal("Temporal label propagation required a temporal connection strategy!")
+    }
+
+    // Partition nodes into labeled and unlabeled. Then find empty unlabeled nodes.
+    val (labeledNodes, unlabeledNodes) = nodes.partition(_.isLabeled)
+    val (nonEmptyUnlabeled, emptyUnlabeled) = unlabeledNodes.partition(_.nonEmpty)
+
+    /*
+     * Create a cache using only non empty labeled nodes, i.e., nodes having at least
+     * one evidence predicate in their body.
+     *
+     * Cache stores only unique nodes (patterns) along their counts.
+     */
+    val startCacheConstruction = System.currentTimeMillis
+
+    val nodeCache = FastNodeCache(querySignature) ++ labeledNodes.filter(_.nonEmpty)
+    val uniqueLabeled = nodeCache.collectNodes
+
+    logger.info(msecTimeToTextUntilNow(s"Cache constructed in: ", startCacheConstruction))
+    logger.info(s"${uniqueLabeled.length} / ${labeledNodes.length} unique labeled nodes kept.")
+    logger.debug(nodeCache.toString)
+
+    // Labeled query atoms and empty unlabeled query atoms as FALSE.
+    val labeledEntries =
+      labeledNodes.map(_.query) ++ emptyUnlabeled.flatMap(_.labelUsingValue(FALSE))
+
+    if (emptyUnlabeled.nonEmpty)
+      logger.warn(s"Found ${emptyUnlabeled.length} empty unlabeled nodes. Set them to FALSE.")
+
+    /*
+     * Create an annotation builder and append every query atom that is TRUE or FALSE,
+     * or every UNKNOWN query atom that has no evidence atoms, everything else
+     * should be labeled by the supervision graph.
+     */
+    val annotationBuilder =
+      EvidenceBuilder(
+        mln.schema.predicates.filter { case (sig, _) => sig == querySignature },
+        Set(querySignature),
+        Set.empty,
+        mln.evidence.constants
+      ).withCWAForAll().evidence ++= labeledEntries
+
+    new StreamingGraph(
+      uniqueLabeled ++ nonEmptyUnlabeled,
+      querySignature,
+      connector,
+      metric ++ mln.evidence ++ nodes.map(_.atoms),
+      annotationBuilder,
+      nodeCache,
+      IndexedSeq.empty,
+      DenseMatrix.zeros[Double](2, 2),
+      memory
+    )
   }
 }
