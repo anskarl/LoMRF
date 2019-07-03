@@ -329,10 +329,16 @@ object SemiSupervisionCLI extends CLIApp {
           case Some(graph) => supervisionGraphs += querySignature -> (graph ++ (mln, annotationDB, modes))
           case None if _solver == HFC_TLP =>
             supervisionGraphs += querySignature ->
-              SupervisionGraph.TLP(mln, modes, annotationDB, querySignature, connector, distance, _memory)
+              SupervisionGraph.TLP(mln, modes, annotationDB, querySignature, connector, distance, GraphOps.HFc, _memory)
+          case None if _solver == LGC_TLP =>
+            supervisionGraphs += querySignature ->
+              SupervisionGraph.TLP(mln, modes, annotationDB, querySignature, connector, distance, GraphOps.LGCc, _memory)
           case None if _solver == HFC_SPLICE =>
             supervisionGraphs += querySignature ->
-              SupervisionGraph.SPLICE(mln, modes, annotationDB, querySignature, connector, distance, _cluster)
+              SupervisionGraph.SPLICE(mln, modes, annotationDB, querySignature, connector, distance, GraphOps.HFc, _cluster)
+          case None if _solver == LGC_SPLICE =>
+            supervisionGraphs += querySignature ->
+              SupervisionGraph.SPLICE(mln, modes, annotationDB, querySignature, connector, distance, GraphOps.LGCc, _cluster)
           case None if _solver == NN =>
             supervisionGraphs += querySignature ->
               SupervisionGraph.nearestNeighbor(mln, modes, annotationDB, querySignature, connector, distance, _cluster)

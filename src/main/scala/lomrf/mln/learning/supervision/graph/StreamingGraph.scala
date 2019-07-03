@@ -35,6 +35,7 @@ final class StreamingGraph private[graph] (
     metric: Metric[_ <: AtomicFormula],
     supervisionBuilder: EvidenceBuilder,
     nodeCache: NodeCache,
+    solver: (GraphMatrix, GraphMatrix, DenseVector[Double]) => DenseVector[Double],
     storedUnlabeled: IndexedSeq[Node],
     previousGraph: GraphMatrix,
     memory: Int)
@@ -100,7 +101,7 @@ final class StreamingGraph private[graph] (
     // Vector holding the labeled values
     val fl = DenseVector(-1d, 1d)
 
-    val solution = GraphOps.HFc(W, D, fl).toArray
+    val solution = solver(W, D, fl).toArray
     val truthValues = solution.map(value => if (value <= UNCONNECTED) FALSE else TRUE)
 
     logger.info(msecTimeToTextUntilNow(s"Labeling solution found in: ", startSolution))
@@ -167,6 +168,7 @@ final class StreamingGraph private[graph] (
         metric ++ mln.evidence ++ currentNodes.map(_.atoms),
         annotationBuilder,
         nodeCache,
+        solver,
         updatedStoredUnlabeled,
         W.copy,
         memory)
@@ -195,6 +197,7 @@ final class StreamingGraph private[graph] (
         metric ++ mln.evidence ++ currentNodes.map(_.atoms),
         annotationBuilder,
         updatedNodeCache,
+        solver,
         updatedStoredUnlabeled,
         W.copy,
         memory

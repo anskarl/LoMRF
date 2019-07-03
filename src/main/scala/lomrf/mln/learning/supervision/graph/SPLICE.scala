@@ -50,6 +50,7 @@ final class SPLICE private[graph] (
     metric: Metric[_ <: AtomicFormula],
     supervisionBuilder: EvidenceBuilder,
     nodeCache: NodeCache,
+    solver: (GraphMatrix, GraphMatrix, DenseVector[Double]) => DenseVector[Double],
     enableClusters: Boolean)
   extends SupervisionGraph(nodes, querySignature, connector, metric, supervisionBuilder, nodeCache) {
 
@@ -75,7 +76,7 @@ final class SPLICE private[graph] (
     // Vector holding the labeled values
     val fl = DenseVector(labeledNodes.map(_.value).toArray)
 
-    val solution = GraphOps.HFc(W, D, fl).toArray
+    val solution = solver(W, D, fl).toArray
     val truthValues = solution.map(value => if (value <= UNCONNECTED) FALSE else TRUE)
 
     logger.info(msecTimeToTextUntilNow(s"Labeling solution found in: ", startSolution))
@@ -142,6 +143,7 @@ final class SPLICE private[graph] (
         metric ++ mln.evidence ++ nodes.map(_.atoms),
         annotationBuilder,
         nodeCache,
+        solver,
         enableClusters)
     else {
       /*
@@ -168,6 +170,7 @@ final class SPLICE private[graph] (
         metric ++ mln.evidence ++ nodes.map(_.atoms),
         annotationBuilder,
         updatedNodeCache,
+        solver,
         enableClusters)
     }
   }

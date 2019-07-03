@@ -20,7 +20,7 @@
 
 package lomrf.mln.learning.supervision.graph
 
-import breeze.linalg.DenseMatrix
+import breeze.linalg.{ DenseMatrix, DenseVector }
 import lomrf.logic._
 import lomrf.mln.learning.supervision.graph.caching.{ FastNodeCache, NodeCache, NodeHashSet }
 import lomrf.mln.model.builders.EvidenceBuilder
@@ -301,6 +301,7 @@ object SupervisionGraph extends LazyLogging {
       querySignature: AtomSignature,
       connector: GraphConnector,
       metric: Metric[_ <: AtomicFormula],
+      solver: (GraphMatrix, GraphMatrix, DenseVector[Double]) => DenseVector[Double],
       enableClusters: Boolean): SPLICE = {
 
     // Group the given data into nodes
@@ -356,6 +357,7 @@ object SupervisionGraph extends LazyLogging {
       metric ++ mln.evidence ++ nodes.map(_.atoms),
       annotationBuilder,
       nodeCache,
+      solver,
       enableClusters
     )
   }
@@ -465,6 +467,7 @@ object SupervisionGraph extends LazyLogging {
       querySignature: AtomSignature,
       connector: GraphConnector,
       metric: Metric[_ <: AtomicFormula],
+      solver: (GraphMatrix, GraphMatrix, DenseVector[Double]) => DenseVector[Double],
       memory: Int): StreamingGraph = {
 
     // Group the given data into nodes
@@ -520,6 +523,7 @@ object SupervisionGraph extends LazyLogging {
       metric ++ mln.evidence ++ nodes.map(_.atoms),
       annotationBuilder,
       nodeCache,
+      solver,
       IndexedSeq.empty,
       DenseMatrix.zeros[Double](2, 2),
       memory
