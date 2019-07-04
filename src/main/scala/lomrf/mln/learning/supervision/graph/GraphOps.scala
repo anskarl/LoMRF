@@ -23,6 +23,7 @@ package lomrf.mln.learning.supervision.graph
 import breeze.linalg.{ DenseMatrix, DenseVector, mpow, pinv }
 import com.typesafe.scalalogging.LazyLogging
 import scala.util.{ Failure, Success, Try }
+import spire.syntax.cfor._
 
 object GraphOps extends LazyLogging {
 
@@ -31,18 +32,23 @@ object GraphOps extends LazyLogging {
       D: DenseMatrix[Double],
       Y: DenseVector[Double]): DenseVector[Double] = {
 
-    val YY = if (Y.length < W.cols) DenseVector(Y.toArray ++ Array.fill(W.cols - Y.length)(0.0)) else Y
+    val numberOfNodes = W.rows
+    val numberOfLabeled = Y.length
+    val YY = DenseVector.vertcat(Y, DenseVector.fill(numberOfNodes - numberOfLabeled, 0.0))
 
     val Dp = mpow(D, -0.5)
     val S = Dp * W * Dp
 
-    var Yt = YY; var Yt1 = YY
+    var Yt = YY; var Ytt = YY; var converged = false
     do {
-      Yt = Yt1
-      Yt1 = 0.99 * S * Yt + 0.01 * YY
-    } while (Yt.toArray.zip(Yt1.toArray).forall { case (a, b) => math.abs(a - b) < 1E-8 })
+      Yt = Ytt; converged = true
+      Ytt = 0.5 * S * Yt + 0.5 * YY
+      cfor(0)(_ < numberOfNodes, _ + 1) { i =>
+        converged = converged && (math.abs(Yt(i) - Ytt(i)) < 1E-12)
+      }
+    } while (!converged)
 
-    DenseVector(Yt1.toArray.drop(Y.length))
+    Ytt.slice(numberOfLabeled, numberOfNodes)
   }
 
   def HFc(

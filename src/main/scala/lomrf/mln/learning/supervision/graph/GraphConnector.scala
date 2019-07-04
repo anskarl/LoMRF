@@ -119,12 +119,12 @@ trait GraphConnector {
     val D = DenseMatrix.zeros[Double](numberOfNodes, numberOfNodes)
 
     cfor(0)(_ < numberOfNodes, _ + 1) { i =>
-      val neighborCosts = DenseVector.zeros[Double](numberOfNodes)
+      //val neighborCosts = DenseVector.zeros[Double](numberOfNodes)
       for (j <- parallelIndices if i != j) { // A node cannot be connected to itself
 
         // W is symmetric and therefore avoid computing both upper and lower triangular
-        if (i > j) neighborCosts(j) = W(j, i)
-        else neighborCosts(j) = connect(nodes(i), nodes(j))(metric)
+        if (i > j) W(i, j) = W(j, i)
+        else W(i, j) = connect(nodes(i), nodes(j))(metric)
       }
     }
 

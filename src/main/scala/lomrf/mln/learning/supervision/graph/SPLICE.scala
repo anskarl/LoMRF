@@ -66,7 +66,7 @@ final class SPLICE private[graph] (
     }
 
     val startGraphConnection = System.currentTimeMillis
-    val encodedGraph = connector.fullyConnect(nodes)(metric)
+    val encodedGraph = connector.smartConnect(nodes, unlabeledNodes)(metric)
     val W = encodedGraph._1
     val D = encodedGraph._2
     logger.info(msecTimeToTextUntilNow(s"Graph connected in: ", startGraphConnection))
