@@ -151,7 +151,7 @@ trait GraphConnector {
     val parallelIndices = rightNodes.indices.par
     val W = DenseMatrix.fill[Double](leftNodes.length, rightNodes.length)(UNCONNECTED)
 
-    cfor(0)(_ < numberOfCols, _ + 1) { i =>
+    cfor(0)(_ < leftNodes.length, _ + 1) { i =>
       val neighborCosts = DenseVector.zeros[Double](numberOfCols)
       for (j <- parallelIndices if i != j) // A node cannot be connected to itself
         neighborCosts(j) = connect(leftNodes(i), rightNodes(j))(metric)

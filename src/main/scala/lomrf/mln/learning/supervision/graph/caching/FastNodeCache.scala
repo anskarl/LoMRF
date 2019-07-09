@@ -62,7 +62,7 @@ final class FastNodeCache private (
     * @return the counts of the given node or the result of the default computation
     *         if the node does not exist in the cache.
     */
-  def getOrElse(node: Node, default: => Long): Long = data.getOrDefault(node, default)
+  def getOrElse(node: Node, default: => Long): Long = get(node).getOrElse(default)
 
   /**
     * @param node a node
