@@ -77,20 +77,30 @@ final case class SimpleNodeCache(
     * @return a new node cache that contains all nodes of the current cache
     *         along the given node.
     */
-  def +(node: Node): SimpleNodeCache = this ++ IndexedSeq(node)
+  def +(node: Node): SimpleNodeCache = this ++ Seq(node)
+
+  /**
+    * Remove a node from the cache.
+    *
+    * @param node a node to be removed
+    * @return a node cache that contains all nodes of the current cache
+    *         except the given node.
+    */
+  def -(node: Node): SimpleNodeCache = this -- Seq(node)
 
   /**
     * Add a sequence of nodes to the cache.
     *
     * @param nodes a sequence of nodes
-    * @return a new node cache containing all nodes of the current cache
+    * @return a node cache containing all nodes of the current cache
     *         along the given sequence of nodes.
     */
   def ++(nodes: Seq[Node]): SimpleNodeCache = {
+
     val (updatedUniqueNodes, updatedNodeSet) = nodes.foldLeft(uniqueNodes -> data) {
       case ((unique, cache), node) =>
 
-        val pattern = node.clause.getOrElse(logger.fatal("Cannot construct a pattern!"))
+        val pattern = node.clause.getOrElse(logger.fatal("Cannot construct a pattern."))
 
         if (!unique.flatMap(_.clause).exists(_ =~= pattern))
           cache.find { case (c, _) => c =~= pattern } match {
@@ -100,7 +110,30 @@ final case class SimpleNodeCache(
         else cache.find { case (c, _) => c =~= pattern } match {
           case Some(entry @ (_, counts)) => (unique, (cache - entry) + (pattern -> (counts + 1)))
           case None =>
-            logger.fatal(s"Pattern ${pattern.toText()} is not unique, but it does not exist in the frequency set.")
+            logger.fatal(s"Pattern ${pattern.toText()} is not unique, but it does not exist in the cache.")
+        }
+    }
+
+    SimpleNodeCache(querySignature, updatedNodeSet, updatedUniqueNodes)
+  }
+
+  /**
+    * Remove a sequence of nodes to the cache.
+    *
+    * @param nodes a sequence of nodes
+    * @return a node cache containing all nodes of the current cache
+    *         except the given sequence of nodes.
+    */
+  def --(nodes: Seq[Node]): SimpleNodeCache = {
+
+    val (updatedUniqueNodes, updatedNodeSet) = nodes.foldLeft(uniqueNodes -> data) {
+      case ((unique, cache), node) =>
+
+        val pattern = node.clause.getOrElse(logger.fatal("Cannot construct a pattern."))
+
+        cache.find { case (c, _) => c =~= pattern } match {
+          case Some(entry) => (unique.filterNot(_.clause.get =~= pattern), cache - entry)
+          case None        => (unique, cache)
         }
     }
 
@@ -115,11 +148,11 @@ final case class SimpleNodeCache(
   def collectNodes: IndexedSeq[Node] = uniqueNodes.foldLeft(IndexedSeq.empty[Node]) {
     case (result, node) =>
 
-      val nodeClause = node.clause.getOrElse(logger.fatal("Cannot construct a pattern!"))
-      val oppNodeClause = node.opposite.clause.getOrElse(logger.fatal("Cannot construct a pattern!"))
+      val nodeClause = node.clause.getOrElse(logger.fatal("Cannot construct a pattern."))
+      val oppNodeClause = node.opposite.clause.getOrElse(logger.fatal("Cannot construct a pattern."))
 
       val nodeCounts =
-        getOrElse(node, logger.fatal(s"Pattern ${nodeClause.toText()} does not exist in the frequency set."))
+        getOrElse(node, logger.fatal(s"Pattern ${nodeClause.toText()} does not exist in the cache."))
 
       data.find { case (c, _) => c =~= oppNodeClause } match {
 

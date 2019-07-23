@@ -74,7 +74,7 @@ final class FastNodeCache private (
     * Add a node to the cache.
     *
     * @param node a node to be added
-    * @return a new node cache that contains all nodes of the current cache
+    * @return a node cache that contains all nodes of the current cache
     *         along the given node.
     */
   def +(node: Node): FastNodeCache = {
@@ -105,14 +105,42 @@ final class FastNodeCache private (
   }
 
   /**
+    * Remove a node from the cache.
+    *
+    * @param node a node to be removed
+    * @return a node cache that contains all nodes of the current cache
+    *         except the given node.
+    */
+  def -(node: Node): FastNodeCache = {
+    data.remove(node)
+    noisy.remove(node)
+    noisy.remove(node.opposite)
+    marked.remove(node)
+    marked.remove(node.opposite)
+    this
+  }
+
+  /**
     * Add a sequence of nodes to the cache.
     *
     * @param nodes a sequence of nodes
-    * @return a new node cache containing all nodes of the current cache
+    * @return a node cache containing all nodes of the current cache
     *         along the given sequence of nodes.
     */
   def ++(nodes: Seq[Node]): FastNodeCache = {
     for (node <- nodes) this + node
+    this
+  }
+
+  /**
+    * Remove a sequence of nodes to the cache.
+    *
+    * @param nodes a sequence of nodes
+    * @return a node cache containing all nodes of the current cache
+    *         except the given sequence of nodes.
+    */
+  def --(nodes: Seq[Node]): FastNodeCache = {
+    for (node <- nodes) this - node
     this
   }
 

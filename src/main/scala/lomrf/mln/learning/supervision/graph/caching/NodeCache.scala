@@ -67,19 +67,37 @@ trait NodeCache extends LazyLogging {
     * Add a node to the cache.
     *
     * @param node a node to be added
-    * @return a new node cache that contains all nodes of the current cache
+    * @return a node cache that contains all nodes of the current cache
     *         along the given node.
     */
   def +(node: Node): NodeCache
 
   /**
+    * Remove a node from the cache.
+    *
+    * @param node a node to be removed
+    * @return a node cache that contains all nodes of the current cache
+    *         except the given node.
+    */
+  def -(node: Node): NodeCache
+
+  /**
     * Add a sequence of nodes to the cache.
     *
     * @param nodes a sequence of nodes
-    * @return a new node cache containing all nodes of the current cache
+    * @return a node cache containing all nodes of the current cache
     *         along the given sequence of nodes.
     */
   def ++(nodes: Seq[Node]): NodeCache
+
+  /**
+    * Remove a sequence of nodes to the cache.
+    *
+    * @param nodes a sequence of nodes
+    * @return a node cache containing all nodes of the current cache
+    *         except the given sequence of nodes.
+    */
+  def --(nodes: Seq[Node]): NodeCache
 
   /**
     * Collects all unique nodes.
