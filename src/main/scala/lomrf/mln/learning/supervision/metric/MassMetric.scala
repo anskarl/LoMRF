@@ -119,7 +119,7 @@ object MassMapMetric {
   }
 }
 
-final class MassTreeMetric(forest: IsolationForest[AtomSignature]) extends Metric[AtomicFormula] {
+case class MassTreeMetric(forest: IsolationForest[AtomSignature]) extends Metric[AtomicFormula] {
 
   /**
     * Distance for atoms. The function may obey to the following properties:

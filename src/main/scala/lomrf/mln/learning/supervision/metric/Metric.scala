@@ -96,7 +96,7 @@ trait Metric[A <: AtomicFormula] {
 trait StructureMetric[A <: AtomicFormula] extends Metric[A] {
 
   // Matcher used for finding a mapping between atoms sequences
-  protected val matcher: Matcher
+  val matcher: Matcher
 
   /**
     * Distance over sequences of atoms.
@@ -118,6 +118,8 @@ trait StructureMetric[A <: AtomicFormula] extends Metric[A] {
   */
 case class HybridMetric(metrics: Set[Metric[AtomicFormula]]) extends Metric[AtomicFormula] {
 
+  val numberOfMetrics: Int = metrics.size
+
   /**
     * Distance for atoms. The function may obey to the following properties:
     *
@@ -133,7 +135,7 @@ case class HybridMetric(metrics: Set[Metric[AtomicFormula]]) extends Metric[Atom
     * @return a distance for the given atoms
     */
   def distance(xAtom: AtomicFormula, yAtom: AtomicFormula): Double =
-    metrics.foldLeft(0.0) { case (sum, metric) => sum + metric.distance(xAtom, yAtom) } / metrics.size
+    metrics.foldLeft(0.0) { case (sum, metric) => sum + metric.distance(xAtom, yAtom) } / numberOfMetrics
 
   /**
     * Distance over sequences of atoms.
@@ -143,7 +145,7 @@ case class HybridMetric(metrics: Set[Metric[AtomicFormula]]) extends Metric[Atom
     * @return a distance for the given sequences of atoms
     */
   def distance(xAtomSeq: IndexedSeq[AtomicFormula], yAtomSeq: IndexedSeq[AtomicFormula]): Double =
-    metrics.foldLeft(0.0) { case (sum, metric) => sum + metric.distance(xAtomSeq, yAtomSeq) } / metrics.size
+    metrics.foldLeft(0.0) { case (sum, metric) => sum + metric.distance(xAtomSeq, yAtomSeq) } / numberOfMetrics
 
   /**
     * Append evidence information to the metric.

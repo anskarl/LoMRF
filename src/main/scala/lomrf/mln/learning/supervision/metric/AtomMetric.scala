@@ -28,7 +28,7 @@ import lomrf.logic._
   *
   * @param matcher a matcher function
   */
-final case class AtomMetric(override protected val matcher: Matcher) extends StructureMetric[AtomicFormula] {
+case class AtomMetric(matcher: Matcher) extends StructureMetric[AtomicFormula] {
 
   /**
     * Distance for atoms. The function must obey to the following properties:

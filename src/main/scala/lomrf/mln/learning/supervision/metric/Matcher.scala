@@ -23,7 +23,7 @@ package lomrf.mln.learning.supervision.metric
 import breeze.optimize.linear.KuhnMunkres
 
 /**
-  * A Matcher is any object that solves the assignment problem. The problem consists of finding
+  * Matcher is any object that solves an assignment problem. The problem consists of finding
   * a maximum cost matching (or a minimum cost perfect matching) in a bipartite graph. The input
   * graph is usually represented as a cost matrix. Zero values define the absence of edges.
   *
@@ -37,7 +37,7 @@ import breeze.optimize.linear.KuhnMunkres
   *
   * @see https://en.wikipedia.org/wiki/Assignment_problem
   */
-sealed trait Matcher extends (CostMatrix[Double] => Double)
+trait Matcher extends (CostMatrix[Double] => Double)
 
 /**
   * The Hungarian matcher is a combinatorial optimization algorithm that solves the assignment problem in
