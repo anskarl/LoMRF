@@ -69,6 +69,14 @@ case class IsolationTree[T](
   }
 
   /**
+    * @return a set of features appearing inside the tree
+    */
+  def collectFeatures: Set[T] =
+    if (splitFeature.isEmpty) Set.empty
+    else left.map(_.collectFeatures).getOrElse(Set.empty) ++
+      right.map(_.collectFeatures).getOrElse(Set.empty) + splitFeature.get
+
+  /**
     * Updates the internal counts of the nodes containing the given features.
     *
     * @param features a set of features
