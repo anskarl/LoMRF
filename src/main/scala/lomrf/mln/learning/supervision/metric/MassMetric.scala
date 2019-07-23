@@ -119,7 +119,7 @@ object MassMapMetric {
   }
 }
 
-final class MassTreeMetric(forest: IsolationForest) extends Metric[AtomicFormula] {
+final class MassTreeMetric(forest: IsolationForest[AtomSignature]) extends Metric[AtomicFormula] {
 
   /**
     * Distance for atoms. The function may obey to the following properties:
@@ -136,7 +136,7 @@ final class MassTreeMetric(forest: IsolationForest) extends Metric[AtomicFormula
     * @return a distance for the given atoms
     */
   override def distance(xAtom: AtomicFormula, yAtom: AtomicFormula): Double =
-    forest.mass(Set(xAtom.signature), Set(yAtom.signature))
+    forest.mass(Seq(xAtom.signature), Seq(yAtom.signature))
 
   /**
     * Distance over sequences of atoms.
@@ -146,7 +146,7 @@ final class MassTreeMetric(forest: IsolationForest) extends Metric[AtomicFormula
     * @return a distance for the given sequences of atoms
     */
   override def distance(xAtomSeq: IndexedSeq[AtomicFormula], yAtomSeq: IndexedSeq[AtomicFormula]): Double =
-    forest.mass(xAtomSeq.map(_.signature).toSet, yAtomSeq.map(_.signature).toSet)
+    forest.mass(xAtomSeq.map(_.signature), yAtomSeq.map(_.signature))
 
   /**
     * Append information from atom sequences to the metric.
@@ -158,7 +158,7 @@ final class MassTreeMetric(forest: IsolationForest) extends Metric[AtomicFormula
     * @return an updated metric
     */
   override def ++(atomSeqSeq: Seq[Seq[AtomicFormula]]): Metric[AtomicFormula] = {
-    atomSeqSeq.foreach(seq => forest.updateCounts(seq.map(_.signature).toSet))
+    atomSeqSeq.foreach(seq => forest.updateCounts(seq.map(_.signature)))
     new MassTreeMetric(forest)
   }
 }

@@ -20,49 +20,69 @@
 
 package lomrf.mln.learning.supervision.metric
 
-import lomrf.logic.AtomSignature
-
 /**
   * IsolationForest is an ensemble of IsolationTree.
   *
   * @param trees a sequence of IsolationTree
   */
-class IsolationForest(trees: Seq[IsolationTree]) {
+case class IsolationForest[T](trees: Seq[IsolationTree[T]]) {
+
+  // The number of trees in the forest
+  lazy val numberOfTrees: Int = trees.size
 
   /**
     * Update the internal counts of all the trees.
     *
-    * @param signatures a set of signatures
+    * @param features a set of features
     */
-  def updateCounts(signatures: Set[AtomSignature]): Unit = trees.foreach(_.updateCounts(signatures))
+  def updateCounts(features: Seq[T]): Unit = trees.foreach(_.updateCounts(features))
 
   /**
-    * Compute the average mass of the given sets of signatures.
+    * Compute the average mass of the given feature sequences.
     *
-    * @param x a set of signatures
-    * @param y another set of signatures
-    * @return the average mass of the sets
+    * @param x a sequence of features
+    * @param y another sequence of features
+    * @return the average mass of the given feature sequences
     */
-  def mass(x: Set[AtomSignature], y: Set[AtomSignature]): Double =
-    trees.foldLeft(0.0) { case (sum, t) => sum + t.mass(x, y) } / trees.size
+  def mass(x: Seq[T], y: Seq[T]): Double =
+    trees.foldLeft(0.0) { case (sum, t) => sum + t.mass(x, y) } / numberOfTrees
+
+  /**
+    * Compute the average relative mass of the given feature sequences.
+    *
+    * @param x a sequence of features
+    * @param q another sequence of features
+    * @return the average relative mass of the given feature sequences
+    */
+  def relevance(x: Seq[T], q: Seq[T]): Double =
+    trees.foldLeft(0.0) { case (sum, t) => sum + t.relevance(x, q) } / numberOfTrees
+
+  /**
+    * Compute the anomaly score of the given feature sequence.
+    *
+    * @param x a sequence of features
+    * @return the anomaly score of the given feature sequence
+    */
+  def anomalyScore(x: Seq[T]): Double =
+    trees.foldLeft(0.0) { case (sum, t) => sum + t.anomalyScore(x) } / numberOfTrees
 }
 
 object IsolationForest {
 
   /**
-    * @param signatures a sequence of atom signatures
-    * @param numberOfTrees the number of trees in the forest
-    * @return an IsolationForest
+    * @param features a sequence of features
+    * @param numberOfTrees the number of trees in the forest (default is 100)
+    * @return an IsolationForest instance
     */
-  def apply(signatures: IndexedSeq[AtomSignature], numberOfTrees: Int = 100): IsolationForest =
-    IsolationForest(signatures, numberOfTrees, signatures.length)
+  def apply[T](features: IndexedSeq[T], numberOfTrees: Int = 100): IsolationForest[T] =
+    IsolationForest(features, numberOfTrees, features.length)
 
   /**
-    * @param signatures a sequence of atom signatures
+    * @param features a sequence of features
     * @param numberOfTrees the number of trees in the forest
     * @param treeHeight the tree height
-    * @return an IsolationForest
+    * @return an IsolationForest instance
     */
-  def apply(signatures: IndexedSeq[AtomSignature], numberOfTrees: Int, treeHeight: Int): IsolationForest =
-    new IsolationForest(for (_ <- 1 to numberOfTrees) yield IsolationTree(signatures, treeHeight))
+  def apply[T](features: IndexedSeq[T], numberOfTrees: Int, treeHeight: Int): IsolationForest[T] =
+    IsolationForest(Seq.fill(numberOfTrees)(IsolationTree(features, treeHeight)))
 }
