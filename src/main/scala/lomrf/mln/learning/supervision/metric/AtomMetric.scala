@@ -45,6 +45,7 @@ case class AtomMetric(matcher: Matcher) extends StructureMetric[AtomicFormula] {
     */
   override def distance(xAtom: AtomicFormula, yAtom: AtomicFormula): Double =
     if (xAtom.signature != yAtom.signature) 1
+    else if (xAtom.constants.isEmpty) 0 // in case no constants exist, distance should be zero
     else termSeqDistance(xAtom.terms, yAtom.terms)
 
   /**
@@ -55,7 +56,7 @@ case class AtomMetric(matcher: Matcher) extends StructureMetric[AtomicFormula] {
     * @return a distance in the interval [0, 1] for the given term sequences
     */
   @inline private def termSeqDistance(termSeqA: IndexedSeq[Term], termSeqB: IndexedSeq[Term]): Double =
-    (termSeqA zip termSeqB).map { case (a, b) => termDistance(a, b) }.sum / (2d * termSeqA.length)
+    (termSeqA zip termSeqB).map { case (a, b) => termDistance(a, b) }.sum / (2d * termSeqA.count(!_.isVariable))
 
   /**
     * Distance for individual terms.

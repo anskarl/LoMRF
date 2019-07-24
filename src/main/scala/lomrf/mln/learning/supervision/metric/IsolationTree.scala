@@ -128,7 +128,7 @@ case class IsolationTree[T](
     */
   def printTree(): Unit = printTreeHelper("", isTail = true)
 
-  private def printTreeHelper(prefix: String, isTail: Boolean): Unit =  {
+  private def printTreeHelper(prefix: String, isTail: Boolean): Unit = {
     println(s"$prefix${if (isTail) "└── " else "├── "}$splitFeature:$size")
     if (left.isDefined)
       left.get.printTreeHelper(s"$prefix${if (isTail) "    " else "│   "}", isTail = false)

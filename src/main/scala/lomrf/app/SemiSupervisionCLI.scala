@@ -138,13 +138,11 @@ object SemiSupervisionCLI extends CLIApp {
         v.trim.toLowerCase match {
           case "binary"       => _distance = DistanceType.Binary
           case "atomic"       => _distance = DistanceType.Atomic
-          case "atomic.const" => _distance = DistanceType.AtomConst
           case "evidence"     => _distance = DistanceType.Evidence
           case "mass.map"     => _distance = DistanceType.MassMap
           case "mass.tree"    => _distance = DistanceType.MassTree
           case "hybrid.map"   => _distance = DistanceType.HybridMap
           case "hybrid.tree"  => _distance = DistanceType.HybridTree
-          case "hybrid.tree2" => _distance = DistanceType.HybridTree2
           case _              => logger.fatal(s"Unknown distance of type '$v'.")
         }
     }
@@ -269,13 +267,8 @@ object SemiSupervisionCLI extends CLIApp {
         AtomMetric(HungarianMatcher),
         MassTreeMetric(kb.predicateSchema.keySet -- _nonEvidenceAtoms)
       ))
-      else if (_distance == DistanceType.HybridTree2) HybridMetric(Set(
-        AtomConstMetric(HungarianMatcher),
-        MassTreeMetric(kb.predicateSchema.keySet -- _nonEvidenceAtoms)
-      ))
       else if (_distance == DistanceType.Binary) BinaryMetric(HungarianMatcher)
       else if (_distance == DistanceType.Atomic) AtomMetric(HungarianMatcher)
-      else if (_distance == DistanceType.AtomConst) AtomConstMetric(HungarianMatcher)
       else EvidenceMetric(modes, HungarianMatcher)
 
     val clusterTag = if (_solver == HFC_TLP || _solver == LGC_TLP) "no.cluster" else if (_cluster) "clustered" else "no.cluster"
