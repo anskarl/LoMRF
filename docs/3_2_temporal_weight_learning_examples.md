@@ -4,7 +4,7 @@ Below we provide examples that demonstrate LoMRF weight learning capabilities in
 
 ## Activity Recognition
 
-In this example we demonstrate how to perform weight learning for activity recognition, using a small fragment of the first set of the [CAVIAR dataset](http://homepages.inf.ed.ac.uk/rbf/CAVIARDATA1/). We use the approach that is proposed by [Skarlatidis et. al. (2014, 2015)](8_referencies.md), that employs the Probabilistic Event Calculus formalism as presented in the Section [Quick Start](0_quick_start.md) and the knowledge base that is defined in the [Temporal Inference Examples](2_2_temporal_inference_examples.md).
+In this example we demonstrate how to perform weight learning for activity recognition, using a small fragment of the first set of the [CAVIAR dataset](http://homepages.inf.ed.ac.uk/rbf/CAVIARDATA1/). We use the approach that is proposed by [Skarlatidis et. al. (2014, 2015)](9_references.md), that employs the Probabilistic Event Calculus formalism as presented in the Section [Quick Start](0_quick_start.md) and the knowledge base that is defined in the [Temporal Inference Examples](2_2_temporal_inference_examples.md).
 
 Recall that in Section [Knowledge Base](1_1_knowledge_base.md) we presented a special type of formulas, named [Definite Clauses](1_1_knowledge_base.md#definite-clauses), as well as their properties and their limitations regarding predicate completion (for details see the works of [McCarthy, 1980](9_references.md) and [Lifschitz, 1994](9_references.md)).
 
@@ -67,7 +67,7 @@ Happens(Active_ID1, 170)
 
 As we have seen in [Temporal Inference Examples](2_2_temporal_inference_examples.md), the knowledge base contains, among others, the predicates with signatures `InitiatedAt/2` and `TerminatedAt/2`. These predicates form the head of the definite clauses that represent the domain-dependent axioms in our Activity Recognition example. However the supervision of `InitiatedAt/2` and `TerminatedAt/2` is missing from the training data. Therefore, `InitiatedAt/2` and `TerminatedAt/2` from hidden variables in the resulting Markov Network and supervised learning cannot be performed.
 
-To overcome this problem, we are apply a Knowledge Base transformation step (for details see [Skarlatidis et. al (2014, 2015)](8_referencies.md)). In brief, all logical definitions of `InitiatedAt/2` and `TerminatedAt/2` can be represented as equivalences for each composite event separately. Consider, for example, the following fragment of definitions for the composite event *meeting*, without any weight value:
+To overcome this problem, we are apply a Knowledge Base transformation step (for details see [Skarlatidis et. al (2014, 2015)](9_references.md)). In brief, all logical definitions of `InitiatedAt/2` and `TerminatedAt/2` can be represented as equivalences for each composite event separately. Consider, for example, the following fragment of definitions for the composite event *meeting*, without any weight value:
 
 ```lang-none
 InitiatedAt(meet(p1,p2), t) :- Happens(active(p1), t) ^ !Happens(running(p2), t) ^  Close(p1,p2,25,t)
