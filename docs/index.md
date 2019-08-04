@@ -64,7 +64,7 @@ See [Build and Link LoMRF](7_1_build_and_link_lomrf.md).
 
 ## License
 
-Copyright (c) 2014 - 2018 Anastasios Skarlatidis and Evangelos Michelioudakis
+Copyright (c) 2014 - 2019 Anastasios Skarlatidis and Evangelos Michelioudakis
 
 LoMRF is licensed under the Apache License, Version 2.0: [https://www.apache.org/licenses/LICENSE-2.0](https://www.apache.org/licenses/LICENSE-2.0)
 
