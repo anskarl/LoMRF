@@ -164,9 +164,15 @@ object KBCompilerCLI extends CLIApp {
       cnf = true
     }
 
+    val inputFile = mlnFileName.getOrElse(logger.fatal("Please define the input MLN file."))
+    val outputFile = outputMLNFileName.getOrElse(logger.fatal("Please define the output MLN file."))
+
+    if (outputFile == inputFile)
+      logger.fatal(s"Output file '${outputFile}' cannot be the same with input MLN '${inputFile}' file")
+
     compile(
-      mlnFileName.getOrElse(logger.fatal("Please define the input MLN file.")),
-      outputMLNFileName.getOrElse(logger.fatal("Please define the output MLN file.")),
+      inputFile,
+      outputFile,
       functionPrefix,
       includeDomain,
       removePredicateDefinitions,

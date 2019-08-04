@@ -54,11 +54,12 @@ object MRFWriterCLI extends LazyLogging {
 
       val strMLNFileName = opt.mlnFileName.getOrElse(logger.fatal("Please specify an input MLN file."))
       val strEvidenceFileName = opt.evidenceFileName.getOrElse(logger.fatal("Please specify an input evidence file."))
+      val queryPreds = if (opt.query.nonEmpty) opt.query else logger.fatal("Please specify query predicate(s).")
 
       logger.info {
         s"""
            |Parameters:
-           |\t(q) Query predicate(s):  ${opt.query.map(_.toString).reduceLeft((left, right) => left + "," + right)}
+           |\t(q) Query predicate(s):  ${queryPreds.map(_.toString).mkString(",")}
            |\t(cwa) Closed-world assumption predicate(s):  ${if (opt.cwa.isEmpty) "empty" else opt.cwa.map(_.toString).mkString(",")}
            |\t(owa) Open-world assumption predicate(s):  ${if (opt.owa.isEmpty) "empty" else opt.owa.map(_.toString).mkString(",")}
            |\t(noNegWeights) Eliminate negative weights:  ${opt._noNeg}
@@ -70,14 +71,21 @@ object MRFWriterCLI extends LazyLogging {
         case Some(paths) =>
           val implFinder = ImplFinder(classOf[DynamicAtomBuilder], classOf[DynamicFunctionBuilder])
           implFinder.searchPaths(paths)
-          MLN.fromFile(strMLNFileName, opt.query, strEvidenceFileName, opt.cwa, opt.owa, pcm = Decomposed, dynamicDefinitions = Some(implFinder.result))
-        case None => MLN.fromFile(strMLNFileName, opt.query, strEvidenceFileName, opt.cwa, opt.owa, pcm = Decomposed)
+          MLN.fromFile(strMLNFileName, queryPreds, strEvidenceFileName, opt.cwa, opt.owa, pcm = Decomposed, dynamicDefinitions = Some(implFinder.result))
+        case None => MLN.fromFile(strMLNFileName, queryPreds, strEvidenceFileName, opt.cwa, opt.owa, pcm = Decomposed)
       }
 
       logger.info(mln.toString)
       logger.debug(mln.clauses.map(_.toText(weighted = true)).mkString("\n"))
 
       val outputFilePath = opt.outputFileName.getOrElse(logger.fatal("Please specify an output file"))
+
+      if (outputFilePath == strMLNFileName)
+        logger.fatal(s"Output file '${outputFilePath}' cannot be the same with input MLN file '${strMLNFileName}'")
+
+      if (outputFilePath == strEvidenceFileName)
+        logger.fatal(s"Output file '${outputFilePath}' cannot be the same with input MLN file '${strEvidenceFileName}'")
+
       val builder = new MRFBuilder(mln                  = mln, noNegWeights = opt._noNeg, eliminateNegatedUnit = opt._eliminateNegatedUnit)
       val mrf = builder.buildNetwork
       opt.outputType match {

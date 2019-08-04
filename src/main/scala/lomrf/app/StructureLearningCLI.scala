@@ -217,8 +217,12 @@ object StructureLearningCLI extends CLIApp {
     val strModeFileName = _modesFileName.getOrElse(logger.fatal("Please specify an input mode declaration file."))
 
     val outputWriter = _outputFileName match {
-      case Some(fileName) => new PrintStream(new FileOutputStream(fileName), true)
-      case None           => System.out
+      case Some(fileName) =>
+        if (fileName == strMLNFileName)
+          logger.fatal(s"Output file '${fileName}' cannot be the same with input MLN '${strMLNFileName} file'")
+
+        new PrintStream(new FileOutputStream(fileName), true)
+      case None => System.out
     }
 
     logger.info("Parameters:"
