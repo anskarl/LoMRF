@@ -21,16 +21,22 @@
 package lomrf.mln.model
 
 import com.typesafe.scalalogging.Logger
-import lomrf.util.logging.Implicits._
 import lomrf.logic.AtomSignature
-import lomrf.mln.model.AtomIdentityFunction
 
 /**
+  * Predicate space encodes the space of ground predicates using integers.
+  *
+  * @see [[lomrf.mln.model.AtomIdentityFunction]]
+  *
   * @param identities a map that associates atom signatures to their corresponding identity functions
-  * @param orderedAtomSignatures the order of atom signatures according to the complete domain of groundings
-  * @param orderedStartIDs the fist index for each atom in the complete domain of groundings
-  * @param queryStartID the first index of ground query atom in the MRF
-  * @param queryEndID the last index of ground query atom in the MRF
+  * @param orderedAtomSignatures an array of ordered atom signatures according to the domain of groundings
+  * @param orderedStartIDs an array of ordered start ids for each atom signature
+  * @param queryStartID the start id of the ground query atoms
+  * @param queryEndID the last id of the ground query atoms
+  * @param queryAtoms a set of query atom signatures
+  * @param cwa a set of atom signatures subject to close world assumption
+  * @param owa a set of atom signatures subject to open world assumption
+  * @param hiddenAtoms a set of hidden atom signatures
   */
 final class PredicateSpace private (
     val identities: Identities,
@@ -43,34 +49,61 @@ final class PredicateSpace private (
     val owa: Set[AtomSignature],
     val hiddenAtoms: Set[AtomSignature]) {
 
-  /**
-    * Total number of ground query atoms
-    */
+  /** Total number of ground query atoms. */
   val numberOfQueryIDs: Int = queryStartID - queryEndID
 
+  /**
+    * @param signature an atom signature
+    * @return true if the atom is subject to open world assumption, false otherwise
+    */
   def isOWA(signature: AtomSignature): Boolean = owa.contains(signature)
 
+  /**
+    * @param signature an atom signature
+    * @return true if the atom is subject to close world assumption, false otherwise
+    */
   def isCWA(signature: AtomSignature): Boolean = cwa.contains(signature)
 
+  /**
+    * @param signature an atom signature
+    * @return true if the atom is hidden, false otherwise
+    */
   def isHidden(signature: AtomSignature): Boolean = hiddenAtoms.contains(signature)
 
+  /**
+    * @param signature an atom signature
+    * @return true if the atom is a query atom, false otherwise
+    */
   def isQuery(signature: AtomSignature): Boolean = queryAtoms.contains(signature)
 
+  /**
+    * @note If the literal number is positive then it encodes a positive
+    *       literal, otherwise it encodes a negative one.
+    *
+    * @param literal a literal number
+    * @return the atom signature for the given literal number
+    */
   def signatureOf(literal: Int): AtomSignature = {
-
     val atomID = math.abs(literal)
     val result = java.util.Arrays.binarySearch(orderedStartIDs, atomID)
     val position = if (result < 0) (-result) - 2 else result
 
     orderedAtomSignatures(position)
   }
-
 }
 
 object PredicateSpace {
 
   private val logger = Logger(this.getClass)
 
+  /**
+    * @see [[lomrf.mln.model.ConstantsSet]]
+    *
+    * @param schema an MLN schema
+    * @param nonEvidence a set of non evidence atom signatures
+    * @param constants a map from domain names to constant sets
+    * @return a PredicateSpace instance
+    */
   def apply(
       schema: MLNSchema,
       nonEvidence: Set[AtomSignature],
@@ -78,6 +111,15 @@ object PredicateSpace {
     PredicateSpace(schema.predicates, nonEvidence, Set.empty[AtomSignature], constants)
   }
 
+  /**
+    * @see [[lomrf.mln.model.ConstantsSet]]
+    *
+    * @param schema an MLN schema
+    * @param queryPredicates a set of query atom signatures
+    * @param hiddenPredicates a set of hidden atom signatures
+    * @param constants a map from domain names to constant sets
+    * @return a PredicateSpace instance
+    */
   def apply(
       schema: MLNSchema,
       queryPredicates: Set[AtomSignature],
@@ -87,13 +129,13 @@ object PredicateSpace {
   }
 
   /**
+    * @see [[lomrf.mln.model.ConstantsSet]]
     *
-    * @param predicateSchema
-    * @param queryPredicates
-    * @param hiddenPredicates
-    * @param constants
-    *
-    * @return a new instance of DomainSpace
+    * @param predicateSchema a map from atom signatures to their argument domain names
+    * @param queryPredicates a set of query atom signatures
+    * @param hiddenPredicates a set of hidden atom signatures
+    * @param constants a map from domain names to constant sets
+    * @return a PredicateSpace instance
     */
   def apply(
       predicateSchema: PredicateSchema,
@@ -104,7 +146,7 @@ object PredicateSpace {
     val owa = queryPredicates ++ hiddenPredicates
     val cwa = predicateSchema.keySet -- owa
 
-    var identities: Map[AtomSignature, AtomIdentityFunction] = Map[AtomSignature, AtomIdentityFunction]()
+    var identities = Map.empty[AtomSignature, AtomIdentityFunction]
 
     var currentID = 1
     val orderedStartIDs = new Array[Int](predicateSchema.size)
@@ -119,7 +161,7 @@ object PredicateSpace {
       val idFunction = AtomIdentityFunction(signature, atomSchema, constants, currentID)
       currentID += idFunction.length + 1
       identities += (signature -> idFunction)
-      logger.debug(s"$signature {[${idFunction.startID}, ${idFunction.length + idFunction.startID}], length: ${idFunction.length}}")
+      logger.debug(s"$signature {range: [${idFunction.startID}, ${idFunction.endID}], length: ${idFunction.length}}")
     }
 
     val queryStartID = 1
@@ -133,7 +175,7 @@ object PredicateSpace {
       val idFunction = AtomIdentityFunction(signature, atomSchema, constants, currentID)
       currentID += idFunction.length + 1
       identities += (signature -> idFunction)
-      logger.debug(s"$signature {[${idFunction.startID}, ${idFunction.length + idFunction.startID}], length: ${idFunction.length}}")
+      logger.debug(s"$signature {range: [${idFunction.startID}, ${idFunction.endID}], length: ${idFunction.length}}")
     }
 
     // CWA predicates (Evidence predicates)
@@ -144,13 +186,23 @@ object PredicateSpace {
       val idFunction = AtomIdentityFunction(signature, atomSchema, constants, currentID)
       currentID += idFunction.length + 1
       identities += (signature -> idFunction)
-      logger.debug(s"$signature {[${idFunction.startID}, ${idFunction.length + idFunction.startID}], length: ${idFunction.length}}")
+      logger.debug(s"$signature {range: [${idFunction.startID}, ${idFunction.endID}], length: ${idFunction.length}}")
     }
 
     logger.whenDebugEnabled {
-      orderedAtomSignatures.zip(orderedStartIDs).foreach { case (sig, startid) => logger.debug(s"$sig -> $startid") }
+      orderedAtomSignatures.zip(orderedStartIDs).foreach { case (sig, startID) => logger.debug(s"$sig -> $startID") }
     }
 
-    new PredicateSpace(identities, orderedAtomSignatures, orderedStartIDs, queryStartID, queryEndID, queryPredicates, cwa, owa, hiddenPredicates)
+    new PredicateSpace(
+      identities,
+      orderedAtomSignatures,
+      orderedStartIDs,
+      queryStartID,
+      queryEndID,
+      queryPredicates,
+      cwa,
+      owa,
+      hiddenPredicates
+    )
   }
 }
