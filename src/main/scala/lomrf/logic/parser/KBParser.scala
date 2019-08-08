@@ -548,32 +548,32 @@ final class KBParser(
 
   private def eqInfix: Parser[AtomicFormula] =
     (lowerCaseID | upperCaseID | functionArg) ~ "=" ~ (lowerCaseID | upperCaseID | functionArg) ^^ {
-      case left ~ "=" ~ right => this.parsePredicate("equals(" + left + "," + right + ")")
+      case left ~ "=" ~ right => this.parsePredicate("Equals(" + left + "," + right + ")")
     }
 
   private def neqInfix: Parser[AtomicFormula] =
     (lowerCaseID | upperCaseID | functionArg) ~ "!=" ~ (lowerCaseID | upperCaseID | functionArg) ^^ {
-      case left ~ "!=" ~ right => this.parsePredicate("notEquals(" + left + "," + right + ")")
+      case left ~ "!=" ~ right => this.parsePredicate("NotEquals(" + left + "," + right + ")")
     }
 
   private def ltInfix: Parser[AtomicFormula] =
     (lowerCaseID | upperCaseID | functionArg) ~ "<" ~ (lowerCaseID | upperCaseID | functionArg) ^^ {
-      case left ~ "<" ~ right => this.parsePredicate("lessThan(" + left + "," + right + ")")
+      case left ~ "<" ~ right => this.parsePredicate("LessThan(" + left + "," + right + ")")
     }
 
   private def gtInfix: Parser[AtomicFormula] =
     (lowerCaseID | upperCaseID | functionArg) ~ ">" ~ (lowerCaseID | upperCaseID | functionArg) ^^ {
-      case left ~ ">" ~ right => this.parsePredicate("greaterThan(" + left + "," + right + ")")
+      case left ~ ">" ~ right => this.parsePredicate("GreaterThan(" + left + "," + right + ")")
     }
 
   private def ltEqInfix: Parser[AtomicFormula] =
     (lowerCaseID | upperCaseID | functionArg) ~ "=<" ~ (lowerCaseID | upperCaseID | functionArg) ^^ {
-      case left ~ "=<" ~ right => this.parsePredicate("lessThanEq(" + left + "," + right + ")")
+      case left ~ "=<" ~ right => this.parsePredicate("LessThanEq(" + left + "," + right + ")")
     }
 
   private def gtEqInfix: Parser[AtomicFormula] =
     (lowerCaseID | upperCaseID | functionArg) ~ ">=" ~ (lowerCaseID | upperCaseID | functionArg) ^^ {
-      case left ~ ">=" ~ right => this.parsePredicate("greaterThanEq(" + left + "," + right + ")")
+      case left ~ ">=" ~ right => this.parsePredicate("GreaterThanEq(" + left + "," + right + ")")
     }
 
   // ---------------------------------------------------
