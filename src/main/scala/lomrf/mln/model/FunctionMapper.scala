@@ -20,34 +20,43 @@
 
 package lomrf.mln.model
 
-import gnu.trove.TCollections
 import gnu.trove.map.TIntObjectMap
-import gnu.trove.map.hash.TIntObjectHashMap
-import lomrf.logic.{ Constant, FunctionMapping }
-
-import scala.collection.mutable
-import lomrf.util.collection.trove.TroveConversions._
-
-import scala.collection.breakOut
-import scala.language.implicitConversions
-import scala.util.Try
+import lomrf.mln.model.builder.FunctionMapperBuilder
 
 trait FunctionMapper extends Serializable {
 
+  /**
+    * Gives the associated string value for a given vector
+    * of string arguments or '''null''' in case no value exists.
+    *
+    * @param args a vector of string arguments
+    * @return the associated value for the given arguments
+    *         if one exists, null otherwise
+    */
   def apply(args: Vector[String]): String
 
+  /**
+    * Gets the associated string value for given vector of
+    * string arguments, if one exists.
+    *
+    * @param args a vector of string arguments
+    * @return the associated value for the given arguments
+    *         if one exists, none otherwise
+    */
   def get(args: Vector[String]): Option[String]
 }
 
-object FunctionMapper {
-  def apply(fb: FunctionMapperBuilder): FunctionMapper = fb.result()
-
-  def apply(idf: AtomIdentityFunction, args2Value: TIntObjectMap[String]): FunctionMapper = new FunctionMapperDefaultImpl(idf, args2Value)
-
-  def apply(func: Vector[String] => String): FunctionMapper = new FunctionMapperSpecialImpl(func)
-}
-
-final class FunctionMapperDefaultImpl(identityFunction: AtomIdentityFunction, args2Value: TIntObjectMap[String]) extends FunctionMapper {
+/**
+  * A default function mapper that uses an atom identity function
+  * and a map of encoded string arguments to associate input string
+  * arguments to string values.
+  *
+  * @param identityFunction an atom identity function
+  * @param args2Value a map from encoded string argument ids (integers) to string values
+  */
+final class FunctionMapperDefaultImpl(
+    identityFunction: AtomIdentityFunction,
+    args2Value: TIntObjectMap[String]) extends FunctionMapper {
 
   def apply(args: Vector[String]): String = {
     val id = identityFunction.encode(args)
@@ -60,109 +69,59 @@ final class FunctionMapperDefaultImpl(identityFunction: AtomIdentityFunction, ar
     if (result eq null) None else Some(result)
   }
 
-  override def toString = s"FunctionMapperDefaultImpl{signature:= ${identityFunction.signature}, size:=${args2Value.size()}"
-
+  override def toString =
+    s"FunctionMapperDefaultImpl{signature:= ${identityFunction.signature}, size:=${args2Value.size}}"
 }
 
-final class FunctionMapperBuilder(identityFunction: AtomIdentityFunction)
-  extends mutable.Builder[(Vector[String], String), FunctionMapper]
-  with Traversable[(Int, String)] with Iterable[(Int, String)] {
-  self =>
+/**
+  * A special function mapper that uses a function to associate input
+  * string arguments to string values. The function should encode the
+  * logic of the function mapper.
+  *
+  * @example {{{
+  *           val concat = (x: Vector[String]) => x.reduce(_ ++ _)
+  *           val fm = new FunctionMapperSpecialImpl(concat)
+  * }}}
+  *
+  * @param f a function from vector of string arguments to string values
+  */
+final class FunctionMapperSpecialImpl(f: Vector[String] => String) extends FunctionMapper {
 
-  private var dirty = false
-  private var args2Value = new TIntObjectHashMap[String]()
+  def apply(args: Vector[String]): String = f(args)
 
-  def decode(t: (Int, String)): Try[(IndexedSeq[String], String)] = {
-    identityFunction.decode(t._1).map(v => (v, t._2))
-  }
+  def get(args: Vector[String]): Option[String] = Some(f(args))
 
-  override def +=(elems: (Vector[String], String)): self.type = {
-    insert(elems._1, elems._2)
-    self
-  }
-
-  def +=(args: Vector[String], value: String): self.type = {
-    insert(args, value)
-    self
-  }
-
-  private def insert(args: Vector[String], value: String) {
-    checkDirty()
-    val id = identityFunction.encode(args)
-    args2Value.putIfAbsent(id, value)
-  }
-
-  private def checkDirty(): Unit = {
-    if (dirty) {
-      //copy
-      val cp_args2Value = new TIntObjectHashMap[String](args2Value.size)
-      cp_args2Value.putAll(args2Value)
-      args2Value = cp_args2Value
-      dirty = false
-    }
-  }
-
-  def result(): FunctionMapper = {
-    dirty = true
-    new FunctionMapperDefaultImpl(identityFunction, TCollections.unmodifiableMap(args2Value))
-  }
-
-  def clear() {
-    args2Value = new TIntObjectHashMap[String]()
-    dirty = false
-  }
-
-  override def foreach[U](f: ((Int, String)) => U): Unit = {
-    val iterator = args2Value.iterator()
-    while (iterator.hasNext) {
-      iterator.advance()
-      f(iterator.key(), iterator.value())
-    }
-  }
-
-  override def iterator: Iterator[(Int, String)] = args2Value.iterator()
-
-  object decoded extends Iterable[FunctionMapping] with Traversable[FunctionMapping] {
-
-    override def iterator: Iterator[FunctionMapping] = new Iterator[FunctionMapping] {
-      private val iter = self.iterator
-      private val symbol = identityFunction.signature.symbol
-
-      override def hasNext: Boolean = iter.hasNext
-
-      override def next(): FunctionMapping = {
-        val (id, retVal) = iter.next()
-        val decoded: Vector[Constant] = identityFunction
-          .decode(id)
-          .getOrElse(throw new IllegalStateException())
-          .map(Constant)(breakOut)
-
-        FunctionMapping(retVal, symbol, decoded)
-      }
-
-      override def hasDefiniteSize: Boolean = iter.hasDefiniteSize
-
-      override def isEmpty: Boolean = iter.isEmpty
-
-      override def isTraversableAgain: Boolean = iter.isTraversableAgain
-    }
-  }
-
+  override def toString = s"FunctionMapperSpecialImpl{f:= $f}"
 }
 
-object FunctionMapperBuilder {
+object FunctionMapper {
 
-  implicit def functionMappingConv(fm: FunctionMapping): (Vector[String], String) = (fm.values, fm.retValue)
+  /**
+    * Create a function mapper from a given builder.
+    *
+    * @param builder a function mapper builder
+    * @return a FunctionMapper instance
+    */
+  def apply(builder: FunctionMapperBuilder): FunctionMapper = builder.result()
 
-  def apply(identityFunction: AtomIdentityFunction) = new FunctionMapperBuilder(identityFunction)
-}
+  /**
+    * Create a function mapper from a given atom identity function
+    * and a map of encoded string arguments to string values.
+    * @see [[lomrf.mln.model.FunctionMapperDefaultImpl]]
+    *
+    * @param identityFunction an atom identity function
+    * @param args2Value a map from encoded string arguments ids (integers) to string values
+    * @return a FunctionMapper instance
+    */
+  def apply(identityFunction: AtomIdentityFunction, args2Value: TIntObjectMap[String]): FunctionMapper =
+    new FunctionMapperDefaultImpl(identityFunction, args2Value)
 
-final class FunctionMapperSpecialImpl(func: Vector[String] => String) extends FunctionMapper {
-
-  def apply(args: Vector[String]) = func(args)
-
-  def get(args: Vector[String]): Option[String] = Some(func(args))
-
-  override def toString = s"FunctionMapperSpecialImpl{f:= $func}"
-
+  /**
+    * Creates a function mapper from a given function.
+    * @see [[lomrf.mln.model.FunctionMapperSpecialImpl]]
+    *
+    * @param f a function from vector of string arguments to string values
+    * @return a FunctionMapper instance
+    */
+  def apply(f: Vector[String] => String): FunctionMapper = new FunctionMapperSpecialImpl(f)
 }

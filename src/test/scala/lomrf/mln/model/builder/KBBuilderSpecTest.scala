@@ -18,12 +18,12 @@
  *
  */
 
-package lomrf.mln.model
+package lomrf.mln.model.builder
 
 import lomrf.logic.AtomSignature
 import lomrf.logic.parser.KBParser
-import org.scalatest.{ FunSpec, Matchers }
-import lomrf.logic.predef.{ dynAtoms, dynFunctions }
+import lomrf.logic.predef.{dynAtoms, dynFunctions}
+import org.scalatest.{FunSpec, Matchers}
 
 /**
   * A series of API behaviour tests for KBBuilder

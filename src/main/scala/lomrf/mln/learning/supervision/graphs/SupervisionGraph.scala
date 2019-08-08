@@ -26,9 +26,9 @@ import breeze.linalg.{ DenseMatrix, DenseVector, pinv, sum }
 import com.typesafe.scalalogging.LazyLogging
 import lomrf.mln.learning.supervision.metric._
 import lomrf.mln.model._
+import lomrf.mln.model.builder.EvidenceBuilder
 import lomrf.util.time._
 import lomrf.{ AUX_PRED_PREFIX => PREFIX }
-
 import scala.util.{ Failure, Success, Try }
 
 /**

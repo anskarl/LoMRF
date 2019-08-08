@@ -28,6 +28,7 @@ import lomrf.util.Cartesian.CartesianIterator
 import lomrf.util._
 import lomrf.util.logging.Implicits._
 import com.typesafe.scalalogging.Logger
+import lomrf.mln.model.builder.ConstantsDomainBuilder
 import scala.collection.breakOut
 
 /**

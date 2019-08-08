@@ -18,11 +18,12 @@
  *
  */
 
-package lomrf.mln.model
+package lomrf.mln.model.builder
 
-import lomrf.logic._
 import lomrf.logic.AtomSignatureOps._
-import org.scalatest.{ FunSpec, Matchers }
+import lomrf.logic._
+import lomrf.mln.model.{AtomIdentityFunction, ConstantsSet}
+import org.scalatest.{FunSpec, Matchers}
 
 import scala.language.implicitConversions
 

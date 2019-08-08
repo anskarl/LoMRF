@@ -24,6 +24,7 @@ import lomrf.logic.{ AtomSignature, Constant, EvidenceAtom, FunctionMapping }
 import lomrf.mln.learning.structure.ClauseConstructor.ClauseType
 import lomrf.mln.learning.structure._
 import lomrf.mln.model._
+import lomrf.mln.model.builder.EvidenceBuilder
 import lomrf.{ AUX_PRED_PREFIX => PREFIX }
 import org.scalatest.{ FunSpec, Matchers }
 import scala.util.{ Failure, Success }

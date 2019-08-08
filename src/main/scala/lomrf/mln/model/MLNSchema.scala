@@ -21,11 +21,14 @@
 package lomrf.mln.model
 
 /**
+  * MLNSchema holds the predicate and function schemas, both static and dynamic.
   *
-  * @param predicates a map that associates atom signatures with a sequence of argument types
-  * @param functions a map that associates function signatures with a tuple of returning type and sequence of argument types
-  * @param dynamicPredicates a map that associates signatures of dynamic atoms with a scala function that determines the truth state: (atoms ground arguments) => Boolean
-  * @param dynamicFunctions a map that associates the identities of dynamic functions with a scala function that determines the function's result: (ground arguments) => Boolean
+  * @note Function signatures are also represented using [[lomrf.logic.AtomSignature]].
+  *
+  * @param predicates a map from atom signatures to their argument domain names
+  * @param functions a map from function signatures to their return value domain name, argument domain names
+  * @param dynamicPredicates a map from atom signatures to functions of the form '''Vector[String] => Boolean'''
+  * @param dynamicFunctions a map from function signatures to functions of the form '''Vector[String] => String'''
   */
 case class MLNSchema(
     predicates: PredicateSchema,
