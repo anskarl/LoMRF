@@ -64,6 +64,8 @@ case class Node(
 
   lazy val opposite: Node = if (isPositive) toNegative else toPositive
 
+  lazy val clusterSize: Int = similarNodeQueryAtoms.size + 1
+
   /**
     * @param value a value indicating the label of the query atoms
     * @return a sequence of labeled query atoms

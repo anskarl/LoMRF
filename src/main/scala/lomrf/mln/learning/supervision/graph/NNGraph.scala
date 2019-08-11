@@ -144,7 +144,7 @@ final class NNGraph private[graph] (
         labeledNodes ++ nonEmptyUnlabeled,
         querySignature,
         connector,
-        metric ++ mln.evidence ++ currentNodes.map(_.atoms),
+        metric ++ mln.evidence ++ currentNodes.flatMap(n => IndexedSeq.fill(n.clusterSize)(n.atoms)),
         annotationBuilder,
         nodeCache,
         enableClusters)
@@ -170,7 +170,7 @@ final class NNGraph private[graph] (
         cleanedUniqueLabeled ++ nonEmptyUnlabeled,
         querySignature,
         connector,
-        metric ++ mln.evidence ++ currentNodes.map(_.atoms),
+        metric ++ mln.evidence ++ currentNodes.flatMap(n => IndexedSeq.fill(n.clusterSize)(n.atoms)),
         annotationBuilder,
         updatedNodeCache,
         enableClusters)

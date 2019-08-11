@@ -354,7 +354,7 @@ object SupervisionGraph extends LazyLogging {
       uniqueLabeled ++ nonEmptyUnlabeled,
       querySignature,
       connector,
-      metric ++ mln.evidence ++ nodes.map(_.atoms),
+      metric ++ mln.evidence ++ nodes.flatMap(n => IndexedSeq.fill(n.clusterSize)(n.atoms)),
       annotationBuilder,
       nodeCache,
       solver,
@@ -437,7 +437,7 @@ object SupervisionGraph extends LazyLogging {
       uniqueLabeled ++ nonEmptyUnlabeled,
       querySignature,
       connector,
-      metric ++ mln.evidence ++ nodes.map(_.atoms),
+      metric ++ mln.evidence ++ nodes.flatMap(n => IndexedSeq.fill(n.clusterSize)(n.atoms)),
       annotationBuilder,
       nodeCache,
       enableClusters
