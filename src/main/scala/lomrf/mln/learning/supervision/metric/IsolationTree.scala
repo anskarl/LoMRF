@@ -20,6 +20,7 @@
 
 package lomrf.mln.learning.supervision.metric
 
+import scala.annotation.tailrec
 import scala.util.Random
 
 /**
@@ -44,6 +45,7 @@ case class IsolationTree[T](
     if (splitFeature.isEmpty) false
     else feature == splitFeature.get
 
+  @tailrec
   private def selfMass(xSeq: Seq[T]): Long = {
     if (xSeq.exists(isSplit) && right.isDefined)
       right.get.selfMass(xSeq)
@@ -52,6 +54,7 @@ case class IsolationTree[T](
     else size
   }
 
+  @tailrec
   private def parentMass(xSeq: Seq[T], parentSize: Long): Long = {
     if (xSeq.exists(isSplit) && right.isDefined)
       right.get.parentMass(xSeq, size)
@@ -60,6 +63,7 @@ case class IsolationTree[T](
     else parentSize
   }
 
+  @tailrec
   private def internalMass(xSeq: Seq[T], ySeq: Seq[T]): Long = {
     if (xSeq.exists(isSplit) && ySeq.exists(isSplit) && right.isDefined)
       right.get.internalMass(xSeq, ySeq)
