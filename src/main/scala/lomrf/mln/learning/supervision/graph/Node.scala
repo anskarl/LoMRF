@@ -33,7 +33,7 @@ import com.typesafe.scalalogging.LazyLogging
   * @param clause a clausal representation for the node (optional)
   * @param body a disjunction of all evidence atoms present in the node (optional)
   */
-final case class Node(
+case class Node(
     query: EvidenceAtom,
     evidence: IndexedSeq[EvidenceAtom],
     clause: Option[Clause],
@@ -60,7 +60,7 @@ final case class Node(
     literals.map(_.sentence).toIndexedSeq
 
   lazy val literals: Set[Literal] =
-    body.getOrElse(logger.fatal("Body does not exist!")).literals
+    body.getOrElse(logger.fatal("Body does not exist.")).literals
 
   lazy val opposite: Node = if (isPositive) toNegative else toPositive
 
@@ -109,6 +109,11 @@ final case class Node(
       orderIndex,
       partitionIndices
     )
+
+  /**
+    * @return always false
+    */
+  def isDongle: Boolean = false
 
   /**
     * @return true if the node query atom has a KNOWN truth value, false otherwise.
@@ -162,4 +167,19 @@ final case class Node(
     s"[ $query = ${query.state} ]\n${evidence.map(_.toText).mkString("\n")}"
 
   override def compare(that: Node): Int = that.orderedTerm - this.orderedTerm
+}
+
+class DongleNode(symbol: String, constants: Vector[Constant], potential: Double, isPositive: Boolean)
+  extends Node(
+    EvidenceAtom(symbol, constants, isPositive),
+    IndexedSeq.empty,
+    None,
+    None,
+    EvidenceAtom(symbol, constants, isPositive)) {
+
+  override def isDongle: Boolean = true
+
+  override def isLabeled: Boolean = true
+
+  override def value: Double = potential
 }
