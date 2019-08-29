@@ -14,15 +14,15 @@
  *  o   o o-o-o  o  o-o o-o o o o     o    | o-o o  o-o o-o
  *
  *  Logical Markov Random Fields (LoMRF).
- *     
+ *
  *
  */
 
 package lomrf.logic.compile
 
-import lomrf.logic.{AtomSignature, WeightedDefiniteClause, WeightedFormula}
+import lomrf.logic.{ AtomSignature, WeightedDefiniteClause, WeightedFormula }
 import lomrf.logic.parser.KBParser
-import org.scalatest.{FunSpec, Matchers}
+import org.scalatest.{ FunSpec, Matchers }
 
 final class PredicateCompletionSpecTest extends FunSpec with Matchers {
 

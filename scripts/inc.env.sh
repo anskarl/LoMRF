@@ -21,8 +21,8 @@ ETC_DIR="$base_dir/etc"
 #
 # JVM options:
 #
-if [ -z ${LOMRF_JVM_ARGS+x} ]; then
-  LOMRF_JVM_ARGS="-XX:+DoEscapeAnalysis -XX:+UseFastAccessorMethods -XX:+OptimizeStringConcat -XX:+AggressiveOpts"
+if [[ -z ${LOMRF_JVM_ARGS+x} ]]; then
+  LOMRF_JVM_ARGS=" -XX:+DoEscapeAnalysis -XX:+OptimizeStringConcat "
 else
   log_info "User-defined JVM args: $LOMRF_JVM_ARGS"
 fi
@@ -36,7 +36,7 @@ fi
 # console output logging.
 #
 if [[ -n $LOMRF_DEBUG && $LOMRF_DEBUG -eq 1 ]]; then
-	if [ ! -f $ETC_DIR/logback-debug.xml ]; then
+	if [[ ! -f $ETC_DIR/logback-debug.xml ]]; then
 		echo "Cannot find logging configuration file '$ETC_DIR/logback-debug.xml'"
 		exit 1
 	fi
@@ -46,7 +46,7 @@ if [[ -n $LOMRF_DEBUG && $LOMRF_DEBUG -eq 1 ]]; then
 
 	LOMRF_JVM_ARGS=" -Dlogback.configurationFile=$ETC_DIR/logback-debug.xml "
 else
-	if [ ! -f $ETC_DIR/logback.xml ]; then
+	if [[ ! -f $ETC_DIR/logback.xml ]]; then
 		exit_error "Cannot find logging configuration file '$ETC_DIR/logback.xml'"
 	fi
 

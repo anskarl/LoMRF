@@ -85,8 +85,13 @@ object LoMRFBuild extends AutoPlugin {
 
     organization := "com.github.anskarl",
     scalaVersion := "2.12.8",
-    crossScalaVersions := Seq("2.12.8", "2.11.12"),
+    crossScalaVersions := Seq("2.12.9", "2.11.12"),
     name := "LoMRF",
+    maintainer := "Anastasios Skarlatidis",
+    developers in ThisBuild := List(
+      Developer("anskarl", "Anastasios Skarlatidis", "@anskarl", url("https://github.com/anskarl")),
+      Developer("vagmcs", "Evangelos Michelioudakis", "@vagmcs", url("https://github.com/vagmcs"))
+    ),
     headerMappings := headerMappings.value + (HeaderFileType.scala -> HeaderCommentStyle.cStyleBlockComment),
     headerLicense := Some(HeaderLicense.Custom(logo + "\n\n")),
     autoScalaLibrary := false,
@@ -111,15 +116,15 @@ object LoMRFBuild extends AutoPlugin {
     libraryDependencies ++= Seq(
       "org.scala-lang" % "scala-library" % scalaVersion.value,
       "org.scala-lang" % "scala-reflect" % scalaVersion.value,
-      "org.scala-lang.modules" %% "scala-parser-combinators" % "1.1.1"
+      "org.scala-lang.modules" %% "scala-parser-combinators" % "1.1.2"
     ),
 
     dependencyOverrides ++= Seq(
       "org.scala-lang" % "scala-compiler" % scalaVersion.value,
       "org.scala-lang" % "scala-library" % scalaVersion.value,
       "org.scala-lang" % "scala-reflect" % scalaVersion.value,
-      "org.scala-lang.modules" %% "scala-parser-combinators" % "1.1.1",
-      "org.scala-lang.modules" %% "scala-xml" % "1.1.0"
+      "org.scala-lang.modules" %% "scala-parser-combinators" % "1.1.2",
+      "org.scala-lang.modules" %% "scala-xml" % "1.2.0"
     )
   )
 
@@ -150,7 +155,6 @@ object LoMRFBuild extends AutoPlugin {
 
     javaOptions ++= Seq(
       "-XX:+DoEscapeAnalysis",
-      "-XX:+UseFastAccessorMethods",
       "-XX:+OptimizeStringConcat",
       "-Dlogback.configurationFile=src/main/resources/logback.xml")
   )
@@ -173,8 +177,7 @@ object LoMRFBuild extends AutoPlugin {
           )
 
         case "2.12" =>
-          // Scala compiler settings for Scala 2.12+
-          // see https://tpolecat.github.io/2017/04/25/scalac-flags.html
+          // Scala compiler settings for Scala 2.12.x
           Seq(
             "-deprecation",       // Emit warning and location for usages of deprecated APIs.
             "-unchecked",         // Enable additional warnings where generated code depends on assumptions.
@@ -183,7 +186,8 @@ object LoMRFBuild extends AutoPlugin {
             "-Ywarn-dead-code"    // Warn when dead code is identified.
           )
 
-        case "2.13" =>
+        case "2.13" => // todo: it is a WIP
+          // Scala compiler settings for Scala 2.13.x
           Seq(
             "-deprecation",       // Emit warning and location for usages of deprecated APIs.
             "-unchecked",         // Enable additional warnings where generated code depends on assumptions.
