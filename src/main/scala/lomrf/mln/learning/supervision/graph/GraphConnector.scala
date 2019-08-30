@@ -22,6 +22,7 @@ package lomrf.mln.learning.supervision.graph
 
 import lomrf.logic.AtomicFormula
 import breeze.linalg.{ Axis, DenseMatrix, DenseVector, argtopk, sum }
+import lomrf.mln.learning.supervision.graph.caching.NodeCache
 import lomrf.mln.learning.supervision.metric.{ EvidenceMetric, Metric }
 import spire.syntax.cfor._
 
@@ -41,16 +42,12 @@ trait GraphConnector {
   /**
     * Compute the edge value for a pair of nodes.
     *
-    * @note Pairs of labeled nodes are never connected.
-    *
     * @param x a node
     * @param y another node
     * @param metric a metric for atomic formula
     * @return the edge value for the given nodes
     */
-  def connect(x: Node, y: Node)(metric: Metric[_ <: AtomicFormula]): Double =
-    if (x.isLabeled && y.isLabeled) UNCONNECTED
-    else 1 - { // connect nodes only if they are not both labeled
+  def connect(x: Node, y: Node)(metric: Metric[_ <: AtomicFormula]): Double = 1 - {
       metric match {
         case m: EvidenceMetric        => m.distance(x.evidence, y.evidence)
         case m: Metric[AtomicFormula] => m.distance(x.atoms, y.atoms)
@@ -69,7 +66,8 @@ trait GraphConnector {
     */
   def smartConnect(
       nodes: IndexedSeq[Node],
-      unlabeled: IndexedSeq[Node])(metric: Metric[_ <: AtomicFormula]): EncodedGraph = {
+      unlabeled: IndexedSeq[Node],
+      nodeCache: Option[NodeCache] = None)(metric: Metric[_ <: AtomicFormula]): EncodedGraph = {
 
     val numberOfNodes = nodes.length
     val parallelIndices = nodes.indices.par
@@ -93,8 +91,17 @@ trait GraphConnector {
       }
     }
 
+    val frequencyVector = nodeCache.map { c =>
+      DenseVector(nodes.map(c.getOrElse(_, 1).toDouble).toArray) -> nodes.map(c.getOrElse(_, 0).toDouble).toArray
+    }
+
     for (i <- parallelIndices) {
       W(i, ::).inner := makeSparse(W(i, ::).inner, L)
+      if (frequencyVector.nonEmpty) {
+        val div = W(i, ::).inner.toArray.zip(frequencyVector.get._2).withFilter(_._1 > 0).map(_._2).sum
+        W(i, ::).inner := W(i, ::).inner *:* frequencyVector.get._1
+        if (div != 0) W(i, ::).inner := W(i, ::).inner / div
+      }
       D(i, i) = sum(W(i, ::))
     }
 
@@ -110,7 +117,10 @@ trait GraphConnector {
     * @param metric a metric for atomic formula
     * @return the adjacency and degree matrix of the resulted graph
     */
-  def fullyConnect(nodes: IndexedSeq[Node])(metric: Metric[_ <: AtomicFormula]): EncodedGraph = {
+  def fullyConnect(
+    nodes: IndexedSeq[Node],
+    nodeCache: Option[NodeCache] = None)(metric: Metric[_ <: AtomicFormula]): EncodedGraph = {
+
     val numberOfNodes = nodes.length
     val parallelIndices = nodes.indices.par
     val L = nodes.count(_.isLabeled)
@@ -128,8 +138,17 @@ trait GraphConnector {
       }
     }
 
+    val frequencyVector = nodeCache.map { c =>
+      DenseVector(nodes.map(c.getOrElse(_, 1).toDouble).toArray) -> nodes.map(c.getOrElse(_, 0).toDouble).toArray
+    }
+
     for (i <- parallelIndices) {
       W(i, ::).inner := makeSparse(W(i, ::).inner, L)
+      if (frequencyVector.nonEmpty) {
+        val div = W(i, ::).inner.toArray.zip(frequencyVector.get._2).withFilter(_._1 > 0).map(_._2).sum
+        W(i, ::).inner := W(i, ::).inner *:* frequencyVector.get._1
+        if (div != 0) W(i, ::).inner := W(i, ::).inner / div
+      }
       D(i, i) = sum(W(i, ::))
     }
 

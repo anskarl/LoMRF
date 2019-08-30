@@ -35,7 +35,7 @@ final class StreamingGraph private[graph] (
     metric: Metric[_ <: AtomicFormula],
     supervisionBuilder: EvidenceBuilder,
     nodeCache: NodeCache,
-    solver: (GraphMatrix, GraphMatrix, DenseVector[Double]) => DenseVector[Double],
+    solver: GraphSolver,
     storedUnlabeled: IndexedSeq[Node],
     previousGraph: GraphMatrix,
     memory: Int)
@@ -101,7 +101,7 @@ final class StreamingGraph private[graph] (
     // Vector holding the labeled values
     val fl = DenseVector(-1d, 1d)
 
-    val solution = solver(W, D, fl).toArray
+    val solution = solver.solve(W, D, fl).toArray.slice(numberOfLabeled, numberOfNodes)
     val truthValues = solution.map(value => if (value <= UNCONNECTED) FALSE else TRUE)
 
     logger.info(msecTimeToTextUntilNow(s"Labeling solution found in: ", startSolution))

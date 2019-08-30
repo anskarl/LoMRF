@@ -20,7 +20,7 @@
 
 package lomrf.mln.learning.supervision.graph
 
-import breeze.linalg.{ DenseMatrix, DenseVector }
+import breeze.linalg.DenseMatrix
 import lomrf.logic._
 import lomrf.mln.learning.supervision.graph.caching.{ FastNodeCache, NodeCache, NodeHashSet }
 import lomrf.mln.model.builders.EvidenceBuilder
@@ -291,6 +291,7 @@ object SupervisionGraph extends LazyLogging {
     * @param querySignature the query signature of interest
     * @param connector a graph connector
     * @param metric a metric for atomic formula
+    * @param solver a graph solver
     * @param enableClusters enables clustering of unlabeled examples
     * @return a SPLICE supervision graph instance
     */
@@ -301,7 +302,7 @@ object SupervisionGraph extends LazyLogging {
       querySignature: AtomSignature,
       connector: GraphConnector,
       metric: Metric[_ <: AtomicFormula],
-      solver: (GraphMatrix, GraphMatrix, DenseVector[Double]) => DenseVector[Double],
+      solver: GraphSolver,
       enableClusters: Boolean): SPLICE = {
 
     // Group the given data into nodes
@@ -457,6 +458,7 @@ object SupervisionGraph extends LazyLogging {
     * @param querySignature the query signature of interest
     * @param connector a graph connector
     * @param metric a metric for atomic formula
+    * @param solver a graph solver
     * @param memory the graph memory (number of unlabeled nodes)
     * @return a temporal label propagation graph instance
     */
@@ -467,7 +469,7 @@ object SupervisionGraph extends LazyLogging {
       querySignature: AtomSignature,
       connector: GraphConnector,
       metric: Metric[_ <: AtomicFormula],
-      solver: (GraphMatrix, GraphMatrix, DenseVector[Double]) => DenseVector[Double],
+      solver: GraphSolver,
       memory: Int): StreamingGraph = {
 
     // Group the given data into nodes

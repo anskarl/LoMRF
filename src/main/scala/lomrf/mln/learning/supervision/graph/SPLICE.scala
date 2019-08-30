@@ -50,7 +50,7 @@ final class SPLICE private[graph] (
     metric: Metric[_ <: AtomicFormula],
     supervisionBuilder: EvidenceBuilder,
     nodeCache: NodeCache,
-    solver: (GraphMatrix, GraphMatrix, DenseVector[Double]) => DenseVector[Double],
+    solver: GraphSolver,
     enableClusters: Boolean)
   extends SupervisionGraph(nodes, querySignature, connector, metric, supervisionBuilder, nodeCache) {
 
@@ -66,7 +66,11 @@ final class SPLICE private[graph] (
     }
 
     val startGraphConnection = System.currentTimeMillis
-    val encodedGraph = connector.smartConnect(nodes, unlabeledNodes)(metric)
+    val encodedGraph = solver match {
+      case _: HFc => connector.smartConnect(nodes, unlabeledNodes, Some(nodeCache))(metric)
+      case _ => connector.fullyConnect(nodes, Some(nodeCache))(metric)
+    }
+
     val W = encodedGraph._1
     val D = encodedGraph._2
     logger.info(msecTimeToTextUntilNow(s"Graph connected in: ", startGraphConnection))
@@ -76,7 +80,12 @@ final class SPLICE private[graph] (
     // Vector holding the labeled values
     val fl = DenseVector(labeledNodes.map(_.value).toArray)
 
-    val solution = solver(W, D, fl).toArray.slice(numberOfLabeled, numberOfNodes)
+    val fullSolution = solver.solve(W, D, fl).toArray
+
+    nodes.map(n => if (n.isLabeled) n.clause.get.toText() else n.body.get.toText()).zip(fullSolution)
+      .foreach(println)
+
+    val solution = fullSolution.slice(numberOfLabeled, numberOfNodes)
     val truthValues = solution.map(value => if (value <= UNCONNECTED) FALSE else TRUE)
 
     logger.info(msecTimeToTextUntilNow(s"Labeling solution found in: ", startSolution))
