@@ -50,8 +50,10 @@ package object app {
     val values: immutable.IndexedSeq[GraphSolverType] = findValues
 
     case object NN extends GraphSolverType("nn")
+    case object LP_SPLICE extends GraphSolverType("lp.splice")
     case object HFC_SPLICE extends GraphSolverType("hfc.splice")
     case object LGC_SPLICE extends GraphSolverType("lgc.splice")
+    case object LP_TLP extends GraphSolverType("lp.tlp")
     case object HFC_TLP extends GraphSolverType("hfc.tlp")
     case object LGC_TLP extends GraphSolverType("lgc.tlp")
   }

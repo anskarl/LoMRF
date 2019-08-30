@@ -136,14 +136,14 @@ object SemiSupervisionCLI extends CLIApp {
     "Specify a distance over atoms (default is atomic).", {
       v: String =>
         v.trim.toLowerCase match {
-          case "binary"       => _distance = DistanceType.Binary
-          case "atomic"       => _distance = DistanceType.Atomic
-          case "evidence"     => _distance = DistanceType.Evidence
-          case "mass.map"     => _distance = DistanceType.MassMap
-          case "mass.tree"    => _distance = DistanceType.MassTree
-          case "hybrid.map"   => _distance = DistanceType.HybridMap
-          case "hybrid.tree"  => _distance = DistanceType.HybridTree
-          case _              => logger.fatal(s"Unknown distance of type '$v'.")
+          case "binary"      => _distance = DistanceType.Binary
+          case "atomic"      => _distance = DistanceType.Atomic
+          case "evidence"    => _distance = DistanceType.Evidence
+          case "mass.map"    => _distance = DistanceType.MassMap
+          case "mass.tree"   => _distance = DistanceType.MassTree
+          case "hybrid.map"  => _distance = DistanceType.HybridMap
+          case "hybrid.tree" => _distance = DistanceType.HybridTree
+          case _             => logger.fatal(s"Unknown distance of type '$v'.")
         }
     }
   )
@@ -320,18 +320,24 @@ object SemiSupervisionCLI extends CLIApp {
       _nonEvidenceAtoms.foreach { querySignature =>
         supervisionGraphs.get(querySignature) match {
           case Some(graph) => supervisionGraphs += querySignature -> (graph ++ (mln, annotationDB, modes))
+          case None if _solver == LP_TLP =>
+            supervisionGraphs += querySignature ->
+              SupervisionGraph.TLP(mln, modes, annotationDB, querySignature, connector, distance, GraphOps.LP(_, _, _), _memory)
           case None if _solver == HFC_TLP =>
             supervisionGraphs += querySignature ->
               SupervisionGraph.TLP(mln, modes, annotationDB, querySignature, connector, distance, GraphOps.HFc, _memory)
           case None if _solver == LGC_TLP =>
             supervisionGraphs += querySignature ->
-              SupervisionGraph.TLP(mln, modes, annotationDB, querySignature, connector, distance, GraphOps.LGCc, _memory)
+              SupervisionGraph.TLP(mln, modes, annotationDB, querySignature, connector, distance, GraphOps.LGCc(_, _, _), _memory)
+          case None if _solver == LP_SPLICE =>
+            supervisionGraphs += querySignature ->
+              SupervisionGraph.SPLICE(mln, modes, annotationDB, querySignature, connector, distance, GraphOps.LP(_, _, _), _cluster)
           case None if _solver == HFC_SPLICE =>
             supervisionGraphs += querySignature ->
               SupervisionGraph.SPLICE(mln, modes, annotationDB, querySignature, connector, distance, GraphOps.HFc, _cluster)
           case None if _solver == LGC_SPLICE =>
             supervisionGraphs += querySignature ->
-              SupervisionGraph.SPLICE(mln, modes, annotationDB, querySignature, connector, distance, GraphOps.LGCc, _cluster)
+              SupervisionGraph.SPLICE(mln, modes, annotationDB, querySignature, connector, distance, GraphOps.LGCc(_, _, _), _cluster)
           case None if _solver == NN =>
             supervisionGraphs += querySignature ->
               SupervisionGraph.nearestNeighbor(mln, modes, annotationDB, querySignature, connector, distance, _cluster)

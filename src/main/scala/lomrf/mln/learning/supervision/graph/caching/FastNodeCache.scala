@@ -57,7 +57,6 @@ final class FastNodeCache private (
     */
   def get(node: Node): Option[Long] = if (node.isLabeled) Option(data.get(node)) else None
 
-
   /**
     * @param node a node
     * @return the counts of the given node or the result of the default computation

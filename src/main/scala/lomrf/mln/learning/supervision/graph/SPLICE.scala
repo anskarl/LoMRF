@@ -76,7 +76,7 @@ final class SPLICE private[graph] (
     // Vector holding the labeled values
     val fl = DenseVector(labeledNodes.map(_.value).toArray)
 
-    val solution = solver(W, D, fl).toArray
+    val solution = solver(W, D, fl).toArray.slice(numberOfLabeled, numberOfNodes)
     val truthValues = solution.map(value => if (value <= UNCONNECTED) FALSE else TRUE)
 
     logger.info(msecTimeToTextUntilNow(s"Labeling solution found in: ", startSolution))
