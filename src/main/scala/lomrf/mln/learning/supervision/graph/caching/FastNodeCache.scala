@@ -34,6 +34,7 @@ final class FastNodeCache private (
     noisy: TCustomHashSet[Node]) extends NodeCache {
 
   private var _uniqueNodes = IndexedSeq.empty[Node]
+  private var _reComputeUnique = false
 
   /**
     * @return the number of unique nodes in the cache
@@ -69,6 +70,11 @@ final class FastNodeCache private (
     * @return true if the node exists in the cache
     */
   def contains(node: Node): Boolean = if (node.isLabeled) data.contains(node) else false
+
+  /**
+    * @return true if the cache has changed, false otherwise
+    */
+  def hasChanged: Boolean = _reComputeUnique
 
   /**
     * Add a node to the cache.
@@ -117,6 +123,7 @@ final class FastNodeCache private (
     noisy.remove(node.opposite)
     marked.remove(node)
     marked.remove(node.opposite)
+    _reComputeUnique = true
     this
   }
 
@@ -158,9 +165,9 @@ final class FastNodeCache private (
         HoeffdingBound(x.toDouble / N, y.toDouble / N, N) && x < y
       }
 
-    if (marked.nonEmpty) {
+    if (marked.nonEmpty || _reComputeUnique) {
 
-      val reComputeUnique = marked.exists { node =>
+      _reComputeUnique = _reComputeUnique || marked.exists { node =>
         !noisy.contains(node) && {
           val x = data(node)
           val y = data(node.opposite)
@@ -169,7 +176,8 @@ final class FastNodeCache private (
         }
       }
 
-      if (reComputeUnique) {
+      if (_reComputeUnique) {
+        _reComputeUnique = false
         noisy.clear()
         _uniqueNodes = data.flatMap {
           case (node, _) =>

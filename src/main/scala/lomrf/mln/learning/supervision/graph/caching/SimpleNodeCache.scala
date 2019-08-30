@@ -30,21 +30,23 @@ final case class SimpleNodeCache(
     data: Set[(Clause, Long)] = Set.empty,
     uniqueNodes: IndexedSeq[Node] = IndexedSeq.empty) extends NodeCache {
 
+  var _reComputeUnique: Boolean = false
+
   /**
     * @return the number of unique nodes in the cache
     */
-  override def size: Int = data.size
+  def size: Int = data.size
 
   /**
     * @return the number of positive unique nodes in the cache
     */
-  override def numberOfPositive: Int =
+  def numberOfPositive: Int =
     data.count { case (clause, _) => clause.literals.find(_.sentence.signature == querySignature).get.isPositive }
 
   /**
     * @return the number of negative unique nodes in the cache
     */
-  override def numberOfNegative: Int =
+  def numberOfNegative: Int =
     data.count { case (clause, _) => clause.literals.find(_.sentence.signature == querySignature).get.isNegative }
 
   /**
@@ -52,7 +54,7 @@ final case class SimpleNodeCache(
     * @return an Option value containing the counts of the given node, or None
     *         if the node does not exist in the cache.
     */
-  override def get(node: Node): Option[Long] =
+  def get(node: Node): Option[Long] =
     if (node.clause.isEmpty) None
     else data.find { case (clause, _) => clause =~= node.clause.get }.map { case (_, count) => count }
 
@@ -61,14 +63,19 @@ final case class SimpleNodeCache(
     * @return the counts of the given node or the result of the default computation
     *         if the node does not exist in the cache.
     */
-  override def getOrElse(node: Node, default: => Long): Long = get(node).getOrElse(default)
+  def getOrElse(node: Node, default: => Long): Long = get(node).getOrElse(default)
 
   /**
     * @param node a node
     * @return true if the node exists in the cache
     */
-  override def contains(node: Node): Boolean =
+  def contains(node: Node): Boolean =
     if (node.isLabeled) data.exists { case (clause, _) => clause =~= node.clause.get } else false
+
+  /**
+    * @return true if the cache has changes, false otherwise
+    */
+  def hasChanged: Boolean = _reComputeUnique
 
   /**
     * Add a node to the cache.
@@ -125,6 +132,7 @@ final case class SimpleNodeCache(
     *         except the given sequence of nodes.
     */
   def --(nodes: Seq[Node]): SimpleNodeCache = {
+    _reComputeUnique = true
 
     val (updatedUniqueNodes, updatedNodeSet) = nodes.foldLeft(uniqueNodes -> data) {
       case ((unique, cache), node) =>
@@ -145,29 +153,33 @@ final case class SimpleNodeCache(
     *
     * @return all unique nodes in the cache
     */
-  def collectNodes: IndexedSeq[Node] = uniqueNodes.foldLeft(IndexedSeq.empty[Node]) {
-    case (result, node) =>
+  def collectNodes: IndexedSeq[Node] = {
+    _reComputeUnique = false
 
-      val nodeClause = node.clause.getOrElse(logger.fatal("Cannot construct a pattern."))
-      val oppNodeClause = node.opposite.clause.getOrElse(logger.fatal("Cannot construct a pattern."))
+    uniqueNodes.foldLeft(IndexedSeq.empty[Node]) {
+      case (result, node) =>
 
-      val nodeCounts =
-        getOrElse(node, logger.fatal(s"Pattern ${nodeClause.toText()} does not exist in the cache."))
+        val nodeClause = node.clause.getOrElse(logger.fatal("Cannot construct a pattern."))
+        val oppNodeClause = node.opposite.clause.getOrElse(logger.fatal("Cannot construct a pattern."))
 
-      data.find { case (c, _) => c =~= oppNodeClause } match {
+        val nodeCounts =
+          getOrElse(node, logger.fatal(s"Pattern ${nodeClause.toText()} does not exist in the cache."))
 
-        case Some((_, oppNodeCounts)) =>
-          val N = nodeCounts + oppNodeCounts
-          val nodeFreq = nodeCounts.toDouble / N
-          val oppositeNodeFreq = oppNodeCounts.toDouble / N
+        data.find { case (c, _) => c =~= oppNodeClause } match {
 
-          if (HoeffdingBound(nodeFreq, oppositeNodeFreq, N) && nodeFreq < oppositeNodeFreq) {
-            logger.debug(s"Remove pattern ${node.clause.get.toText()}")
-            result
-          } else result :+ node
+          case Some((_, oppNodeCounts)) =>
+            val N = nodeCounts + oppNodeCounts
+            val nodeFreq = nodeCounts.toDouble / N
+            val oppositeNodeFreq = oppNodeCounts.toDouble / N
 
-        case None => result :+ node
-      }
+            if (HoeffdingBound(nodeFreq, oppositeNodeFreq, N) && nodeFreq < oppositeNodeFreq) {
+              logger.debug(s"Remove pattern ${node.clause.get.toText()}")
+              result
+            } else result :+ node
+
+          case None => result :+ node
+        }
+    }
   }
 
   override def toString: String =

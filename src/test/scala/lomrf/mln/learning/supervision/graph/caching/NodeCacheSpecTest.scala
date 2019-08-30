@@ -338,4 +338,53 @@ final class NodeCacheSpecTest extends FunSpec with Matchers {
     }
   }
 
+  describe("Cache an example node [ Q(A) v !E(A) ] 20 times. Then remove it.") {
+
+    var simpleCache = SimpleNodeCache(AtomSignature("Q", 1))
+    var fastCache = FastNodeCache(AtomSignature("Q", 1))
+
+    val pNode = Node(
+      trueEvidenceAtom("Q", "A"),
+      IndexedSeq(falseEvidenceAtom("E", "A")),
+      clause(pLit("Q", "x".V), nLit("E", "x".V)),
+      clause(nLit("E", "x".V)),
+      atom("Q", "x".V)
+    )
+
+    for (_ <- 1 to 20) {
+      simpleCache += pNode
+      fastCache += pNode
+    }
+
+    simpleCache -= pNode
+    fastCache -= pNode
+
+    it ("should have size 0") {
+      simpleCache.size shouldEqual 0
+      fastCache.size shouldEqual 0
+    }
+
+    it ("should have 0 positives node and 0 negatives") {
+      simpleCache.numberOfPositive shouldEqual 0
+      simpleCache.numberOfNegative shouldEqual 0
+
+      fastCache.numberOfPositive shouldEqual 0
+      fastCache.numberOfNegative shouldEqual 0
+    }
+
+    import scala.collection.convert.ImplicitConversionsToScala._
+    it ("should not contain the previously cached nodes") {
+      simpleCache.contains(pNode) shouldBe false
+      simpleCache.get(pNode) shouldBe None
+
+      fastCache.contains(pNode) shouldBe false
+      fastCache.get(pNode) shouldBe None
+    }
+
+    it ("should collect no node, since they are removed") {
+      simpleCache.collectNodes.length shouldEqual 0
+      fastCache.collectNodes.length shouldEqual 0
+      simpleCache.collectNodes shouldEqual fastCache.collectNodes
+    }
+  }
 }

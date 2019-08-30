@@ -81,10 +81,6 @@ final class SPLICE private[graph] (
     val fl = DenseVector(labeledNodes.map(_.value).toArray)
 
     val fullSolution = solver.solve(W, D, fl).toArray
-
-    nodes.map(n => if (n.isLabeled) n.clause.get.toText() else n.body.get.toText()).zip(fullSolution)
-      .foreach(println)
-
     val solution = fullSolution.slice(numberOfLabeled, numberOfNodes)
     val truthValues = solution.map(value => if (value <= UNCONNECTED) FALSE else TRUE)
 
@@ -146,7 +142,7 @@ final class SPLICE private[graph] (
      */
     if (labeled.isEmpty)
       new SPLICE(
-        labeledNodes ++ nonEmptyUnlabeled,
+        (if (nodeCache.hasChanged) nodeCache.collectNodes else labeledNodes) ++ nonEmptyUnlabeled,
         querySignature,
         connector,
         metric ++ mln.evidence ++ currentNodes.flatMap(n => IndexedSeq.fill(n.clusterSize)(n.atoms)),

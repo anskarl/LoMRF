@@ -30,8 +30,9 @@ sealed trait NodeHashStrategy extends HashingStrategy[Node]
   */
 final class ClauseStrategy extends NodeHashStrategy {
 
-  override def computeHashCode(n: Node): Int =
-    n.clause.get.literals.map(l => l.sentence.symbol.## ^ l.sentence.constants.##).foldLeft(1)(_ ^ _)
+  override def computeHashCode(n: Node): Int = n.clause.get.literals
+    .map(l => l.sentence.symbol.## ^ l.sentence.constants.## ^ l.sentence.variables.size)
+    .foldLeft(1)(_ ^ _)
 
   override def equals(n1: Node, n2: Node): Boolean = n1.clause.get =~= n2.clause.get
 }
@@ -41,8 +42,9 @@ final class ClauseStrategy extends NodeHashStrategy {
   */
 final class BodyStrategy extends NodeHashStrategy {
 
-  override def computeHashCode(n: Node): Int =
-    n.literals.map(l => l.sentence.symbol.## ^ l.sentence.constants.##).foldLeft(1)(_ ^ _)
+  override def computeHashCode(n: Node): Int = n.literals
+    .map(l => l.sentence.symbol.## ^ l.sentence.constants.## ^ l.sentence.variables.size)
+    .foldLeft(1)(_ ^ _)
 
   override def equals(n1: Node, n2: Node): Boolean = n1.body.get =~= n2.body.get
 }

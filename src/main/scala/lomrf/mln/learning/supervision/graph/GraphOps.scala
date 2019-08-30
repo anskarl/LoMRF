@@ -44,7 +44,7 @@ trait GraphSolver extends LazyLogging {
   *
   * @param iterations number of iterations (default is 50)
   */
-case class LP(iterations: Int = 50) extends GraphSolver {
+case class LP(iterations: Int = 100) extends GraphSolver {
 
   def solve(
     W: DenseMatrix[Double],
@@ -88,7 +88,7 @@ case class LP(iterations: Int = 50) extends GraphSolver {
   * @param iterations number of iterations (default is 50)
   * @param alpha clamping factor (default is 0.5)
   */
-case class LGCc(iterations: Int = 50, alpha: Double = 0.9) extends GraphSolver {
+case class LGCc(iterations: Int = 100, alpha: Double = 0.9) extends GraphSolver {
 
   def solve(
     W: DenseMatrix[Double],

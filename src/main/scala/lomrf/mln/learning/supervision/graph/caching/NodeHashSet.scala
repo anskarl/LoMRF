@@ -25,8 +25,10 @@ import lomrf.mln.learning.supervision.graph.Node
 import scala.collection.convert.ImplicitConversionsToScala._
 
 /**
-  * Node set used for grouping similar nodes
-  * @param strategy
+  * Node set used for grouping similar nodes together
+  * according to a given hashing function.
+  *
+  * @param strategy a hashing strategy
   */
 private[graph] class NodeHashSet(strategy: NodeHashStrategy = new BodyStrategy)
   extends TCustomHashMap[Node, Node](strategy) {
@@ -36,5 +38,5 @@ private[graph] class NodeHashSet(strategy: NodeHashStrategy = new BodyStrategy)
     else super.put(n, n)
   }
 
-  def collectNodes: IndexedSeq[Node] = this.keySet.toIndexedSeq
+  def collectNodes: IndexedSeq[Node] = keySet.toIndexedSeq
 }

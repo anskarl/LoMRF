@@ -64,6 +64,11 @@ trait NodeCache extends LazyLogging {
   def contains(node: Node): Boolean
 
   /**
+    * @return true if the cache has changed, false otherwise
+    */
+  def hasChanged: Boolean
+
+  /**
     * Add a node to the cache.
     *
     * @param node a node to be added

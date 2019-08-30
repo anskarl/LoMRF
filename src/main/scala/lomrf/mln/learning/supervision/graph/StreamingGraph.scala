@@ -57,7 +57,7 @@ final class StreamingGraph private[graph] (
 
     val startGraphConnection = System.currentTimeMillis
 
-    val encodedGraph = connector.smartConnect(nodes, unlabeledNodes)(metric)
+    val encodedGraph = connector.smartConnect(nodes, unlabeledNodes, Some(nodeCache))(metric)
     val WW = encodedGraph._1
 
     W = DenseMatrix.horzcat(
@@ -101,7 +101,7 @@ final class StreamingGraph private[graph] (
     // Vector holding the labeled values
     val fl = DenseVector(-1d, 1d)
 
-    val solution = solver.solve(W, D, fl).toArray.slice(numberOfLabeled, numberOfNodes)
+    val solution = solver.solve(W, D, fl).toArray.slice(2, numberOfNodes)
     val truthValues = solution.map(value => if (value <= UNCONNECTED) FALSE else TRUE)
 
     logger.info(msecTimeToTextUntilNow(s"Labeling solution found in: ", startSolution))

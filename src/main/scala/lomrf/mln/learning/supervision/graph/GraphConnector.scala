@@ -316,9 +316,8 @@ class aNNLConnector extends GraphConnector {
 class aNNTemporalConnector extends aNNLConnector {
 
   /**
-    * Compute the edge value for a pair of nodes. Pair of labeled
-    * nodes are never connected. Moreover unlabeled nodes are only
-    * connected if they are time-adjacent.
+    * Compute the edge value for a pair of nodes. Pairs of unlabeled
+    * nodes are only connected if they are time-adjacent.
     *
     * @note Override the method to implement another connection strategy.
     *
@@ -331,7 +330,7 @@ class aNNTemporalConnector extends aNNLConnector {
 
     val timeAdjacent = math.abs(x.query.terms.last.symbol.toLong - y.query.terms.last.symbol.toLong) == 1
 
-    if ((x.isLabeled && y.isLabeled) || (x.isUnlabeled && y.isUnlabeled && !timeAdjacent)) UNCONNECTED
+    if (x.isUnlabeled && y.isUnlabeled && !timeAdjacent) UNCONNECTED
     else 1 - {
       metric match {
         case m: EvidenceMetric        => m.distance(x.evidence, y.evidence)
@@ -425,9 +424,8 @@ case class kNNLConnector(k: Int) extends GraphConnector {
 class kNNTemporalConnector(k: Int) extends kNNLConnector(k) {
 
   /**
-    * Compute the edge value for a pair of nodes. Pair of labeled
-    * nodes are never connected. Moreover unlabeled nodes are only
-    * connected if they are time-adjacent.
+    * Compute the edge value for a pair of nodes. Pairs of unlabeled
+    * nodes are only connected if they are time-adjacent.
     *
     * @note Override the method to implement another connection strategy.
     *
@@ -440,7 +438,7 @@ class kNNTemporalConnector(k: Int) extends kNNLConnector(k) {
 
     val timeAdjacent = math.abs(x.query.terms.last.symbol.toLong - y.query.terms.last.symbol.toLong) == 1
 
-    if ((x.isLabeled && y.isLabeled) || (x.isUnlabeled && y.isUnlabeled && !timeAdjacent)) UNCONNECTED
+    if (x.isUnlabeled && y.isUnlabeled && !timeAdjacent) UNCONNECTED
     else 1 - {
       metric match {
         case m: EvidenceMetric        => m.distance(x.evidence, y.evidence)
@@ -507,7 +505,7 @@ class eNNTemporalConnector(epsilon: Double) extends eNNLConnector(epsilon) {
 
     val timeAdjacent = math.abs(x.query.terms.last.symbol.toLong - y.query.terms.last.symbol.toLong) == 1
 
-    if ((x.isLabeled && y.isLabeled) || (x.isUnlabeled && y.isUnlabeled && !timeAdjacent)) UNCONNECTED
+    if (x.isUnlabeled && y.isUnlabeled && !timeAdjacent) UNCONNECTED
     else 1 - {
       metric match {
         case m: EvidenceMetric        => m.distance(x.evidence, y.evidence)
