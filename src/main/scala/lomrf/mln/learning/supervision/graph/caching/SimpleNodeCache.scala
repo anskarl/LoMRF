@@ -68,7 +68,7 @@ final case class SimpleNodeCache(
     * @return true if the node exists in the cache
     */
   override def contains(node: Node): Boolean =
-    data.exists { case (clause, _) => clause =~= node.clause.get }
+    if (node.isLabeled) data.exists { case (clause, _) => clause =~= node.clause.get } else false
 
   /**
     * Add a node to the cache.

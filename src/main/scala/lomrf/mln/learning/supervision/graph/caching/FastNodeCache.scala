@@ -55,7 +55,8 @@ final class FastNodeCache private (
     * @return an Option value containing the counts of the given node, or None
     *         if the node does not exist in the cache.
     */
-  def get(node: Node): Option[Long] = Option(data.get(node))
+  def get(node: Node): Option[Long] = if (node.isLabeled) Option(data.get(node)) else None
+
 
   /**
     * @param node a node
@@ -68,7 +69,7 @@ final class FastNodeCache private (
     * @param node a node
     * @return true if the node exists in the cache
     */
-  def contains(node: Node): Boolean = data.contains(node)
+  def contains(node: Node): Boolean = if (node.isLabeled) data.contains(node) else false
 
   /**
     * Add a node to the cache.
