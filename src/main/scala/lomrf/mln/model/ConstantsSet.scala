@@ -22,7 +22,7 @@ package lomrf.mln.model
 
 import gnu.trove.iterator.TObjectIntIterator
 import gnu.trove.map.TObjectIntMap
-import lomrf.mln.model.builder.ConstantsSetBuilder
+import lomrf.mln.model.builders.ConstantsSetBuilder
 import scala.collection.mutable
 
 /**
@@ -123,8 +123,7 @@ sealed trait ConstantsSet extends Iterable[String] with IndexedSeq[String] with 
   * this class is private, the only way to construct a ConstantsSet is through a ConstantsSetBuilder or by using the
   * companion object ConstantsSet.
   *
-  * @see [[lomrf.mln.model.builder.ConstantsSetBuilder]]
-  *
+  * @see [[lomrf.mln.model.builders.ConstantsSetBuilder]]
   * @param constants2Id a hash map that associates constant symbols (String) to integers (IDs)
   * @param id2Constants an array buffer that contains all constant symbols (String). The position of each symbol
   *                     in the array buffer is identical to its ID.
@@ -175,8 +174,7 @@ final class ConstantsSetImpl(
   * is private, the only way to construct a ConstantsSet is through a ConstantsSetBuilder or by using the
   * companion object ConstantsSet.
   *
-  * @see [[lomrf.mln.model.builder.ConstantsSetBuilder]]
-  *
+  * @see [[lomrf.mln.model.builders.ConstantsSetBuilder]]
   * @param element a single constant symbol to include the constants set
   */
 final class ConstantsSetUnaryImpl(val element: String) extends ConstantsSet {

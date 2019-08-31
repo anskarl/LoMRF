@@ -18,9 +18,9 @@
  *
  */
 
-package lomrf.mln.model.builder
+package lomrf.mln.model.builders
 
-import org.scalatest.{FunSpec, Matchers}
+import org.scalatest.{ FunSpec, Matchers }
 
 class ConstantsDomainBuilderSpecTest extends FunSpec with Matchers {
 

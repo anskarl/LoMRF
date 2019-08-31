@@ -24,7 +24,7 @@ import java.io.{ BufferedReader, File, FileReader }
 import lomrf.logic._
 import lomrf.logic.parser.EvidenceParser
 import com.typesafe.scalalogging.Logger
-import lomrf.mln.model.builder.{ ConstantsDomainBuilder, EvidenceBuilder }
+import lomrf.mln.model.builders.{ ConstantsDomainBuilder, EvidenceBuilder }
 import lomrf.util.logging.Implicits._
 import scala.util.Try
 
@@ -43,10 +43,10 @@ import scala.util.Try
   * @param db a map from atom signatures to atom evidence database
   * @param functionMappers a map from atom signatures to function mapper
   */
-case class Evidence(
-    constants: ConstantsDomain,
-    db: EvidenceDB,
-    functionMappers: FunctionMappers) {
+class Evidence(
+    val constants: ConstantsDomain,
+    val db: EvidenceDB,
+    val functionMappers: FunctionMappers) {
 
   /** Collection of tri-state atoms , i.e., open-world assumption with some evidence */
   lazy val triStateAtoms: Set[AtomSignature] = db.filter(_._2.isTriStateDB).keySet

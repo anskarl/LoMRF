@@ -22,7 +22,7 @@ package lomrf.mln.model
 
 import gnu.trove.set.hash.TIntHashSet
 import lomrf.logic.AtomSignature
-import lomrf.mln.model.builder.ConstantsDomainBuilder
+import lomrf.mln.model.builders.ConstantsDomainBuilder
 import lomrf.util.Cartesian
 import lomrf.util.collection.GlobalIndexPartitioned
 import lomrf.util.time._

@@ -28,7 +28,7 @@ import lomrf.util.Cartesian.CartesianIterator
 import lomrf.util._
 import lomrf.util.logging.Implicits._
 import com.typesafe.scalalogging.Logger
-import lomrf.mln.model.builder.ConstantsDomainBuilder
+import lomrf.mln.model.builders.ConstantsDomainBuilder
 import scala.collection.breakOut
 
 /**
@@ -206,7 +206,7 @@ object MLN {
 
     val space = PredicateSpace(predicateSchema, queryAtoms, hiddenPredicates, constants)
 
-    val evidence = Evidence(constants, evidenceDB, functionMappers)
+    val evidence = new Evidence(constants, evidenceDB, functionMappers)
 
     val clauses = expand(NormalForm.compileCNF(formulas)(constants).toVector, constants)
 
@@ -232,7 +232,7 @@ object MLN {
       evidenceDB: EvidenceDB,
       space: PredicateSpace): MLN = {
 
-    val evidence = Evidence(constants, evidenceDB, functionMappers)
+    val evidence = new Evidence(constants, evidenceDB, functionMappers)
 
     new MLN(schema, space, evidence, expand(clauses, evidence.constants))
   }

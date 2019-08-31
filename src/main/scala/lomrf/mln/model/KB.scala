@@ -28,7 +28,7 @@ import lomrf.logic._
 import lomrf.util.logging.Implicits._
 import lomrf.logic.dynamic.{ DynamicAtomBuilder, DynamicFunctionBuilder }
 import lomrf.logic.parser.{ DomainParser, KBParser }
-import lomrf.mln.model.builder.{ ConstantsDomainBuilder, KBBuilder }
+import lomrf.mln.model.builders.{ ConstantsDomainBuilder, KBBuilder }
 import lomrf.util.ImplFinder
 import scala.util.{ Failure, Success, Try }
 
@@ -44,13 +44,13 @@ import scala.util.{ Failure, Success, Try }
   * @param formulas a set of (weighted) first-order logic formulas
   * @param definiteClauses a set of (weighted) definite clauses
   */
-case class KB(
-    predicateSchema: PredicateSchema,
-    functionSchema: FunctionSchema,
-    dynamicPredicates: DynamicPredicates,
-    dynamicFunctions: DynamicFunctions,
-    formulas: Set[WeightedFormula],
-    definiteClauses: Set[WeightedDefiniteClause] = Set.empty) extends Serializable { self =>
+class KB(
+    val predicateSchema: PredicateSchema,
+    val functionSchema: FunctionSchema,
+    val dynamicPredicates: DynamicPredicates,
+    val dynamicFunctions: DynamicFunctions,
+    val formulas: Set[WeightedFormula],
+    val definiteClauses: Set[WeightedDefiniteClause] = Set.empty) extends Serializable { self =>
 
   @transient
   lazy val schema = MLNSchema(predicateSchema, functionSchema, dynamicPredicates, dynamicFunctions)

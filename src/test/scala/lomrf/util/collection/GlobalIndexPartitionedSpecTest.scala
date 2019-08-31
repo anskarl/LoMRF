@@ -21,7 +21,7 @@
 package lomrf.util.collection
 
 import lomrf.mln.model.ConstantsSet
-import lomrf.mln.model.builder.ConstantsDomainBuilder
+import lomrf.mln.model.builders.ConstantsDomainBuilder
 import org.scalatest.{ FunSpec, Matchers }
 
 class GlobalIndexPartitionedSpecTest extends FunSpec with Matchers {

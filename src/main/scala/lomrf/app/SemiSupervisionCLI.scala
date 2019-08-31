@@ -221,7 +221,7 @@ object SemiSupervisionCLI extends CLIApp {
         negativeFound += annotationDB(querySignature).numberOfFalse
       }
 
-      val evidence = Evidence(trainingEvidence.constants, atomStateDB, trainingEvidence.functionMappers)
+      val evidence = new Evidence(trainingEvidence.constants, atomStateDB, trainingEvidence.functionMappers)
       val mln = MLN(kb.schema, evidence, _nonEvidenceAtoms, Vector.empty[Clause])
 
       // Create or update supervision graphs for each given non evidence atom

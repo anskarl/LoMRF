@@ -23,7 +23,7 @@ package lomrf.mln.learning.structure.hypergraph
 import lomrf.logic.{ AtomSignature, Constant, EvidenceAtom, TRUE }
 import lomrf.mln.learning.structure.ModeParser
 import lomrf.mln.model._
-import lomrf.mln.model.builder.EvidenceBuilder
+import lomrf.mln.model.builders.EvidenceBuilder
 import org.scalatest.{ FunSpec, Matchers }
 
 /**

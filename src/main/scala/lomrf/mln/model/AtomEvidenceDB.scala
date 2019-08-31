@@ -25,14 +25,13 @@ import gnu.trove.map.TIntDoubleMap
 import gnu.trove.set.TIntSet
 import gnu.trove.set.hash.TIntHashSet
 import lomrf.logic._
-import lomrf.mln.model.builder.AtomEvidenceDBBuilder
+import lomrf.mln.model.builders.AtomEvidenceDBBuilder
 
 /**
   * Atoms evidence database holds the state (True, False or Unknown) of ground atoms
   * that are given as evidence.
   *
-  * @see [[lomrf.mln.model.builder.AtomEvidenceDBBuilder]]
-  *
+  * @see [[lomrf.mln.model.builders.AtomEvidenceDBBuilder]]
   * @param identity an atom identity function
   */
 abstract class AtomEvidenceDB(val identity: AtomIdentityFunction) {

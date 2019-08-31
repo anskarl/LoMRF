@@ -22,7 +22,7 @@ package lomrf.mln.learning.supervision.metric
 
 import lomrf.logic.{ AtomSignature, Constant, EvidenceAtom, FunctionMapping }
 import lomrf.mln.model.ConstantsSet
-import lomrf.mln.model.builder.EvidenceBuilder
+import lomrf.mln.model.builders.EvidenceBuilder
 import org.scalatest.{ FunSpec, Matchers }
 
 final class StructureMetricSpecTest extends FunSpec with Matchers {

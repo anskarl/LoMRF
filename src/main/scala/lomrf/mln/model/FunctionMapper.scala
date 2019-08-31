@@ -21,7 +21,7 @@
 package lomrf.mln.model
 
 import gnu.trove.map.TIntObjectMap
-import lomrf.mln.model.builder.FunctionMapperBuilder
+import lomrf.mln.model.builders.FunctionMapperBuilder
 
 trait FunctionMapper extends Serializable {
 
