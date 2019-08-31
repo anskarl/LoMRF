@@ -34,6 +34,7 @@ import lomrf.util.logging.Implicits._
 import scala.io.Source
 import java.io.{ File, FileOutputStream, PrintStream }
 import scala.util.{ Failure, Success }
+import scala.collection.parallel.CollectionConverters._
 
 /**
   * Command line tool for supervision completion

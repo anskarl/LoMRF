@@ -270,11 +270,11 @@ final class OSLa private (kb: KB, constants: ConstantsDomain, evidenceAtoms: Set
 
     finalState.setAnnotatedState(annotationDB)
     trueCounts = finalState.countTrueGroundings
-    logger.debug("True Counts: [" + trueCounts.deep.mkString(", ") + "]")
+    logger.debug("True Counts: [" + trueCounts.mkString(", ") + "]")
 
     val inferredState = infer(finalMRF, annotationDB)
     inferredCounts = inferredState.countTrueGroundings
-    logger.debug("Inferred Counts: [" + inferredCounts.deep.mkString(", ") + "]")
+    logger.debug("Inferred Counts: [" + inferredCounts.mkString(", ") + "]")
 
     val subgradientsOfLearnedClauses = Array.fill[Int](finalMLN.clauses.size)(0)
     for (clauseIdx <- finalMLN.clauses.indices) if (!finalMLN.clauses(clauseIdx).isHard) {
@@ -302,7 +302,7 @@ final class OSLa private (kb: KB, constants: ConstantsDomain, evidenceAtoms: Set
 
     if (printLearnedWeightsPerIteration)
       logger.info("Learned weights on step " + (step + 1) + ":\n" +
-        "\t[" + weights.deep.mkString(", ") + "]")
+        "\t[" + weights.mkString(", ") + "]")
 
     learnedClauses
   }

@@ -25,6 +25,7 @@ import lomrf.mln.model.ConstantsSet
 import scala.annotation.tailrec
 import scala.collection.mutable
 import com.typesafe.scalalogging.LazyLogging
+import scala.collection.parallel.CollectionConverters._
 
 /**
   * Contains functions that convert a First Order Logic (FOL) formula into a normal form,

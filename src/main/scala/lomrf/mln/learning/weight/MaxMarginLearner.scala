@@ -280,7 +280,7 @@ final class MaxMarginLearner(mrf: MRF, annotationDB: Map[AtomSignature, AtomEvid
   setAnnotatedState()
   val trueCounts: Array[Int] = countGroundings()
 
-  logger.info("True Counts: [" + trueCounts.deep.mkString(", ") + "]")
+  logger.info("True Counts: [" + trueCounts.mkString(", ") + "]")
 
   def learn(): Unit = {
 
@@ -401,7 +401,7 @@ final class MaxMarginLearner(mrf: MRF, annotationDB: Map[AtomSignature, AtomEvid
 
         // Print learned weights so far
         if (printLearnedWeightsPerIteration) {
-          logger.info(s"Learned weights on iteration $iteration:\n ${weights.deep.mkString("[", ", ", "]")}")
+          logger.info(s"Learned weights on iteration $iteration:\n ${weights.mkString("[", ", ", "]")}")
         }
 
         if (converged) iteration = iterations + 1
@@ -414,7 +414,7 @@ final class MaxMarginLearner(mrf: MRF, annotationDB: Map[AtomSignature, AtomEvid
       logger.info("Current loss: " + loss)
 
       val inferredCounts = countGroundings()
-      logger.info("Inferred Counts: " + inferredCounts.deep.mkString("[", ", ", "]"))
+      logger.info("Inferred Counts: " + inferredCounts.mkString("[", ", ", "]"))
 
       // Calculate true counts minus inferred counts
       var currentError = 0.0
@@ -432,7 +432,7 @@ final class MaxMarginLearner(mrf: MRF, annotationDB: Map[AtomSignature, AtomEvid
 
       logger.info {
         s"""
-           |Delta = ${delta.deep.mkString("[", ", ", "]")}
+           |Delta = ${delta.mkString("[", ", ", "]")}
            |Count difference: ${delta.sum}
            |Current weighted count difference: $currentError
          """.stripMargin

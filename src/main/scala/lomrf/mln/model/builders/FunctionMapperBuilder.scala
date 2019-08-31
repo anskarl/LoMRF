@@ -24,14 +24,16 @@ import gnu.trove.TCollections
 import gnu.trove.map.hash.TIntObjectHashMap
 import lomrf.logic.{ Constant, FunctionMapping }
 import lomrf.mln.model.{ AtomIdentityFunction, FunctionMapper, FunctionMapperDefaultImpl }
-import scala.collection.{ breakOut, mutable }
+import scala.collection.mutable
 import scala.language.implicitConversions
 import scala.util.Try
 import lomrf.util.collection.trove.TroveConversions._
 
 final class FunctionMapperBuilder(identityFunction: AtomIdentityFunction)
   extends mutable.Builder[(Vector[String], String), FunctionMapper]
-  with Traversable[(Int, String)] with Iterable[(Int, String)] { self =>
+  with Iterable[(Int, String)] { self =>
+
+  override def knownSize: Int = -1
 
   private var dirty = false
   private var args2Value = new TIntObjectHashMap[String]()
@@ -40,7 +42,7 @@ final class FunctionMapperBuilder(identityFunction: AtomIdentityFunction)
     identityFunction.decode(t._1).map(v => (v, t._2))
   }
 
-  override def +=(elems: (Vector[String], String)): self.type = {
+  override def addOne(elems: (Vector[String], String)): self.type = {
     insert(elems._1, elems._2)
     self
   }
@@ -86,7 +88,7 @@ final class FunctionMapperBuilder(identityFunction: AtomIdentityFunction)
 
   override def iterator: Iterator[(Int, String)] = args2Value.iterator()
 
-  object decoded extends Iterable[FunctionMapping] with Traversable[FunctionMapping] {
+  object decoded extends Iterable[FunctionMapping] {
 
     override def iterator: Iterator[FunctionMapping] = new Iterator[FunctionMapping] {
       private val iter = self.iterator
@@ -99,12 +101,11 @@ final class FunctionMapperBuilder(identityFunction: AtomIdentityFunction)
         val decoded: Vector[Constant] = identityFunction
           .decode(id)
           .getOrElse(throw new IllegalStateException())
-          .map(Constant)(breakOut)
+          .map(Constant)
+          .to(Vector)
 
         FunctionMapping(retVal, symbol, decoded)
       }
-
-      override def hasDefiniteSize: Boolean = iter.hasDefiniteSize
 
       override def isEmpty: Boolean = iter.isEmpty
 

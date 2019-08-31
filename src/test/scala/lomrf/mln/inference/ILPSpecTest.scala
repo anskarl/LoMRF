@@ -99,7 +99,7 @@ final class ILPSpecTest extends FunSpec with Matchers {
         mrf.constraints.size should be(stats("mrf.constraints.size").toInt)
       }
 
-      it(s"should has ${stats("mrf.weightHard")} as hard weight value") {
+      it(s"should have ${stats("mrf.weightHard")} as hard weight value") {
         mrf.weightHard should be(stats("mrf.weightHard").toDouble)
       }
     }

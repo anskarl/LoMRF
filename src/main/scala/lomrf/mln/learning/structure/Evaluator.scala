@@ -70,10 +70,10 @@ object Evaluator {
 
     // Calculate true and inferred counts for the given clauses
     val trueCounts = state.countTrueGroundings
-    logger.debug("True Counts: [" + trueCounts.deep.mkString(", ") + "]")
+    logger.debug("True Counts: [" + trueCounts.mkString(", ") + "]")
 
     val inferredCounts = state.countTrueGroundings(previousState)
-    logger.debug("Inferred Counts: [" + inferredCounts.deep.mkString(", ") + "]")
+    logger.debug("Inferred Counts: [" + inferredCounts.mkString(", ") + "]")
 
     // For each clause compute the difference between inferred and true counts and compare it to the given threshold
     for (clauseIdx <- clauses.indices) {
@@ -134,10 +134,10 @@ object Evaluator {
 
     // Calculate true and inferred counts for the given clauses
     val trueCounts = state.countTrueGroundings
-    logger.debug("True Counts: [" + trueCounts.deep.mkString(", ") + "]")
+    logger.debug("True Counts: [" + trueCounts.mkString(", ") + "]")
 
     val inferredCounts = state.countTrueGroundings(previousState)
-    logger.debug("Inferred Counts: [" + inferredCounts.deep.mkString(", ") + "]")
+    logger.debug("Inferred Counts: [" + inferredCounts.mkString(", ") + "]")
 
     for (clauseIdx <- clauses.indices) {
       logger.debug(s"${clauses(clauseIdx).toText()} T: ${trueCounts(clauseIdx)} I: ${inferredCounts(clauseIdx)}")

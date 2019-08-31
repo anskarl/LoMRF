@@ -184,11 +184,11 @@ final class OSL private (kb: KB, constants: ConstantsDomain, nonEvidenceAtoms: S
 
         state.setAnnotatedState(annotationDB)
         trueCounts ++= state.countTrueGroundings
-        logger.debug("True Counts: [" + trueCounts.deep.mkString(", ") + "]")
+        logger.debug("True Counts: [" + trueCounts.mkString(", ") + "]")
 
         val inferredState = infer(mrf, annotationDB)
         inferredCounts ++= inferredState.countTrueGroundings
-        logger.debug("Inferred Counts: [" + inferredCounts.deep.mkString(", ") + "]")
+        logger.debug("Inferred Counts: [" + inferredCounts.mkString(", ") + "]")
 
         Some(inferredState)
       } else {
@@ -277,7 +277,7 @@ final class OSL private (kb: KB, constants: ConstantsDomain, nonEvidenceAtoms: S
 
     if (printLearnedWeightsPerIteration) {
       logger.info("Learned weights on step " + (step + 1) + ":\n" +
-        "\t" + weights.deep.mkString("[", ", ", "]"))
+        "\t" + weights.mkString("[", ", ", "]"))
     }
 
     goodClauses

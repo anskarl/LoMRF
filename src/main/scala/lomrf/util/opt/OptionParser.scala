@@ -251,15 +251,21 @@ trait OptionParser {
   }
 
   // -------- Getting usage information ---------------
-  def descriptions: Seq[String] = options.map {
-    case x if !x.canBeInvoked      => wrap(x.description)
-    case x if x.keyValueArgument   => "[-" + x.shortopt + ", --" + x.longopt + ":" + x.keyName + "=" + x.valueName + "]" + NLTB + wrap(x.description)
-    case x if x.gobbleNextArgument => "[-" + x.shortopt + ", --" + x.longopt + " " + x.valueName + "]" + NLTB + wrap(x.description)
-    case opt                       => "[-" + opt.shortopt + ", " + "--" + opt.longopt + "]" + NLTB + wrap(opt.description)
-  } ++= (argList match {
-    case Some(x: Argument) => List(x.valueName + NLTB + wrap(x.description))
-    case None              => arguments.map(a => a.valueName + NLTB + wrap(a.description))
-  })
+  def descriptions: Seq[String] = {
+    val optDescriptions = options.map {
+      case x if !x.canBeInvoked      => wrap(x.description)
+      case x if x.keyValueArgument   => "[-" + x.shortopt + ", --" + x.longopt + ":" + x.keyName + "=" + x.valueName + "]" + NLTB + wrap(x.description)
+      case x if x.gobbleNextArgument => "[-" + x.shortopt + ", --" + x.longopt + " " + x.valueName + "]" + NLTB + wrap(x.description)
+      case opt                       => "[-" + opt.shortopt + ", " + "--" + opt.longopt + "]" + NLTB + wrap(opt.description)
+    }
+
+    val resultingDescriptions = optDescriptions ++= (argList match {
+      case Some(x: Argument) => List(x.valueName + NLTB + wrap(x.description))
+      case None              => arguments.map(a => a.valueName + NLTB + wrap(a.description)).toSeq
+    })
+
+    resultingDescriptions.toSeq
+  }
 
   def usage: String = {
     val programText = programName match {
@@ -282,7 +288,7 @@ trait OptionParser {
 
   def argumentNames: Seq[String] = argList match {
     case Some(x: Argument) => List(x.valueName)
-    case None              => arguments.map(_.valueName)
+    case None              => arguments.map(_.valueName).to(Seq)
   }
 
   def applyArgument(option: OptionDefinition, arg: String): Boolean = {

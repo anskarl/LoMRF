@@ -760,7 +760,7 @@ final class TuplesDBSpecTest extends FunSpec with Matchers {
 
       db allowOnly Map("y" -> Vector("A"))
 
-      db allowEverything ()
+      db.allowEverything()
 
       db += ("y", Set("A", "B", "C"))
       db += ("x", Set("10", "11"))

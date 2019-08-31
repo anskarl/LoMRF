@@ -247,12 +247,12 @@ final class OnlineLearner(mln: MLN, algorithm: Algorithm, lossAugmented: Boolean
     // Set the annotated state and count true groundings
     setAnnotatedState(mrf, annotationDB)
     val trueCounts = countGroundings(mrf)
-    logger.info("True Counts: [" + trueCounts.deep.mkString(", ") + "]")
+    logger.info("True Counts: [" + trueCounts.mkString(", ") + "]")
 
     // Perform inference for the current weight vector and count true groundings
     infer(mrf, annotationDB)
     val inferredCounts = countGroundings(mrf)
-    logger.info("Inferred Counts: [" + inferredCounts.deep.mkString(", ") + "]")
+    logger.info("Inferred Counts: [" + inferredCounts.mkString(", ") + "]")
 
     var weightedDeltaPhi = 0.0
 
@@ -277,7 +277,7 @@ final class OnlineLearner(mln: MLN, algorithm: Algorithm, lossAugmented: Boolean
 
       logger.info {
         s"""
-           |Delta = ${delta.deep.mkString("[", ", ", "]")}
+           |Delta = ${delta.mkString("[", ", ", "]")}
            |Absolute delta phi: $deltaPhi
            |Weighted delta phi: $weightedDeltaPhi
          """.stripMargin
@@ -327,7 +327,7 @@ final class OnlineLearner(mln: MLN, algorithm: Algorithm, lossAugmented: Boolean
     }
 
     if (printLearnedWeightsPerIteration) {
-      logger.info("Learned weights on step " + t + ":\n" + weights.deep.mkString("[", ", ", "]"))
+      logger.info("Learned weights on step " + t + ":\n" + weights.mkString("[", ", ", "]"))
     }
   }
 

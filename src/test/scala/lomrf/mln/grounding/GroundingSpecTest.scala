@@ -65,12 +65,20 @@ final class GroundingSpecTest extends FunSpec with Matchers {
 
     val mln = MLN.fromFile(mlnFile.getAbsolutePath, queryAtoms, dbFile.getAbsolutePath, cwa)
 
-    val stats = Source
-      .fromFile(dbFile.getAbsolutePath.replace(".db", ".statistics"))
-      .getLines()
-      .map(line => line.split('='))
-      .map(entries => entries(0) -> entries(1))
-      .toMap
+    val stats = {
+      val inSource = Source.fromFile(dbFile.getAbsolutePath.replace(".db", ".statistics"))
+      try {
+        inSource.getLines()
+          .map { line =>
+            val entries = line.split('=')
+            entries(0) -> entries(1)
+          }
+          .toMap
+      } finally {
+        inSource.close()
+      }
+
+    }
 
     it(s"should constants ${stats("mln.constants.size")} constants sets (domains)") {
       mln.evidence.constants.size should be(stats("mln.constants.size").toInt)
@@ -100,7 +108,7 @@ final class GroundingSpecTest extends FunSpec with Matchers {
         mrf.constraints.size should be(stats("mrf.constraints.size").toInt)
       }
 
-      it(s"should has ${stats("mrf.weightHard")} as hard weight value") {
+      it(s"should have ${stats("mrf.weightHard")} as hard weight value") {
         mrf.weightHard should be(stats("mrf.weightHard").toDouble)
       }
     }

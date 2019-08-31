@@ -24,7 +24,6 @@ import lomrf.mln.model.{ FunctionSchema, PredicateSchema }
 import scala.collection.mutable
 import lomrf.logic.dynamic._
 import scala.annotation.tailrec
-import scala.collection.breakOut
 import scala.reflect._
 
 package object logic {
@@ -76,7 +75,7 @@ package object logic {
           }
         case (f1: TermFunction, f2: TermFunction) => generalisationOf(f1, f2).getOrElse(return None)
         case _                                    => return None
-      })(breakOut)
+      }).to(Vector)
 
     Some(AtomicFormula(atom1.symbol, generalizedArgs))
   }
@@ -99,7 +98,7 @@ package object logic {
           }
         case (f1: TermFunction, f2: TermFunction) => generalisationOf(f1, f2, level + 1).getOrElse(return None)
         case _                                    => return None
-      })(breakOut)
+      }).to(Vector)
 
     Some(TermFunction(f1.symbol, generalizedArgs, f1.domain))
   }

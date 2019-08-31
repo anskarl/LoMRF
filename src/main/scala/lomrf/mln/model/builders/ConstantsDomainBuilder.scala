@@ -79,7 +79,7 @@ final class ConstantsDomainBuilder extends mutable.Builder[(String, String), Con
     case _             => constantBuilders += (key -> ConstantsSetBuilder(value))
   }
 
-  override def +=(entry: (String, String)): self.type = self += (entry._1, entry._2)
+  override def addOne(entry: (String, String)): self.type = self += (entry._1, entry._2)
 
   def ++=(entry: (String, Iterable[String])): self.type = {
     copyIfDirty()

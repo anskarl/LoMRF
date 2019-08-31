@@ -54,7 +54,7 @@ class ClauseGrounderImpl(
 
   private final val variableDomains: Map[Variable, Iterable[String]] = {
     if (clause.isGround) Map.empty[Variable, Iterable[String]]
-    else (for (v <- clause.variables) yield v -> constants(v.domain))(breakOut)
+    else (for (v <- clause.variables) yield v -> constants(v.domain)).to(Map)
   }
 
   private final val groundIterator =
@@ -67,13 +67,16 @@ class ClauseGrounderImpl(
 
   private final val identities: Map[AtomSignature, AtomIdentityFunction] =
     (for (literal <- clause.literals if !mln.isDynamicAtom(literal.sentence.signature))
-      yield literal.sentence.signature -> mln.space.identities(literal.sentence.signature))(breakOut)
+      yield literal.sentence.signature -> mln.space.identities(literal.sentence.signature)).to(Map)
 
   private final val orderedLiterals =
     clause.literals.view.map(lit =>
       (lit, identities.getOrElse(lit.sentence.signature, null))).toArray.sortBy(entry => entry._1)(ClauseLiteralsOrdering(mln))
 
-  private final val owaLiterals = orderedLiterals.view.map(_._1).filter(literal => mln.isTriState(literal.sentence.signature))
+  private final val owaLiterals = orderedLiterals.view
+    .map{ case (literal, _) => literal }
+    .filter(literal => mln.isTriState(literal.sentence.signature))
+    .to(Array)
 
   private final val isTristate = orderedLiterals.view.map {
     case (literal, _) => mln.isTriState(literal.sentence.signature)
@@ -81,7 +84,7 @@ class ClauseGrounderImpl(
   // Collect dynamic atoms
   private final val dynamicAtoms: Map[Int, (Vector[String] => Boolean)] =
     (for (i <- orderedLiterals.indices; sentence = orderedLiterals(i)._1.sentence; if sentence.isDynamic)
-      yield i -> mln.schema.dynamicPredicates(sentence.signature))(breakOut)
+      yield i -> mln.schema.dynamicPredicates(sentence.signature)).to(Map)
 
   private final val length = clause.literals.count(l => mln.isTriState(l.sentence.signature))
 

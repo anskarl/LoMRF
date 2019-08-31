@@ -134,7 +134,7 @@ final class MaxMarginSpecTest extends FunSpec with Matchers with PrivateMethodTe
 
     // Set manually dummy weights to the learner
     for (i <- learner.weights.indices) learner.weights(i) = (i + 1) * 2
-    info("Weights: [" + learner.weights.deep.mkString(", ") + "]")
+    info("Weights: [" + learner.weights.mkString(", ") + "]")
 
     // Update ground constraints using the weights
     learner invokePrivate updateConstraintWeights()

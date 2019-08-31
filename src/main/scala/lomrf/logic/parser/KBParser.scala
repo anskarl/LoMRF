@@ -24,7 +24,6 @@ import com.typesafe.scalalogging.LazyLogging
 import lomrf.logic.dynamic.{ DynamicAtomBuilder, DynamicFunctionBuilder }
 import lomrf.logic._
 import lomrf.util.logging.Implicits._
-import scala.collection.breakOut
 
 final class KBParser(
     predicateSchema: Map[AtomSignature, Vector[String]],
@@ -496,7 +495,7 @@ final class KBParser(
                 }
                 case func: TermFunction => func
                 case _                  => logger.fatal(s"Cannot parse the symbol: $term")
-              })(breakOut)
+              }).to(Vector)
 
             dynamicPredicates += (atomSignature -> atomBuilder.stateFunction)
             atomBuilder(termList)
@@ -533,7 +532,7 @@ final class KBParser(
                   else logger.fatal(s"The function '${func.toText}' returns '${func.domain}', while expecting to return '$argType'.")
 
                 case _ => logger.fatal(s"Cannot parse the symbol: $element")
-              })(breakOut)
+              }).to(Vector)
 
             AtomicFormula(name, termList)
         }
@@ -620,7 +619,7 @@ final class KBParser(
               }
               case func: TermFunction => func
               case _                  => logger.fatal(s"Cannot parse symbol: $term")
-            })(breakOut)
+            }).to(Vector)
 
             // store the special function to special functions HashMap
             dynamicFunctions += (functionSignature -> functionBuilder.resultFunction)
@@ -665,7 +664,7 @@ final class KBParser(
 
                 case _ => logger.fatal(s"Cannot parse the symbol: $symbol")
 
-              })(breakOut)
+              }).to(Vector)
 
             TermFunction(functionName, termList, retType)
         }

@@ -48,6 +48,8 @@ final class ConstantsSetBuilder(
 
   private var _size = id2Constants.size
 
+  override def knownSize: Int = -1
+
   override def iterator: Iterator[String] = id2Constants.iterator
 
   /**
@@ -55,7 +57,7 @@ final class ConstantsSetBuilder(
     *
     * @param constant the specified constant symbol
     */
-  override def +=(constant: String): self.type = {
+  override def addOne(constant: String): self.type = {
     copyIfDirty()
     put(constant)
     this

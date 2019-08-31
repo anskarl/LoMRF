@@ -22,7 +22,6 @@ package lomrf.mln.model.builders
 
 import lomrf.logic.{ AtomSignature, Constant, EvidenceAtom, FunctionMapping }
 import lomrf.mln.model._
-import scala.collection.breakOut
 
 /**
   * Evidence builder (fluent interface)
@@ -119,13 +118,13 @@ final class EvidenceBuilder private (
 
     val db: EvidenceDB = (
       for (signature <- predicateSchema.keys)
-        yield signature -> mkEvidenceDB(signature))(breakOut)
+        yield signature -> mkEvidenceDB(signature)).to(Map)
 
-    val dynamicFunctionMappers = dynFunctions.mapValues(new FunctionMapperSpecialImpl(_))
+    val dynamicFunctionMappers = dynFunctions.view.mapValues(new FunctionMapperSpecialImpl(_)).to(Map)
 
     val fm =
       if (convertFunctionsToPredicates) dynamicFunctionMappers
-      else dynamicFunctionMappers ++ fmBuilders.map(entries => entries._1 -> entries._2.result())
+      else dynamicFunctionMappers ++ fmBuilders.view.mapValues(_.result()).to(Map)
 
     new Evidence(constants, db, fm)
   }
@@ -172,7 +171,7 @@ final class EvidenceBuilder private (
 
     def clear(): Unit = {
       if (convertFunctionsToPredicates)
-        edbBuilders = edbBuilders.filterKeys(signature => functionSchema.contains(signature))
+        edbBuilders = edbBuilders.view.filterKeys(signature => functionSchema.contains(signature)).toMap
       else
         edbBuilders = Map.empty[AtomSignature, AtomEvidenceDBBuilder]
     }

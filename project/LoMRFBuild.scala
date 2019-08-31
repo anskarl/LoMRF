@@ -84,8 +84,9 @@ object LoMRFBuild extends AutoPlugin {
   private lazy val baseProjectSettings: Seq[Setting[_]] = Seq(
 
     organization := "com.github.anskarl",
-    scalaVersion := "2.12.8",
-    crossScalaVersions := Seq("2.12.9", "2.11.12"),
+    //scalaVersion := "2.12.9",
+    scalaVersion := "2.13.0",
+    crossScalaVersions := Seq("2.13.0", "2.12.9", "2.11.12"),
     name := "LoMRF",
     maintainer := "Anastasios Skarlatidis",
     developers in ThisBuild := List(

@@ -39,6 +39,7 @@ import scala.concurrent.{ Await, ExecutionContextExecutor, Future }
 import scala.concurrent.duration._
 import scala.language.postfixOps
 import spire.syntax.cfor._
+import scala.collection.parallel.CollectionConverters._
 
 /**
   * This is a high-performance parallel algorithm for ground MRF construction.

@@ -24,6 +24,7 @@ import lomrf.mln.model.MLN
 import lomrf.logic.AtomSignature
 import java.io.PrintStream
 import lomrf.util.logging.Implicits._
+import scala.collection.parallel.CollectionConverters._
 
 /**
   * Command line tool for knowledge base difference checking.
@@ -85,7 +86,7 @@ object KBDifferenceCLI extends CLIApp {
     if (source.size != evidence.size)
       logger.fatal("The number of input files and evidence files must be the same.")
 
-    val combinations = source.view.zip(evidence).combinations(2).zipWithIndex
+    val combinations = source.zip(evidence).combinations(2).zipWithIndex
 
     val prefix = prefixOpt.map(_.trim) match {
       case Some(p) if p.nonEmpty => p + "-"

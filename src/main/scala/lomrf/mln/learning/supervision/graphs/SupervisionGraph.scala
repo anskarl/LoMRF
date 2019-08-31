@@ -30,6 +30,7 @@ import lomrf.mln.model.builders.EvidenceBuilder
 import lomrf.util.time._
 import lomrf.{ AUX_PRED_PREFIX => PREFIX }
 import scala.util.{ Failure, Success, Try }
+import scala.collection.parallel.CollectionConverters._
 
 /**
   * Node is a collection of evidence atoms that correspond to a query atom,
@@ -389,10 +390,11 @@ object SupervisionGraph extends LazyLogging {
 
     val keySet = mapA.keySet & mapB.keySet
 
-    val merged = keySet.map(key =>
-      key -> (mapA(key) ++ mapB(key))).toMap
+    val merged = keySet
+      .map(key => key -> (mapA(key) ++ mapB(key)))
+      .toMap
 
-    merged ++ mapA.filterKeys(!keySet.contains(_)) ++ mapB.filterKeys(!keySet.contains(_))
+    merged ++ mapA.view.filterKeys(!keySet.contains(_)).toMap ++ mapB.view.filterKeys(!keySet.contains(_)).toMap
   }
 
   /**
@@ -418,7 +420,7 @@ object SupervisionGraph extends LazyLogging {
       groupByDomains: Option[Set[String]]): IndexedSeq[Node] = {
 
     val predicateSchema = mln.schema.predicates
-    val auxPredicateSchema = predicateSchema.filter { case (signature, _) => signature.symbol.contains(PREFIX) }
+    val auxPredicateSchema = predicateSchema.filter { case (signature, _) => signature.symbol.contains(PREFIX) }.to(Map)
 
     // Check if the given annotation database contains the query signature of interest.
     val queryAnnotationDB =
@@ -427,11 +429,11 @@ object SupervisionGraph extends LazyLogging {
         logger.fatal(s"Query signature '$querySignature' does not exist in the given annotation database."))
 
     // Collect all auxiliary predicates
-    val auxiliary = for {
-      (signature, db) <- mln.evidence.db.filter { case (signature, _) => signature.symbol.contains(PREFIX) }
+    val auxiliary = (for {
+      (signature, db) <- mln.evidence.db.filter { case (signature, _) => signature.symbol.contains(PREFIX) }.to(Seq)
       id <- db.identity.indices.filter(db(_) == TRUE)
       constants <- db.identity.decode(id).toOption
-    } yield Constant(constants.head) -> (signature, constants.tail.map(Constant))
+    } yield Constant(constants.head) -> (signature, constants.tail.map(Constant))).toMap
 
     if (auxiliary.isEmpty)
       logger.warn(s"No auxiliary predicates found in the evidence database.")

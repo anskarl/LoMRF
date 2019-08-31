@@ -105,15 +105,6 @@ sealed trait ConstantsSet extends Iterable[String] with IndexedSeq[String] with 
     */
   def idsRange: Range
 
-  /**
-    * @return the size of the set
-    */
-  def size: Int
-
-  /**
-    * @return the length of the set
-    */
-  def length: Int = size
 }
 
 /**
@@ -163,7 +154,7 @@ final class ConstantsSetImpl(
 
   override def isEmpty: Boolean = id2Constants.isEmpty
 
-  override def size: Int = constants2Id.size
+  override def length: Int = constants2Id.size
 
   override def toString: String =
     s"ConstantsSet(const2id->{${constants2Id.size} elements}, id2const->{${id2Constants.size} elements})"
@@ -231,7 +222,7 @@ final class ConstantsSetUnaryImpl(val element: String) extends ConstantsSet {
 
   override def isEmpty: Boolean = false
 
-  override def size: Int = 1
+  override def length: Int = 1
 
   override def toString: String = s"UnaryConstantsSet($element)"
 }

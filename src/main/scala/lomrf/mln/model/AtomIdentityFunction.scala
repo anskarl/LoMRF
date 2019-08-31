@@ -342,11 +342,9 @@ final class AtomIdentityFunction private (
       iteratorsMap: mutable.Map[Int, Iterator[Int]],
       values: Array[Int]) extends Iterator[Int] {
 
-    private val _length = rangesMap.map(_._2.size).product
+    private val _length = rangesMap.values.map(_.size).product
     private var counter = 0
     private var sum = -1
-
-    override def length: Int = _length
 
     override def size: Int = length
 

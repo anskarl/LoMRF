@@ -29,7 +29,6 @@ import lomrf.util._
 import lomrf.util.logging.Implicits._
 import com.typesafe.scalalogging.Logger
 import lomrf.mln.model.builders.ConstantsDomainBuilder
-import scala.collection.breakOut
 
 /**
   * A Markov Logic Networks knowledge base and evidence data.
@@ -442,9 +441,9 @@ object MLN {
         completedFormulas ++ resultingPredicateSchema.map {
           case (signature, termTypes) =>
             // Find variables for the current predicate
-            val variables: Vector[Variable] = termTypes.zipWithIndex.map {
+            val variables = termTypes.zipWithIndex.map {
               case (termType, idx) => Variable("v" + idx, termType)
-            }(breakOut)
+            }.to(Vector)
 
             WeightedFormula.asUnit(AtomicFormula(signature.symbol, variables))
         }
