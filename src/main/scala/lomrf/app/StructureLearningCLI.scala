@@ -247,7 +247,7 @@ object StructureLearningCLI extends CLIApp {
 
     if (_templateAtoms.isEmpty) {
 
-      val (kb, constants) = KB.fromFile(strMLNFileName)
+      val (kb, constants) = KB.fromFile(strMLNFileName, convertFunctions = true)
 
       val learner = OSL(kb, constants, _nonEvidenceAtoms,
                         modes, _maxLength, _allowFreeVariables,
