@@ -31,6 +31,7 @@ import lomrf.util.logging.Implicits._
 import lomrf.{ AUX_PRED_PREFIX => PREFIX }
 import scala.util.{ Failure, Success }
 import com.typesafe.scalalogging.LazyLogging
+import lomrf.logic.LogicOps._
 
 abstract class SupervisionGraph(
     nodes: IndexedSeq[Node],
@@ -316,6 +317,13 @@ object SupervisionGraph extends LazyLogging {
     val (labeledNodes, unlabeledNodes) = nodes.partition(_.isLabeled)
     val (nonEmptyUnlabeled, emptyUnlabeled) = unlabeledNodes.partition(_.nonEmpty)
 
+    logger.info(s"${mln.clauses.length} clauses found in background knowledge.")
+
+    // Use background knowledge to remove uninteresting or empty labelled nodes
+    val interestingLabeled = labeledNodes.filterNot { n =>
+      n.isEmpty || mln.clauses.exists(_.subsumes(n.clause.get))
+    }
+
     /*
      * Create a cache using only non empty labeled nodes, i.e., nodes having at least
      * one evidence predicate in their body.
@@ -324,7 +332,7 @@ object SupervisionGraph extends LazyLogging {
      */
     val startCacheConstruction = System.currentTimeMillis
 
-    val nodeCache = FastNodeCache(querySignature) ++ labeledNodes.filter(_.nonEmpty)
+    val nodeCache = FastNodeCache(querySignature) ++ interestingLabeled
     val uniqueLabeled = nodeCache.collectNodes
 
     logger.info(msecTimeToTextUntilNow(s"Cache constructed in: ", startCacheConstruction))
@@ -399,6 +407,13 @@ object SupervisionGraph extends LazyLogging {
     val (labeledNodes, unlabeledNodes) = nodes.partition(_.isLabeled)
     val (nonEmptyUnlabeled, emptyUnlabeled) = unlabeledNodes.partition(_.nonEmpty)
 
+    logger.info(s"${mln.clauses.length} clauses found in background knowledge.")
+
+    // Use background knowledge to remove uninteresting or empty labelled nodes
+    val interestingLabeled = labeledNodes.filterNot { n =>
+      n.isEmpty || mln.clauses.exists(_.subsumes(n.clause.get))
+    }
+
     /*
      * Create a cache using only non empty labeled nodes, i.e., nodes having at least
      * one evidence predicate in their body.
@@ -407,7 +422,7 @@ object SupervisionGraph extends LazyLogging {
      */
     val startCacheConstruction = System.currentTimeMillis
 
-    val nodeCache = FastNodeCache(querySignature) ++ labeledNodes.filter(_.nonEmpty)
+    val nodeCache = FastNodeCache(querySignature) ++ interestingLabeled
     val uniqueLabeled = nodeCache.collectNodes
 
     logger.info(msecTimeToTextUntilNow(s"Cache constructed in: ", startCacheConstruction))
@@ -483,6 +498,13 @@ object SupervisionGraph extends LazyLogging {
     val (labeledNodes, unlabeledNodes) = nodes.partition(_.isLabeled)
     val (nonEmptyUnlabeled, emptyUnlabeled) = unlabeledNodes.partition(_.nonEmpty)
 
+    logger.info(s"${mln.clauses.length} clauses found in background knowledge.")
+
+    // Use background knowledge to remove uninteresting or empty labelled nodes
+    val interestingLabeled = labeledNodes.filterNot { n =>
+      n.isEmpty || mln.clauses.exists(_.subsumes(n.clause.get))
+    }
+
     /*
      * Create a cache using only non empty labeled nodes, i.e., nodes having at least
      * one evidence predicate in their body.
@@ -491,7 +513,7 @@ object SupervisionGraph extends LazyLogging {
      */
     val startCacheConstruction = System.currentTimeMillis
 
-    val nodeCache = FastNodeCache(querySignature) ++ labeledNodes.filter(_.nonEmpty)
+    val nodeCache = FastNodeCache(querySignature) ++ interestingLabeled
     val uniqueLabeled = nodeCache.collectNodes
 
     logger.info(msecTimeToTextUntilNow(s"Cache constructed in: ", startCacheConstruction))

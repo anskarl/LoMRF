@@ -27,6 +27,7 @@ import lomrf.mln.learning.supervision.metric._
 import lomrf.mln.model._
 import lomrf.util.time._
 import scala.language.existentials
+import lomrf.logic.LogicOps._
 
 /**
   * SPLICE supervision graph represents a graph having nodes for a given query signature. These
@@ -68,7 +69,7 @@ final class SPLICE private[graph] (
     val startGraphConnection = System.currentTimeMillis
     val encodedGraph = solver match {
       case _: HFc => connector.smartConnect(nodes, unlabeledNodes, Some(nodeCache))(metric)
-      case _ => connector.fullyConnect(nodes, Some(nodeCache))(metric)
+      case _      => connector.fullyConnect(nodes, Some(nodeCache))(metric)
     }
 
     val W = encodedGraph._1
@@ -115,6 +116,11 @@ final class SPLICE private[graph] (
     val (labeled, unlabeled) = currentNodes.partition(_.isLabeled)
     val (nonEmptyUnlabeled, emptyUnlabeled) = unlabeled.partition(_.nonEmpty)
 
+    // Use background knowledge to remove uninteresting or empty labelled nodes
+    val interestingLabeled = labeled.filterNot { n =>
+      n.isEmpty || mln.clauses.exists(_.subsumes(n.clause.get))
+    }
+
     // Labeled query atoms and empty unlabeled query atoms as FALSE.
     val labeledEntries =
       labeled.map(_.query) ++ emptyUnlabeled.flatMap(_.labelUsingValue(FALSE))
@@ -140,9 +146,9 @@ final class SPLICE private[graph] (
      * case try to separate old labeled nodes that are dissimilar to the ones in the current batch
      * of data (the current supervision graph). Moreover remove noisy nodes using the Hoeffding bound.
      */
-    if (labeled.isEmpty)
+    if (interestingLabeled.isEmpty)
       new SPLICE(
-        (if (nodeCache.hasChanged) nodeCache.collectNodes else labeledNodes) ++ nonEmptyUnlabeled,
+        labeledNodes ++ nonEmptyUnlabeled,
         querySignature,
         connector,
         metric ++ mln.evidence ++ currentNodes.flatMap(n => IndexedSeq.fill(n.clusterSize)(n.atoms)),
@@ -160,7 +166,7 @@ final class SPLICE private[graph] (
       val startCacheUpdate = System.currentTimeMillis
 
       var updatedNodeCache = nodeCache
-      updatedNodeCache ++= labeled.filter(_.nonEmpty)
+      updatedNodeCache ++= interestingLabeled
       val cleanedUniqueLabeled = updatedNodeCache.collectNodes
 
       logger.info(msecTimeToTextUntilNow(s"Cache updated in: ", startCacheUpdate))

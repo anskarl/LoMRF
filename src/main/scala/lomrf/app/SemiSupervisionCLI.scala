@@ -34,6 +34,7 @@ import scala.io.Source
 import java.io.{ File, FileOutputStream, PrintStream }
 import lomrf.app.ConnectorStrategy._
 import lomrf.app.GraphSolverType._
+import lomrf.logic.compile.NormalForm
 import scala.util.{ Failure, Success }
 
 /**
@@ -243,6 +244,7 @@ object SemiSupervisionCLI extends CLIApp {
 
     // Create a knowledge base and convert all functions
     val (kb, constants) = KB.fromFile(strMLNFileName, convertFunctions = true)
+    val clauses = NormalForm.compileCNF(kb.formulas)(constants)
 
     val connector =
       if (_connector == kNN) kNNConnector(_k)
@@ -314,7 +316,7 @@ object SemiSupervisionCLI extends CLIApp {
       }
 
       val evidence = new Evidence(trainingEvidence.constants, atomStateDB, trainingEvidence.functionMappers)
-      val mln = MLN(kb.schema, evidence, _nonEvidenceAtoms, Vector.empty[Clause])
+      val mln = MLN(kb.schema, evidence, _nonEvidenceAtoms, clauses.toVector)
 
       // Create or update supervision graphs for each given non evidence atom
       _nonEvidenceAtoms.foreach { querySignature =>

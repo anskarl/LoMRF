@@ -27,6 +27,7 @@ import lomrf.mln.learning.supervision.metric._
 import lomrf.mln.model._
 import lomrf.util.time._
 import scala.language.existentials
+import lomrf.logic.LogicOps._
 
 /**
   * NN graph represents a nearest neighbor graph having nodes for a given query signature. These
@@ -114,6 +115,11 @@ final class NNGraph private[graph] (
     val (labeled, unlabeled) = currentNodes.partition(_.isLabeled)
     val (nonEmptyUnlabeled, emptyUnlabeled) = unlabeled.partition(_.nonEmpty)
 
+    // Use background knowledge to remove uninteresting or empty labelled nodes
+    val interestingLabeled = labeledNodes.filterNot { n =>
+      n.isEmpty || mln.clauses.exists(_.subsumes(n.clause.get))
+    }
+
     // Labeled query atoms and empty unlabeled query atoms as FALSE.
     val labeledEntries =
       labeled.map(_.query) ++ emptyUnlabeled.flatMap(_.labelUsingValue(FALSE))
@@ -139,7 +145,7 @@ final class NNGraph private[graph] (
      * case try to separate old labeled nodes that are dissimilar to the ones in the current batch
      * of data (the current supervision graph). Moreover remove noisy nodes using the Hoeffding bound.
      */
-    if (labeled.isEmpty)
+    if (interestingLabeled.isEmpty)
       new NNGraph(
         labeledNodes ++ nonEmptyUnlabeled,
         querySignature,
@@ -158,7 +164,7 @@ final class NNGraph private[graph] (
       val startCacheUpdate = System.currentTimeMillis
 
       var updatedNodeCache = nodeCache
-      updatedNodeCache ++= labeled.filter(_.nonEmpty)
+      updatedNodeCache ++= interestingLabeled
       val cleanedUniqueLabeled = updatedNodeCache.collectNodes
 
       logger.info(msecTimeToTextUntilNow(s"Cache updated in: ", startCacheUpdate))
