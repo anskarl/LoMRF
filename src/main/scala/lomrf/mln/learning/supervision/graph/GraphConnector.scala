@@ -48,11 +48,11 @@ trait GraphConnector {
     * @return the edge value for the given nodes
     */
   def connect(x: Node, y: Node)(metric: Metric[_ <: AtomicFormula]): Double = 1 - {
-      metric match {
-        case m: EvidenceMetric        => m.distance(x.evidence, y.evidence)
-        case m: Metric[AtomicFormula] => m.distance(x.atoms, y.atoms)
-      }
+    metric match {
+      case m: EvidenceMetric        => m.distance(x.evidence, y.evidence)
+      case m: Metric[AtomicFormula] => m.distance(x.atoms, y.atoms)
     }
+  }
 
   /**
     * Connect graph faster by specifying the unlabeled nodes.
@@ -118,8 +118,8 @@ trait GraphConnector {
     * @return the adjacency and degree matrix of the resulted graph
     */
   def fullyConnect(
-    nodes: IndexedSeq[Node],
-    nodeCache: Option[NodeCache] = None)(metric: Metric[_ <: AtomicFormula]): EncodedGraph = {
+      nodes: IndexedSeq[Node],
+      nodeCache: Option[NodeCache] = None)(metric: Metric[_ <: AtomicFormula]): EncodedGraph = {
 
     val numberOfNodes = nodes.length
     val parallelIndices = nodes.indices.par

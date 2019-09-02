@@ -47,9 +47,9 @@ trait GraphSolver extends LazyLogging {
 case class LP(iterations: Int = 100) extends GraphSolver {
 
   def solve(
-    W: DenseMatrix[Double],
-    D: DenseMatrix[Double],
-    Y: DenseVector[Double]): DenseVector[Double] = {
+      W: DenseMatrix[Double],
+      D: DenseMatrix[Double],
+      Y: DenseVector[Double]): DenseVector[Double] = {
 
     val numberOfNodes = W.rows
     val numberOfLabeled = Y.length
@@ -91,9 +91,9 @@ case class LP(iterations: Int = 100) extends GraphSolver {
 case class LGCc(iterations: Int = 100, alpha: Double = 0.9) extends GraphSolver {
 
   def solve(
-    W: DenseMatrix[Double],
-    D: DenseMatrix[Double],
-    Y: DenseVector[Double]): DenseVector[Double] = {
+      W: DenseMatrix[Double],
+      D: DenseMatrix[Double],
+      Y: DenseVector[Double]): DenseVector[Double] = {
 
     val numberOfNodes = W.rows
     val numberOfLabeled = Y.length
@@ -127,9 +127,9 @@ case class LGCc(iterations: Int = 100, alpha: Double = 0.9) extends GraphSolver 
 class HFc extends GraphSolver {
 
   def solve(
-    W: DenseMatrix[Double],
-    D: DenseMatrix[Double],
-    Y: DenseVector[Double]): DenseVector[Double] = {
+      W: DenseMatrix[Double],
+      D: DenseMatrix[Double],
+      Y: DenseVector[Double]): DenseVector[Double] = {
 
     val numberOfNodes = W.rows
     val numberOfLabeled = Y.length

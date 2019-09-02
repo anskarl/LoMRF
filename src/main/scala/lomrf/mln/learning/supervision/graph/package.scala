@@ -38,6 +38,12 @@ package object graph {
    */
   val UNCONNECTED = 0.0
 
+  implicit class DenseMatrixOps(M: DenseMatrix[Double]) {
+    def mkString(sep: String = " ", precision: Int = 2): String = (0 until M.rows).map { i =>
+      M(i, ::).t.map(s"%1.${precision}f" format _).toArray.mkString(sep)
+    }.mkString("\n")
+  }
+
   /**
     * Combine maps into a single map by merging their values for shared keys.
     *
