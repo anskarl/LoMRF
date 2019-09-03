@@ -163,6 +163,14 @@ case class Node(
   def size: Int = evidence.length
 
   /**
+    * @return a textual representation for the node
+    */
+  def toText: String = {
+    if (isUnlabeled) s":- ${literals.toList.sortBy(l => l.arity + l.sentence.symbol).map(_.negate.toText).mkString(" ^ ")}"
+    else s"${head.toText} :- ${literals.toList.sortBy(l => l.arity + l.sentence.symbol).map(_.negate.toText).mkString(" ^ ")}"
+  }
+
+  /**
     * @return a string representation of the node.
     */
   override def toString: String =

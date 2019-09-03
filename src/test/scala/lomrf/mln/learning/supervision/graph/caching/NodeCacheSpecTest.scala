@@ -372,7 +372,6 @@ final class NodeCacheSpecTest extends FunSpec with Matchers {
       fastCache.numberOfNegative shouldEqual 0
     }
 
-    import scala.collection.convert.ImplicitConversionsToScala._
     it ("should not contain the previously cached nodes") {
       simpleCache.contains(pNode) shouldBe false
       simpleCache.get(pNode) shouldBe None

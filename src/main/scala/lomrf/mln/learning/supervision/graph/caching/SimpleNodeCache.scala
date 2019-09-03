@@ -30,8 +30,6 @@ final case class SimpleNodeCache(
     data: Set[(Clause, Long)] = Set.empty,
     uniqueNodes: IndexedSeq[Node] = IndexedSeq.empty) extends NodeCache {
 
-  var _reComputeUnique: Boolean = false
-
   /**
     * @return the number of unique nodes in the cache
     */
@@ -73,11 +71,6 @@ final case class SimpleNodeCache(
     if (node.isLabeled) data.exists { case (clause, _) => clause =~= node.clause.get } else false
 
   /**
-    * @return true if the cache has changes, false otherwise
-    */
-  def hasChanged: Boolean = _reComputeUnique
-
-  /**
     * Add a node to the cache.
     *
     * @param node a node to be added
@@ -117,7 +110,7 @@ final case class SimpleNodeCache(
         else cache.find { case (c, _) => c =~= pattern } match {
           case Some(entry @ (_, counts)) => (unique, (cache - entry) + (pattern -> (counts + 1)))
           case None =>
-            logger.fatal(s"Pattern ${pattern.toText()} is not unique, but it does not exist in the cache.")
+            logger.fatal(s"Pattern '${node.toText}' is not unique, but it does not exist in the cache.")
         }
     }
 
@@ -132,7 +125,6 @@ final case class SimpleNodeCache(
     *         except the given sequence of nodes.
     */
   def --(nodes: Seq[Node]): SimpleNodeCache = {
-    _reComputeUnique = true
 
     val (updatedUniqueNodes, updatedNodeSet) = nodes.foldLeft(uniqueNodes -> data) {
       case ((unique, cache), node) =>
@@ -153,33 +145,26 @@ final case class SimpleNodeCache(
     *
     * @return all unique nodes in the cache
     */
-  def collectNodes: IndexedSeq[Node] = {
-    _reComputeUnique = false
+  def collectNodes: IndexedSeq[Node] = uniqueNodes.foldLeft(IndexedSeq.empty[Node]) {
+    case (result, node) =>
 
-    uniqueNodes.foldLeft(IndexedSeq.empty[Node]) {
-      case (result, node) =>
+      val nodeCounts = getOrElse(node, logger.fatal(s"Pattern '${node.toText}' does not exist in the cache."))
+      val oppNodeClause = node.opposite.clause.getOrElse(logger.fatal("Cannot construct a pattern."))
 
-        val nodeClause = node.clause.getOrElse(logger.fatal("Cannot construct a pattern."))
-        val oppNodeClause = node.opposite.clause.getOrElse(logger.fatal("Cannot construct a pattern."))
+      data.find { case (c, _) => c =~= oppNodeClause } match {
 
-        val nodeCounts =
-          getOrElse(node, logger.fatal(s"Pattern ${nodeClause.toText()} does not exist in the cache."))
+        case Some((_, oppNodeCounts)) =>
+          val N = nodeCounts + oppNodeCounts
+          val nodeFreq = nodeCounts.toDouble / N
+          val oppositeNodeFreq = oppNodeCounts.toDouble / N
 
-        data.find { case (c, _) => c =~= oppNodeClause } match {
+          if (HoeffdingBound(nodeFreq, oppositeNodeFreq, N) && nodeFreq < oppositeNodeFreq) {
+            logger.debug(s"Remove pattern ${node.toText}")
+            result
+          } else result :+ node
 
-          case Some((_, oppNodeCounts)) =>
-            val N = nodeCounts + oppNodeCounts
-            val nodeFreq = nodeCounts.toDouble / N
-            val oppositeNodeFreq = oppNodeCounts.toDouble / N
-
-            if (HoeffdingBound(nodeFreq, oppositeNodeFreq, N) && nodeFreq < oppositeNodeFreq) {
-              logger.debug(s"Remove pattern ${node.clause.get.toText()}")
-              result
-            } else result :+ node
-
-          case None => result :+ node
-        }
-    }
+        case None => result :+ node
+      }
   }
 
   override def toString: String =

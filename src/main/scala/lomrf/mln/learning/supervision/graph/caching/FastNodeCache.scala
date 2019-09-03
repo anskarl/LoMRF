@@ -34,7 +34,7 @@ final class FastNodeCache private (
     noisy: TCustomHashSet[Node]) extends NodeCache {
 
   private var _uniqueNodes = IndexedSeq.empty[Node]
-  private var _reComputeUnique = false
+  private var _dirty = false
 
   /**
     * @return the number of unique nodes in the cache
@@ -72,11 +72,6 @@ final class FastNodeCache private (
   def contains(node: Node): Boolean = if (node.isLabeled) data.contains(node) else false
 
   /**
-    * @return true if the cache has changed, false otherwise
-    */
-  def hasChanged: Boolean = _reComputeUnique
-
-  /**
     * Add a node to the cache.
     *
     * @param node a node to be added
@@ -86,13 +81,24 @@ final class FastNodeCache private (
   def +(node: Node): FastNodeCache = {
     Option(data.get(node)) match {
 
+      /*
+       * In case counter increments and an opposite example is present
+       * then mark the node and remove it from noisy ones. That is because
+       * we have to re-compute the Hoeffding bound to see if there is a change.
+       */
       case Some(count) if node.isPositive =>
         data.put(node, count + 1)
-        if (data.contains(node.opposite)) marked.add(node)
+        if (data.contains(node.opposite)) {
+          marked.add(node)
+          noisy.remove(node)
+        }
 
       case Some(count) if node.isNegative =>
         data.put(node, count + 1)
-        if (data.contains(node.opposite)) marked.add(node)
+        if (data.contains(node.opposite)) {
+          marked.add(node)
+          noisy.remove(node)
+        }
 
       case None if node.isPositive =>
         data.put(node, 1)
@@ -118,12 +124,12 @@ final class FastNodeCache private (
     *         except the given node.
     */
   def -(node: Node): FastNodeCache = {
+    _dirty = true
     data.remove(node)
     noisy.remove(node)
     noisy.remove(node.opposite)
     marked.remove(node)
     marked.remove(node.opposite)
-    _reComputeUnique = true
     this
   }
 
@@ -165,9 +171,9 @@ final class FastNodeCache private (
         HoeffdingBound(x.toDouble / N, y.toDouble / N, N) && x < y
       }
 
-    if (marked.nonEmpty || _reComputeUnique) {
+    if (marked.nonEmpty || _dirty) {
 
-      _reComputeUnique = _reComputeUnique || marked.exists { node =>
+      val reComputeUnique = _dirty || marked.exists { node =>
         !noisy.contains(node) && {
           val x = data(node)
           val y = data(node.opposite)
@@ -176,8 +182,8 @@ final class FastNodeCache private (
         }
       }
 
-      if (_reComputeUnique) {
-        _reComputeUnique = false
+      if (reComputeUnique) {
+        _dirty = false
         noisy.clear()
         _uniqueNodes = data.flatMap {
           case (node, _) =>
@@ -193,7 +199,7 @@ final class FastNodeCache private (
   }
 
   override def toString: String =
-    data.map { case (node, freq) => s"${node.clause.get.toText()} -> $freq" }.mkString("\n")
+    data.map { case (node, freq) => s"${node.toText} -> $freq" }.mkString("\n")
 }
 
 object FastNodeCache {
