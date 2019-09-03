@@ -121,17 +121,21 @@ object SemiSupervisionCLI extends CLIApp {
     v: String => _modesFileName = Some(v)
   })
 
-  opt("s", "solver", "<nn | hgc.[splice,tlp] | lgc.[splice,tlp]>", "Specify a solver for completion (default is hgc).", {
-    v: String =>
-      v.trim.toLowerCase match {
-        case "nn"         => _solver = NN
-        case "hfc.splice" => _solver = HFC_SPLICE
-        case "lgc.splice" => _solver = LGC_SPLICE
-        case "hfc.tlp"    => _solver = HFC_TLP
-        case "lgc.tlp"    => _solver = LGC_TLP
-        case _            => logger.fatal(s"Unknown solver of type '$v'.")
-      }
-  })
+  opt("s", "solver", "<nn | ext.nn | lp.[splice,tlp] | hgc.[splice,tlp] | lgc.[splice,tlp]>",
+    "Specify a solver for completion (default is hgc).", {
+      v: String =>
+        v.trim.toLowerCase match {
+          case "nn"         => _solver = NN
+          case "ext.nn"     => _solver = EXT_NN
+          case "lp.splice"  => _solver = LP_SPLICE
+          case "hfc.splice" => _solver = HFC_SPLICE
+          case "lgc.splice" => _solver = LGC_SPLICE
+          case "lp.tlp"     => _solver = LP_TLP
+          case "hfc.tlp"    => _solver = HFC_TLP
+          case "lgc.tlp"    => _solver = LGC_TLP
+          case _            => logger.fatal(s"Unknown solver of type '$v'.")
+        }
+    })
 
   opt("d", "distance", "<binary | atomic | atomic.const | evidence | mass.map | mass.tree | hybrid.map | hybrid.tree>",
     "Specify a distance over atoms (default is atomic).", {
@@ -231,11 +235,14 @@ object SemiSupervisionCLI extends CLIApp {
 
     logger.info("Parameters:"
       + "\n\t(ne) Non-evidence predicate(s): " + _nonEvidenceAtoms.map(_.toString).mkString(", ")
+      + "\n\t(solver) Graph solver for completion: " + _solver
       + "\n\t(distance) Distance metric for atomic formula: " + _distance
       + "\n\t(connector) Graph connection heuristic: " + _connector
       + "\n\t(kappa) k parameter for the kNN connector: " + _k
       + "\n\t(epsilon) Epsilon parameter for the eNN connector: " + _epsilon
-      + "\n\t(negatives) Output negative labels: " + _outputNegatives)
+      + "\n\t(negatives) Output negative labels: " + _outputNegatives
+      + "\n\t(compress-results) Output all results in a single file: " + _compressResults
+      + "\n\t(disable-clustering) Disable clustering on similar nodes: " + !_cluster)
 
     // Init all statistics values to zero
     var actualPositive, actualNegative, positiveFound, negativeFound = 0
@@ -343,6 +350,9 @@ object SemiSupervisionCLI extends CLIApp {
           case None if _solver == NN =>
             supervisionGraphs += querySignature ->
               SupervisionGraph.nearestNeighbor(mln, modes, annotationDB, querySignature, connector, distance, _cluster)
+          case None if _solver == EXT_NN =>
+            supervisionGraphs += querySignature ->
+              SupervisionGraph.extendedNearestNeighbor(mln, modes, annotationDB, querySignature, connector, distance, _cluster)
         }
       }
 

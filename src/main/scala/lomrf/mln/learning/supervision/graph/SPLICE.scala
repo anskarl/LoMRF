@@ -42,6 +42,7 @@ import lomrf.logic.LogicOps._
   * @param metric a metric for atomic formula
   * @param supervisionBuilder a supervision evidence builder that contains the completed annotation
   * @param nodeCache a node cache for storing labelled nodes
+  * @param solver a graph solver for supervision completion
   * @param enableClusters enables clustering of unlabeled examples
   */
 final class SPLICE private[graph] (
@@ -117,7 +118,7 @@ final class SPLICE private[graph] (
     val (nonEmptyUnlabeled, emptyUnlabeled) = unlabeled.partition(_.nonEmpty)
 
     // Use background knowledge to remove uninteresting or empty labelled nodes
-    val interestingLabeled = labeled.filterNot { n =>
+    val cleanedLabeled = labeled.filterNot { n =>
       n.isEmpty || mln.clauses.exists(_.subsumes(n.clause.get))
     }
 
@@ -146,7 +147,7 @@ final class SPLICE private[graph] (
      * case try to separate old labeled nodes that are dissimilar to the ones in the current batch
      * of data (the current supervision graph). Moreover remove noisy nodes using the Hoeffding bound.
      */
-    if (interestingLabeled.isEmpty)
+    if (cleanedLabeled.isEmpty)
       new SPLICE(
         labeledNodes ++ nonEmptyUnlabeled,
         querySignature,
@@ -166,7 +167,7 @@ final class SPLICE private[graph] (
       val startCacheUpdate = System.currentTimeMillis
 
       var updatedNodeCache = nodeCache
-      updatedNodeCache ++= interestingLabeled
+      updatedNodeCache ++= cleanedLabeled
       val cleanedUniqueLabeled = updatedNodeCache.collectNodes
 
       logger.info(msecTimeToTextUntilNow(s"Cache updated in: ", startCacheUpdate))

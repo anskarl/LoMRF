@@ -44,7 +44,7 @@ import lomrf.logic.LogicOps._
   * @param nodeCache a node cache for storing labelled nodes
   * @param enableClusters enables clustering of unlabeled examples
   */
-final class NNGraph private[graph] (
+final class ENNGraph private[graph] (
     nodes: IndexedSeq[Node],
     querySignature: AtomSignature,
     connector: GraphConnector,
@@ -66,33 +66,80 @@ final class NNGraph private[graph] (
     }
 
     val startGraphConnection = System.currentTimeMillis
-    val W = connector.biConnect(unlabeledNodes, labeledNodes)(metric)
+
+    import breeze.linalg.{ DenseMatrix, DenseVector }
+    import spire.syntax.cfor._
+
+    val parallelIndices = nodes.indices.par
+    val W = DenseMatrix.fill[Double](numberOfNodes, numberOfNodes)(UNCONNECTED)
+
+    cfor(0)(_ < numberOfNodes, _ + 1) { i =>
+      for (j <- parallelIndices if i != j) { // A node cannot be connected to itself
+
+        // W is symmetric and therefore avoid computing both upper and lower triangular
+        if (i > j) W(i, j) = W(j, i)
+        else W(i, j) = connector.connect(nodes(i), nodes(j))(metric)
+      }
+    }
+
     logger.info(msecTimeToTextUntilNow(s"Graph connected in: ", startGraphConnection))
 
     val startSolution = System.currentTimeMillis
 
-    val labeledEvidenceAtoms = unlabeledNodes.zipWithIndex.flatMap {
-      case (node, i) =>
+    val S = nodes.zipWithIndex.map { case (x, i) => i -> x -> W(i, ::).t }
+    val (positives, negatives) = S.filter(_._1._2.isLabeled).partition(_._1._2.isPositive)
+    val unlabeled = S.filter(_._1._2.isUnlabeled)
+    val P = positives.length
+    val N = negatives.length
+    val K = connector.asInstanceOf[kNNConnector].k
 
-        val nearest = W(i, ::).inner.findAll(_ != UNCONNECTED).map { ii =>
-          val node = labeledNodes(ii)
-          val counts = nodeCache.getOrElse(node, logger.fatal(s"Pattern ${node.clause.get.toText()} not found."))
-          W(i, ii) -> (node.isPositive, counts)
-        }
+    val labeledEvidenceAtoms = unlabeled.flatMap {
+      case z @ ((idx, x), hood) =>
 
-        val (positives, negatives) = nearest.partition { case (_, (tv, _)) => tv }
+        println(x.body.get.toText())
 
-        val value =
-          if (nearest.isEmpty) false
-          else {
-            val posCounts = positives.map(_._2._2).sum
-            val negCounts = negatives.map(_._2._2).sum
-            if (posCounts > negCounts) true
-            else if (negCounts > posCounts) false
-            else nearest.maxBy(_._1)._2._1
-          }
+        // j = 0
+        val un = x.toNegative
 
-        node.labelUsingValue(value)
+        val T00 = (negatives :+ ((idx, un), hood)).map {
+          case (_, neighborhood) =>
+            val nearest = connector.makeSparse(DenseVector.vertcat(neighborhood(0 until numberOfLabeled), neighborhood(idx to idx)))
+            nearest.toArray.zip(labeledNodes :+ un).count {
+              case (w, n) => w > 0 && n.isNegative
+            } / ((N + 1) * nearest.toArray.count(_ > 0)).toDouble
+        }.sum
+
+        val T10 = positives.map {
+          case (_, neighborhood) =>
+            val nearest = connector.makeSparse(DenseVector.vertcat(neighborhood(0 until numberOfLabeled), neighborhood(idx to idx)))
+            nearest.toArray.zip(labeledNodes :+ un).count {
+              case (w, n) => w > 0 && n.isPositive
+            } / (P * nearest.toArray.count(_ > 0)).toDouble
+        }.sum
+
+        // j = 1
+        val up = x.toPositive
+
+        val T11 = (positives :+ ((idx, up), hood)).map {
+          case (_, neighborhood) =>
+            val nearest = connector.makeSparse(DenseVector.vertcat(neighborhood(0 until numberOfLabeled), neighborhood(idx to idx)))
+            nearest.toArray.zip(labeledNodes :+ up).count {
+              case (w, n) => w > 0 && n.isPositive
+            } / ((P + 1) * nearest.toArray.count(_ > 0)).toDouble
+        }.sum
+
+        val T01 = negatives.map {
+          case (_, neighborhood) =>
+            val nearest = connector.makeSparse(DenseVector.vertcat(neighborhood(0 until numberOfLabeled), neighborhood(idx to idx)))
+            nearest.toArray.zip(labeledNodes :+ up).count {
+              case (w, n) => w > 0 && n.isNegative
+            } / (N * nearest.toArray.count(_ > 0)).toDouble
+        }.sum
+
+        logger.info(s"T00: $T00 T10: $T10 T01: $T01 T11: $T11")
+
+        if (T00 + T10 >= T01 + T11) x.labelUsingValue(false)
+        else x.labelUsingValue(true)
     }
 
     logger.info(msecTimeToTextUntilNow(s"Labeling solution found in: ", startSolution))
@@ -101,7 +148,7 @@ final class NNGraph private[graph] (
     labeledEvidenceAtoms.toSet
   }
 
-  def ++(mln: MLN, annotationDB: EvidenceDB, modes: ModeDeclarations): NNGraph = {
+  def ++(mln: MLN, annotationDB: EvidenceDB, modes: ModeDeclarations): ENNGraph = {
 
     // Group the given data into nodes, using the domains of the existing graph
     val currentNodes = connector match {
@@ -116,7 +163,7 @@ final class NNGraph private[graph] (
     val (nonEmptyUnlabeled, emptyUnlabeled) = unlabeled.partition(_.nonEmpty)
 
     // Use background knowledge to remove uninteresting or empty labelled nodes
-    val cleanedLabeled = labeled.filterNot { n =>
+    val interestingLabeled = labeled.filterNot { n =>
       n.isEmpty || mln.clauses.exists(_.subsumes(n.clause.get))
     }
 
@@ -145,8 +192,8 @@ final class NNGraph private[graph] (
      * case try to separate old labeled nodes that are dissimilar to the ones in the current batch
      * of data (the current supervision graph). Moreover remove noisy nodes using the Hoeffding bound.
      */
-    if (cleanedLabeled.isEmpty)
-      new NNGraph(
+    if (interestingLabeled.isEmpty)
+      new ENNGraph(
         labeledNodes ++ nonEmptyUnlabeled,
         querySignature,
         connector,
@@ -164,15 +211,15 @@ final class NNGraph private[graph] (
       val startCacheUpdate = System.currentTimeMillis
 
       var updatedNodeCache = nodeCache
-      updatedNodeCache ++= cleanedLabeled
+      updatedNodeCache ++= interestingLabeled
       val cleanedUniqueLabeled = updatedNodeCache.collectNodes
 
       logger.info(msecTimeToTextUntilNow(s"Cache updated in: ", startCacheUpdate))
       logger.info(s"${cleanedUniqueLabeled.length}/${numberOfLabeled + labeled.length} unique labeled nodes kept.")
-      logger.debug(updatedNodeCache.toString)
+      logger.info(updatedNodeCache.toString)
 
       // Labeled nodes MUST appear before unlabeled!
-      new NNGraph(
+      new ENNGraph(
         cleanedUniqueLabeled ++ nonEmptyUnlabeled,
         querySignature,
         connector,

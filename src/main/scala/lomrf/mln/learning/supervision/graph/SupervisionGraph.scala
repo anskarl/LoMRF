@@ -320,7 +320,7 @@ object SupervisionGraph extends LazyLogging {
     logger.info(s"${mln.clauses.length} clauses found in background knowledge.")
 
     // Use background knowledge to remove uninteresting or empty labelled nodes
-    val interestingLabeled = labeledNodes.filterNot { n =>
+    val cleanedLabeled = labeledNodes.filterNot { n =>
       n.isEmpty || mln.clauses.exists(_.subsumes(n.clause.get))
     }
 
@@ -332,7 +332,7 @@ object SupervisionGraph extends LazyLogging {
      */
     val startCacheConstruction = System.currentTimeMillis
 
-    val nodeCache = FastNodeCache(querySignature) ++ interestingLabeled
+    val nodeCache = FastNodeCache(querySignature) ++ cleanedLabeled
     val uniqueLabeled = nodeCache.collectNodes
 
     logger.info(msecTimeToTextUntilNow(s"Cache constructed in: ", startCacheConstruction))
@@ -410,7 +410,7 @@ object SupervisionGraph extends LazyLogging {
     logger.info(s"${mln.clauses.length} clauses found in background knowledge.")
 
     // Use background knowledge to remove uninteresting or empty labelled nodes
-    val interestingLabeled = labeledNodes.filterNot { n =>
+    val cleanedLabeled = labeledNodes.filterNot { n =>
       n.isEmpty || mln.clauses.exists(_.subsumes(n.clause.get))
     }
 
@@ -422,7 +422,7 @@ object SupervisionGraph extends LazyLogging {
      */
     val startCacheConstruction = System.currentTimeMillis
 
-    val nodeCache = FastNodeCache(querySignature) ++ interestingLabeled
+    val nodeCache = FastNodeCache(querySignature) ++ cleanedLabeled
     val uniqueLabeled = nodeCache.collectNodes
 
     logger.info(msecTimeToTextUntilNow(s"Cache constructed in: ", startCacheConstruction))
@@ -450,6 +450,95 @@ object SupervisionGraph extends LazyLogging {
       ).withCWAForAll().evidence ++= labeledEntries
 
     new NNGraph(
+      uniqueLabeled ++ nonEmptyUnlabeled,
+      querySignature,
+      connector,
+      metric ++ mln.evidence ++ nodes.flatMap(n => IndexedSeq.fill(n.clusterSize)(n.atoms)),
+      annotationBuilder,
+      nodeCache,
+      enableClusters
+    )
+  }
+
+  /**
+    * Constructs an extended nearest neighbor graph. The nodes are constructed given an MLN, an annotation
+    * database and a query signature. Moreover, a graph connector and a metric is required in order to be
+    * able to label the unlabeled ground query atoms.
+    *
+    * @see [[lomrf.mln.learning.structure.ModeDeclaration]]
+    *
+    * @param mln an MLN
+    * @param modes a map from atom signature to mode declarations
+    * @param annotationDB an annotation database
+    * @param querySignature the query signature of interest
+    * @param connector a graph connector
+    * @param metric a metric for atomic formula
+    * @param enableClusters enables clustering of unlabeled examples
+    * @return a nearest neighbor graph instance
+    */
+  def extendedNearestNeighbor(
+      mln: MLN,
+      modes: ModeDeclarations,
+      annotationDB: EvidenceDB,
+      querySignature: AtomSignature,
+      connector: GraphConnector,
+      metric: Metric[_ <: AtomicFormula],
+      enableClusters: Boolean): ENNGraph = {
+
+    // Group the given data into nodes
+    val nodes = connector match {
+      case _: kNNTemporalConnector | _: eNNTemporalConnector | _: aNNTemporalConnector =>
+        partition(mln, modes, annotationDB, querySignature)
+      case _ => partition(mln, modes, annotationDB, querySignature, clusterUnlabeled = enableClusters)
+    }
+
+    // Partition nodes into labeled and unlabeled. Then find empty unlabeled nodes.
+    val (labeledNodes, unlabeledNodes) = nodes.partition(_.isLabeled)
+    val (nonEmptyUnlabeled, emptyUnlabeled) = unlabeledNodes.partition(_.nonEmpty)
+
+    logger.info(s"${mln.clauses.length} clauses found in background knowledge.")
+
+    // Use background knowledge to remove uninteresting or empty labelled nodes
+    val cleanedLabeled = labeledNodes.filterNot { n =>
+      n.isEmpty || mln.clauses.exists(_.subsumes(n.clause.get))
+    }
+
+    /*
+     * Create a cache using only non empty labeled nodes, i.e., nodes having at least
+     * one evidence predicate in their body.
+     *
+     * Cache stores only unique nodes (patterns) along their counts.
+     */
+    val startCacheConstruction = System.currentTimeMillis
+
+    val nodeCache = FastNodeCache(querySignature) ++ cleanedLabeled
+    val uniqueLabeled = nodeCache.collectNodes
+
+    logger.info(msecTimeToTextUntilNow(s"Cache constructed in: ", startCacheConstruction))
+    logger.info(s"${uniqueLabeled.length} / ${labeledNodes.length} unique labeled nodes kept.")
+    logger.debug(nodeCache.toString)
+
+    // Labeled query atoms and empty unlabeled query atoms as FALSE.
+    val labeledEntries =
+      labeledNodes.map(_.query) ++ emptyUnlabeled.flatMap(_.labelUsingValue(FALSE))
+
+    if (emptyUnlabeled.nonEmpty)
+      logger.warn(s"Found ${emptyUnlabeled.length} empty unlabeled nodes. Set them to FALSE.")
+
+    /*
+     * Create an annotation builder and append every query atom that is TRUE or FALSE,
+     * or every UNKNOWN query atom that has no evidence atoms, everything else
+     * should be labeled by the supervision graph.
+     */
+    val annotationBuilder =
+      EvidenceBuilder(
+        mln.schema.predicates.filter { case (sig, _) => sig == querySignature },
+        Set(querySignature),
+        Set.empty,
+        mln.evidence.constants
+      ).withCWAForAll().evidence ++= labeledEntries
+
+    new ENNGraph(
       uniqueLabeled ++ nonEmptyUnlabeled,
       querySignature,
       connector,
@@ -501,7 +590,7 @@ object SupervisionGraph extends LazyLogging {
     logger.info(s"${mln.clauses.length} clauses found in background knowledge.")
 
     // Use background knowledge to remove uninteresting or empty labelled nodes
-    val interestingLabeled = labeledNodes.filterNot { n =>
+    val cleanedLabeled = labeledNodes.filterNot { n =>
       n.isEmpty || mln.clauses.exists(_.subsumes(n.clause.get))
     }
 
@@ -513,7 +602,7 @@ object SupervisionGraph extends LazyLogging {
      */
     val startCacheConstruction = System.currentTimeMillis
 
-    val nodeCache = FastNodeCache(querySignature) ++ interestingLabeled
+    val nodeCache = FastNodeCache(querySignature) ++ cleanedLabeled
     val uniqueLabeled = nodeCache.collectNodes
 
     logger.info(msecTimeToTextUntilNow(s"Cache constructed in: ", startCacheConstruction))
