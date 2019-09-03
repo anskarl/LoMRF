@@ -166,8 +166,14 @@ case class Node(
     * @return a textual representation for the node
     */
   def toText: String = {
-    if (isUnlabeled) s":- ${literals.toList.sortBy(l => l.arity + l.sentence.symbol).map(_.negate.toText).mkString(" ^ ")}"
-    else s"${head.toText} :- ${literals.toList.sortBy(l => l.arity + l.sentence.symbol).map(_.negate.toText).mkString(" ^ ")}"
+    if (isUnlabeled) s"? :- ${literals.toList
+      .sortBy(l => l.arity + l.sentence.symbol)
+      .map(_.negate.toText)
+      .mkString(" ^ ")}"
+    else s"${if (isNegative) "!" else ""}${head.toText} :- ${literals.toList
+      .sortBy(l => l.arity + l.sentence.symbol)
+      .map(_.negate.toText)
+      .mkString(" ^ ")}"
   }
 
   /**
