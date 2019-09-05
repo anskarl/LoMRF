@@ -27,6 +27,7 @@ import lomrf.mln.learning.supervision.graph.caching.NodeCache
 import lomrf.mln.learning.supervision.metric.Metric
 import lomrf.mln.model.{ EvidenceBuilder, EvidenceDB, MLN, ModeDeclarations }
 import lomrf.util.time.msecTimeToTextUntilNow
+import lomrf.logic.LogicOps._
 
 final class StreamingGraph private[graph] (
     nodes: IndexedSeq[Node],
@@ -60,22 +61,36 @@ final class StreamingGraph private[graph] (
     val encodedGraph = connector.smartConnect(nodes, unlabeledNodes, Some(nodeCache))(metric)
     val WW = encodedGraph._1
 
+    logger.debug {
+      s"""
+        |Connected
+        |${WW.mkString()}
+      """.stripMargin
+    }
+
     W = DenseMatrix.horzcat(
       DenseMatrix.vertcat(W, DenseMatrix.zeros[Double](numberOfUnlabeled, W.rows)),
       DenseMatrix.zeros[Double](W.cols + numberOfUnlabeled, numberOfUnlabeled)
     )
 
+    logger.debug {
+      s"""
+         |Connected
+         |${W.mkString()}
+      """.stripMargin
+    }
+
     cfor(0)(_ < numberOfUnlabeled, _ + 1) { i =>
       val WWi = numberOfLabeled + i
-      val Wi = 2 + storedUnlabeled.length + i
+      val Wi = 2 + storedUnlabeled.length + i // TODO switch 2 to number of labeled
 
       cfor(0)(_ < numberOfNodes, _ + 1) { j =>
         if (j < numberOfLabeled) {
           val clusterId = if (labeledNodes(j).isNegative) 0 else 1
-          W(Wi, clusterId) += WW(WWi, j)
+          W(Wi, clusterId) += WW(WWi, j) // TODO switch clusterId to j
           W(clusterId, Wi) += WW(j, WWi)
         } else {
-          val Wj = 2 + storedUnlabeled.length + (numberOfLabeled - j)
+          val Wj = 2 + storedUnlabeled.length + (numberOfLabeled - j) // TODO switch 2 to number of labeled
           W(Wi, Wj) = WW(WWi, j)
           W(Wj, Wi) = WW(j, WWi)
         }
@@ -88,8 +103,22 @@ final class StreamingGraph private[graph] (
       }
     }
 
+    logger.debug {
+      s"""
+         |Connected
+         |${W.mkString()}
+      """.stripMargin
+    }
+
     // Delete old nodes that do not fit into memory
-    W = connector.synopsisOf(W, 2, memory)
+    W = connector.synopsisOf(W, 2, memory) // TODO switch 2 to number of labeled
+
+    logger.debug {
+      s"""
+         |After synopsis
+         |${W.mkString()}
+      """.stripMargin
+    }
 
     val D = DenseMatrix.zeros[Double](W.rows, W.cols)
     cfor(0)(_ < W.rows, _ + 1) { i => D(i, i) = sum(W(i, ::)) }
@@ -101,7 +130,7 @@ final class StreamingGraph private[graph] (
     // Vector holding the labeled values
     val fl = DenseVector(-1d, 1d)
 
-    val solution = solver.solve(W, D, fl).toArray.slice(2, numberOfNodes)
+    val solution = solver.solve(W, D, fl).toArray.slice(2, numberOfNodes) // TODO switch 2 to number of labeled
     val truthValues = solution.map(value => if (value <= UNCONNECTED) FALSE else TRUE)
 
     logger.info(msecTimeToTextUntilNow(s"Labeling solution found in: ", startSolution))
@@ -137,6 +166,10 @@ final class StreamingGraph private[graph] (
     if (emptyUnlabeled.nonEmpty)
       logger.warn(s"Found ${emptyUnlabeled.length} empty unlabeled nodes. Set them to FALSE.")
 
+    val cleanedLabeled = labeled.filterNot { n =>
+      mln.clauses.exists(_.subsumes(n.clause.get))
+    }
+
     /*
      * Create an annotation builder and append every query atom that is TRUE or FALSE,
      * or every UNKNOWN query atom that has no evidence atoms, everything else
@@ -160,7 +193,7 @@ final class StreamingGraph private[graph] (
      * case try to separate old labeled nodes that are dissimilar to the ones in the current batch
      * of data (the current supervision graph). Moreover remove noisy nodes using the Hoeffding bound.
      */
-    if (labeled.isEmpty)
+    if (cleanedLabeled.isEmpty)
       new StreamingGraph(
         labeledNodes ++ nonEmptyUnlabeled,
         querySignature,
@@ -182,12 +215,19 @@ final class StreamingGraph private[graph] (
       val startCacheUpdate = System.currentTimeMillis
 
       var updatedNodeCache = nodeCache
-      updatedNodeCache ++= labeled.filter(_.nonEmpty)
+      updatedNodeCache ++= cleanedLabeled
       val cleanedUniqueLabeled = updatedNodeCache.collectNodes
 
       logger.info(msecTimeToTextUntilNow(s"Cache updated in: ", startCacheUpdate))
       logger.info(s"${cleanedUniqueLabeled.length}/${numberOfLabeled + labeled.length} unique labeled nodes kept.")
       logger.debug(updatedNodeCache.toString)
+
+      /*val Wnew = if (cleanedUniqueLabeled.length - numberOfLabeled > 0) {
+        val A = W(0 until numberOfLabeled, 0 until numberOfLabeled)
+        val B = DenseMatrix.vertcat(A, DenseMatrix.zeros[Double](cleanedUniqueLabeled.length - numberOfLabeled, numberOfLabeled))
+        val C = DenseMatrix.horzcat(B, DenseMatrix.zeros[Double](cleanedUniqueLabeled.length, cleanedUniqueLabeled.length - numberOfLabeled))
+        C
+      } else W.copy*/
 
       // Labeled nodes MUST appear before unlabeled!
       new StreamingGraph(
