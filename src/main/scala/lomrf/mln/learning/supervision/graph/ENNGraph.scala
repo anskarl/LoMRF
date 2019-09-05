@@ -104,17 +104,17 @@ final class ENNGraph private[graph] (
         val T00 = (negatives :+ ((idx, un), hood)).map {
           case (_, neighborhood) =>
             val nearest = connector.makeSparse(DenseVector.vertcat(neighborhood(0 until numberOfLabeled), neighborhood(idx to idx)))
-            nearest.toArray.zip(labeledNodes :+ un).count {
+            nearest.toArray.zip(labeledNodes :+ un).filter { // TODO OR count without the map for simple version
               case (w, n) => w > 0 && n.isNegative
-            } / ((N + 1) * nearest.toArray.count(_ > 0)).toDouble
+            }.map(_._1).sum / ((N + 1) * nearest.toArray.count(_ > 0)).toDouble
         }.sum
 
         val T10 = positives.map {
           case (_, neighborhood) =>
             val nearest = connector.makeSparse(DenseVector.vertcat(neighborhood(0 until numberOfLabeled), neighborhood(idx to idx)))
-            nearest.toArray.zip(labeledNodes :+ un).count {
+            nearest.toArray.zip(labeledNodes :+ un).filter {
               case (w, n) => w > 0 && n.isPositive
-            } / (P * nearest.toArray.count(_ > 0)).toDouble
+            }.map(_._1).sum / (P * nearest.toArray.count(_ > 0)).toDouble
         }.sum
 
         // j = 1
@@ -123,17 +123,17 @@ final class ENNGraph private[graph] (
         val T11 = (positives :+ ((idx, up), hood)).map {
           case (_, neighborhood) =>
             val nearest = connector.makeSparse(DenseVector.vertcat(neighborhood(0 until numberOfLabeled), neighborhood(idx to idx)))
-            nearest.toArray.zip(labeledNodes :+ up).count {
+            nearest.toArray.zip(labeledNodes :+ up).filter {
               case (w, n) => w > 0 && n.isPositive
-            } / ((P + 1) * nearest.toArray.count(_ > 0)).toDouble
+            }.map(_._1).sum / ((P + 1) * nearest.toArray.count(_ > 0)).toDouble
         }.sum
 
         val T01 = negatives.map {
           case (_, neighborhood) =>
             val nearest = connector.makeSparse(DenseVector.vertcat(neighborhood(0 until numberOfLabeled), neighborhood(idx to idx)))
-            nearest.toArray.zip(labeledNodes :+ up).count {
+            nearest.toArray.zip(labeledNodes :+ up).filter {
               case (w, n) => w > 0 && n.isNegative
-            } / (N * nearest.toArray.count(_ > 0)).toDouble
+            }.map(_._1).sum / (N * nearest.toArray.count(_ > 0)).toDouble
         }.sum
 
         logger.info(s"T00: $T00 T10: $T10 T01: $T01 T11: $T11")
@@ -163,7 +163,7 @@ final class ENNGraph private[graph] (
     val (nonEmptyUnlabeled, emptyUnlabeled) = unlabeled.partition(_.nonEmpty)
 
     // Use background knowledge to remove uninteresting or empty labelled nodes
-    val interestingLabeled = labeled.filterNot { n =>
+    val cleanedLabeled = labeled.filterNot { n =>
       n.isEmpty || mln.clauses.exists(_.subsumes(n.clause.get))
     }
 
@@ -192,7 +192,7 @@ final class ENNGraph private[graph] (
      * case try to separate old labeled nodes that are dissimilar to the ones in the current batch
      * of data (the current supervision graph). Moreover remove noisy nodes using the Hoeffding bound.
      */
-    if (interestingLabeled.isEmpty)
+    if (cleanedLabeled.isEmpty)
       new ENNGraph(
         labeledNodes ++ nonEmptyUnlabeled,
         querySignature,
@@ -211,7 +211,7 @@ final class ENNGraph private[graph] (
       val startCacheUpdate = System.currentTimeMillis
 
       var updatedNodeCache = nodeCache
-      updatedNodeCache ++= interestingLabeled
+      updatedNodeCache ++= cleanedLabeled
       val cleanedUniqueLabeled = updatedNodeCache.collectNodes
 
       logger.info(msecTimeToTextUntilNow(s"Cache updated in: ", startCacheUpdate))
