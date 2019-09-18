@@ -265,17 +265,14 @@ object SemiSupervisionCLI extends CLIApp {
       else if (_connector == aNNTemporal) new aNNTemporalConnector
       else FullConnector
 
+    // Keep only signatures having positive recall
+    val signatures = kb.predicateSchema.keySet.filter(sig => modes(sig).recall > 0)
+
     val distance: Metric[_ <: AtomicFormula] =
-      if (_distance == DistanceType.MassMap) MassMapMetric(kb.predicateSchema.keySet -- _nonEvidenceAtoms)
-      else if (_distance == DistanceType.MassTree) MassTreeMetric(kb.predicateSchema.keySet -- _nonEvidenceAtoms)
-      else if (_distance == DistanceType.HybridMap) HybridMetric(Set(
-        AtomMetric(HungarianMatcher),
-        MassMapMetric(kb.predicateSchema.keySet -- _nonEvidenceAtoms)
-      ))
-      else if (_distance == DistanceType.HybridTree) HybridMetric(Set(
-        AtomMetric(HungarianMatcher),
-        MassTreeMetric(kb.predicateSchema.keySet -- _nonEvidenceAtoms)
-      ))
+      if (_distance == DistanceType.MassMap) MassMapMetric(signatures)
+      else if (_distance == DistanceType.MassTree) MassTreeMetric(signatures)
+      else if (_distance == DistanceType.HybridMap) HybridMetric(AtomMetric(HungarianMatcher), MassMapMetric(signatures))
+      else if (_distance == DistanceType.HybridTree) HybridMetric(AtomMetric(HungarianMatcher), MassTreeMetric(signatures))
       else if (_distance == DistanceType.Binary) BinaryMetric(HungarianMatcher)
       else if (_distance == DistanceType.Atomic) AtomMetric(HungarianMatcher)
       else EvidenceMetric(modes, HungarianMatcher)

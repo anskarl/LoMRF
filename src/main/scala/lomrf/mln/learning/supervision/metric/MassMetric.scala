@@ -149,6 +149,15 @@ case class MassTreeMetric(forest: IsolationForest[AtomSignature]) extends Metric
     forest.mass(xAtomSeq.map(_.signature), yAtomSeq.map(_.signature))
 
   /**
+    * Normalize distance based on the given feature scores.
+    *
+    * @param featureScores a map from atom signature to scores
+    * @return a normalized metric
+    */
+  override def normalize(featureScores: Map[AtomSignature, Double]): Metric[AtomicFormula] =
+    new MassTreeMetric(forest.reBalance(featureScores))
+
+  /**
     * Append information from atom sequences to the metric.
     *
     * @note It should be extended by metrics that can
@@ -166,14 +175,36 @@ case class MassTreeMetric(forest: IsolationForest[AtomSignature]) extends Metric
 object MassTreeMetric {
 
   /**
+    * @see [[lomrf.mln.learning.supervision.metric.IsolationForest]]
+    *
+    * @param trees a sequence of isolation trees
+    * @return a MassTreeMetric instance
+    */
+  def apply(trees: Seq[IsolationTree[AtomSignature]]): MassTreeMetric =
+    MassTreeMetric(IsolationForest(trees))
+
+  /**
     * Creates an empty mass metric, using an underlying isolation forest,
     * from a set of atom signatures.
     *
     * @see [[lomrf.mln.learning.supervision.metric.IsolationForest]]
     *
     * @param signatures a set of atom signatures
+    * @param numberOfTrees number of tree in the forest (default is 100)
     * @return a MassTreeMetric instance
     */
-  def apply(signatures: Set[AtomSignature]) =
-    new MassTreeMetric(IsolationForest(signatures.toIndexedSeq))
+  def apply(signatures: Set[AtomSignature], numberOfTrees: Int = 100): MassTreeMetric =
+    new MassTreeMetric(IsolationForest(signatures.toIndexedSeq, numberOfTrees))
+
+  /**
+    * Creates an empty mass metric, using an underlying isolation forest,
+    * from a set of atom signatures.
+    *
+    * @see [[lomrf.mln.learning.supervision.metric.IsolationForest]]
+    *
+    * @param featureScores a map from atom signatures to scores
+    * @return a MassTreeMetric instance
+    */
+  def apply(featureScores: Map[AtomSignature, Double]) =
+    new MassTreeMetric(IsolationForest(featureScores))
 }

@@ -42,54 +42,85 @@ case class IsolationTree[T](
   private var size: Long = 0
 
   private def isSplit(feature: T): Boolean =
-    if (splitFeature.isEmpty) false
-    else feature == splitFeature.get
+    if (isLeaf) false else feature == splitFeature.get
 
   @tailrec
   private def selfMass(xSeq: Seq[T]): Long = {
-    if (xSeq.exists(isSplit) && right.isDefined)
+    if (xSeq.exists(isSplit) && hasRight)
       right.get.selfMass(xSeq)
-    else if (!xSeq.exists(isSplit) && left.isDefined)
+    else if (!xSeq.exists(isSplit) && hasLeft)
       left.get.selfMass(xSeq)
     else size
   }
 
   @tailrec
   private def parentMass(xSeq: Seq[T], parentSize: Long): Long = {
-    if (xSeq.exists(isSplit) && right.isDefined)
+    if (xSeq.exists(isSplit) && hasRight)
       right.get.parentMass(xSeq, size)
-    else if (!xSeq.exists(isSplit) && left.isDefined)
+    else if (!xSeq.exists(isSplit) && hasLeft)
       left.get.parentMass(xSeq, size)
     else parentSize
   }
 
   @tailrec
   private def internalMass(xSeq: Seq[T], ySeq: Seq[T]): Long = {
-    if (xSeq.exists(isSplit) && ySeq.exists(isSplit) && right.isDefined)
+    if (xSeq.exists(isSplit) && ySeq.exists(isSplit) && hasRight)
       right.get.internalMass(xSeq, ySeq)
-    else if (!xSeq.exists(isSplit) && !ySeq.exists(isSplit) && left.isDefined)
+    else if (!xSeq.exists(isSplit) && !ySeq.exists(isSplit) && hasLeft)
       left.get.internalMass(xSeq, ySeq)
     else size
   }
 
   /**
-    * @return a set of features appearing inside the tree
+    * @return true if the tree is a leaf node, false otherwise
     */
-  def collectFeatures: Set[T] =
-    if (splitFeature.isEmpty) Set.empty
-    else left.map(_.collectFeatures).getOrElse(Set.empty) ++
-      right.map(_.collectFeatures).getOrElse(Set.empty) + splitFeature.get
+  def isLeaf: Boolean = splitFeature.isEmpty
+
+  /**
+    * @return true if the tree has a left subtree, false otherwise
+    */
+  def hasLeft: Boolean = left.nonEmpty
+
+  /**
+    * @return true if the tree has a right subtree, false otherwise
+    */
+  def hasRight: Boolean = right.nonEmpty
 
   /**
     * Updates the internal counts of the nodes containing the given features.
     *
-    * @param features a set of features
+    * @param features a sequence of features
+    * @param counts counts for the given sequence of features
     */
-  def updateCounts(features: Seq[T]): Unit = {
-    size += 1 // update current node and then move deeper
+  @tailrec
+  final def updateCounts(features: Seq[T], counts: Long = 1): Unit = {
+    size += counts // update current node and then move deeper
 
-    if (features.exists(isSplit) && right.isDefined) right.get.updateCounts(features)
-    else if (!features.exists(isSplit) && left.isDefined) left.get.updateCounts(features)
+    if (features.exists(isSplit) && hasRight)
+      right.get.updateCounts(features, counts)
+    else if (!features.exists(isSplit) && hasLeft)
+      left.get.updateCounts(features, counts)
+  }
+
+  /**
+    * Create a rebalanced tree according to the given feature scores.
+    *
+    * @param featureScores a map of feature score tuples
+    * @return a rebalanced IsolationTree
+    */
+  def reBalance(featureScores: Map[T, Double]): IsolationTree[T] = {
+
+    val tree = IsolationTree(featureScores, featureScores.size)
+
+      def inOrder(root: IsolationTree[T], path: Seq[T]): Unit = {
+        if (!root.isLeaf && root.size > 0) {
+          inOrder(root.left.get, path)
+          inOrder(root.right.get, path :+ root.splitFeature.get)
+        } else if (root.size > 0) tree.updateCounts(path, root.size)
+      }
+
+    inOrder(this, Seq.empty)
+    tree
   }
 
   /**
@@ -127,56 +158,187 @@ case class IsolationTree[T](
   def anomalyScore(x: Seq[T]): Double =
     parentMass(x, size).toDouble / (selfMass(x) * size).toDouble
 
-  /**
-    * Print tree.
-    */
-  def printTree(): Unit = printTreeHelper("", isTail = true)
+  override def toString: String = {
+    val builder = StringBuilder.newBuilder
 
-  private def printTreeHelper(prefix: String, isTail: Boolean): Unit = {
-    println(s"$prefix${if (isTail) "└── " else "├── "}$splitFeature:$size")
-    if (left.isDefined)
-      left.get.printTreeHelper(s"$prefix${if (isTail) "    " else "│   "}", isTail = false)
-    if (right.isDefined)
-      right.get.printTreeHelper(s"$prefix${if (isTail) "    " else "│   "}", isTail = false)
+    def helper(root: IsolationTree[T], prefix: String = "", isTail: Boolean = true): Unit = {
+      builder ++= s"$prefix${if (isTail) "└── " else "├── "}${root.splitFeature.getOrElse("")}[${root.size}]\n"
+
+      if (root.hasLeft) helper(root.left.get, s"$prefix${if (isTail) "    " else "│   "}", isTail = false)
+      if (root.hasRight) helper(root.right.get, s"$prefix${if (isTail) "    " else "│   "}", isTail = false)
+    }
+
+    helper(this)
+    builder.result
   }
 }
 
 object IsolationTree {
 
   /**
-    * @return an empty isolation tree.
+    * @tparam T the feature type
+    * @return an empty IsolationTree
     */
   def empty[T]: IsolationTree[T] = IsolationTree(None, None, None)
 
   /**
-    * @param features a sequence of features
-    * @return an IsolationTree of height equal to the number of features
-    */
-  def apply[T](features: IndexedSeq[T]): IsolationTree[T] =
-    IsolationTree(features, features.length)
-
-  /**
-    * @param features a sequence of features
-    * @param height the height of the tree
+    * Creates an isolation tree from features. At each branch it selects
+    * a random feature split.
+    *
+    * @param features an indexed sequence of features
+    * @param height the maximum tree height
+    * @tparam T the feature type
     * @return an IsolationTree
     */
   def apply[T](features: IndexedSeq[T], height: Int): IsolationTree[T] =
-    IsolationTree(features, 0, height)
+    IsolationTree.fromFeatures(features, 0, height)
 
   /**
-    * @param features a sequence of features
-    * @param depth the current depth of the tree
-    * @param height the height of the tree
+    * Creates an isolation tree from feature scores. At each branch it selects
+    * the best feature split based on given scores.
+    *
+    * @param featureScores a map of feature score tuples
+    * @param height the maximum tree height
+    * @tparam T the feature type
     * @return an IsolationTree
     */
-  private def apply[T](features: IndexedSeq[T], depth: Int, height: Int): IsolationTree[T] = {
-    if (depth >= height || features.length < 1) empty
+  def apply[T](featureScores: Map[T, Double], height: Int): IsolationTree[T] =
+    IsolationTree.fromFeatures(featureScores, 0, height)
+
+  /**
+    * Creates an isolation tree from data. At each branch it selects a random
+    * feature split based on the data available.
+    *
+    * @param data a sequence of data (sequence of features)
+    * @param height the maximum tree height
+    * @tparam T the feature type
+    * @return an IsolationTree
+    */
+  def fromData[T](data: IndexedSeq[Seq[T]], height: Int): IsolationTree[T] =
+    IsolationTree.fromData(data, 0, height)
+
+  /**
+    * Creates an isolation tree from data using a scoring function. At each branch it
+    * computes the best feature split based on the data available.
+    *
+    * @param f a function that computes a score for each feature in the data
+    * @param data a sequence of data (sequence of features)
+    * @param height the maximum tree height
+    * @tparam T the feature type
+    * @return an IsolationTree
+    */
+  def fromData[T](f: Seq[Seq[T]] => Map[T, Double])(data: IndexedSeq[Seq[T]], height: Int): IsolationTree[T] =
+    IsolationTree.fromData(data, f, 0, height)
+
+  /**
+    * Creates an isolation tree from features. At each branch it selects
+    * a random feature split.
+    *
+    * @param features an indexed sequence of features
+    * @param depth the current depth of the tree
+    * @param height the maximum tree height
+    * @tparam T the feature type
+    * @return an IsolationTree
+    */
+  private def fromFeatures[T](features: IndexedSeq[T], depth: Int, height: Int): IsolationTree[T] = {
+    if (depth > height || features.length < 1) empty
     else {
       val idx = Random.nextInt(features.length)
       val currentSplit = features(idx)
 
-      val left = IsolationTree(features.filterNot(_ == currentSplit), depth + 1, height)
-      val right = IsolationTree(features.filterNot(_ == currentSplit), depth + 1, height)
+      val left = IsolationTree.fromFeatures(features.filterNot(_ == currentSplit), depth + 1, height)
+      val right = IsolationTree.fromFeatures(features.filterNot(_ == currentSplit), depth + 1, height)
+
+      new IsolationTree(Some(currentSplit), Some(left), Some(right))
+    }
+  }
+
+  /**
+    * Creates an isolation tree from feature scores. At each branch it selects
+    * the best feature split based on given scores.
+    *
+    * @param featureScores a map of feature score tuples
+    * @param depth the current depth of the tree
+    * @param height the maximum tree height
+    * @tparam T the feature type
+    * @return an IsolationTree
+    */
+  private def fromFeatures[T](featureScores: Map[T, Double], depth: Int, height: Int): IsolationTree[T] = {
+
+    def helper(features: Seq[T], depth: Int, height: Int): IsolationTree[T] = {
+      if (depth > height || features.length < 1) empty
+      else {
+        val currentSplit = features.head
+
+        val left = helper(features.tail, depth + 1, height)
+        val right = helper(features.tail, depth + 1, height)
+
+        new IsolationTree(Some(currentSplit), Some(left), Some(right))
+      }
+    }
+
+    helper(featureScores.toList.sortBy { case (_, score) => score }.map { case (f, _) => f }, depth, height)
+  }
+
+  /**
+    * Creates an isolation tree from data. At each branch it selects a random
+    * feature split based on the data available.
+    *
+    * @param data a sequence of data (sequence of features)
+    * @param depth the current depth of the tree
+    * @param height the maximum tree height
+    * @tparam T the feature type
+    * @return an IsolationTree
+    */
+  private def fromData[T](data: IndexedSeq[Seq[T]], depth: Int, height: Int): IsolationTree[T] = {
+    if (depth > height || data.length < 1) empty
+    else {
+      val features = data.flatten.distinct
+
+      val idx = Random.nextInt(features.length)
+      val currentSplit = features(idx)
+
+      val (leftData, rightData) = data.partition(!_.exists(_ == currentSplit))
+
+      val left = IsolationTree.fromData(leftData, depth + 1, height)
+      left.size = leftData.size
+
+      val right = IsolationTree.fromData(rightData.map(_.filterNot(_ == currentSplit)), depth + 1, height)
+      right.size = rightData.size
+
+      new IsolationTree(Some(currentSplit), Some(left), Some(right))
+    }
+  }
+
+  /**
+    * Creates an isolation tree from data using a scoring function. At each branch it
+    * computes the best feature split based on the data available.
+    *
+    * @param data a sequence of data (sequence of features)
+    * @param f a function that computes a score for each feature in the data
+    * @param depth the current depth of the tree
+    * @param height the maximum tree height
+    * @tparam T the feature type
+    * @return an IsolationTree
+    */
+  private def fromData[T](
+    data: Seq[Seq[T]],
+    f: Seq[Seq[T]] => Map[T, Double],
+    depth: Int,
+    height: Int): IsolationTree[T] = {
+
+    if (depth > height || data.length < 1) empty
+    else {
+      val featureScores = f(data)
+      val currentSplit = featureScores.minBy { case (_, score) => score }._1
+
+      val (leftData, rightData) = data.partition(!_.exists(_ == currentSplit))
+
+      val left = IsolationTree.fromData(leftData, f, depth + 1, height)
+      left.size = leftData.size
+
+      val right = IsolationTree.fromData(rightData.map(_.filterNot(_ == currentSplit)), f, depth + 1, height)
+      right.size = rightData.size
 
       new IsolationTree(Some(currentSplit), Some(left), Some(right))
     }

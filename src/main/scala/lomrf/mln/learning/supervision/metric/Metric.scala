@@ -20,7 +20,7 @@
 
 package lomrf.mln.learning.supervision.metric
 
-import lomrf.logic.AtomicFormula
+import lomrf.logic.{ AtomSignature, AtomicFormula }
 import lomrf.mln.model.Evidence
 
 /**
@@ -60,6 +60,14 @@ trait Metric[A <: AtomicFormula] {
     * @return a distance for the given sequences of atoms
     */
   def distance(xAtomSeq: IndexedSeq[A], yAtomSeq: IndexedSeq[A]): Double
+
+  /**
+    * Normalize distance based on the given feature scores.
+    *
+    * @param featureScores a map from atom signature to scores
+    * @return a normalized metric
+    */
+  def normalize(featureScores: Map[AtomSignature, Double]): Metric[A] = this
 
   /**
     * Append evidence information to the metric.
@@ -118,7 +126,7 @@ trait StructureMetric[A <: AtomicFormula] extends Metric[A] {
   */
 case class HybridMetric(metrics: Set[Metric[AtomicFormula]]) extends Metric[AtomicFormula] {
 
-  val numberOfMetrics: Int = metrics.size
+  lazy val numberOfMetrics: Int = metrics.size
 
   /**
     * Distance for atoms. The function may obey to the following properties:
@@ -148,6 +156,15 @@ case class HybridMetric(metrics: Set[Metric[AtomicFormula]]) extends Metric[Atom
     metrics.foldLeft(0.0) { case (sum, metric) => sum + metric.distance(xAtomSeq, yAtomSeq) } / numberOfMetrics
 
   /**
+    * Normalize distance based on the given feature scores.
+    *
+    * @param featureScores a map from atom signature to scores
+    * @return a normalized metric
+    */
+  override def normalize(featureScores: Map[AtomSignature, Double]): Metric[AtomicFormula] =
+    HybridMetric(metrics.map(_ normalize featureScores))
+
+  /**
     * Append evidence information to the metric.
     *
     * @note It should be extended by metrics that can
@@ -170,4 +187,13 @@ case class HybridMetric(metrics: Set[Metric[AtomicFormula]]) extends Metric[Atom
     */
   override def ++(atomSeqSeq: Seq[Seq[AtomicFormula]]): Metric[AtomicFormula] =
     HybridMetric(metrics.map(_ ++ atomSeqSeq))
+}
+
+object HybridMetric {
+
+  /**
+    * @param metrics a sequence of metrics
+    * @return a HybridMetric instance
+    */
+  def apply(metrics: Metric[AtomicFormula]*): HybridMetric = HybridMetric(metrics.toSet)
 }
