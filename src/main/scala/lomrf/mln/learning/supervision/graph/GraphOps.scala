@@ -85,10 +85,10 @@ case class LP(iterations: Int = 100) extends GraphSolver {
 /**
   * Label spreading.
   *
-  * @param iterations number of iterations (default is 50)
-  * @param alpha clamping factor (default is 0.5)
+  * @param iterations number of iterations (default is 100)
+  * @param alpha clamping factor (default is 0.01)
   */
-case class LGCc(iterations: Int = 100, alpha: Double = 0.9) extends GraphSolver {
+case class LGCc(iterations: Int = 100, alpha: Double = 0.01) extends GraphSolver {
 
   def solve(
       W: DenseMatrix[Double],
