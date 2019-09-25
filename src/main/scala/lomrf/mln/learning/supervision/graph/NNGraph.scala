@@ -23,6 +23,7 @@ package lomrf.mln.learning.supervision.graph
 import lomrf.logic._
 import lomrf.util.logging.Implicits._
 import lomrf.mln.learning.supervision.graph.caching.NodeCache
+import lomrf.mln.learning.supervision.graph.feature.FeatureStats
 import lomrf.mln.learning.supervision.metric._
 import lomrf.mln.model._
 import lomrf.util.time._
@@ -51,8 +52,9 @@ final class NNGraph private[graph] (
     metric: Metric[_ <: AtomicFormula],
     supervisionBuilder: EvidenceBuilder,
     nodeCache: NodeCache,
+    featureStats: FeatureStats,
     enableClusters: Boolean)
-  extends SupervisionGraph(nodes, querySignature, connector, metric, supervisionBuilder, nodeCache) {
+  extends SupervisionGraph(nodes, querySignature, connector, metric, supervisionBuilder, nodeCache, featureStats) {
 
   protected def optimize(potentials: Map[EvidenceAtom, Double]): Set[EvidenceAtom] = {
 
@@ -71,28 +73,31 @@ final class NNGraph private[graph] (
 
     val startSolution = System.currentTimeMillis
 
-    val labeledEvidenceAtoms = unlabeledNodes.zipWithIndex.flatMap {
-      case (node, i) =>
+    val labeledEvidenceAtoms = unlabeledNodes.zipWithIndex.flatMap { case (node, i) =>
 
-        val nearest = W(i, ::).inner.findAll(_ != UNCONNECTED).map { ii =>
-          val node = labeledNodes(ii)
-          val counts = nodeCache.getOrElse(node, logger.fatal(s"Pattern ${node.clause.get.toText()} not found."))
-          W(i, ii) -> (node.isPositive, counts)
+      // Find all connected labeled nearest neighbors
+      val nearest = W(i, ::).t.findAll(_ != UNCONNECTED).map { j =>
+        val labeledNeighbor = labeledNodes(j)
+        val counts = nodeCache.getOrElse(labeledNeighbor, logger.fatal(s"Pattern ${node.toText} not found."))
+        (W(i, j), labeledNeighbor.isPositive, counts)
+      }
+
+      // In case no nearest neighbors exist, assume node is negative
+      if (nearest.isEmpty) node.labelUsingValue(false)
+      else {
+        val (posCounts, negCounts) = nearest.foldLeft(0L -> 0L) {
+          case ((p, n), (_, isPos, counts)) =>
+            if (isPos) (p + counts, n)
+            else (p, n + counts)
         }
 
-        val (positives, negatives) = nearest.partition { case (_, (tv, _)) => tv }
+        val truthValue =
+          if (posCounts > negCounts) true
+          else if (negCounts > posCounts) false
+          else nearest.maxBy(_._1)._2
 
-        val value =
-          if (nearest.isEmpty) false
-          else {
-            val posCounts = positives.map(_._2._2).sum
-            val negCounts = negatives.map(_._2._2).sum
-            if (posCounts > negCounts) true
-            else if (negCounts > posCounts) false
-            else nearest.maxBy(_._1)._2._1
-          }
-
-        node.labelUsingValue(value)
+        node.labelUsingValue(truthValue)
+      }
     }
 
     logger.info(msecTimeToTextUntilNow(s"Labeling solution found in: ", startSolution))
@@ -115,9 +120,9 @@ final class NNGraph private[graph] (
     val (labeled, unlabeled) = currentNodes.partition(_.isLabeled)
     val (nonEmptyUnlabeled, emptyUnlabeled) = unlabeled.partition(_.nonEmpty)
 
-    // Use background knowledge to remove uninteresting or empty labelled nodes
-    val cleanedLabeled = labeled.filterNot { n =>
-      n.isEmpty || mln.clauses.exists(_.subsumes(n.clause.get))
+    // Remove empty labelled nodes or nodes subsumed by the background knowledge
+    val pureLabeledNodes = labeled.filterNot { node =>
+      node.isEmpty || mln.clauses.exists(_.subsumes(node.clause.get))
     }
 
     // Labeled query atoms and empty unlabeled query atoms as FALSE.
@@ -126,6 +131,9 @@ final class NNGraph private[graph] (
 
     if (emptyUnlabeled.nonEmpty)
       logger.warn(s"Found ${emptyUnlabeled.length} empty unlabeled nodes. Set them to FALSE.")
+
+    val pureNodes = pureLabeledNodes ++ nonEmptyUnlabeled
+    logger.info(s"Found ${pureLabeledNodes.length} pure labelled and unlabeled nodes.")
 
     /*
      * Create an annotation builder and append every query atom that is TRUE or FALSE,
@@ -145,16 +153,17 @@ final class NNGraph private[graph] (
      * case try to separate old labeled nodes that are dissimilar to the ones in the current batch
      * of data (the current supervision graph). Moreover remove noisy nodes using the Hoeffding bound.
      */
-    if (cleanedLabeled.isEmpty)
+    if (pureLabeledNodes.isEmpty) {
       new NNGraph(
         labeledNodes ++ nonEmptyUnlabeled,
         querySignature,
         connector,
-        metric ++ mln.evidence ++ currentNodes.flatMap(n => IndexedSeq.fill(n.clusterSize)(n.atoms)),
+        metric ++ mln.evidence ++ pureNodes.flatMap(n => IndexedSeq.fill(n.clusterSize)(n.atoms)),
         annotationBuilder,
         nodeCache,
+        featureStats ++ pureNodes,
         enableClusters)
-    else {
+    } else {
       /*
        * Update the cache using only non empty labeled nodes, i.e., nodes having at least
        * one evidence predicate in their body
@@ -164,7 +173,7 @@ final class NNGraph private[graph] (
       val startCacheUpdate = System.currentTimeMillis
 
       var updatedNodeCache = nodeCache
-      updatedNodeCache ++= cleanedLabeled
+      updatedNodeCache ++= pureLabeledNodes
       val cleanedUniqueLabeled = updatedNodeCache.collectNodes
 
       logger.info(msecTimeToTextUntilNow(s"Cache updated in: ", startCacheUpdate))
@@ -176,9 +185,10 @@ final class NNGraph private[graph] (
         cleanedUniqueLabeled ++ nonEmptyUnlabeled,
         querySignature,
         connector,
-        metric ++ mln.evidence ++ currentNodes.flatMap(n => IndexedSeq.fill(n.clusterSize)(n.atoms)),
+        metric ++ mln.evidence ++ pureNodes.flatMap(n => IndexedSeq.fill(n.clusterSize)(n.atoms)),
         annotationBuilder,
         updatedNodeCache,
+        featureStats ++ pureNodes,
         enableClusters)
     }
   }

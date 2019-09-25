@@ -494,7 +494,7 @@ object SupervisionGraph extends LazyLogging {
       querySignature: AtomSignature,
       connector: GraphConnector,
       metric: Metric[_ <: AtomicFormula],
-      enableClusters: Boolean): ENNGraph = {
+      enableClusters: Boolean): ExtNNGraph = {
 
     // Group the given data into nodes
     val currentNodes = connector match {
@@ -509,7 +509,7 @@ object SupervisionGraph extends LazyLogging {
 
     logger.info(s"${mln.clauses.length} clauses found in background knowledge.")
 
-    // Use background knowledge to remove empty labelled nodes or nodes subsumed by the background knowledge
+    // Remove empty labelled nodes or nodes subsumed by the background knowledge
     val pureLabeledNodes = labeledNodes.filterNot { node =>
       node.isEmpty || mln.clauses.exists(_.subsumes(node.clause.get))
     }
@@ -552,7 +552,7 @@ object SupervisionGraph extends LazyLogging {
         mln.evidence.constants
       ).withCWAForAll().evidence ++= labeledEntries
 
-    new ENNGraph(
+    new ExtNNGraph(
       uniqueLabeled ++ nonEmptyUnlabeled,
       querySignature,
       connector,
@@ -604,7 +604,7 @@ object SupervisionGraph extends LazyLogging {
 
     logger.info(s"${mln.clauses.length} clauses found in background knowledge.")
 
-    // Use background knowledge to remove empty labelled nodes or nodes subsumed by the background knowledge
+    // Remove empty labelled nodes or nodes subsumed by the background knowledge
     val pureLabeledNodes = labeledNodes.filterNot { node =>
       node.isEmpty || mln.clauses.exists(_.subsumes(node.clause.get))
     }
