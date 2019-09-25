@@ -161,12 +161,12 @@ case class IsolationTree[T](
   override def toString: String = {
     val builder = StringBuilder.newBuilder
 
-    def helper(root: IsolationTree[T], prefix: String = "", isTail: Boolean = true): Unit = {
-      builder ++= s"$prefix${if (isTail) "└── " else "├── "}${root.splitFeature.getOrElse("")}[${root.size}]\n"
+      def helper(root: IsolationTree[T], prefix: String = "", isTail: Boolean = true): Unit = {
+        builder ++= s"$prefix${if (isTail) "└── " else "├── "}${root.splitFeature.getOrElse("")}[${root.size}]\n"
 
-      if (root.hasLeft) helper(root.left.get, s"$prefix${if (isTail) "    " else "│   "}", isTail = false)
-      if (root.hasRight) helper(root.right.get, s"$prefix${if (isTail) "    " else "│   "}", isTail = false)
-    }
+        if (root.hasLeft) helper(root.left.get, s"$prefix${if (isTail) "    " else "│   "}", isTail = false)
+        if (root.hasRight) helper(root.right.get, s"$prefix${if (isTail) "    " else "│   "}", isTail = false)
+      }
 
     helper(this)
     builder.result
@@ -265,17 +265,17 @@ object IsolationTree {
     */
   private def fromFeatures[T](featureScores: Map[T, Double], depth: Int, height: Int): IsolationTree[T] = {
 
-    def helper(features: Seq[T], depth: Int, height: Int): IsolationTree[T] = {
-      if (depth > height || features.length < 1) empty
-      else {
-        val currentSplit = features.head
+      def helper(features: Seq[T], depth: Int, height: Int): IsolationTree[T] = {
+        if (depth > height || features.length < 1) empty
+        else {
+          val currentSplit = features.head
 
-        val left = helper(features.tail, depth + 1, height)
-        val right = helper(features.tail, depth + 1, height)
+          val left = helper(features.tail, depth + 1, height)
+          val right = helper(features.tail, depth + 1, height)
 
-        new IsolationTree(Some(currentSplit), Some(left), Some(right))
+          new IsolationTree(Some(currentSplit), Some(left), Some(right))
+        }
       }
-    }
 
     helper(featureScores.toList.sortBy { case (_, score) => score }.map { case (f, _) => f }, depth, height)
   }
@@ -322,10 +322,10 @@ object IsolationTree {
     * @return an IsolationTree
     */
   private def fromData[T](
-    data: Seq[Seq[T]],
-    f: Seq[Seq[T]] => Map[T, Double],
-    depth: Int,
-    height: Int): IsolationTree[T] = {
+      data: Seq[Seq[T]],
+      f: Seq[Seq[T]] => Map[T, Double],
+      depth: Int,
+      height: Int): IsolationTree[T] = {
 
     if (depth > height || data.length < 1) empty
     else {

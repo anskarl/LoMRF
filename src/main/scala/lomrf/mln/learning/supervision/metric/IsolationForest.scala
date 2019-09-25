@@ -167,7 +167,7 @@ object IsolationForest {
     * @return an IsolationForest instance
     */
   def fromData[T](f: Seq[Seq[T]] => Map[T, Double])
-                 (data: IndexedSeq[Seq[T]], numberOfTrees: Int, height: Int): IsolationForest[T] = {
+    (data: IndexedSeq[Seq[T]], numberOfTrees: Int, height: Int): IsolationForest[T] = {
 
     var remaining = data
     val batchSize = data.size / numberOfTrees

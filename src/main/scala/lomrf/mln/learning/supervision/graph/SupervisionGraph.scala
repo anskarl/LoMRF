@@ -25,6 +25,7 @@ import lomrf.logic._
 import lomrf.mln.learning.supervision.graph.caching.{ FastNodeCache, NodeCache, NodeHashSet }
 import lomrf.mln.model.builders.EvidenceBuilder
 import lomrf.util.time._
+import lomrf.mln.learning.supervision.graph.feature.FeatureStats
 import lomrf.mln.learning.supervision.metric.Metric
 import lomrf.mln.model.{ Evidence, EvidenceDB, MLN, ModeDeclarations }
 import lomrf.util.logging.Implicits._
@@ -39,7 +40,8 @@ abstract class SupervisionGraph(
     connector: GraphConnector,
     metric: Metric[_ <: AtomicFormula],
     supervisionBuilder: EvidenceBuilder,
-    nodeCache: NodeCache) extends LazyLogging {
+    nodeCache: NodeCache,
+    featureStats: FeatureStats) extends LazyLogging {
 
   protected val (labeledNodes, unlabeledNodes) = nodes.partition(_.isLabeled)
 
@@ -307,21 +309,22 @@ object SupervisionGraph extends LazyLogging {
       enableClusters: Boolean): SPLICE = {
 
     // Group the given data into nodes
-    val nodes = connector match {
+    val currentNodes = connector match {
       case _: kNNTemporalConnector | _: eNNTemporalConnector | _: aNNTemporalConnector =>
         partition(mln, modes, annotationDB, querySignature)
-      case _ => partition(mln, modes, annotationDB, querySignature, clusterUnlabeled = enableClusters)
+      case _ =>
+        partition(mln, modes, annotationDB, querySignature, clusterUnlabeled = enableClusters)
     }
 
     // Partition nodes into labeled and unlabeled. Then find empty unlabeled nodes.
-    val (labeledNodes, unlabeledNodes) = nodes.partition(_.isLabeled)
+    val (labeledNodes, unlabeledNodes) = currentNodes.partition(_.isLabeled)
     val (nonEmptyUnlabeled, emptyUnlabeled) = unlabeledNodes.partition(_.nonEmpty)
 
     logger.info(s"${mln.clauses.length} clauses found in background knowledge.")
 
-    // Use background knowledge to remove uninteresting or empty labelled nodes
-    val cleanedLabeled = labeledNodes.filterNot { n =>
-      n.isEmpty || mln.clauses.exists(_.subsumes(n.clause.get))
+    // Remove empty labelled nodes or nodes subsumed by the background knowledge
+    val pureLabeledNodes = labeledNodes.filterNot { node =>
+      node.isEmpty || mln.clauses.exists(_.subsumes(node.clause.get))
     }
 
     /*
@@ -332,7 +335,7 @@ object SupervisionGraph extends LazyLogging {
      */
     val startCacheConstruction = System.currentTimeMillis
 
-    val nodeCache = FastNodeCache(querySignature) ++ cleanedLabeled
+    val nodeCache = FastNodeCache(querySignature) ++ pureLabeledNodes
     val uniqueLabeled = nodeCache.collectNodes
 
     logger.info(msecTimeToTextUntilNow(s"Cache constructed in: ", startCacheConstruction))
@@ -345,6 +348,9 @@ object SupervisionGraph extends LazyLogging {
 
     if (emptyUnlabeled.nonEmpty)
       logger.warn(s"Found ${emptyUnlabeled.length} empty unlabeled nodes. Set them to FALSE.")
+
+    val pureNodes = pureLabeledNodes ++ nonEmptyUnlabeled
+    logger.info(s"Found ${pureNodes.length} pure labelled and unlabeled nodes.")
 
     /*
      * Create an annotation builder and append every query atom that is TRUE or FALSE,
@@ -363,9 +369,10 @@ object SupervisionGraph extends LazyLogging {
       uniqueLabeled ++ nonEmptyUnlabeled,
       querySignature,
       connector,
-      metric ++ mln.evidence ++ nodes.flatMap(n => IndexedSeq.fill(n.clusterSize)(n.atoms)),
+      metric ++ mln.evidence ++ pureNodes.flatMap(n => IndexedSeq.fill(n.clusterSize)(n.atoms)),
       annotationBuilder,
       nodeCache,
+      FeatureStats.empty ++ pureNodes,
       solver,
       enableClusters
     )
@@ -397,21 +404,21 @@ object SupervisionGraph extends LazyLogging {
       enableClusters: Boolean): NNGraph = {
 
     // Group the given data into nodes
-    val nodes = connector match {
+    val currentNodes = connector match {
       case _: kNNTemporalConnector | _: eNNTemporalConnector | _: aNNTemporalConnector =>
         partition(mln, modes, annotationDB, querySignature)
       case _ => partition(mln, modes, annotationDB, querySignature, clusterUnlabeled = enableClusters)
     }
 
     // Partition nodes into labeled and unlabeled. Then find empty unlabeled nodes.
-    val (labeledNodes, unlabeledNodes) = nodes.partition(_.isLabeled)
+    val (labeledNodes, unlabeledNodes) = currentNodes.partition(_.isLabeled)
     val (nonEmptyUnlabeled, emptyUnlabeled) = unlabeledNodes.partition(_.nonEmpty)
 
     logger.info(s"${mln.clauses.length} clauses found in background knowledge.")
 
-    // Use background knowledge to remove uninteresting or empty labelled nodes
-    val cleanedLabeled = labeledNodes.filterNot { n =>
-      n.isEmpty || mln.clauses.exists(_.subsumes(n.clause.get))
+    // Remove empty labelled nodes or nodes subsumed by the background knowledge
+    val pureLabeledNodes = labeledNodes.filterNot { node =>
+      node.isEmpty || mln.clauses.exists(_.subsumes(node.clause.get))
     }
 
     /*
@@ -422,7 +429,7 @@ object SupervisionGraph extends LazyLogging {
      */
     val startCacheConstruction = System.currentTimeMillis
 
-    val nodeCache = FastNodeCache(querySignature) ++ cleanedLabeled
+    val nodeCache = FastNodeCache(querySignature) ++ pureLabeledNodes
     val uniqueLabeled = nodeCache.collectNodes
 
     logger.info(msecTimeToTextUntilNow(s"Cache constructed in: ", startCacheConstruction))
@@ -435,6 +442,9 @@ object SupervisionGraph extends LazyLogging {
 
     if (emptyUnlabeled.nonEmpty)
       logger.warn(s"Found ${emptyUnlabeled.length} empty unlabeled nodes. Set them to FALSE.")
+
+    val pureNodes = pureLabeledNodes ++ nonEmptyUnlabeled
+    logger.info(s"Found ${pureNodes.length} pure labelled and unlabeled nodes.")
 
     /*
      * Create an annotation builder and append every query atom that is TRUE or FALSE,
@@ -453,9 +463,10 @@ object SupervisionGraph extends LazyLogging {
       uniqueLabeled ++ nonEmptyUnlabeled,
       querySignature,
       connector,
-      metric ++ mln.evidence ++ nodes.flatMap(n => IndexedSeq.fill(n.clusterSize)(n.atoms)),
+      metric ++ mln.evidence ++ pureNodes.flatMap(n => IndexedSeq.fill(n.clusterSize)(n.atoms)),
       annotationBuilder,
       nodeCache,
+      FeatureStats.empty ++ pureNodes,
       enableClusters
     )
   }
@@ -476,7 +487,7 @@ object SupervisionGraph extends LazyLogging {
     * @param enableClusters enables clustering of unlabeled examples
     * @return a nearest neighbor graph instance
     */
-  def extendedNearestNeighbor(
+  def extNearestNeighbor(
       mln: MLN,
       modes: ModeDeclarations,
       annotationDB: EvidenceDB,
@@ -486,21 +497,21 @@ object SupervisionGraph extends LazyLogging {
       enableClusters: Boolean): ENNGraph = {
 
     // Group the given data into nodes
-    val nodes = connector match {
+    val currentNodes = connector match {
       case _: kNNTemporalConnector | _: eNNTemporalConnector | _: aNNTemporalConnector =>
         partition(mln, modes, annotationDB, querySignature)
       case _ => partition(mln, modes, annotationDB, querySignature, clusterUnlabeled = enableClusters)
     }
 
     // Partition nodes into labeled and unlabeled. Then find empty unlabeled nodes.
-    val (labeledNodes, unlabeledNodes) = nodes.partition(_.isLabeled)
+    val (labeledNodes, unlabeledNodes) = currentNodes.partition(_.isLabeled)
     val (nonEmptyUnlabeled, emptyUnlabeled) = unlabeledNodes.partition(_.nonEmpty)
 
     logger.info(s"${mln.clauses.length} clauses found in background knowledge.")
 
-    // Use background knowledge to remove uninteresting or empty labelled nodes
-    val cleanedLabeled = labeledNodes.filterNot { n =>
-      n.isEmpty || mln.clauses.exists(_.subsumes(n.clause.get))
+    // Use background knowledge to remove empty labelled nodes or nodes subsumed by the background knowledge
+    val pureLabeledNodes = labeledNodes.filterNot { node =>
+      node.isEmpty || mln.clauses.exists(_.subsumes(node.clause.get))
     }
 
     /*
@@ -511,7 +522,7 @@ object SupervisionGraph extends LazyLogging {
      */
     val startCacheConstruction = System.currentTimeMillis
 
-    val nodeCache = FastNodeCache(querySignature) ++ cleanedLabeled
+    val nodeCache = FastNodeCache(querySignature) ++ pureLabeledNodes
     val uniqueLabeled = nodeCache.collectNodes
 
     logger.info(msecTimeToTextUntilNow(s"Cache constructed in: ", startCacheConstruction))
@@ -524,6 +535,9 @@ object SupervisionGraph extends LazyLogging {
 
     if (emptyUnlabeled.nonEmpty)
       logger.warn(s"Found ${emptyUnlabeled.length} empty unlabeled nodes. Set them to FALSE.")
+
+    val pureNodes = pureLabeledNodes ++ nonEmptyUnlabeled
+    logger.info(s"Found ${pureNodes.length} pure labelled and unlabeled nodes.")
 
     /*
      * Create an annotation builder and append every query atom that is TRUE or FALSE,
@@ -542,9 +556,10 @@ object SupervisionGraph extends LazyLogging {
       uniqueLabeled ++ nonEmptyUnlabeled,
       querySignature,
       connector,
-      metric ++ mln.evidence ++ nodes.flatMap(n => IndexedSeq.fill(n.clusterSize)(n.atoms)),
+      metric ++ mln.evidence ++ pureNodes.flatMap(n => IndexedSeq.fill(n.clusterSize)(n.atoms)),
       annotationBuilder,
       nodeCache,
+      FeatureStats.empty ++ pureNodes,
       enableClusters
     )
   }
@@ -577,21 +592,21 @@ object SupervisionGraph extends LazyLogging {
       memory: Int): StreamingGraph = {
 
     // Group the given data into nodes
-    val nodes = connector match {
+    val currentNodes = connector match {
       case _: kNNTemporalConnector | _: eNNTemporalConnector | _: aNNTemporalConnector =>
         partition(mln, modes, annotationDB, querySignature)
-      case _ => logger.fatal("Temporal label propagation required a temporal connection strategy!")
+      case _ => logger.fatal("Temporal label propagation requires a temporal connection strategy!")
     }
 
     // Partition nodes into labeled and unlabeled. Then find empty unlabeled nodes.
-    val (labeledNodes, unlabeledNodes) = nodes.partition(_.isLabeled)
+    val (labeledNodes, unlabeledNodes) = currentNodes.partition(_.isLabeled)
     val (nonEmptyUnlabeled, emptyUnlabeled) = unlabeledNodes.partition(_.nonEmpty)
 
     logger.info(s"${mln.clauses.length} clauses found in background knowledge.")
 
-    // Use background knowledge to remove uninteresting or empty labelled nodes
-    val cleanedLabeled = labeledNodes.filterNot { n =>
-      n.isEmpty || mln.clauses.exists(_.subsumes(n.clause.get))
+    // Use background knowledge to remove empty labelled nodes or nodes subsumed by the background knowledge
+    val pureLabeledNodes = labeledNodes.filterNot { node =>
+      node.isEmpty || mln.clauses.exists(_.subsumes(node.clause.get))
     }
 
     /*
@@ -602,7 +617,7 @@ object SupervisionGraph extends LazyLogging {
      */
     val startCacheConstruction = System.currentTimeMillis
 
-    val nodeCache = FastNodeCache(querySignature) ++ cleanedLabeled
+    val nodeCache = FastNodeCache(querySignature) ++ pureLabeledNodes
     val uniqueLabeled = nodeCache.collectNodes
 
     logger.info(msecTimeToTextUntilNow(s"Cache constructed in: ", startCacheConstruction))
@@ -615,6 +630,9 @@ object SupervisionGraph extends LazyLogging {
 
     if (emptyUnlabeled.nonEmpty)
       logger.warn(s"Found ${emptyUnlabeled.length} empty unlabeled nodes. Set them to FALSE.")
+
+    val pureNodes = pureLabeledNodes ++ nonEmptyUnlabeled
+    logger.info(s"Found ${pureNodes.length} pure labelled and unlabeled nodes.")
 
     /*
      * Create an annotation builder and append every query atom that is TRUE or FALSE,
@@ -633,9 +651,10 @@ object SupervisionGraph extends LazyLogging {
       uniqueLabeled ++ nonEmptyUnlabeled,
       querySignature,
       connector,
-      metric ++ mln.evidence ++ nodes.map(_.atoms),
+      metric ++ mln.evidence ++ pureNodes.map(_.atoms),
       annotationBuilder,
       nodeCache,
+      FeatureStats.empty ++ pureNodes,
       solver,
       IndexedSeq.empty,
       DenseMatrix.zeros[Double](2, 2),

@@ -85,7 +85,7 @@ case class Node(
   /**
     * @return the current node as positive.
     */
-  def toPositive: Node =
+  def toPositive: Node = {
     if (isPositive) this
     else Node(
       EvidenceAtom.asTrue(query.symbol, query.terms),
@@ -96,11 +96,12 @@ case class Node(
       orderIndex,
       partitionIndices
     )
+  }
 
   /**
     * @return the current node as negative.
     */
-  def toNegative: Node =
+  def toNegative: Node = {
     if (isNegative) this
     else Node(
       EvidenceAtom.asFalse(query.symbol, query.terms),
@@ -111,6 +112,25 @@ case class Node(
       orderIndex,
       partitionIndices
     )
+  }
+
+  /**
+    * Generalize node by removing a set of given atom signatures.
+    *
+    * @param signatures a set of signatures
+    * @return a generalized node
+    */
+  def generalise(signatures: Set[AtomSignature]): Node = {
+    Node(
+      query,
+      evidence.filterNot(a => signatures.contains(a.signature)),
+      clause.map(c => Clause(c.literals.filterNot(l => signatures.contains(l.sentence.signature)))),
+      body.map(c => Clause(c.literals.filterNot(l => signatures.contains(l.sentence.signature)))),
+      head,
+      orderedTerm,
+      partitionIndices
+    )
+  }
 
   /**
     * @return always false
@@ -166,14 +186,18 @@ case class Node(
     * @return a textual representation for the node
     */
   def toText: String = {
-    if (isUnlabeled) s"? :- ${literals.toList
-      .sortBy(l => l.arity + l.sentence.symbol)
-      .map(_.negate.toText)
-      .mkString(" ^ ")}"
-    else s"${if (isNegative) "!" else ""}${head.toText} :- ${literals.toList
-      .sortBy(l => l.arity + l.sentence.symbol)
-      .map(_.negate.toText)
-      .mkString(" ^ ")}"
+    if (isUnlabeled) s"? :- ${
+      literals.toList
+        .sortBy(l => l.arity + l.sentence.symbol)
+        .map(_.negate.toText)
+        .mkString(" ^ ")
+    }"
+    else s"${if (isNegative) "!" else ""}${head.toText} :- ${
+      literals.toList
+        .sortBy(l => l.arity + l.sentence.symbol)
+        .map(_.negate.toText)
+        .mkString(" ^ ")
+    }"
   }
 
   /**

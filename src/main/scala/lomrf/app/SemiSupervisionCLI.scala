@@ -349,7 +349,7 @@ object SemiSupervisionCLI extends CLIApp {
               SupervisionGraph.nearestNeighbor(mln, modes, annotationDB, querySignature, connector, distance, _cluster)
           case None if _solver == EXT_NN =>
             supervisionGraphs += querySignature ->
-              SupervisionGraph.extendedNearestNeighbor(mln, modes, annotationDB, querySignature, connector, distance, _cluster)
+              SupervisionGraph.extNearestNeighbor(mln, modes, annotationDB, querySignature, connector, distance, _cluster)
         }
       }
 
