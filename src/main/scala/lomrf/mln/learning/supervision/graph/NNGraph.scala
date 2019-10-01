@@ -73,31 +73,32 @@ final class NNGraph private[graph] (
 
     val startSolution = System.currentTimeMillis
 
-    val labeledEvidenceAtoms = unlabeledNodes.zipWithIndex.flatMap { case (node, i) =>
+    val labeledEvidenceAtoms = unlabeledNodes.zipWithIndex.flatMap {
+      case (node, i) =>
 
-      // Find all connected labeled nearest neighbors
-      val nearest = W(i, ::).t.findAll(_ != UNCONNECTED).map { j =>
-        val labeledNeighbor = labeledNodes(j)
-        val counts = nodeCache.getOrElse(labeledNeighbor, logger.fatal(s"Pattern ${node.toText} not found."))
-        (W(i, j), labeledNeighbor.isPositive, counts)
-      }
-
-      // In case no nearest neighbors exist, assume node is negative
-      if (nearest.isEmpty) node.labelUsingValue(false)
-      else {
-        val (posCounts, negCounts) = nearest.foldLeft(0L -> 0L) {
-          case ((p, n), (_, isPos, counts)) =>
-            if (isPos) (p + counts, n)
-            else (p, n + counts)
+        // Find all connected labeled nearest neighbors
+        val nearest = W(i, ::).t.findAll(_ != UNCONNECTED).map { j =>
+          val labeledNeighbor = labeledNodes(j)
+          val counts = nodeCache.getOrElse(labeledNeighbor, logger.fatal(s"Pattern ${node.toText} not found."))
+          (W(i, j), labeledNeighbor.isPositive, counts)
         }
 
-        val truthValue =
-          if (posCounts > negCounts) true
-          else if (negCounts > posCounts) false
-          else nearest.maxBy(_._1)._2
+        // In case no nearest neighbors exist, assume node is negative
+        if (nearest.isEmpty) node.labelUsingValue(false)
+        else {
+          val (posCounts, negCounts) = nearest.foldLeft(0L -> 0L) {
+            case ((p, n), (_, isPos, counts)) =>
+              if (isPos) (p + counts, n)
+              else (p, n + counts)
+          }
 
-        node.labelUsingValue(truthValue)
-      }
+          val truthValue =
+            if (posCounts > negCounts) true
+            else if (negCounts > posCounts) false
+            else nearest.maxBy(_._1)._2
+
+          node.labelUsingValue(truthValue)
+        }
     }
 
     logger.info(msecTimeToTextUntilNow(s"Labeling solution found in: ", startSolution))

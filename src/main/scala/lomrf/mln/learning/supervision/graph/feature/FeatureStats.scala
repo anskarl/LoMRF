@@ -229,6 +229,25 @@ case class FeatureStats(
     }.toMap
   }
 
+  def computeEntropy(nodes: Seq[Node], cache: Option[NodeCache] = None): Map[AtomSignature, Double] = {
+
+    val featureCounts = nodes.foldLeft(Map.empty[AtomSignature, Double]) {
+      case (counts, node) =>
+        val freq = cache.map(_.getOrElse(node, 0).toDouble).getOrElse(1.0)
+        node.signatures.foldLeft(counts) {
+          case (map, sig) =>
+            map.updated(sig, counts.getOrElse(sig, 0.0) + freq)
+        }
+    }
+
+    val total = nodes.map(n => cache.map(_.getOrElse(n, 0).toDouble).getOrElse(1.0)).sum
+
+    featureCounts.keys.toList.sortBy(_.symbol).map { f1 =>
+      val pf1 = featureCounts(f1) / total
+      f1 -> entropy(pf1, 1 - pf1)
+    }.toMap
+  }
+
   def computeRedundancy(nodes: Seq[Node], cache: Option[NodeCache]): Map[AtomSignature, Map[AtomSignature, Double]] = {
 
     val featureCounts = nodes.foldLeft(Map.empty[AtomSignature, Double]) {
@@ -283,7 +302,34 @@ case class FeatureStats(
     }.toMap
   }
 
-  def computeConstraintScore(nodes: Seq[Node]): Map[AtomSignature, Double] = ???
+  def computeConstraintScore(nodes: Seq[Node], cache: Option[NodeCache]): Map[AtomSignature, Double] = {
+    require(nodes.forall(_.isLabeled), logger.fatal("All nodes should be labeled in order to compute IG!"))
+
+    val (positives, negatives) = nodes.partition(_.isPositive)
+
+    nodes.flatMap(_.signatures).map { signature =>
+
+      // MUST LINK
+      val a = positives.combinations(2).map { pair =>
+        if (pair.head.signatures.contains(signature) == pair.last.signatures.contains(signature)) 0L
+        else cache.map(_.getOrElse(pair.head, 1L)).getOrElse(1L) * cache.map(_.getOrElse(pair.last, 1L)).getOrElse(1L)
+      }.sum
+
+      val b = negatives.combinations(2).map { pair =>
+        if (pair.head.signatures.contains(signature) == pair.last.signatures.contains(signature)) 0L
+        else cache.map(_.getOrElse(pair.head, 1L)).getOrElse(1L) * cache.map(_.getOrElse(pair.last, 1L)).getOrElse(1L)
+      }.sum
+
+      // CANNOT LINK
+      val c = positives.map { x =>
+        negatives.map { y =>
+          if (x.signatures.contains(signature) == y.signatures.contains(signature)) 0L else 1L
+        }.sum
+      }.sum
+
+      signature -> (a + b) / c.toDouble
+    }.toMap
+  }
 }
 
 object FeatureStats {

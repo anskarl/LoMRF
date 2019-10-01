@@ -44,7 +44,7 @@ import lomrf.logic.LogicOps._
   * @param nodeCache a node cache for storing labelled nodes
   * @param enableClusters enables clustering of unlabeled examples
   */
-final class ExtNNGraph private[graph](
+final class ExtNNGraph private[graph] (
     nodes: IndexedSeq[Node],
     querySignature: AtomSignature,
     connector: GraphConnector,
@@ -79,53 +79,58 @@ final class ExtNNGraph private[graph](
     val P = indexedPos.length
     val N = indexedNeg.length
 
-    val labeledEvidenceAtoms = indexedUnlabeled.flatMap { case (node, j) =>
+    val labeledEvidenceAtoms = indexedUnlabeled.flatMap {
+      case (node, j) =>
 
-      logger.debug(s"Labeling node: ${node.toText}")
+        logger.debug(s"Labeling node: ${node.toText}")
 
-      val n = node.toNegative
-      val p = node.toPositive
+        val n = node.toNegative
+        val p = node.toPositive
 
-      // Generalized class-wise statistic for negative class when node is assumed to be negative
-      val Tnn = (indexedNeg :+ (n, j)).map { case (_, i) =>
-          val nearest = connector.summarize(W(i, ::).t(0 until numberOfLabeled).toArray :+ W(i, j)).toArray
+        // Generalized class-wise statistic for negative class when node is assumed to be negative
+        val Tnn = (indexedNeg :+ (n, j)).map {
+          case (_, i) =>
+            val nearest = connector.summarize(W(i, ::).t(0 until numberOfLabeled).toArray :+ W(i, j)).toArray
 
-          nearest.zip(labeledNodes :+ n).filter {
-            case (w, x) => w > 0 && x.isNegative
-          }.foldLeft(0.0)(_ + _._1) / ((N + 1) * nearest.count(_ > 0))
-      }.sum
+            nearest.zip(labeledNodes :+ n).filter {
+              case (w, x) => w > 0 && x.isNegative
+            }.foldLeft(0.0)(_ + _._1) / ((N + 1) * nearest.count(_ > 0))
+        }.sum
 
-      // Generalized class-wise statistic for negative class when node is assumed to be positive
-      val Tpn = indexedPos.map { case (_, i) =>
-          val nearest = connector.summarize(W(i, ::).t(0 until numberOfLabeled).toArray :+ W(i, j)).toArray
+        // Generalized class-wise statistic for negative class when node is assumed to be positive
+        val Tpn = indexedPos.map {
+          case (_, i) =>
+            val nearest = connector.summarize(W(i, ::).t(0 until numberOfLabeled).toArray :+ W(i, j)).toArray
 
-          nearest.zip(labeledNodes :+ n).filter {
-            case (w, x) => w > 0 && x.isPositive
-          }.foldLeft(0.0)(_ + _._1) / (P * nearest.count(_ > 0)).toDouble
-      }.sum
+            nearest.zip(labeledNodes :+ n).filter {
+              case (w, x) => w > 0 && x.isPositive
+            }.foldLeft(0.0)(_ + _._1) / (P * nearest.count(_ > 0)).toDouble
+        }.sum
 
-      // Generalized class-wise statistic for positive class when node is assumed to be positive
-      val Tpp = (indexedPos :+ (p, j)).map { case (_, i) =>
-          val nearest = connector.summarize(W(i, ::).t(0 until numberOfLabeled).toArray :+ W(i, j)).toArray
+        // Generalized class-wise statistic for positive class when node is assumed to be positive
+        val Tpp = (indexedPos :+ (p, j)).map {
+          case (_, i) =>
+            val nearest = connector.summarize(W(i, ::).t(0 until numberOfLabeled).toArray :+ W(i, j)).toArray
 
-          nearest.zip(labeledNodes :+ p).filter {
-            case (w, x) => w > 0 && x.isPositive
-          }.foldLeft(0.0)(_ + _._1) / ((P + 1) * nearest.count(_ > 0)).toDouble
-      }.sum
+            nearest.zip(labeledNodes :+ p).filter {
+              case (w, x) => w > 0 && x.isPositive
+            }.foldLeft(0.0)(_ + _._1) / ((P + 1) * nearest.count(_ > 0)).toDouble
+        }.sum
 
-      // Generalized class-wise statistic for positive class when node is assumed to be negative
-      val Tnp = indexedNeg.map { case (_, i) =>
-          val nearest = connector.summarize(W(i, ::).t(0 until numberOfLabeled).toArray :+ W(i, j)).toArray
+        // Generalized class-wise statistic for positive class when node is assumed to be negative
+        val Tnp = indexedNeg.map {
+          case (_, i) =>
+            val nearest = connector.summarize(W(i, ::).t(0 until numberOfLabeled).toArray :+ W(i, j)).toArray
 
-          nearest.zip(labeledNodes :+ p).filter {
-            case (w, x) => w > 0 && x.isNegative
-          }.foldLeft(0.0)(_ + _._1) / (N * nearest.count(_ > 0)).toDouble
-      }.sum
+            nearest.zip(labeledNodes :+ p).filter {
+              case (w, x) => w > 0 && x.isNegative
+            }.foldLeft(0.0)(_ + _._1) / (N * nearest.count(_ > 0)).toDouble
+        }.sum
 
-      logger.debug(s"Tnn: $Tnn Tpn: $Tpn Tnp: $Tnp Tpp: $Tpp")
+        logger.debug(s"Tnn: $Tnn Tpn: $Tpn Tnp: $Tnp Tpp: $Tpp")
 
-      if (Tnn + Tpn >= Tnp + Tpp) node.labelUsingValue(false)
-      else node.labelUsingValue(true)
+        if (Tnn + Tpn >= Tnp + Tpp) node.labelUsingValue(false)
+        else node.labelUsingValue(true)
     }
 
     logger.info(msecTimeToTextUntilNow(s"Labeling solution found in: ", startSolution))

@@ -44,6 +44,15 @@ package object graph {
     }.mkString("\n")
   }
 
+  private[graph] def generalise(nodes: IndexedSeq[Node], signatures: Set[AtomSignature]): IndexedSeq[Node] = {
+    nodes.foldLeft(IndexedSeq.empty[Node]) {
+      case (result, node) =>
+        val generalizedNode = node.generalise(signatures)
+        if (generalizedNode.isEmpty || result.exists(_.clause.get =~= generalizedNode.clause.get)) result
+        else result :+ generalizedNode
+    }
+  }
+
   /**
     * Combine maps into a single map by merging their values for shared keys.
     *
