@@ -410,8 +410,10 @@ object SemiSupervisionCLI extends CLIApp {
        * OK, lets store the resulted completed supervision
        */
       if (_compressResults) {
-        val compressedOutput = new PrintStream(
-          new FileOutputStream(s"${currentTrainingFile.getParentFile.getParent}/$resultName.db", true))
+        val compressedOutput =
+          if (step < 1) new PrintStream(s"${currentTrainingFile.getParentFile.getParent}/$resultName.db")
+          else new PrintStream(new FileOutputStream(s"${currentTrainingFile.getParentFile.getParent}/$resultName.db", true))
+
         compressedOutput.println {
           s"""
              |Step ${step + 1} / ${strTrainingFileNames.length}:
