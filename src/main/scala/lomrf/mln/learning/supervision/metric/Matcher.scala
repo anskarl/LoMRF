@@ -37,7 +37,7 @@ import breeze.optimize.linear.KuhnMunkres
   *
   * @see https://en.wikipedia.org/wiki/Assignment_problem
   */
-trait Matcher extends (CostMatrix[Double] => Double)
+trait Matcher extends (CostMatrix[Double] => (Array[Int], Double))
 
 /**
   * The Hungarian matcher is a combinatorial optimization algorithm that solves the assignment problem in
@@ -54,12 +54,12 @@ object HungarianMatcher extends Matcher {
     * @param costMatrix the bipartite graph cost matrix
     * @return the cost of the optimal assignment
     */
-  override def apply(costMatrix: CostMatrix[Double]): Double = {
+  override def apply(costMatrix: CostMatrix[Double]): (Array[Int], Double) = {
     val unmatched = math.abs(costMatrix.length - costMatrix.head.length)
     val maxDimension = math.max(costMatrix.length, costMatrix.head.length)
 
     KuhnMunkres.extractMatching(costMatrix) match {
-      case (_, cost) => (cost + unmatched) / maxDimension
+      case (matches, cost) => matches.toArray -> (cost + unmatched) / maxDimension
     }
   }
 }
@@ -85,6 +85,6 @@ object HausdorffMatcher extends Matcher {
     * @param costMatrix the bipartite graph cost matrix
     * @return the cost of the assignment
     */
-  override def apply(costMatrix: CostMatrix[Double]): Double =
-    math.max(costMatrix.map(_.min).max, costMatrix.transpose.map(_.min).max)
+  override def apply(costMatrix: CostMatrix[Double]): (Array[Int], Double) =
+    Array.empty[Int] -> math.max(costMatrix.map(_.min).max, costMatrix.transpose.map(_.min).max)
 }

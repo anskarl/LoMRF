@@ -115,7 +115,7 @@ trait StructureMetric[A <: AtomicFormula] extends Metric[A] {
     */
   final def distance(xAtomSeq: IndexedSeq[A], yAtomSeq: IndexedSeq[A]): Double = matcher {
     xAtomSeq map (x => yAtomSeq map (y => distance(x, y)))
-  }
+  } match { case (_, cost) => cost }
 }
 
 /**
