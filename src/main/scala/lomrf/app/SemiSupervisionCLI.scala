@@ -137,17 +137,15 @@ object SemiSupervisionCLI extends CLIApp {
         }
     })
 
-  opt("d", "distance", "<binary | atomic | atomic.const | evidence | mass.map | mass.tree | hybrid.map | hybrid.tree>",
+  opt("d", "distance", "<binary | atomic | evidence | mass | hybrid>",
     "Specify a distance over atoms (default is atomic).", {
       v: String =>
         v.trim.toLowerCase match {
           case "binary"      => _distance = DistanceType.Binary
           case "atomic"      => _distance = DistanceType.Atomic
           case "evidence"    => _distance = DistanceType.Evidence
-          case "mass.map"    => _distance = DistanceType.MassMap
-          case "mass.tree"   => _distance = DistanceType.MassTree
-          case "hybrid.map"  => _distance = DistanceType.HybridMap
-          case "hybrid.tree" => _distance = DistanceType.HybridTree
+          case "mass"        => _distance = DistanceType.Mass
+          case "hybrid"      => _distance = DistanceType.Hybrid
           case _             => logger.fatal(s"Unknown distance of type '$v'.")
         }
     }
@@ -269,10 +267,8 @@ object SemiSupervisionCLI extends CLIApp {
     val signatures = kb.predicateSchema.keySet.filter(sig => modes(sig).recall > 0)
 
     val distance: Metric[_ <: AtomicFormula] =
-      if (_distance == DistanceType.MassMap) MassMapMetric(signatures)
-      else if (_distance == DistanceType.MassTree) MassTreeMetric(signatures)
-      else if (_distance == DistanceType.HybridMap) HybridMetric(AtomMetric(HungarianMatcher), MassMapMetric(signatures))
-      else if (_distance == DistanceType.HybridTree) HybridMetric(AtomMetric(HungarianMatcher), MassTreeMetric(signatures))
+      if (_distance == DistanceType.Hybrid) HybridMetric(AtomMetric(HungarianMatcher), MassMetric(signatures))
+      else if (_distance == DistanceType.Mass) MassMetric(signatures)
       else if (_distance == DistanceType.Binary) BinaryMetric(HungarianMatcher)
       else if (_distance == DistanceType.Atomic) AtomMetric(HungarianMatcher)
       else EvidenceMetric(modes, HungarianMatcher)

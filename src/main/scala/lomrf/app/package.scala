@@ -90,9 +90,7 @@ package object app {
     case object Binary extends DistanceType("binary")
     case object Atomic extends DistanceType("atomic")
     case object Evidence extends DistanceType("evidence")
-    case object MassMap extends DistanceType("mass.map")
-    case object MassTree extends DistanceType("mass.tree")
-    case object HybridMap extends DistanceType("hybrid.map")
-    case object HybridTree extends DistanceType("hybrid.tree")
+    case object Mass extends DistanceType("mass")
+    case object Hybrid extends DistanceType("hybrid.tree")
   }
 }
