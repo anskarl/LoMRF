@@ -23,12 +23,13 @@ package lomrf.mln.learning.supervision.graph
 import lomrf.logic._
 import lomrf.util.logging.Implicits._
 import lomrf.mln.learning.supervision.graph.caching.NodeCache
-import lomrf.mln.learning.supervision.graph.feature.FeatureStats
 import lomrf.mln.learning.supervision.metric._
 import lomrf.mln.model._
 import lomrf.util.time._
 import scala.language.existentials
 import lomrf.logic.LogicOps._
+import lomrf.mln.learning.supervision.graph.feature.FeatureStats
+import lomrf.mln.model.builders.EvidenceBuilder
 
 /**
   * NN graph represents a nearest neighbor graph having nodes for a given query signature. These
@@ -44,6 +45,7 @@ import lomrf.logic.LogicOps._
   * @param supervisionBuilder a supervision evidence builder that contains the completed annotation
   * @param nodeCache a node cache for storing labelled nodes
   * @param enableClusters enables clustering of unlabeled examples
+  * @param minNodeSize minimum node process size
   */
 final class NNGraph private[graph] (
     nodes: IndexedSeq[Node],
@@ -53,7 +55,8 @@ final class NNGraph private[graph] (
     supervisionBuilder: EvidenceBuilder,
     nodeCache: NodeCache,
     featureStats: FeatureStats,
-    enableClusters: Boolean)
+    enableClusters: Boolean,
+    minNodeSize: Int)
   extends SupervisionGraph(nodes, querySignature, connector, metric, supervisionBuilder, nodeCache, featureStats) {
 
   protected def optimize(potentials: Map[EvidenceAtom, Double]): Set[EvidenceAtom] = {
@@ -119,7 +122,7 @@ final class NNGraph private[graph] (
 
     // Partition nodes into labeled and unlabeled. Then find empty unlabeled nodes.
     val (labeled, unlabeled) = currentNodes.partition(_.isLabeled)
-    val (nonEmptyUnlabeled, emptyUnlabeled) = unlabeled.partition(_.nonEmpty)
+    val (nonEmptyUnlabeled, emptyUnlabeled) = unlabeled.partition(_.size >= minNodeSize)
 
     // Remove empty labelled nodes or nodes subsumed by the background knowledge
     val pureLabeledNodes = labeled.filterNot { node =>
@@ -162,8 +165,9 @@ final class NNGraph private[graph] (
         metric ++ mln.evidence ++ pureNodes.flatMap(n => IndexedSeq.fill(n.clusterSize)(n.atoms)),
         annotationBuilder,
         nodeCache,
-        featureStats ++ pureNodes,
-        enableClusters)
+        featureStats,
+        enableClusters,
+        minNodeSize)
     } else {
       /*
        * Update the cache using only non empty labeled nodes, i.e., nodes having at least
@@ -189,8 +193,9 @@ final class NNGraph private[graph] (
         metric ++ mln.evidence ++ pureNodes.flatMap(n => IndexedSeq.fill(n.clusterSize)(n.atoms)),
         annotationBuilder,
         updatedNodeCache,
-        featureStats ++ pureNodes,
-        enableClusters)
+        featureStats,
+        enableClusters,
+        minNodeSize)
     }
   }
 }

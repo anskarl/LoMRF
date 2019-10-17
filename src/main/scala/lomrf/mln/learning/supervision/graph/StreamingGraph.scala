@@ -25,9 +25,11 @@ import breeze.linalg.{ DenseMatrix, DenseVector, sum }
 import lomrf.logic.{ AtomSignature, AtomicFormula, EvidenceAtom, FALSE, TRUE }
 import lomrf.mln.learning.supervision.graph.caching.NodeCache
 import lomrf.mln.learning.supervision.metric.Metric
-import lomrf.mln.model.{ EvidenceBuilder, EvidenceDB, MLN, ModeDeclarations }
+import lomrf.mln.model.{ EvidenceDB, MLN, ModeDeclarations }
 import lomrf.util.time.msecTimeToTextUntilNow
 import lomrf.logic.LogicOps._
+import lomrf.mln.learning.supervision.graph.feature.FeatureStats
+import lomrf.mln.model.builders.EvidenceBuilder
 
 final class StreamingGraph private[graph] (
     nodes: IndexedSeq[Node],
@@ -36,11 +38,13 @@ final class StreamingGraph private[graph] (
     metric: Metric[_ <: AtomicFormula],
     supervisionBuilder: EvidenceBuilder,
     nodeCache: NodeCache,
+    featureStats: FeatureStats,
     solver: GraphSolver,
     storedUnlabeled: IndexedSeq[Node],
     previousGraph: GraphMatrix,
-    memory: Int)
-  extends SupervisionGraph(nodes, querySignature, connector, metric, supervisionBuilder, nodeCache) {
+    memory: Int,
+    minNodeSize: Int)
+  extends SupervisionGraph(nodes, querySignature, connector, metric, supervisionBuilder, nodeCache, featureStats) {
 
   private var W = previousGraph
   private val numberOfStoredUnlabeled = storedUnlabeled.length
@@ -157,7 +161,12 @@ final class StreamingGraph private[graph] (
 
     // Partition nodes into labeled and unlabeled. Then find empty unlabeled nodes.
     val (labeled, unlabeled) = currentNodes.partition(_.isLabeled)
-    val (nonEmptyUnlabeled, emptyUnlabeled) = unlabeled.partition(_.nonEmpty)
+    val (nonEmptyUnlabeled, emptyUnlabeled) = unlabeled.partition(_.size >= minNodeSize)
+
+    // Remove empty labelled nodes or nodes subsumed by the background knowledge
+    val pureLabeledNodes = labeled.filterNot { n =>
+      n.isEmpty || mln.clauses.exists(_.subsumes(n.clause.get))
+    }
 
     // Labeled query atoms and empty unlabeled query atoms as FALSE.
     val labeledEntries =
@@ -166,9 +175,8 @@ final class StreamingGraph private[graph] (
     if (emptyUnlabeled.nonEmpty)
       logger.warn(s"Found ${emptyUnlabeled.length} empty unlabeled nodes. Set them to FALSE.")
 
-    val cleanedLabeled = labeled.filterNot { n =>
-      mln.clauses.exists(_.subsumes(n.clause.get))
-    }
+    val pureNodes = pureLabeledNodes ++ nonEmptyUnlabeled
+    logger.info(s"Found ${pureLabeledNodes.length} pure labelled and unlabeled nodes.")
 
     /*
      * Create an annotation builder and append every query atom that is TRUE or FALSE,
@@ -193,18 +201,20 @@ final class StreamingGraph private[graph] (
      * case try to separate old labeled nodes that are dissimilar to the ones in the current batch
      * of data (the current supervision graph). Moreover remove noisy nodes using the Hoeffding bound.
      */
-    if (cleanedLabeled.isEmpty)
+    if (pureLabeledNodes.isEmpty)
       new StreamingGraph(
         labeledNodes ++ nonEmptyUnlabeled,
         querySignature,
         connector,
-        metric ++ mln.evidence ++ currentNodes.map(_.atoms),
+        metric ++ mln.evidence ++ pureNodes.map(_.atoms),
         annotationBuilder,
         nodeCache,
+        featureStats,
         solver,
         updatedStoredUnlabeled,
         W.copy,
-        memory)
+        memory,
+        minNodeSize)
     else {
       /*
        * Update the cache using only non empty labeled nodes, i.e., nodes having at least
@@ -215,7 +225,7 @@ final class StreamingGraph private[graph] (
       val startCacheUpdate = System.currentTimeMillis
 
       var updatedNodeCache = nodeCache
-      updatedNodeCache ++= cleanedLabeled
+      updatedNodeCache ++= pureLabeledNodes
       val cleanedUniqueLabeled = updatedNodeCache.collectNodes
 
       logger.info(msecTimeToTextUntilNow(s"Cache updated in: ", startCacheUpdate))
@@ -234,13 +244,15 @@ final class StreamingGraph private[graph] (
         cleanedUniqueLabeled ++ nonEmptyUnlabeled,
         querySignature,
         connector,
-        metric ++ mln.evidence ++ currentNodes.map(_.atoms),
+        metric ++ mln.evidence ++ pureNodes.map(_.atoms),
         annotationBuilder,
         updatedNodeCache,
+        featureStats,
         solver,
         updatedStoredUnlabeled,
         W.copy,
-        memory
+        memory,
+        minNodeSize
       )
     }
   }

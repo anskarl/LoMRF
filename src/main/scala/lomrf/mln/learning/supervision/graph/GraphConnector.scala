@@ -40,6 +40,12 @@ trait GraphConnector {
   def makeSparse(neighbors: DenseVector[Double], L: Int = 0): DenseVector[Double]
 
   /**
+    * @param neighbors a vector containing the edge values of neighboring nodes
+    * @return a sparser vector containing the retained neighbor edges
+    */
+  def makeSparse(neighbors: Array[Double]): DenseVector[Double] = makeSparse(DenseVector(neighbors))
+
+  /**
     * Compute the edge value for a pair of nodes.
     *
     * @param x a node

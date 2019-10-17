@@ -296,6 +296,7 @@ object SupervisionGraph extends LazyLogging {
     * @param metric a metric for atomic formula
     * @param solver a graph solver
     * @param enableClusters enables clustering of unlabeled examples
+    * @param minNodeSize minimum node process size
     * @return a SPLICE supervision graph instance
     */
   def SPLICE(
@@ -306,7 +307,8 @@ object SupervisionGraph extends LazyLogging {
       connector: GraphConnector,
       metric: Metric[_ <: AtomicFormula],
       solver: GraphSolver,
-      enableClusters: Boolean): SPLICE = {
+      enableClusters: Boolean,
+      minNodeSize: Int): SPLICE = {
 
     // Group the given data into nodes
     val currentNodes = connector match {
@@ -318,7 +320,7 @@ object SupervisionGraph extends LazyLogging {
 
     // Partition nodes into labeled and unlabeled. Then find empty unlabeled nodes.
     val (labeledNodes, unlabeledNodes) = currentNodes.partition(_.isLabeled)
-    val (nonEmptyUnlabeled, emptyUnlabeled) = unlabeledNodes.partition(_.nonEmpty)
+    val (nonEmptyUnlabeled, emptyUnlabeled) = unlabeledNodes.partition(_.size >= minNodeSize)
 
     logger.info(s"${mln.clauses.length} clauses found in background knowledge.")
 
@@ -372,9 +374,10 @@ object SupervisionGraph extends LazyLogging {
       metric ++ mln.evidence ++ pureNodes.flatMap(n => IndexedSeq.fill(n.clusterSize)(n.atoms)),
       annotationBuilder,
       nodeCache,
-      FeatureStats.empty ++ pureNodes,
+      FeatureStats.empty,
       solver,
-      enableClusters
+      enableClusters,
+      minNodeSize
     )
   }
 
@@ -392,6 +395,7 @@ object SupervisionGraph extends LazyLogging {
     * @param connector a graph connector
     * @param metric a metric for atomic formula
     * @param enableClusters enables clustering of unlabeled examples
+    * @param minNodeSize minimum node process size
     * @return a nearest neighbor graph instance
     */
   def nearestNeighbor(
@@ -401,7 +405,8 @@ object SupervisionGraph extends LazyLogging {
       querySignature: AtomSignature,
       connector: GraphConnector,
       metric: Metric[_ <: AtomicFormula],
-      enableClusters: Boolean): NNGraph = {
+      enableClusters: Boolean,
+      minNodeSize: Int): NNGraph = {
 
     // Group the given data into nodes
     val currentNodes = connector match {
@@ -412,7 +417,7 @@ object SupervisionGraph extends LazyLogging {
 
     // Partition nodes into labeled and unlabeled. Then find empty unlabeled nodes.
     val (labeledNodes, unlabeledNodes) = currentNodes.partition(_.isLabeled)
-    val (nonEmptyUnlabeled, emptyUnlabeled) = unlabeledNodes.partition(_.nonEmpty)
+    val (nonEmptyUnlabeled, emptyUnlabeled) = unlabeledNodes.partition(_.size >= minNodeSize)
 
     logger.info(s"${mln.clauses.length} clauses found in background knowledge.")
 
@@ -466,8 +471,9 @@ object SupervisionGraph extends LazyLogging {
       metric ++ mln.evidence ++ pureNodes.flatMap(n => IndexedSeq.fill(n.clusterSize)(n.atoms)),
       annotationBuilder,
       nodeCache,
-      FeatureStats.empty ++ pureNodes,
-      enableClusters
+      FeatureStats.empty,
+      enableClusters,
+      minNodeSize
     )
   }
 
@@ -485,6 +491,7 @@ object SupervisionGraph extends LazyLogging {
     * @param connector a graph connector
     * @param metric a metric for atomic formula
     * @param enableClusters enables clustering of unlabeled examples
+    * @param minNodeSize minimum node process size
     * @return a nearest neighbor graph instance
     */
   def extNearestNeighbor(
@@ -494,7 +501,8 @@ object SupervisionGraph extends LazyLogging {
       querySignature: AtomSignature,
       connector: GraphConnector,
       metric: Metric[_ <: AtomicFormula],
-      enableClusters: Boolean): ExtNNGraph = {
+      enableClusters: Boolean,
+      minNodeSize: Int): ExtNNGraph = {
 
     // Group the given data into nodes
     val currentNodes = connector match {
@@ -505,7 +513,7 @@ object SupervisionGraph extends LazyLogging {
 
     // Partition nodes into labeled and unlabeled. Then find empty unlabeled nodes.
     val (labeledNodes, unlabeledNodes) = currentNodes.partition(_.isLabeled)
-    val (nonEmptyUnlabeled, emptyUnlabeled) = unlabeledNodes.partition(_.nonEmpty)
+    val (nonEmptyUnlabeled, emptyUnlabeled) = unlabeledNodes.partition(_.size >= minNodeSize)
 
     logger.info(s"${mln.clauses.length} clauses found in background knowledge.")
 
@@ -559,8 +567,9 @@ object SupervisionGraph extends LazyLogging {
       metric ++ mln.evidence ++ pureNodes.flatMap(n => IndexedSeq.fill(n.clusterSize)(n.atoms)),
       annotationBuilder,
       nodeCache,
-      FeatureStats.empty ++ pureNodes,
-      enableClusters
+      FeatureStats.empty,
+      enableClusters,
+      minNodeSize
     )
   }
 
@@ -579,6 +588,7 @@ object SupervisionGraph extends LazyLogging {
     * @param metric a metric for atomic formula
     * @param solver a graph solver
     * @param memory the graph memory (number of unlabeled nodes)
+    * @param minNodeSize minimum node process size
     * @return a temporal label propagation graph instance
     */
   def TLP(
@@ -589,7 +599,8 @@ object SupervisionGraph extends LazyLogging {
       connector: GraphConnector,
       metric: Metric[_ <: AtomicFormula],
       solver: GraphSolver,
-      memory: Int): StreamingGraph = {
+      memory: Int,
+      minNodeSize: Int): StreamingGraph = {
 
     // Group the given data into nodes
     val currentNodes = connector match {
@@ -600,7 +611,7 @@ object SupervisionGraph extends LazyLogging {
 
     // Partition nodes into labeled and unlabeled. Then find empty unlabeled nodes.
     val (labeledNodes, unlabeledNodes) = currentNodes.partition(_.isLabeled)
-    val (nonEmptyUnlabeled, emptyUnlabeled) = unlabeledNodes.partition(_.nonEmpty)
+    val (nonEmptyUnlabeled, emptyUnlabeled) = unlabeledNodes.partition(_.size >= minNodeSize)
 
     logger.info(s"${mln.clauses.length} clauses found in background knowledge.")
 
@@ -654,11 +665,12 @@ object SupervisionGraph extends LazyLogging {
       metric ++ mln.evidence ++ pureNodes.map(_.atoms),
       annotationBuilder,
       nodeCache,
-      FeatureStats.empty ++ pureNodes,
+      FeatureStats.empty,
       solver,
       IndexedSeq.empty,
       DenseMatrix.zeros[Double](2, 2),
-      memory
+      memory,
+      minNodeSize
     )
   }
 }

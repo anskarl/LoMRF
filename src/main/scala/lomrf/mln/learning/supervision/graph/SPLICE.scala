@@ -23,9 +23,11 @@ package lomrf.mln.learning.supervision.graph
 import lomrf.logic._
 import breeze.linalg.DenseVector
 import lomrf.mln.learning.supervision.graph.caching.NodeCache
+import lomrf.mln.learning.supervision.graph.feature.FeatureStats
 import lomrf.mln.learning.supervision.metric._
 import lomrf.mln.model._
 import lomrf.util.time._
+import lomrf.mln.model.builders.EvidenceBuilder
 import scala.language.existentials
 import lomrf.logic.LogicOps._
 
@@ -44,6 +46,7 @@ import lomrf.logic.LogicOps._
   * @param nodeCache a node cache for storing labelled nodes
   * @param solver a graph solver for supervision completion
   * @param enableClusters enables clustering of unlabeled examples
+  * @param minNodeSize minimum node process size
   */
 final class SPLICE private[graph] (
     nodes: IndexedSeq[Node],
@@ -52,9 +55,11 @@ final class SPLICE private[graph] (
     metric: Metric[_ <: AtomicFormula],
     supervisionBuilder: EvidenceBuilder,
     nodeCache: NodeCache,
+    featureStats: FeatureStats,
     solver: GraphSolver,
-    enableClusters: Boolean)
-  extends SupervisionGraph(nodes, querySignature, connector, metric, supervisionBuilder, nodeCache) {
+    enableClusters: Boolean,
+    minNodeSize: Int)
+  extends SupervisionGraph(nodes, querySignature, connector, metric, supervisionBuilder, nodeCache, featureStats) {
 
   protected def optimize(potentials: Map[EvidenceAtom, Double]): Set[EvidenceAtom] = {
 
@@ -115,10 +120,10 @@ final class SPLICE private[graph] (
 
     // Partition nodes into labeled and unlabeled. Then find empty unlabeled nodes.
     val (labeled, unlabeled) = currentNodes.partition(_.isLabeled)
-    val (nonEmptyUnlabeled, emptyUnlabeled) = unlabeled.partition(_.nonEmpty)
+    val (nonEmptyUnlabeled, emptyUnlabeled) = unlabeled.partition(_.size >= minNodeSize)
 
-    // Use background knowledge to remove uninteresting or empty labelled nodes
-    val cleanedLabeled = labeled.filterNot { n =>
+    // Remove empty labelled nodes or nodes subsumed by the background knowledge
+    val pureLabeledNodes = labeled.filterNot { n =>
       n.isEmpty || mln.clauses.exists(_.subsumes(n.clause.get))
     }
 
@@ -128,6 +133,9 @@ final class SPLICE private[graph] (
 
     if (emptyUnlabeled.nonEmpty)
       logger.warn(s"Found ${emptyUnlabeled.length} empty unlabeled nodes. Set them to FALSE.")
+
+    val pureNodes = pureLabeledNodes ++ nonEmptyUnlabeled
+    logger.info(s"Found ${pureLabeledNodes.length} pure labelled and unlabeled nodes.")
 
     /*
      * Create an annotation builder and append every query atom that is TRUE or FALSE,
@@ -147,16 +155,18 @@ final class SPLICE private[graph] (
      * case try to separate old labeled nodes that are dissimilar to the ones in the current batch
      * of data (the current supervision graph). Moreover remove noisy nodes using the Hoeffding bound.
      */
-    if (cleanedLabeled.isEmpty)
+    if (pureLabeledNodes.isEmpty)
       new SPLICE(
         labeledNodes ++ nonEmptyUnlabeled,
         querySignature,
         connector,
-        metric ++ mln.evidence ++ currentNodes.flatMap(n => IndexedSeq.fill(n.clusterSize)(n.atoms)),
+        metric ++ mln.evidence ++ pureNodes.flatMap(n => IndexedSeq.fill(n.clusterSize)(n.atoms)),
         annotationBuilder,
         nodeCache,
+        featureStats,
         solver,
-        enableClusters)
+        enableClusters,
+        minNodeSize)
     else {
       /*
        * Update the cache using only non empty labeled nodes, i.e., nodes having at least
@@ -167,7 +177,7 @@ final class SPLICE private[graph] (
       val startCacheUpdate = System.currentTimeMillis
 
       var updatedNodeCache = nodeCache
-      updatedNodeCache ++= cleanedLabeled
+      updatedNodeCache ++= pureLabeledNodes
       val cleanedUniqueLabeled = updatedNodeCache.collectNodes
 
       logger.info(msecTimeToTextUntilNow(s"Cache updated in: ", startCacheUpdate))
@@ -179,11 +189,13 @@ final class SPLICE private[graph] (
         cleanedUniqueLabeled ++ nonEmptyUnlabeled,
         querySignature,
         connector,
-        metric ++ mln.evidence ++ currentNodes.flatMap(n => IndexedSeq.fill(n.clusterSize)(n.atoms)),
+        metric ++ mln.evidence ++ pureNodes.flatMap(n => IndexedSeq.fill(n.clusterSize)(n.atoms)),
         annotationBuilder,
         updatedNodeCache,
+        featureStats,
         solver,
-        enableClusters)
+        enableClusters,
+        minNodeSize)
     }
   }
 }
