@@ -14,3 +14,5 @@ addSbtPlugin("de.heikoseeberger" % "sbt-header" % "5.2.0")
 addSbtPlugin("se.marcuslonnberg" % "sbt-docker" % "1.5.0")
 
 addSbtPlugin("org.scalariform" % "sbt-scalariform" % "1.8.3")
+
+addSbtPlugin("com.jsuereth" % "sbt-pgp" % "2.0.0")

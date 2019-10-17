@@ -76,6 +76,7 @@ object LoMRFBuild extends AutoPlugin {
         ScalaSettings ++
         JavaSettings ++
         PackagingOptions ++
+        PublishingSettings ++
         DockerSettings ++
         Formatting.formatSettings
     }
@@ -84,7 +85,7 @@ object LoMRFBuild extends AutoPlugin {
   private lazy val baseProjectSettings: Seq[Setting[_]] = Seq(
 
     organization := "com.github.anskarl",
-    scalaVersion := "2.12.8",
+    scalaVersion := "2.12.9",
     crossScalaVersions := Seq("2.12.9", "2.11.12"),
     name := "LoMRF",
     maintainer := "Anastasios Skarlatidis",
@@ -94,7 +95,7 @@ object LoMRFBuild extends AutoPlugin {
     ),
     headerMappings := headerMappings.value + (HeaderFileType.scala -> HeaderCommentStyle.cStyleBlockComment),
     headerLicense := Some(HeaderLicense.Custom(logo + "\n\n")),
-    autoScalaLibrary := false,
+    autoScalaLibrary := true,
     managedScalaInstance := true,
 
     // fork a new JVM for 'run' and 'test:run'
@@ -108,6 +109,7 @@ object LoMRFBuild extends AutoPlugin {
     publishTo := Some(Resolver.file("file",  new File(Path.userHome.absolutePath+"/.m2/repository"))),
 
     resolvers ++= Seq(
+      Resolver.mavenLocal,
       Resolver.typesafeRepo("releases"),
       Resolver.sonatypeRepo("releases"),
       Resolver.sonatypeRepo("snapshots")
@@ -254,5 +256,42 @@ object LoMRFBuild extends AutoPlugin {
     buildOptions in docker := BuildOptions(cache = false)
   )
 
+
+  private lazy val PublishingSettings: Seq[Setting[_]] = Seq(
+    publishMavenStyle := true,
+    publishArtifact in Test := false,
+    pomIncludeRepository := { _ => false },
+
+    publishTo := Option {
+      val nexus = "https://oss.sonatype.org/"
+      if (isSnapshot.value) "snapshots" at nexus + "content/repositories/snapshots"
+      else "releases" at nexus + "service/local/staging/deploy/maven2"
+    },
+
+    scmInfo := Some(
+      ScmInfo(url("https://github.com/anskarl/LoMRF"), "scm:git:git@github.com:anskarl/LoMRF.git")
+    ),
+    // Information required in order to sync in Maven Central
+    pomExtra :=
+      <url>https://github.com/anskarl</url>
+        <licenses>
+          <license>
+            <name>Apache License Version 2.0</name>
+            <url>http://www.apache.org/licenses/LICENSE-2.0</url>
+          </license>
+        </licenses>
+        <developers>
+          <developer>
+            <id>anskarl</id>
+            <name>Anastasios Skarlatidis</name>
+            <url>https://anskarl.github.io/</url>
+          </developer>
+          <developer>
+            <id>vagmcs</id>
+            <name>Evangelos Michelioudakis</name>
+            <url>https://users.iit.demokritos.gr/~vagmcs/</url>
+          </developer>
+        </developers>
+  )
 }
 
