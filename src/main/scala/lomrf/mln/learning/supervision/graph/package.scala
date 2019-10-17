@@ -26,6 +26,7 @@ import lomrf.mln.model.{ MLN, ModeDeclarations }
 import scala.util.{ Failure, Success, Try }
 import lomrf.{ AUX_PRED_PREFIX => PREFIX }
 import breeze.linalg.DenseMatrix
+import lomrf.mln.learning.supervision.metric.features.Feature
 
 package object graph {
 
@@ -44,12 +45,19 @@ package object graph {
     }.mkString("\n")
   }
 
-  private[graph] def generalise(nodes: IndexedSeq[Node], signatures: Set[AtomSignature]): IndexedSeq[Node] = {
+  /**
+    * Generalize nodes by removing atoms that correspond to the given features.
+    *
+    * @param nodes an indexed sequence of nodes
+    * @param features a set of features
+    * @return a indexed sequence of generalized nodes
+    */
+  private[graph] def generalise(nodes: IndexedSeq[Node], features: Set[Feature]): IndexedSeq[Node] = {
     nodes.foldLeft(IndexedSeq.empty[Node]) {
-      case (result, node) =>
-        val generalizedNode = node.generalise(signatures)
-        if (generalizedNode.isEmpty || result.exists(_.clause.get =~= generalizedNode.clause.get)) result
-        else result :+ generalizedNode
+      case (reducedNodes, node) =>
+        val generalizedNode = node.generalise(features)
+        if (generalizedNode.isEmpty || reducedNodes.exists(_.clause.get =~= generalizedNode.clause.get)) reducedNodes
+        else reducedNodes :+ generalizedNode
     }
   }
 

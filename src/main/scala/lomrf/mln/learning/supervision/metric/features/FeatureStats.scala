@@ -18,19 +18,13 @@
  *
  */
 
-package lomrf.mln.learning.supervision.graph.feature
+package lomrf.mln.learning.supervision.metric.features
 
 import com.typesafe.scalalogging.LazyLogging
-import lomrf.logic.{ AtomSignature, Constant }
+import lomrf.logic.AtomSignature
 import lomrf.mln.learning.supervision.graph.Node
 import lomrf.mln.learning.supervision.graph.caching.NodeCache
 import lomrf.util.logging.Implicits._
-
-/**
-  * @param signature an atom signature
-  * @param constants a sequence of constants
-  */
-case class Feature(signature: AtomSignature, constants: Seq[Constant])
 
 case class FeatureStats(
     examples: Long,

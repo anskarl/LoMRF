@@ -23,6 +23,7 @@ package lomrf.mln.learning.supervision.graph
 import lomrf.logic._
 import lomrf.util.logging.Implicits._
 import com.typesafe.scalalogging.LazyLogging
+import lomrf.mln.learning.supervision.metric.features.Feature
 
 /**
   * Node is a collection of evidence atoms that correspond to a query atom,
@@ -117,15 +118,15 @@ case class Node(
   /**
     * Generalize node by removing a set of given atom signatures.
     *
-    * @param signatures a set of signatures
+    * @param features a set of signatures
     * @return a generalized node
     */
-  def generalise(signatures: Set[AtomSignature]): Node = {
+  def generalise(features: Set[Feature]): Node = {
     Node(
       query,
-      evidence.filterNot(a => signatures.contains(a.signature)),
-      clause.map(c => Clause(c.literals.filterNot(l => signatures.contains(l.sentence.signature)))),
-      body.map(c => Clause(c.literals.filterNot(l => signatures.contains(l.sentence.signature)))),
+      evidence.filterNot(features.contains(_)),
+      clause.map(c => Clause(c.literals.filterNot(l => features.contains(l.sentence)))),
+      body.map(c => Clause(c.literals.filterNot(l => features.contains(l.sentence)))),
       head,
       orderedTerm,
       partitionIndices
