@@ -21,6 +21,7 @@
 package lomrf.mln.learning.supervision.metric
 
 import lomrf.logic.AtomicFormula
+import lomrf.mln.learning.supervision.metric.features.Feature
 
 /**
   * A binary metric is a very simple distance for atomic formulas where an atom
@@ -29,7 +30,21 @@ import lomrf.logic.AtomicFormula
   *
   * @param matcher a matcher function
   */
-case class BinaryMetric(matcher: Matcher) extends StructureMetric[AtomicFormula] {
+case class BinaryMetric(
+    matcher: Matcher,
+    featureWeights: Option[Map[Feature, Double]] = None) extends StructureMetric[AtomicFormula] {
+
+  /**
+    * Normalize distance using the given feature importance weights.
+    *
+    * @note For features that do not exist in the map the given
+    *       default value will be used.
+    *
+    * @param weights a map from features to weight values
+    * @return a normalized metric
+    */
+  override def normalizeWith(weights: Map[Feature, Double]): StructureMetric[AtomicFormula] =
+    copy(featureWeights = Some(weights))
 
   /**
     * Distance for atoms. The function must obey to the following properties:

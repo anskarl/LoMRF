@@ -22,6 +22,7 @@ package lomrf.mln.learning.supervision.metric
 
 import lomrf.logic.{ Constant, EvidenceAtom }
 import lomrf.mln.learning.structure.PlaceMarker
+import lomrf.mln.learning.supervision.metric.features.Feature
 import lomrf.mln.model.{ Evidence, ModeDeclarations }
 
 /**
@@ -54,7 +55,20 @@ import lomrf.mln.model.{ Evidence, ModeDeclarations }
 class EvidenceMetric private (
     modes: ModeDeclarations,
     auxConstructs: Map[Constant, AuxConstruct],
-    override val matcher: Matcher) extends StructureMetric[EvidenceAtom] {
+    override val matcher: Matcher,
+    override val featureWeights: Option[Map[Feature, Double]] = None) extends StructureMetric[EvidenceAtom] {
+
+  /**
+    * Normalize distance using the given feature importance weights.
+    *
+    * @note For features that do not exist in the map the given
+    *       default value will be used.
+    *
+    * @param weights a map from features to weight values
+    * @return a normalized metric
+    */
+  override def normalizeWith(weights: Map[Feature, Double]): StructureMetric[EvidenceAtom] =
+    new EvidenceMetric(modes, auxConstructs, matcher, featureWeights = Some(weights))
 
   /**
     * Distance for ground evidence atoms. The function must obey to the following properties:

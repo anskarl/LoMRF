@@ -52,15 +52,6 @@ case class MassMetric(forest: IsolationForest[AtomSignature]) extends Metric[Ato
     forest.mass(xAtomSeq.map(_.signature), yAtomSeq.map(_.signature))
 
   /**
-    * Normalize distance based on the given feature scores.
-    *
-    * @param featureScores a map from atom signature to scores
-    * @return a normalized metric
-    */
-  override def normalize(featureScores: Map[AtomSignature, Double]): Metric[AtomicFormula] =
-    new MassMetric(forest.reBalance(featureScores))
-
-  /**
     * Append information from atom sequences to the metric.
     *
     * @note It should be extended by metrics that can

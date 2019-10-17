@@ -20,8 +20,9 @@
 
 package lomrf.mln.learning.supervision.metric
 
-import lomrf.logic.{ AtomSignature, AtomicFormula }
+import lomrf.logic.AtomicFormula
 import lomrf.mln.model.Evidence
+import lomrf.mln.learning.supervision.metric.features.Feature
 
 /**
   * A metric for atomic formulas is defined by a distance function over atoms
@@ -62,18 +63,21 @@ trait Metric[A <: AtomicFormula] {
   def distance(xAtomSeq: IndexedSeq[A], yAtomSeq: IndexedSeq[A]): Double
 
   /**
-    * Normalize distance based on the given feature scores.
+    * Normalize distance using the given feature importance weights.
     *
-    * @param featureScores a map from atom signature to scores
+    * @note For features that do not exist in the map the given
+    *       default value will be used.
+    *
+    * @param weights a map from features to weight values
     * @return a normalized metric
     */
-  def normalize(featureScores: Map[AtomSignature, Double]): Metric[A] = this
+  def normalizeWith(weights: Map[Feature, Double]): Metric[A] = this
 
   /**
     * Append evidence information to the metric.
     *
     * @note It should be extended by metrics that can
-    *       exploit evidence information.
+    *       exploit evidence information (data driven).
     *
     * @param evidence an evidence database
     * @return an updated metric
@@ -84,7 +88,7 @@ trait Metric[A <: AtomicFormula] {
     * Append information from atom sequences to the metric.
     *
     * @note It should be extended by metrics that can
-    *       exploit atom sequences (bottom clauses).
+    *       exploit atom sequences (data driven).
     *
     * @param atomSeqSeq a sequence of atom sequences.
     * @return an updated metric
@@ -106,6 +110,9 @@ trait StructureMetric[A <: AtomicFormula] extends Metric[A] {
   // Matcher used for finding a mapping between atoms sequences
   val matcher: Matcher
 
+  // Feature scores are used for normalizing the distance
+  val featureWeights: Option[Map[Feature, Double]]
+
   /**
     * Distance over sequences of atoms.
     *
@@ -113,9 +120,35 @@ trait StructureMetric[A <: AtomicFormula] extends Metric[A] {
     * @param yAtomSeq another sequence of atoms
     * @return a distance for the given sequences of atoms
     */
-  final def distance(xAtomSeq: IndexedSeq[A], yAtomSeq: IndexedSeq[A]): Double = matcher {
-    xAtomSeq map (x => yAtomSeq map (y => distance(x, y)))
-  } match { case (_, cost) => cost }
+  final def distance(xAtomSeq: IndexedSeq[A], yAtomSeq: IndexedSeq[A]): Double = {
+
+    // Compute the distance matrix for each pair of atoms
+    val distanceMatrix =
+      if (xAtomSeq.length >= yAtomSeq.length) xAtomSeq.map(x => yAtomSeq.map(distance(x, _)))
+      else yAtomSeq.map(y => xAtomSeq.map(distance(y, _)))
+
+    // Compute a matching and a total cost
+    val (matches, unweightedDistance) = matcher(distanceMatrix)
+
+    featureWeights match {
+      case Some(weights) =>
+
+        var totalScore = 0.0
+        xAtomSeq.zipWithIndex.map {
+          case (atom, i) =>
+            if (atom == yAtomSeq(matches(i))) {
+              totalScore += weights.getOrElse(atom, 1.0)
+              weights.getOrElse(atom, 1.0) * distanceMatrix(i)(matches(i))
+            } else {
+              val matchedWeight = if (matches(i) != -1) weights.getOrElse(yAtomSeq(matches(i)), 1.0) else 0
+              totalScore += weights.getOrElse(atom, 1.0) + matchedWeight
+              weights.getOrElse(atom, 1.0) + matchedWeight
+            }
+        }.sum / totalScore
+
+      case None => unweightedDistance
+    }
+  }
 }
 
 /**
@@ -156,13 +189,16 @@ case class HybridMetric(metrics: Set[Metric[AtomicFormula]]) extends Metric[Atom
     metrics.foldLeft(0.0) { case (sum, metric) => sum + metric.distance(xAtomSeq, yAtomSeq) } / numberOfMetrics
 
   /**
-    * Normalize distance based on the given feature scores.
+    * Normalize distance using the given feature importance weights.
     *
-    * @param featureScores a map from atom signature to scores
+    * @note For features that do not exist in the map the given
+    *       default value will be used.
+    *
+    * @param weights a map from features to weight values
     * @return a normalized metric
     */
-  override def normalize(featureScores: Map[AtomSignature, Double]): Metric[AtomicFormula] =
-    HybridMetric(metrics.map(_ normalize featureScores))
+  override def normalizeWith(weights: Map[Feature, Double]): Metric[AtomicFormula] =
+    HybridMetric(metrics.map(_ normalizeWith weights))
 
   /**
     * Append evidence information to the metric.
