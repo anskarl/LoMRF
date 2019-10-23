@@ -496,7 +496,8 @@ case class FeatureStats(
     val (positives, negatives) = nodes.partition(_.isPositive)
     val U_size = size(nodes)
 
-      def c(X: Set[Node], Y: Set[Node]): Double = 1 - size(X intersect Y) / size(X)
+      def c(X: Set[Node], Y: Set[Node]): Double =
+        if (X.isEmpty) 0 else 1 - size(X intersect Y) / size(X)
 
     val P_partition = nodes.foldLeft(Map.empty[Set[Feature], Set[Node]]) {
       case (partitions, node) =>
@@ -517,6 +518,65 @@ case class FeatureStats(
     }
 
     POS / U_size
+  }
+
+  def computeAccuracy_F(
+      beta: Double,
+      P: Set[Feature],
+      nodes: Seq[Node],
+      cache: Option[NodeCache]): Double = {
+
+    require(beta >= 0 && beta <= 0.5)
+    require(nodes.forall(_.isLabeled))
+
+      def size(nodes: Iterable[Node]): Double =
+        nodes.map(n => cache.map(_.getOrElse(n, 0L).toDouble).getOrElse(1.0)).sum
+
+    val (positives, negatives) = nodes.partition(_.isPositive)
+    val U_size = size(nodes)
+
+      def c(X: Set[Node], Y: Set[Node]): Double =
+        if (X.isEmpty) 0 else 1 - size(X intersect Y) / size(X)
+
+    val P_partition = nodes.foldLeft(Map.empty[Set[Feature], Set[Node]]) {
+      case (partitions, node) =>
+        val key = node.atoms.map(Feature.atom2Feature).toSet.intersect(P)
+        partitions + (key -> (partitions.getOrElse(key, Set.empty[Node]) + node))
+    }.values.toList
+
+    /*println(P.mkString(" | "))
+    println {
+      P_partition.map(_.map(_.toText).mkString("\n")).mkString("\n+++++++++++++++++++++++\n")
+    }
+    println("++++++++++++++++++++")*/
+
+    var POS = 0.0
+    P_partition.foreach { p =>
+      if (c(positives.toSet, p) <= beta) POS += size(p)
+      if (c(negatives.toSet, p) <= beta) POS += size(p)
+    }
+
+    POS / U_size
+  }
+
+  def test(beta: Double, nodes: Seq[Node], cache: Option[NodeCache]): Set[Feature] = {
+    val features = nodes.flatMap(_.atoms.map(Feature.atom2Feature).toSet).toSet
+
+    val pF = nodes.filter(_.isPositive).flatMap(_.atoms.map(Feature.atom2Feature).toSet).toSet
+    val nF = nodes.filter(_.isNegative).flatMap(_.atoms.map(Feature.atom2Feature).toSet).toSet
+
+    val best = (2 to features.size).map { len =>
+      val k = features.toList.combinations(len).withFilter(f => pF.intersect(f.toSet).nonEmpty && nF.intersect(f.toSet).nonEmpty).map {
+        f =>
+          val j = f -> computeBetaDependencyDegree_F(beta, f.toSet, nodes, cache)
+          println(j)
+          j
+      }.maxBy(_._2)
+      //println(k)
+      k
+    }.maxBy(_._2)._1.toSet
+
+    best
   }
 
   def roughSet(beta: Double, nodes: Seq[Node], cache: Option[NodeCache], weighted: Boolean = false): Set[Feature] = {

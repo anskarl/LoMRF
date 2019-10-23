@@ -28,7 +28,7 @@ import lomrf.mln.model._
 import lomrf.util.time._
 import scala.language.existentials
 import lomrf.logic.LogicOps._
-import lomrf.mln.learning.supervision.graph.feature.FeatureStats
+import lomrf.mln.learning.supervision.metric.features.FeatureStats
 import lomrf.mln.model.builders.EvidenceBuilder
 
 /**

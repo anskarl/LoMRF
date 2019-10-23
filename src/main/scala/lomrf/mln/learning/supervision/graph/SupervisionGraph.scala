@@ -25,7 +25,7 @@ import lomrf.logic._
 import lomrf.mln.learning.supervision.graph.caching.{ FastNodeCache, NodeCache, NodeHashSet }
 import lomrf.mln.model.builders.EvidenceBuilder
 import lomrf.util.time._
-import lomrf.mln.learning.supervision.graph.feature.FeatureStats
+import lomrf.mln.learning.supervision.metric.features.FeatureStats
 import lomrf.mln.learning.supervision.metric.Metric
 import lomrf.mln.model.{ Evidence, EvidenceDB, MLN, ModeDeclarations }
 import lomrf.util.logging.Implicits._

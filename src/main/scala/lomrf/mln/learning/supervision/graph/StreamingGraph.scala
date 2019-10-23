@@ -28,7 +28,7 @@ import lomrf.mln.learning.supervision.metric.Metric
 import lomrf.mln.model.{ EvidenceDB, MLN, ModeDeclarations }
 import lomrf.util.time.msecTimeToTextUntilNow
 import lomrf.logic.LogicOps._
-import lomrf.mln.learning.supervision.graph.feature.FeatureStats
+import lomrf.mln.learning.supervision.metric.features.FeatureStats
 import lomrf.mln.model.builders.EvidenceBuilder
 
 final class StreamingGraph private[graph] (

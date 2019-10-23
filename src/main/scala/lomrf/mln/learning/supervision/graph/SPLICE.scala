@@ -23,7 +23,7 @@ package lomrf.mln.learning.supervision.graph
 import lomrf.logic._
 import breeze.linalg.DenseVector
 import lomrf.mln.learning.supervision.graph.caching.NodeCache
-import lomrf.mln.learning.supervision.graph.feature.FeatureStats
+import lomrf.mln.learning.supervision.metric.features.{ Feature, FeatureStats }
 import lomrf.mln.learning.supervision.metric._
 import lomrf.mln.model._
 import lomrf.util.time._
@@ -74,7 +74,7 @@ final class SPLICE private[graph] (
 
     val startGraphConnection = System.currentTimeMillis
     val encodedGraph = solver match {
-      case _: HFc => connector.smartConnect(nodes, unlabeledNodes/*, Some(nodeCache)*/)(metric)
+      case _: HFc => connector.smartConnect(nodes, unlabeledNodes, Some(nodeCache))(metric)
       case _      => connector.fullyConnect(nodes, Some(nodeCache))(metric)
     }
 
@@ -178,30 +178,36 @@ final class SPLICE private[graph] (
 
       var updatedNodeCache = nodeCache
       updatedNodeCache ++= pureLabeledNodes
-      val cleanedUniqueLabeled = updatedNodeCache.collectNodes
+      val cleanedUniqueLabeled = updatedNodeCache.collectNodes //.filter(_.size >= minNodeSize)
 
       logger.info(msecTimeToTextUntilNow(s"Cache updated in: ", startCacheUpdate))
       logger.info(s"${cleanedUniqueLabeled.length}/${numberOfLabeled + labeled.length} unique labeled nodes kept.")
       logger.info(updatedNodeCache.toString)
 
-      println("Keeping:")
-      println(cleanedUniqueLabeled.map(_.toText).mkString("\n"))
       val w1 = featureStats.computeIG_F(cleanedUniqueLabeled, Some(updatedNodeCache))
-      //val weights = if (w.forall(_._2 == 0) || w.forall(_._2 == Double.PositiveInfinity)) Map.empty[Feature, Double] else w
+      val weights = if (w1.forall(_._2 == 0) || w1.forall(_._2 == Double.PositiveInfinity)) Map.empty[Feature, Double] else w1
       println(w1.toList.sortBy(_._2).reverse.mkString("\n"))
       println
       val w2 = featureStats.computeConstraintScore_F(cleanedUniqueLabeled, Some(updatedNodeCache))
       println(w2.toList.sortBy(_._2).mkString("\n"))
       println
 
-      val kept = featureStats.roughSet(0.25, cleanedUniqueLabeled, Some(updatedNodeCache))
-      println(featureStats.roughSet(0.25, cleanedUniqueLabeled, Some(updatedNodeCache)))
+      println("Keeping:")
+      println(cleanedUniqueLabeled.map(n => n.toText -> n.atoms.map(w1(_)).sum / n.size).sortBy(_._2).reverse.map(x => x._1 + " -> " + x._2).mkString("\n"))
+
+      val dd = featureStats.computeBetaDependencyDegree_F(0.25, w1.keySet, cleanedUniqueLabeled, Some(nodeCache))
+      println(s"Degree of Dep := $dd")
+      //val best = featureStats.test(0.1, cleanedUniqueLabeled, Some(updatedNodeCache))
+      //println(best)
+
+      /*val kept = featureStats.roughSet(0.2, cleanedUniqueLabeled, Some(updatedNodeCache))
+      println(kept)
       val cleaned = generalise(cleanedUniqueLabeled, w1.keySet -- kept)
-      println(cleaned.map(_.toText).mkString("\n"))
+      println(cleaned.map(_.toText).mkString("\n"))*/
 
       // Labeled nodes MUST appear before unlabeled!
       new SPLICE(
-        cleaned ++ nonEmptyUnlabeled, // TODO
+        cleanedUniqueLabeled ++ nonEmptyUnlabeled, // TODO
         querySignature,
         connector,
         metric /*.normalizeWith(weights)*/ ++ mln.evidence ++ pureNodes.flatMap(n => IndexedSeq.fill(n.clusterSize)(n.atoms)),
