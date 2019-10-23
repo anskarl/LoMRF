@@ -21,7 +21,7 @@
 package lomrf.mln.learning.supervision.metric.features
 
 import com.typesafe.scalalogging.LazyLogging
-import lomrf.logic.AtomSignature
+import lomrf.logic.{ AtomSignature, Constant }
 import lomrf.mln.learning.supervision.graph.Node
 import lomrf.mln.learning.supervision.graph.caching.NodeCache
 import lomrf.util.logging.Implicits._
@@ -157,11 +157,6 @@ case class FeatureStats(
     new FeatureStats(totalExamples, updatedPositives, updatedNegatives, updatedCounts, updatedCountsLabelled, updatedFeatureClassCounts)
   }
 
-  /**
-    *
-    * @param nodes
-    * @return
-    */
   def computeEntropy(nodes: Seq[Node]): Map[AtomSignature, Double] =
     nodes.foldLeft(Map.empty[AtomSignature, Double]) {
       case (counts, node) =>
@@ -171,11 +166,6 @@ case class FeatureStats(
         }
     }
 
-  /**
-    *
-    * @param nodes
-    * @return
-    */
   def computeIG(nodes: Seq[Node], cache: Option[NodeCache] = None): Map[AtomSignature, Double] = {
     require(nodes.forall(_.isLabeled), logger.fatal("All nodes should be labeled in order to compute IG!"))
 
@@ -197,7 +187,54 @@ case class FeatureStats(
       val conditionalCounts = Array.fill(4)(0.0)
       nodes.foreach { node =>
         val freq = cache.map(_.getOrElse(node, 0).toDouble).getOrElse(1.0)
-        if (node.signatures.exists(_ == f)) {
+        if (node.signatures.contains(f)) {
+          if (node.isPositive) conditionalCounts(0) += freq
+          else if (node.isNegative) conditionalCounts(1) += freq
+        } else {
+          if (node.isPositive) conditionalCounts(2) += freq
+          else if (node.isNegative) conditionalCounts(3) += freq
+        }
+      }
+
+      val PFeature = featureCounts(f) / total
+      val PNotFeature = 1 - PFeature
+
+      val a = conditionalCounts.take(2).sum
+      val b = conditionalCounts.drop(2).sum
+
+      val conditionalEntropy =
+        if (a == 0 && b == 0) 0
+        else if (a == 0) PNotFeature * entropy(conditionalCounts.drop(2).map(_ / b))
+        else if (b == 0) PFeature * entropy(conditionalCounts.take(2).map(_ / a))
+        else PFeature * entropy(conditionalCounts.take(2).map(_ / a)) +
+          PNotFeature * entropy(conditionalCounts.drop(2).map(_ / b))
+
+      f -> (targetEntropy - conditionalEntropy)
+    }.toMap
+  }
+
+  def computeIG_F(nodes: Seq[Node], cache: Option[NodeCache] = None): Map[Feature, Double] = {
+    require(nodes.forall(_.isLabeled), logger.fatal("All nodes should be labeled in order to compute IG!"))
+
+    val positives = nodes.withFilter(_.isPositive).map(n => cache.map(_.getOrElse(n, 0L).toDouble).getOrElse(1.0)).sum
+    val negatives = nodes.map(n => cache.map(_.getOrElse(n, 0L).toDouble).getOrElse(1.0)).sum - positives
+    val total = positives + negatives
+    val targetEntropy = entropy(positives / total, negatives / total)
+
+    val featureCounts = nodes.foldLeft(Map.empty[Feature, Double]) {
+      case (counts, node) =>
+        val freq = cache.map(_.getOrElse(node, 0).toDouble).getOrElse(1.0)
+        node.atoms.foldLeft(counts) {
+          case (map, atom) =>
+            map.updated(atom, counts.getOrElse(atom, 0.0) + freq)
+        }
+    }
+
+    featureCounts.keySet.map { f =>
+      val conditionalCounts = Array.fill(4)(0.0)
+      nodes.foreach { node =>
+        val freq = cache.map(_.getOrElse(node, 0).toDouble).getOrElse(1.0)
+        if (node.atoms.map(Feature.atom2Feature).contains(f)) {
           if (node.isPositive) conditionalCounts(0) += freq
           else if (node.isNegative) conditionalCounts(1) += freq
         } else {
@@ -261,7 +298,7 @@ case class FeatureStats(
       val pf1 = featureCounts(f1) / total
       val targetEntropy = entropy(pf1, 1 - pf1)
 
-      featureCounts.keys.toList.sortBy(_.symbol).filter(_ != f1).zipWithIndex.foreach {
+      featureCounts.keys.toList.filter(_ != f1).sortBy(_.symbol).zipWithIndex.foreach {
         case (f2, i) =>
 
           val conditionalCounts = Array.fill(4)(0.0)
@@ -296,33 +333,219 @@ case class FeatureStats(
     }.toMap
   }
 
+  def computeRedundancy_F(nodes: Seq[Node], cache: Option[NodeCache]): Map[Feature, Map[Feature, Double]] = {
+
+    val featureCounts = nodes.foldLeft(Map.empty[Feature, Double]) {
+      case (counts, node) =>
+        val freq = cache.map(_.getOrElse(node, 0).toDouble).getOrElse(1.0)
+        node.atoms.foldLeft(counts) {
+          case (map, f) =>
+            map.updated(f, counts.getOrElse(f, 0.0) + freq)
+        }
+    }
+
+    val total = nodes.map(n => cache.map(_.getOrElse(n, 0).toDouble).getOrElse(1.0)).sum
+
+    featureCounts.keys.toList.sortBy(_.signature.symbol).map { f1 =>
+      var map = Map.empty[Feature, Double]
+
+      val pf1 = featureCounts(f1) / total
+      val targetEntropy = entropy(pf1, 1 - pf1)
+
+      featureCounts.keys.toList.filter(_ != f1).sortBy(_.signature.symbol).zipWithIndex.foreach {
+        case (f2, i) =>
+
+          val conditionalCounts = Array.fill(4)(0.0)
+          nodes.foreach { node =>
+            val freq = cache.map(_.getOrElse(node, 0).toDouble).getOrElse(1.0)
+            if (node.atoms.map(Feature.atom2Feature).contains(f2)) {
+              if (node.atoms.map(Feature.atom2Feature).contains(f1)) conditionalCounts(0) += freq
+              else conditionalCounts(1) += freq
+            } else {
+              if (node.atoms.map(Feature.atom2Feature).contains(f1)) conditionalCounts(2) += freq
+              else conditionalCounts(3) += freq
+            }
+          }
+
+          val PFeature = featureCounts(f2) / total
+          val PNotFeature = 1 - PFeature
+
+          val a = conditionalCounts.take(2).sum
+          val b = conditionalCounts.drop(2).sum
+
+          val conditionalEntropy =
+            if (a == 0 && b == 0) 0
+            else if (a == 0) PNotFeature * entropy(conditionalCounts.drop(2).map(_ / b))
+            else if (b == 0) PFeature * entropy(conditionalCounts.take(2).map(_ / a))
+            else PFeature * entropy(conditionalCounts.take(2).map(_ / a)) +
+              PNotFeature * entropy(conditionalCounts.drop(2).map(_ / b))
+
+          map += f2 -> (targetEntropy - conditionalEntropy)
+      }
+
+      f1 -> map
+    }.toMap
+  }
+
   def computeConstraintScore(nodes: Seq[Node], cache: Option[NodeCache]): Map[AtomSignature, Double] = {
     require(nodes.forall(_.isLabeled), logger.fatal("All nodes should be labeled in order to compute IG!"))
 
     val (positives, negatives) = nodes.partition(_.isPositive)
 
-    nodes.flatMap(_.signatures).map { signature =>
+    nodes.flatMap(_.signatures).distinct.map { signature =>
 
       // MUST LINK
+      var sum_a = 0L
       val a = positives.combinations(2).map { pair =>
+        sum_a += cache.map(_.getOrElse(pair.head, 1L)).getOrElse(1L) * cache.map(_.getOrElse(pair.last, 1L)).getOrElse(1L)
         if (pair.head.signatures.contains(signature) == pair.last.signatures.contains(signature)) 0L
         else cache.map(_.getOrElse(pair.head, 1L)).getOrElse(1L) * cache.map(_.getOrElse(pair.last, 1L)).getOrElse(1L)
       }.sum
 
+      var sum_b = 0L
       val b = negatives.combinations(2).map { pair =>
+        sum_b += cache.map(_.getOrElse(pair.head, 1L)).getOrElse(1L) * cache.map(_.getOrElse(pair.last, 1L)).getOrElse(1L)
         if (pair.head.signatures.contains(signature) == pair.last.signatures.contains(signature)) 0L
         else cache.map(_.getOrElse(pair.head, 1L)).getOrElse(1L) * cache.map(_.getOrElse(pair.last, 1L)).getOrElse(1L)
       }.sum
+
+      val ml_size = sum_a + sum_b
 
       // CANNOT LINK
+      var sum_c = 0L
       val c = positives.map { x =>
         negatives.map { y =>
-          if (x.signatures.contains(signature) == y.signatures.contains(signature)) 0L else 1L
+          // TODO use cache to compute the numbers
+          val n = cache.map(_.getOrElse(x, 1L)).getOrElse(1L) * cache.map(_.getOrElse(y, 1L)).getOrElse(1L)
+          sum_c += n
+          if (x.signatures.contains(signature) == y.signatures.contains(signature)) 0L else n
         }.sum
       }.sum
 
+      println(s"${signature}: ${a + b} / $ml_size // $c / $sum_c")
+
+      if (sum_c == 0) {
+        assert(c == 0)
+        sum_c = 1L
+      }
+
+      //signature -> (((a + b) / ml_size.toDouble) / (c / sum_c.toDouble))
       signature -> (a + b) / c.toDouble
     }.toMap
+  }
+
+  def computeConstraintScore_F(nodes: Seq[Node], cache: Option[NodeCache]): Map[Feature, Double] = {
+    require(nodes.forall(_.isLabeled), logger.fatal("All nodes should be labeled in order to compute IG!"))
+
+    val (positives, negatives) = nodes.partition(_.isPositive)
+
+    nodes.flatMap(_.atoms.map(Feature.atom2Feature)).distinct.map { feature =>
+
+      // MUST LINK
+      var sum_a = 0L
+      val a = positives.combinations(2).map { pair =>
+        sum_a += cache.map(_.getOrElse(pair.head, 1L)).getOrElse(1L) * cache.map(_.getOrElse(pair.last, 1L)).getOrElse(1L)
+        if (pair.head.atoms.map(Feature.atom2Feature).contains(feature) == pair.last.atoms.map(Feature.atom2Feature).contains(feature)) 0L
+        else cache.map(_.getOrElse(pair.head, 1L)).getOrElse(1L) * cache.map(_.getOrElse(pair.last, 1L)).getOrElse(1L)
+      }.sum
+
+      var sum_b = 0L
+      val b = negatives.combinations(2).map { pair =>
+        sum_b += cache.map(_.getOrElse(pair.head, 1L)).getOrElse(1L) * cache.map(_.getOrElse(pair.last, 1L)).getOrElse(1L)
+        if (pair.head.atoms.map(Feature.atom2Feature).contains(feature) == pair.last.atoms.map(Feature.atom2Feature).contains(feature)) 0L
+        else cache.map(_.getOrElse(pair.head, 1L)).getOrElse(1L) * cache.map(_.getOrElse(pair.last, 1L)).getOrElse(1L)
+      }.sum
+
+      val ml_size = sum_a + sum_b
+
+      // CANNOT LINK
+      var sum_c = 0L
+      val c = positives.map { x =>
+        negatives.map { y =>
+          // TODO use cache to compute the numbers
+          val n = cache.map(_.getOrElse(x, 1L)).getOrElse(1L) * cache.map(_.getOrElse(y, 1L)).getOrElse(1L)
+          sum_c += n
+          if (x.atoms.map(Feature.atom2Feature).contains(feature) == y.atoms.map(Feature.atom2Feature).contains(feature)) 0L else n
+        }.sum
+      }.sum
+
+      //println(s"${feature}: ${a + b} / $ml_size // $c / $sum_c")
+
+      if (sum_c == 0) {
+        assert(c == 0)
+        sum_c = 1L
+      }
+
+      //signature -> (((a + b) / ml_size.toDouble) / (c / sum_c.toDouble))
+      feature -> (a + b) / c.toDouble
+    }.toMap
+  }
+
+  def computeBetaDependencyDegree_F(
+      beta: Double,
+      P: Set[Feature],
+      nodes: Seq[Node],
+      cache: Option[NodeCache]): Double = {
+
+    require(beta >= 0 && beta <= 0.5)
+    require(nodes.forall(_.isLabeled))
+
+      def size(nodes: Iterable[Node]): Double =
+        nodes.map(n => cache.map(_.getOrElse(n, 0L).toDouble).getOrElse(1.0)).sum
+
+    val (positives, negatives) = nodes.partition(_.isPositive)
+    val U_size = size(nodes)
+
+      def c(X: Set[Node], Y: Set[Node]): Double = 1 - size(X intersect Y) / size(X)
+
+    val P_partition = nodes.foldLeft(Map.empty[Set[Feature], Set[Node]]) {
+      case (partitions, node) =>
+        val key = node.atoms.map(Feature.atom2Feature).toSet.intersect(P)
+        partitions + (key -> (partitions.getOrElse(key, Set.empty[Node]) + node))
+    }.values.toList
+
+    /*println(P.mkString(" | "))
+    println {
+      P_partition.map(_.map(_.toText).mkString("\n")).mkString("\n+++++++++++++++++++++++\n")
+    }
+    println("++++++++++++++++++++")*/
+
+    var POS = 0.0
+    P_partition.foreach { p =>
+      if (c(positives.toSet, p) <= beta) POS += size(p)
+      if (c(negatives.toSet, p) <= beta) POS += size(p)
+    }
+
+    POS / U_size
+  }
+
+  def roughSet(beta: Double, nodes: Seq[Node], cache: Option[NodeCache], weighted: Boolean = false): Set[Feature] = {
+
+    val weights = computeIG_F(nodes, cache)
+    var sorted = weights.toList.sortBy(_._2).reverse
+    val features = weights.keySet
+    var prevScore = computeBetaDependencyDegree_F(beta, features, nodes, cache)
+
+    var reduct = sorted.take(2).map(_._1).toSet
+    var nextFeature = sorted.drop(1).take(1).head._1
+    sorted = sorted.drop(2)
+    var nextScore = computeBetaDependencyDegree_F(beta, reduct, nodes, cache)
+
+    println("Full score: " + prevScore)
+    println("Next score: " + nextScore)
+
+    if (prevScore == nextScore) return features
+
+    while (nextScore > prevScore) {
+      prevScore = nextScore
+      nextFeature = sorted.head._1
+      reduct += sorted.head._1
+      sorted = sorted.tail
+      nextScore = computeBetaDependencyDegree_F(beta, reduct, nodes, cache)
+      println(nextScore)
+    }
+
+    reduct - nextFeature
   }
 }
 
