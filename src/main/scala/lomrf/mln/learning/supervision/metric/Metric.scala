@@ -122,10 +122,13 @@ trait StructureMetric[A <: AtomicFormula] extends Metric[A] {
     */
   final def distance(xAtomSeq: IndexedSeq[A], yAtomSeq: IndexedSeq[A]): Double = {
 
+    // Swap atom sequences
+    val (longAtomSeq, shortAtomSeq) =
+      if (xAtomSeq.length >= yAtomSeq.length) (xAtomSeq, yAtomSeq)
+      else (yAtomSeq, xAtomSeq)
+
     // Compute the distance matrix for each pair of atoms
-    val distanceMatrix =
-      if (xAtomSeq.length >= yAtomSeq.length) xAtomSeq.map(x => yAtomSeq.map(distance(x, _)))
-      else yAtomSeq.map(y => xAtomSeq.map(distance(y, _)))
+    val distanceMatrix = longAtomSeq.map(x => shortAtomSeq.map(distance(x, _)))
 
     // Compute a matching and a total cost
     val (matches, unweightedDistance) = matcher(distanceMatrix)
@@ -134,15 +137,17 @@ trait StructureMetric[A <: AtomicFormula] extends Metric[A] {
       case Some(weights) =>
 
         var totalScore = 0.0
-        xAtomSeq.zipWithIndex.map {
+        longAtomSeq.zipWithIndex.map {
           case (atom, i) =>
-            if (atom == yAtomSeq(matches(i))) {
+            if (matches(i) == -1) {
+              totalScore += weights.getOrElse(atom, 1.0)
+              weights.getOrElse(atom, 1.0)
+            } else if (atom == shortAtomSeq(matches(i))) {
               totalScore += weights.getOrElse(atom, 1.0)
               weights.getOrElse(atom, 1.0) * distanceMatrix(i)(matches(i))
             } else {
-              val matchedWeight = if (matches(i) != -1) weights.getOrElse(yAtomSeq(matches(i)), 1.0) else 0
-              totalScore += weights.getOrElse(atom, 1.0) + matchedWeight
-              weights.getOrElse(atom, 1.0) + matchedWeight
+              totalScore += weights.getOrElse(atom, 1.0) + weights.getOrElse(shortAtomSeq(matches(i)), 1.0)
+              weights.getOrElse(atom, 1.0) + weights.getOrElse(shortAtomSeq(matches(i)), 1.0)
             }
         }.sum / totalScore
 
