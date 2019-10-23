@@ -74,7 +74,7 @@ final class SPLICE private[graph] (
 
     val startGraphConnection = System.currentTimeMillis
     val encodedGraph = solver match {
-      case _: HFc => connector.smartConnect(nodes, unlabeledNodes, Some(nodeCache))(metric)
+      case _: HFc => connector.smartConnect(nodes, unlabeledNodes/*, Some(nodeCache)*/)(metric)
       case _      => connector.fullyConnect(nodes, Some(nodeCache))(metric)
     }
 
@@ -182,14 +182,29 @@ final class SPLICE private[graph] (
 
       logger.info(msecTimeToTextUntilNow(s"Cache updated in: ", startCacheUpdate))
       logger.info(s"${cleanedUniqueLabeled.length}/${numberOfLabeled + labeled.length} unique labeled nodes kept.")
-      logger.debug(updatedNodeCache.toString)
+      logger.info(updatedNodeCache.toString)
+
+      println("Keeping:")
+      println(cleanedUniqueLabeled.map(_.toText).mkString("\n"))
+      val w1 = featureStats.computeIG_F(cleanedUniqueLabeled, Some(updatedNodeCache))
+      //val weights = if (w.forall(_._2 == 0) || w.forall(_._2 == Double.PositiveInfinity)) Map.empty[Feature, Double] else w
+      println(w1.toList.sortBy(_._2).reverse.mkString("\n"))
+      println
+      val w2 = featureStats.computeConstraintScore_F(cleanedUniqueLabeled, Some(updatedNodeCache))
+      println(w2.toList.sortBy(_._2).mkString("\n"))
+      println
+
+      val kept = featureStats.roughSet(0.25, cleanedUniqueLabeled, Some(updatedNodeCache))
+      println(featureStats.roughSet(0.25, cleanedUniqueLabeled, Some(updatedNodeCache)))
+      val cleaned = generalise(cleanedUniqueLabeled, w1.keySet -- kept)
+      println(cleaned.map(_.toText).mkString("\n"))
 
       // Labeled nodes MUST appear before unlabeled!
       new SPLICE(
-        cleanedUniqueLabeled ++ nonEmptyUnlabeled,
+        cleaned ++ nonEmptyUnlabeled, // TODO
         querySignature,
         connector,
-        metric ++ mln.evidence ++ pureNodes.flatMap(n => IndexedSeq.fill(n.clusterSize)(n.atoms)),
+        metric /*.normalizeWith(weights)*/ ++ mln.evidence ++ pureNodes.flatMap(n => IndexedSeq.fill(n.clusterSize)(n.atoms)),
         annotationBuilder,
         updatedNodeCache,
         featureStats,

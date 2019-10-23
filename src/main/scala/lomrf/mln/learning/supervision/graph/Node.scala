@@ -124,7 +124,7 @@ case class Node(
   def generalise(features: Set[Feature]): Node = {
     Node(
       query,
-      evidence.filterNot(features.contains(_)),
+      evidence.filterNot(e => features.exists(f => f.signature == e.signature && f.constantArgs.forall(c => e.constants.contains(Constant(c))))),
       clause.map(c => Clause(c.literals.filterNot(l => features.contains(l.sentence)))),
       body.map(c => Clause(c.literals.filterNot(l => features.contains(l.sentence)))),
       head,
