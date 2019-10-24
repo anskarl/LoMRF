@@ -544,19 +544,29 @@ case class FeatureStats(
         partitions + (key -> (partitions.getOrElse(key, Set.empty[Node]) + node))
     }.values.toList
 
-    /*println(P.mkString(" | "))
+    println(P.mkString(" | "))
     println {
       P_partition.map(_.map(_.toText).mkString("\n")).mkString("\n+++++++++++++++++++++++\n")
     }
-    println("++++++++++++++++++++")*/
+    println("++++++++++++++++++++")
 
-    var POS = 0.0
+    var lower = 0.0
     P_partition.foreach { p =>
-      if (c(positives.toSet, p) <= beta) POS += size(p)
-      if (c(negatives.toSet, p) <= beta) POS += size(p)
+      if (c(positives.toSet, p) <= beta) lower += size(p)
+      if (c(negatives.toSet, p) <= beta) lower += size(p)
     }
 
-    POS / U_size
+    println(s"Lower: $lower")
+
+    var upper = 0.0
+    P_partition.foreach { p =>
+      if (c(positives.toSet, p) <= 1 - beta) upper += size(p)
+      if (c(negatives.toSet, p) <= 1 - beta) upper += size(p)
+    }
+
+    println(s"Upper: $upper")
+
+    lower / upper
   }
 
   def test(beta: Double, nodes: Seq[Node], cache: Option[NodeCache]): Set[Feature] = {
