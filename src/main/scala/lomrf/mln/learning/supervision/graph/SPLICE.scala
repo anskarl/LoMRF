@@ -74,7 +74,8 @@ final class SPLICE private[graph] (
 
     val startGraphConnection = System.currentTimeMillis
     val encodedGraph = solver match {
-      case _: HFc => connector.smartConnect(nodes, unlabeledNodes, Some(nodeCache))(metric)
+        // TODO what to do with nodeCache here?
+      case _: HFc => connector.smartConnect(nodes, unlabeledNodes/*, Some(nodeCache)*/)(metric)
       case _      => connector.fullyConnect(nodes, Some(nodeCache))(metric)
     }
 
@@ -178,39 +179,52 @@ final class SPLICE private[graph] (
 
       var updatedNodeCache = nodeCache
       updatedNodeCache ++= pureLabeledNodes
-      val cleanedUniqueLabeled = updatedNodeCache.collectNodes //.filter(_.size >= minNodeSize)
+      val cleanedUniqueLabeled = updatedNodeCache.collectNodes.filter(_.size >= minNodeSize)
 
       logger.info(msecTimeToTextUntilNow(s"Cache updated in: ", startCacheUpdate))
       logger.info(s"${cleanedUniqueLabeled.length}/${numberOfLabeled + labeled.length} unique labeled nodes kept.")
-      logger.info(updatedNodeCache.toString)
+      logger.debug(updatedNodeCache.toString)
 
-      val w1 = featureStats.computeIG_F(cleanedUniqueLabeled, Some(updatedNodeCache))
-      val weights = if (w1.forall(_._2 == 0) || w1.forall(_._2 == Double.PositiveInfinity)) Map.empty[Feature, Double] else w1
-      println(w1.toList.sortBy(_._2).reverse.mkString("\n"))
-      println
-      val w2 = featureStats.computeConstraintScore_F(cleanedUniqueLabeled, Some(updatedNodeCache))
-      println(w2.toList.sortBy(_._2).mkString("\n"))
-      println
+      var weights = featureStats.computeIG_F(cleanedUniqueLabeled, Some(updatedNodeCache))
+      weights =
+        if (weights.forall(_._2 == 0) || weights.forall(_._2 == Double.PositiveInfinity)) Map.empty[Feature, Double]
+        else weights
 
-      println("Keeping:")
-      println(cleanedUniqueLabeled.map(n => n.toText -> n.atoms.map(w1(_)).sum / n.size).sortBy(_._2).reverse.map(x => x._1 + " -> " + x._2).mkString("\n"))
+      //println(weights.toList.sortBy(_._2).reverse.mkString("\n"))
 
-      val dd = featureStats.computeBetaDependencyDegree_F(0.25, w1.keySet, cleanedUniqueLabeled, Some(nodeCache))
-      println(s"Degree of Dep := $dd")
-      //val best = featureStats.test(0.1, cleanedUniqueLabeled, Some(updatedNodeCache))
+      //println("Keeping (weighted):")
+      //println(cleanedUniqueLabeled.map(n => n.toText -> n.atoms.map(w1(_)).sum / n.size).sortBy(_._2).reverse.map(x => x._1 + " -> " + x._2).mkString("\n"))
+      //val best = featureStats.test(0.15, cleanedUniqueLabeled, Some(updatedNodeCache))
       //println(best)
 
-      /*val kept = featureStats.roughSet(0.2, cleanedUniqueLabeled, Some(updatedNodeCache))
-      println(kept)
-      val cleaned = generalise(cleanedUniqueLabeled, w1.keySet -- kept)
-      println(cleaned.map(_.toText).mkString("\n"))*/
+      // Compute neighborhoods and from these extract features
+      ////////////////////////////////
+//      println("**************************")
+//      val (pos, neg) = cleanedUniqueLabeled.partition(_.isPositive)
+//      if (pos.nonEmpty) {
+//        val ng = neg.filter(n =>
+//          pos.exists(n1 => connector.connect(n, n1)(metric) > 0.5)
+//        )
+//        ng.map(_.toText).foreach(println)
+//        val kept1 = featureStats.roughSet(0.15, pos ++ ng, Some(updatedNodeCache))
+//        println(kept1)
+//      }
+//      println("**************************")
+      //////////////////////////////
+
+      val kept = featureStats.roughSet(0.15, cleanedUniqueLabeled, Some(updatedNodeCache))
+      //println(kept)
+      val general = generalise(cleanedUniqueLabeled, weights.keySet -- kept)
+      //println(general.map(_.toText).mkString("\n"))
+      //weights = if (weights.nonEmpty) weights.map { case (f, d) => if (kept.contains(f)) f -> d else f -> 0d } else weights
+      //println(weights.mkString("\n"))
 
       // Labeled nodes MUST appear before unlabeled!
       new SPLICE(
-        cleanedUniqueLabeled ++ nonEmptyUnlabeled, // TODO
+        general ++ nonEmptyUnlabeled,
         querySignature,
         connector,
-        metric /*.normalizeWith(weights)*/ ++ mln.evidence ++ pureNodes.flatMap(n => IndexedSeq.fill(n.clusterSize)(n.atoms)),
+        metric.normalizeWith(weights) ++ mln.evidence ++ pureNodes.flatMap(n => IndexedSeq.fill(n.clusterSize)(n.atoms)),
         annotationBuilder,
         updatedNodeCache,
         featureStats,

@@ -520,6 +520,47 @@ case class FeatureStats(
     POS / U_size
   }
 
+  def wComputeBetaDependencyDegree_F(
+     beta: Double,
+     P: Set[Feature],
+     nodes: Seq[Node],
+     weights: Map[Feature, Double],
+     cache: Option[NodeCache]): Double = {
+
+    require(beta >= 0 && beta <= 0.5)
+    require(nodes.forall(_.isLabeled))
+
+    def size(nodes: Iterable[Node]): Double =
+      nodes.map(n => n.atoms.map(Feature.atom2Feature).map(weights.getOrElse(_, 1.0)).sum / n.size *
+        cache.map(_.getOrElse(n, 0L).toDouble).getOrElse(1.0)).sum
+
+    val (positives, negatives) = nodes.partition(_.isPositive)
+    val U_size = size(nodes)
+
+    def c(X: Set[Node], Y: Set[Node]): Double =
+      if (X.isEmpty) 0 else 1 - size(X intersect Y) / size(X)
+
+    val P_partition = nodes.foldLeft(Map.empty[Set[Feature], Set[Node]]) {
+      case (partitions, node) =>
+        val key = node.atoms.map(Feature.atom2Feature).toSet.intersect(P)
+        partitions + (key -> (partitions.getOrElse(key, Set.empty[Node]) + node))
+    }.values.toList
+
+    /*println(P.mkString(" | "))
+    println {
+      P_partition.map(_.map(_.toText).mkString("\n")).mkString("\n+++++++++++++++++++++++\n")
+    }
+    println("++++++++++++++++++++")*/
+
+    var POS = 0.0
+    P_partition.foreach { p =>
+      if (c(positives.toSet, p) <= beta) POS += size(p)
+      if (c(negatives.toSet, p) <= beta) POS += size(p)
+    }
+
+    POS / U_size
+  }
+
   def computeAccuracy_F(
       beta: Double,
       P: Set[Feature],
@@ -544,11 +585,11 @@ case class FeatureStats(
         partitions + (key -> (partitions.getOrElse(key, Set.empty[Node]) + node))
     }.values.toList
 
-    println(P.mkString(" | "))
+    /*println(P.mkString(" | "))
     println {
       P_partition.map(_.map(_.toText).mkString("\n")).mkString("\n+++++++++++++++++++++++\n")
     }
-    println("++++++++++++++++++++")
+    println("++++++++++++++++++++")*/
 
     var lower = 0.0
     P_partition.foreach { p =>
@@ -594,14 +635,24 @@ case class FeatureStats(
     val weights = computeIG_F(nodes, cache)
     var sorted = weights.toList.sortBy(_._2).reverse
     val features = weights.keySet
-    var prevScore = computeBetaDependencyDegree_F(beta, features, nodes, cache)
+    var prevScore = wComputeBetaDependencyDegree_F(beta, features, nodes, weights, cache)
+
+//    println("-----------------------------")
+//    var set = Set.empty[Feature]
+//    sorted.map(_._1).foreach { f =>
+//      set += f
+//      val x = computeBetaDependencyDegree_F(0.1, set, nodes, cache)
+//      println(set -> x)
+//    }
+//    println("-----------------------------")
 
     var reduct = sorted.take(2).map(_._1).toSet
     var nextFeature = sorted.drop(1).take(1).head._1
     sorted = sorted.drop(2)
-    var nextScore = computeBetaDependencyDegree_F(beta, reduct, nodes, cache)
+    var nextScore = wComputeBetaDependencyDegree_F(beta, reduct, nodes, weights, cache)
 
     println("Full score: " + prevScore)
+    println(reduct)
     println("Next score: " + nextScore)
 
     if (prevScore == nextScore) return features
@@ -611,8 +662,9 @@ case class FeatureStats(
       nextFeature = sorted.head._1
       reduct += sorted.head._1
       sorted = sorted.tail
-      nextScore = computeBetaDependencyDegree_F(beta, reduct, nodes, cache)
-      println(nextScore)
+      nextScore = wComputeBetaDependencyDegree_F(beta, reduct, nodes, weights, cache)
+      println(reduct)
+      println("Next score: " + nextScore)
     }
 
     reduct - nextFeature
