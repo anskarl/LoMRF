@@ -28,7 +28,8 @@ import lomrf.util.logging.Implicits._
 final case class SimpleNodeCache(
     querySignature: AtomSignature,
     data: Set[(Clause, Long)] = Set.empty,
-    uniqueNodes: IndexedSeq[Node] = IndexedSeq.empty) extends NodeCache {
+    uniqueNodes: IndexedSeq[Node] = IndexedSeq.empty,
+    useHoeffdingBound: Boolean = false) extends NodeCache {
 
   /**
     * @return the number of unique nodes in the cache
@@ -114,7 +115,7 @@ final case class SimpleNodeCache(
         }
     }
 
-    SimpleNodeCache(querySignature, updatedNodeSet, updatedUniqueNodes)
+    SimpleNodeCache(querySignature, updatedNodeSet, updatedUniqueNodes, useHoeffdingBound)
   }
 
   /**
@@ -137,7 +138,7 @@ final case class SimpleNodeCache(
         }
     }
 
-    SimpleNodeCache(querySignature, updatedNodeSet, updatedUniqueNodes)
+    SimpleNodeCache(querySignature, updatedNodeSet, updatedUniqueNodes, useHoeffdingBound)
   }
 
   /**
@@ -157,8 +158,9 @@ final case class SimpleNodeCache(
           val N = nodeCounts + oppNodeCounts
           val nodeFreq = nodeCounts.toDouble / N
           val oppositeNodeFreq = oppNodeCounts.toDouble / N
+          val isSatisfied = if (useHoeffdingBound) HoeffdingBound(nodeFreq, oppositeNodeFreq, N) else true
 
-          if (HoeffdingBound(nodeFreq, oppositeNodeFreq, N) && nodeFreq < oppositeNodeFreq) {
+          if (isSatisfied && nodeFreq < oppositeNodeFreq) {
             logger.debug(s"Remove pattern ${node.toText}")
             result
           } else result :+ node

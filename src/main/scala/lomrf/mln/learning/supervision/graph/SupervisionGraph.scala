@@ -296,6 +296,7 @@ object SupervisionGraph extends LazyLogging {
     * @param metric a metric for atomic formula
     * @param solver a graph solver
     * @param enableClusters enables clustering of unlabeled examples
+    * @param useHoeffding use hoeffding bound for cache filtering
     * @param minNodeSize minimum node process size
     * @return a SPLICE supervision graph instance
     */
@@ -308,6 +309,7 @@ object SupervisionGraph extends LazyLogging {
       metric: Metric[_ <: AtomicFormula],
       solver: GraphSolver,
       enableClusters: Boolean,
+      useHoeffding: Boolean,
       minNodeSize: Int): SPLICE = {
 
     // Group the given data into nodes
@@ -337,8 +339,8 @@ object SupervisionGraph extends LazyLogging {
      */
     val startCacheConstruction = System.currentTimeMillis
 
-    val nodeCache = FastNodeCache(querySignature) ++ pureLabeledNodes
-    val uniqueLabeled = nodeCache.collectNodes
+    val nodeCache = FastNodeCache(querySignature, useHoeffding) ++ pureLabeledNodes
+    val uniqueLabeled = nodeCache.collectNodes.filter(_.size >= minNodeSize)
 
     logger.info(msecTimeToTextUntilNow(s"Cache constructed in: ", startCacheConstruction))
     logger.info(s"${uniqueLabeled.length} / ${labeledNodes.length} unique labeled nodes kept.")
@@ -395,6 +397,7 @@ object SupervisionGraph extends LazyLogging {
     * @param connector a graph connector
     * @param metric a metric for atomic formula
     * @param enableClusters enables clustering of unlabeled examples
+    * @param useHoeffding use hoeffding bound for cache filtering
     * @param minNodeSize minimum node process size
     * @return a nearest neighbor graph instance
     */
@@ -406,6 +409,7 @@ object SupervisionGraph extends LazyLogging {
       connector: GraphConnector,
       metric: Metric[_ <: AtomicFormula],
       enableClusters: Boolean,
+      useHoeffding: Boolean,
       minNodeSize: Int): NNGraph = {
 
     // Group the given data into nodes
@@ -434,8 +438,8 @@ object SupervisionGraph extends LazyLogging {
      */
     val startCacheConstruction = System.currentTimeMillis
 
-    val nodeCache = FastNodeCache(querySignature) ++ pureLabeledNodes
-    val uniqueLabeled = nodeCache.collectNodes
+    val nodeCache = FastNodeCache(querySignature, useHoeffding) ++ pureLabeledNodes
+    val uniqueLabeled = nodeCache.collectNodes.filter(_.size >= minNodeSize)
 
     logger.info(msecTimeToTextUntilNow(s"Cache constructed in: ", startCacheConstruction))
     logger.info(s"${uniqueLabeled.length} / ${labeledNodes.length} unique labeled nodes kept.")
@@ -491,6 +495,7 @@ object SupervisionGraph extends LazyLogging {
     * @param connector a graph connector
     * @param metric a metric for atomic formula
     * @param enableClusters enables clustering of unlabeled examples
+    * @param useHoeffding use hoeffding bound for cache filtering
     * @param minNodeSize minimum node process size
     * @return a nearest neighbor graph instance
     */
@@ -502,6 +507,7 @@ object SupervisionGraph extends LazyLogging {
       connector: GraphConnector,
       metric: Metric[_ <: AtomicFormula],
       enableClusters: Boolean,
+      useHoeffding: Boolean,
       minNodeSize: Int): ExtNNGraph = {
 
     // Group the given data into nodes
@@ -530,8 +536,8 @@ object SupervisionGraph extends LazyLogging {
      */
     val startCacheConstruction = System.currentTimeMillis
 
-    val nodeCache = FastNodeCache(querySignature) ++ pureLabeledNodes
-    val uniqueLabeled = nodeCache.collectNodes
+    val nodeCache = FastNodeCache(querySignature, useHoeffding) ++ pureLabeledNodes
+    val uniqueLabeled = nodeCache.collectNodes.filter(_.size >= minNodeSize)
 
     logger.info(msecTimeToTextUntilNow(s"Cache constructed in: ", startCacheConstruction))
     logger.info(s"${uniqueLabeled.length} / ${labeledNodes.length} unique labeled nodes kept.")
@@ -587,6 +593,7 @@ object SupervisionGraph extends LazyLogging {
     * @param connector a graph connector
     * @param metric a metric for atomic formula
     * @param solver a graph solver
+    * @param useHoeffding use hoeffding bound for cache filtering
     * @param memory the graph memory (number of unlabeled nodes)
     * @param minNodeSize minimum node process size
     * @return a temporal label propagation graph instance
@@ -599,6 +606,7 @@ object SupervisionGraph extends LazyLogging {
       connector: GraphConnector,
       metric: Metric[_ <: AtomicFormula],
       solver: GraphSolver,
+      useHoeffding: Boolean,
       memory: Int,
       minNodeSize: Int): StreamingGraph = {
 
@@ -628,8 +636,8 @@ object SupervisionGraph extends LazyLogging {
      */
     val startCacheConstruction = System.currentTimeMillis
 
-    val nodeCache = FastNodeCache(querySignature) ++ pureLabeledNodes
-    val uniqueLabeled = nodeCache.collectNodes
+    val nodeCache = FastNodeCache(querySignature, useHoeffding) ++ pureLabeledNodes
+    val uniqueLabeled = nodeCache.collectNodes.filter(_.size >= minNodeSize)
 
     logger.info(msecTimeToTextUntilNow(s"Cache constructed in: ", startCacheConstruction))
     logger.info(s"${uniqueLabeled.length} / ${labeledNodes.length} unique labeled nodes kept.")

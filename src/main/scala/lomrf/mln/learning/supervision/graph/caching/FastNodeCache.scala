@@ -28,10 +28,11 @@ import lomrf.mln.learning.supervision.graph.Node
 import scala.collection.convert.ImplicitConversionsToScala._
 
 final class FastNodeCache private (
-    override val querySignature: AtomSignature,
+    val querySignature: AtomSignature,
     data: TCustomHashMap[Node, Long],
     marked: TCustomHashSet[Node],
-    noisy: TCustomHashSet[Node]) extends NodeCache {
+    noisy: TCustomHashSet[Node],
+    val useHoeffdingBound: Boolean) extends NodeCache {
 
   private var _uniqueNodes = IndexedSeq.empty[Node]
   private var _dirty = false
@@ -167,8 +168,10 @@ final class FastNodeCache private (
       @inline def isNoisy(node: Node): Boolean = {
         val x = data(node)
         val y = data(node.opposite)
-        val N = x + y
-        HoeffdingBound(x.toDouble / N, y.toDouble / N, N) && x < y
+        if (useHoeffdingBound){
+          val N = x + y
+          HoeffdingBound(x.toDouble / N, y.toDouble / N, N) && x < y
+        } else x < y
       }
 
     if (marked.nonEmpty || _dirty) {
@@ -177,8 +180,11 @@ final class FastNodeCache private (
         !noisy.contains(node) && {
           val x = data(node)
           val y = data(node.opposite)
-          val N = x + y
-          HoeffdingBound(x.toDouble / N, y.toDouble / N, N)
+          if (useHoeffdingBound) {
+            val N = x + y
+            HoeffdingBound(x.toDouble / N, y.toDouble / N, N)
+          }
+          else x != y
         }
       }
 
@@ -204,10 +210,11 @@ final class FastNodeCache private (
 
 object FastNodeCache {
 
-  def apply(querySignature: AtomSignature) = new FastNodeCache(
+  def apply(querySignature: AtomSignature, useHoeffdingBound: Boolean = false) = new FastNodeCache(
     querySignature,
     new TCustomHashMap(new ClauseStrategy),
     new TCustomHashSet(new BodyStrategy),
-    new TCustomHashSet(new BodyStrategy)
+    new TCustomHashSet(new BodyStrategy),
+    useHoeffdingBound
   )
 }

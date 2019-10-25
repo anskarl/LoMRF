@@ -26,7 +26,8 @@ import lomrf.mln.learning.supervision.graph.Node
 
 trait NodeCache extends LazyLogging {
 
-  protected val querySignature: AtomSignature
+  val useHoeffdingBound: Boolean
+  val querySignature: AtomSignature
 
   /**
     * @return the number of unique nodes in the cache

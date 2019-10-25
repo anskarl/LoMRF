@@ -67,13 +67,16 @@ object SemiSupervisionCLI extends CLIApp {
   private var _compressResults: Boolean = false
 
   // By default run using harmonic graph cut
-  private var _solver: GraphSolverType = HFC_SPLICE
+  private var _solver: GraphSolverType = GraphSolverType.HFC_SPLICE
 
   // By default run using atomic distance
   private var _distance: DistanceType = DistanceType.Atomic
 
   // By default run using a kNN connector
-  private var _connector: ConnectorStrategy = kNN
+  private var _connector: ConnectorStrategy = ConnectorStrategy.kNN
+
+  // By default run using a simple cache filter
+  private var _cacheFilter: CacheFilter = CacheFilter.Simple
 
   // By default cluster similar nodes
   private var _cluster: Boolean = true
@@ -173,6 +176,17 @@ object SemiSupervisionCLI extends CLIApp {
     }
   )
 
+  opt("cf", "cache-filter", "<simple | hoeffding>",
+    "Specify a cache filter for contradicting examples (default is simple).", {
+      v: String =>
+        v.trim.toLowerCase match {
+          case "simple"    => _cacheFilter = CacheFilter.Simple
+          case "hoeffding" => _cacheFilter = CacheFilter.Hoeffding
+          case _           => logger.fatal(s"Unknown distance of type '$v'.")
+        }
+    }
+  )
+
   intOpt("k", "kappa", "Kappa parameter for the kNN connector (default is " + _k + ")", {
     v: Int => if (v < 1) logger.fatal("k value must be any integer greater than zero, but you gave: " + v) else _k = v
   })
@@ -245,11 +259,14 @@ object SemiSupervisionCLI extends CLIApp {
       + "\n\t(solver) Graph solver for completion: " + _solver
       + "\n\t(distance) Distance metric for atomic formula: " + _distance
       + "\n\t(connector) Graph connection heuristic: " + _connector
+      + "\n\t(cache-filter) Cache filter: " + _cacheFilter
       + "\n\t(kappa) k parameter for the kNN connector: " + _k
       + "\n\t(epsilon) Epsilon parameter for the eNN connector: " + _epsilon
       + "\n\t(negatives) Output negative labels: " + _outputNegatives
       + "\n\t(compress-results) Output all results in a single file: " + _compressResults
-      + "\n\t(disable-clustering) Disable clustering on similar nodes: " + !_cluster)
+      + "\n\t(disable-clustering) Disable clustering on similar nodes: " + !_cluster
+      + "\n\t(min-node-size) Minimum node size: " + _minNodeSize
+      + "\n\t(memory) Streaming memory: " + _memory)
 
     // Init all statistics values to zero
     var actualPositive, actualNegative, positiveFound, negativeFound = 0
@@ -282,9 +299,11 @@ object SemiSupervisionCLI extends CLIApp {
       else if (_distance == DistanceType.Atomic) AtomMetric(HungarianMatcher)
       else EvidenceMetric(modes, HungarianMatcher)
 
+    val useHoeffding = if (_cacheFilter == CacheFilter.Simple) false else true
+
     val clusterTag = if (_solver == HFC_TLP || _solver == LGC_TLP) "no.cluster" else if (_cluster) "clustered" else "no.cluster"
     val memoryTag = if (_solver == HFC_TLP || _solver == LGC_TLP) s".m${_memory}" else ""
-    val defaultName = s"$connector.$clusterTag.${_distance}.${_solver}$memoryTag"
+    val defaultName = s"$connector.$clusterTag.${_cacheFilter}.${_distance}.${_solver}$memoryTag"
 
     val resultName = _resultsFileName match {
       case Some(path) => new File(path).getName.reverse.dropWhile(_ != '.').tail.reverse
@@ -333,28 +352,28 @@ object SemiSupervisionCLI extends CLIApp {
           case Some(graph) => supervisionGraphs += querySignature -> (graph ++ (mln, annotationDB, modes))
           case None if _solver == LP_TLP =>
             supervisionGraphs += querySignature ->
-              SupervisionGraph.TLP(mln, modes, annotationDB, querySignature, connector, distance, LP(), _memory, _minNodeSize)
+              SupervisionGraph.TLP(mln, modes, annotationDB, querySignature, connector, distance, LP(), useHoeffding, _memory, _minNodeSize)
           case None if _solver == HFC_TLP =>
             supervisionGraphs += querySignature ->
-              SupervisionGraph.TLP(mln, modes, annotationDB, querySignature, connector, distance, new HFc, _memory, _minNodeSize)
+              SupervisionGraph.TLP(mln, modes, annotationDB, querySignature, connector, distance, new HFc, useHoeffding, _memory, _minNodeSize)
           case None if _solver == LGC_TLP =>
             supervisionGraphs += querySignature ->
-              SupervisionGraph.TLP(mln, modes, annotationDB, querySignature, connector, distance, LGCc(), _memory, _minNodeSize)
+              SupervisionGraph.TLP(mln, modes, annotationDB, querySignature, connector, distance, LGCc(), useHoeffding, _memory, _minNodeSize)
           case None if _solver == LP_SPLICE =>
             supervisionGraphs += querySignature ->
-              SupervisionGraph.SPLICE(mln, modes, annotationDB, querySignature, connector, distance, LP(), _cluster, _minNodeSize)
+              SupervisionGraph.SPLICE(mln, modes, annotationDB, querySignature, connector, distance, LP(), _cluster, useHoeffding, _minNodeSize)
           case None if _solver == HFC_SPLICE =>
             supervisionGraphs += querySignature ->
-              SupervisionGraph.SPLICE(mln, modes, annotationDB, querySignature, connector, distance, new HFc, _cluster, _minNodeSize)
+              SupervisionGraph.SPLICE(mln, modes, annotationDB, querySignature, connector, distance, new HFc, _cluster, useHoeffding, _minNodeSize)
           case None if _solver == LGC_SPLICE =>
             supervisionGraphs += querySignature ->
-              SupervisionGraph.SPLICE(mln, modes, annotationDB, querySignature, connector, distance, LGCc(), _cluster, _minNodeSize)
+              SupervisionGraph.SPLICE(mln, modes, annotationDB, querySignature, connector, distance, LGCc(), _cluster, useHoeffding, _minNodeSize)
           case None if _solver == NN =>
             supervisionGraphs += querySignature ->
-              SupervisionGraph.nearestNeighbor(mln, modes, annotationDB, querySignature, connector, distance, _cluster, _minNodeSize)
+              SupervisionGraph.nearestNeighbor(mln, modes, annotationDB, querySignature, connector, distance, _cluster, useHoeffding, _minNodeSize)
           case None if _solver == EXT_NN =>
             supervisionGraphs += querySignature ->
-              SupervisionGraph.extNearestNeighbor(mln, modes, annotationDB, querySignature, connector, distance, _cluster, _minNodeSize)
+              SupervisionGraph.extNearestNeighbor(mln, modes, annotationDB, querySignature, connector, distance, _cluster, useHoeffding, _minNodeSize)
         }
       }
 

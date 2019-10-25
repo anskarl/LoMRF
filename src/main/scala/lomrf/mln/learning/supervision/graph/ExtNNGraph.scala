@@ -212,7 +212,7 @@ final class ExtNNGraph private[graph] (
 
       var updatedNodeCache = nodeCache
       updatedNodeCache ++= pureLabeledNodes
-      val cleanedUniqueLabeled = updatedNodeCache.collectNodes
+      val cleanedUniqueLabeled = updatedNodeCache.collectNodes.filter(_.size >= minNodeSize)
 
       logger.info(msecTimeToTextUntilNow(s"Cache updated in: ", startCacheUpdate))
       logger.info(s"${cleanedUniqueLabeled.length}/${numberOfLabeled + labeled.length} unique labeled nodes kept.")

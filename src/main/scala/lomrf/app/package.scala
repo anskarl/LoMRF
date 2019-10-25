@@ -93,4 +93,16 @@ package object app {
     case object Mass extends DistanceType("mass")
     case object Hybrid extends DistanceType("hybrid.tree")
   }
+
+  sealed class CacheFilter(override val entryName: String) extends EnumEntry {
+    override def toString: String = entryName
+  }
+
+  object CacheFilter extends Enum[CacheFilter] {
+
+    val values: immutable.IndexedSeq[CacheFilter] = findValues
+
+    case object Simple extends CacheFilter("simple")
+    case object Hoeffding extends CacheFilter("hoeffding")
+  }
 }
