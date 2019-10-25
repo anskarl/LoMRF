@@ -137,19 +137,21 @@ trait StructureMetric[A <: AtomicFormula] extends Metric[A] {
       case Some(weights) =>
 
         var totalScore = 0.0
-        longAtomSeq.zipWithIndex.map {
+        val num = longAtomSeq.zipWithIndex.map {
           case (atom, i) =>
             if (matches(i) == -1) {
               totalScore += weights.getOrElse(atom, 1.0)
               weights.getOrElse(atom, 1.0)
-            } else if (atom == shortAtomSeq(matches(i))) {
+            } else if (Feature.atom2Feature(atom) == Feature.atom2Feature(shortAtomSeq(matches(i)))) {
               totalScore += weights.getOrElse(atom, 1.0)
               weights.getOrElse(atom, 1.0) * distanceMatrix(i)(matches(i))
             } else {
               totalScore += weights.getOrElse(atom, 1.0) + weights.getOrElse(shortAtomSeq(matches(i)), 1.0)
               weights.getOrElse(atom, 1.0) + weights.getOrElse(shortAtomSeq(matches(i)), 1.0)
             }
-        }.sum / totalScore
+        }.sum
+
+        if (totalScore == 0) 1 else num / totalScore
 
       case None => unweightedDistance
     }
