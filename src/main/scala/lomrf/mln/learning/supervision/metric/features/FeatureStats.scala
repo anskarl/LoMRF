@@ -637,6 +637,8 @@ case class FeatureStats(
     val features = weights.keySet
     var prevScore = wComputeBetaDependencyDegree_F(beta, features, nodes, weights, cache)
 
+    if (features.size < 2) return features
+
 //    println("-----------------------------")
 //    var set = Set.empty[Feature]
 //    sorted.map(_._1).foreach { f =>
@@ -657,7 +659,7 @@ case class FeatureStats(
 
     if (prevScore == nextScore) return features
 
-    while (nextScore > prevScore) {
+    while (nextScore > prevScore) { // SOFT COMPARISON: prevScore - nextScore <= 0.1
       prevScore = nextScore
       nextFeature = sorted.head._1
       reduct += sorted.head._1

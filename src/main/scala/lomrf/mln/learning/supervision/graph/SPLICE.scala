@@ -180,10 +180,11 @@ final class SPLICE private[graph] (
       var updatedNodeCache = nodeCache
       updatedNodeCache ++= pureLabeledNodes
       val cleanedUniqueLabeled = updatedNodeCache.collectNodes.filter(_.size >= minNodeSize)
+          //.filter(n => updatedNodeCache.getOrElse(n, 0) > 5)
 
       logger.info(msecTimeToTextUntilNow(s"Cache updated in: ", startCacheUpdate))
       logger.info(s"${cleanedUniqueLabeled.length}/${numberOfLabeled + labeled.length} unique labeled nodes kept.")
-      logger.debug(updatedNodeCache.toString)
+      logger.info(updatedNodeCache.toString)
 
       var weights = featureStats.computeIG_F(cleanedUniqueLabeled, Some(updatedNodeCache))
       weights =
@@ -193,7 +194,8 @@ final class SPLICE private[graph] (
       //println(weights.toList.sortBy(_._2).reverse.mkString("\n"))
 
       //println("Keeping (weighted):")
-      //println(cleanedUniqueLabeled.map(n => n.toText -> n.atoms.map(w1(_)).sum / n.size).sortBy(_._2).reverse.map(x => x._1 + " -> " + x._2).mkString("\n"))
+      //println(cleanedUniqueLabeled.map(_.toText).mkString("\n"))
+      //println(cleanedUniqueLabeled.map(n => n.toText -> n.atoms.map(weights(_)).sum / n.size).sortBy(_._2).reverse.map(x => x._1 + " -> " + x._2).mkString("\n"))
       //val best = featureStats.test(0.15, cleanedUniqueLabeled, Some(updatedNodeCache))
       //println(best)
 
