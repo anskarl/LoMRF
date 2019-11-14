@@ -168,7 +168,7 @@ final class FastNodeCache private (
       @inline def isNoisy(node: Node): Boolean = {
         val x = data(node)
         val y = data(node.opposite)
-        if (useHoeffdingBound){
+        if (useHoeffdingBound) {
           val N = x + y
           HoeffdingBound(x.toDouble / N, y.toDouble / N, N) && x < y
         } else x < y
@@ -183,8 +183,7 @@ final class FastNodeCache private (
           if (useHoeffdingBound) {
             val N = x + y
             HoeffdingBound(x.toDouble / N, y.toDouble / N, N)
-          }
-          else x != y
+          } else x != y
         }
       }
 

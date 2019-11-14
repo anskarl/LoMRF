@@ -20,10 +20,12 @@
 
 package lomrf.mln.learning.supervision.metric.features
 
+import breeze.linalg.DenseVector
 import com.typesafe.scalalogging.LazyLogging
-import lomrf.logic.{ AtomSignature, Constant }
-import lomrf.mln.learning.supervision.graph.Node
+import lomrf.logic.{ AtomSignature, AtomicFormula }
+import lomrf.mln.learning.supervision.graph.{ GraphConnector, Node }
 import lomrf.mln.learning.supervision.graph.caching.NodeCache
+import lomrf.mln.learning.supervision.metric.{ HybridMetric, Metric }
 import lomrf.util.logging.Implicits._
 
 case class FeatureStats(
@@ -228,7 +230,14 @@ case class FeatureStats(
           case (map, atom) =>
             map.updated(atom, counts.getOrElse(atom, 0.0) + freq)
         }
+
+      /*node.atoms.filter(_.arity > 2).map(Feature.atom2Feature).toSet.foldLeft(temp) {
+          case (map, atom) =>
+            map.updated(atom, counts.getOrElse(atom, 0.0) + freq)
+        }*/
     }
+
+    //println(featureCounts.toList.sortBy(_._2).reverse.mkString("\n"))
 
     featureCounts.keySet.map { f =>
       val conditionalCounts = Array.fill(4)(0.0)
@@ -245,6 +254,8 @@ case class FeatureStats(
 
       val PFeature = featureCounts(f) / total
       val PNotFeature = 1 - PFeature
+
+      //println(f + " " + PFeature + " " + conditionalCounts.deep)
 
       val a = conditionalCounts.take(2).sum
       val b = conditionalCounts.drop(2).sum
@@ -481,6 +492,30 @@ case class FeatureStats(
     }.toMap
   }
 
+  def computeLaplacianScore_F(
+      connector: GraphConnector,
+      metric: Metric[_ <: AtomicFormula],
+      nodes: IndexedSeq[Node]): Map[Feature, Double] = {
+
+    require(nodes.forall(_.isLabeled))
+
+    val features = nodes.flatMap(_.atoms.map(Feature.atom2Feature)).toSet
+
+    val (s, d) = connector.fullyConnect(nodes)(metric.asInstanceOf[HybridMetric].metrics.head)
+    val l = d - s
+    val ones = DenseVector.ones[Double](nodes.length)
+
+    var result = Map.empty[Feature, Double]
+    features.foreach { f =>
+      val fr = DenseVector(nodes.map(n => if (n.atoms.map(Feature.atom2Feature).contains(f)) 1.0 else 0.0).toArray)
+      val fr_tilde = fr - ((fr.t * d * ones) / (ones.t * d * ones)) * ones
+      val score = (fr_tilde.t * l * fr_tilde) / (fr_tilde.t * d * fr_tilde)
+      result += f -> score
+    }
+
+    result
+  }
+
   def computeBetaDependencyDegree_F(
       beta: Double,
       P: Set[Feature],
@@ -521,28 +556,110 @@ case class FeatureStats(
   }
 
   def wComputeBetaDependencyDegree_F(
-     beta: Double,
-     P: Set[Feature],
-     nodes: Seq[Node],
-     weights: Map[Feature, Double],
-     cache: Option[NodeCache]): Double = {
+      beta: Double,
+      P: Set[Feature],
+      nodes: Seq[Node],
+      weights: Map[Feature, Double],
+      cache: Option[NodeCache]): Double = {
 
     require(beta >= 0 && beta <= 0.5)
     require(nodes.forall(_.isLabeled))
 
-    def size(nodes: Iterable[Node]): Double =
-      nodes.map(n => n.atoms.map(Feature.atom2Feature).map(weights.getOrElse(_, 1.0)).sum / n.size *
-        cache.map(_.getOrElse(n, 0L).toDouble).getOrElse(1.0)).sum
+      def size(nodes1: Iterable[Node]): Double =
+        nodes1.toList.map { n => if (cache.isDefined) cache.get.getOrElse(n, 0L).toDouble else 1.0 }.sum
+
+    /*cache.map(_.getOrElse(n, 0L).toDouble).getOrElse(1.0)*/
+    /*nodes.map(n => n.atoms.map(Feature.atom2Feature).map(weights.getOrElse(_, 1.0)).sum / n.size *
+        cache.map(_.getOrElse(n, 0L).toDouble).getOrElse(1.0)).sum*/
 
     val (positives, negatives) = nodes.partition(_.isPositive)
     val U_size = size(nodes)
 
-    def c(X: Set[Node], Y: Set[Node]): Double =
-      if (X.isEmpty) 0 else 1 - size(X intersect Y) / size(X)
+      def c(X: Set[Node], Y: Set[Node]): Double =
+        if (X.isEmpty) 0 else 1 - size(X intersect Y) / size(X) // TODO This may be a problem !!!
 
-    val P_partition = nodes.foldLeft(Map.empty[Set[Feature], Set[Node]]) {
+    val P_partition = nodes.foldLeft(Map.empty[IndexedSeq[Feature], Set[Node]]) {
       case (partitions, node) =>
-        val key = node.atoms.map(Feature.atom2Feature).toSet.intersect(P)
+        val key = node.atoms.map(Feature.atom2Feature).filter(P.contains).sortBy(_.toString)
+        //val key = node.atoms.map(Feature.atom2Feature).toSet.intersect(P)
+        if (key.isEmpty) partitions
+        else partitions + (key -> (partitions.getOrElse(key, Set.empty[Node]) + node))
+    }.values.toList
+
+    /*println(P.mkString(" | "))
+    println {
+      P_partition.map(_.map(_.toText).mkString("\n")).mkString("\n+++++++++++++++++++++++\n")
+    }
+    println("++++++++++++++++++++")*/
+
+    var acceptedP = 0
+    var POSet = Set.empty[Node]
+    P_partition.foreach { p =>
+      if (c(p, positives.toSet) <= beta || c(p, negatives.toSet) <= beta) {
+        POSet ++= p
+        acceptedP += 1
+      }
+      // if (c(p, negatives.toSet) <= beta) POSet ++= p
+    }
+
+    //println(acceptedP / 2.0)
+
+    size(POSet) / U_size
+  }
+
+  def computeLambdaDegree_F(
+      beta: Double,
+      P: Set[Feature],
+      nodes: Seq[Node],
+      cache: Option[NodeCache]): Double = {
+
+    require(beta >= 0 && beta <= 0.5)
+    require(nodes.forall(_.isLabeled))
+
+      def size(nodes1: Iterable[Node]): Double =
+        nodes1.toList.map { n => if (cache.isDefined) cache.get.getOrElse(n, 0L).toDouble else 1.0 }.sum
+
+    val (positives, negatives) = nodes.partition(_.isPositive)
+
+      def c(X: Set[Node], Y: Set[Node]): Double =
+        if (X.isEmpty) 0 else 1 - size(X intersect Y) / size(X) // TODO This may be a problem !!!
+
+    val P_partition = nodes.foldLeft(Map.empty[IndexedSeq[Feature], Set[Node]]) {
+      case (partitions, node) =>
+        val key = node.atoms.map(Feature.atom2Feature).filter(P.contains)
+        //val key = node.atoms.map(Feature.atom2Feature).toSet.intersect(P)
+        if (key.isEmpty) partitions
+        else partitions + (key -> (partitions.getOrElse(key, Set.empty[Node]) + node))
+    }.values.toList
+
+    var acceptedP = 0
+    P_partition.foreach { p =>
+      if (c(p, positives.toSet) <= beta || c(p, negatives.toSet) <= beta) acceptedP += 1
+    }
+    acceptedP
+  }
+
+  def strictComputeBetaDependencyDegree_F(
+      P: Set[Feature],
+      nodes: Seq[Node],
+      weights: Map[Feature, Double],
+      cache: Option[NodeCache]): Double = {
+
+    require(nodes.forall(_.isLabeled))
+
+      def size(nodes: Iterable[Node]): Double = nodes.map(n => cache.map(_.getOrElse(n, 0L).toDouble).getOrElse(1.0)).sum
+    /*nodes.map(n => n.atoms.map(Feature.atom2Feature).map(weights.getOrElse(_, 1.0)).sum / n.size *
+      cache.map(_.getOrElse(n, 0L).toDouble).getOrElse(1.0)).sum*/
+
+    val (positives, negatives) = nodes.partition(_.isPositive)
+    val U_size = size(nodes)
+
+      def c(X: Set[Node], Y: Set[Node]): Boolean = X.forall(Y.contains)
+
+    val P_partition = nodes.foldLeft(Map.empty[IndexedSeq[Feature], Set[Node]]) {
+      case (partitions, node) =>
+        val key = node.atoms.map(Feature.atom2Feature).filter(P.contains)
+        //val key = node.atoms.map(Feature.atom2Feature).toSet.intersect(P)
         partitions + (key -> (partitions.getOrElse(key, Set.empty[Node]) + node))
     }.values.toList
 
@@ -552,14 +669,78 @@ case class FeatureStats(
     }
     println("++++++++++++++++++++")*/
 
-    var POS = 0.0
+    var POSet = Set.empty[Node]
     P_partition.foreach { p =>
-      if (c(positives.toSet, p) <= beta) POS += size(p)
-      if (c(negatives.toSet, p) <= beta) POS += size(p)
+      if (c(p, positives.toSet)) POSet ++= p
+      if (c(p, negatives.toSet)) POSet ++= p
     }
 
-    POS / U_size
+    println(s"${size(POSet)} / $U_size")
+    size(POSet) / U_size
   }
+
+  def lower(
+      beta: Double,
+      P: Set[Feature],
+      nodes: Seq[Node],
+      cache: Option[NodeCache]): Set[Node] = {
+
+    require(beta >= 0 && beta <= 0.5)
+
+      def size(nodes: Iterable[Node]): Double =
+        nodes.map(n => cache.map(_.getOrElse(n, 0L).toDouble).getOrElse(1.0)).sum
+
+      def c(X: Set[Node], Y: Set[Node]): Double =
+        if (X.isEmpty) 0 else 1 - size(X intersect Y) / size(X)
+
+    val P_partition = nodes.foldLeft(Map.empty[IndexedSeq[Feature], Set[Node]]) {
+      case (partitions, node) =>
+        val key = node.atoms.map(Feature.atom2Feature).filter(P.contains)
+        //val key = node.atoms.map(Feature.atom2Feature).toSet.intersect(P)
+        partitions + (key -> (partitions.getOrElse(key, Set.empty[Node]) + node))
+    }.values.toList
+
+    P_partition.foldLeft(Set.empty[Node]) {
+      case (l, p) =>
+        if (c(p, nodes.toSet) <= beta) l ++ p
+        else l
+    }
+  }
+
+  def upper(
+      beta: Double,
+      P: Set[Feature],
+      nodes: Seq[Node],
+      cache: Option[NodeCache]): Set[Node] = {
+
+    require(beta >= 0 && beta <= 0.5)
+
+      def size(nodes: Iterable[Node]): Double =
+        nodes.map(n => cache.map(_.getOrElse(n, 0L).toDouble).getOrElse(1.0)).sum
+
+      def c(X: Set[Node], Y: Set[Node]): Double =
+        if (X.isEmpty) 0 else 1 - size(X intersect Y) / size(X)
+
+    val P_partition = nodes.foldLeft(Map.empty[IndexedSeq[Feature], Set[Node]]) {
+      case (partitions, node) =>
+        val key = node.atoms.map(Feature.atom2Feature).filter(P.contains)
+        //val key = node.atoms.map(Feature.atom2Feature).toSet.intersect(P)
+        partitions + (key -> (partitions.getOrElse(key, Set.empty[Node]) + node))
+    }.values.toList
+
+    P_partition.foldLeft(Set.empty[Node]) {
+      case (l, p) =>
+        if (c(p, nodes.toSet) < 1 - beta) l ++ p
+        else l
+    }
+  }
+
+  def bnd(
+      beta: Double,
+      P: Set[Feature],
+      nodes: Seq[Node],
+      cache: Option[NodeCache]): Set[Node] =
+    upper(beta, P, nodes, cache) -- lower(beta, P, nodes, cache)
 
   def computeAccuracy_F(
       beta: Double,
@@ -570,44 +751,34 @@ case class FeatureStats(
     require(beta >= 0 && beta <= 0.5)
     require(nodes.forall(_.isLabeled))
 
+    val (positives, negatives) = nodes.partition(_.isPositive)
+
       def size(nodes: Iterable[Node]): Double =
         nodes.map(n => cache.map(_.getOrElse(n, 0L).toDouble).getOrElse(1.0)).sum
-
-    val (positives, negatives) = nodes.partition(_.isPositive)
-    val U_size = size(nodes)
 
       def c(X: Set[Node], Y: Set[Node]): Double =
         if (X.isEmpty) 0 else 1 - size(X intersect Y) / size(X)
 
-    val P_partition = nodes.foldLeft(Map.empty[Set[Feature], Set[Node]]) {
+    val P_partition = nodes.foldLeft(Map.empty[IndexedSeq[Feature], Set[Node]]) {
       case (partitions, node) =>
-        val key = node.atoms.map(Feature.atom2Feature).toSet.intersect(P)
+        val key = node.atoms.map(Feature.atom2Feature).filter(P.contains)
+        //val key = node.atoms.map(Feature.atom2Feature).toSet.intersect(P)
         partitions + (key -> (partitions.getOrElse(key, Set.empty[Node]) + node))
     }.values.toList
 
-    /*println(P.mkString(" | "))
-    println {
-      P_partition.map(_.map(_.toText).mkString("\n")).mkString("\n+++++++++++++++++++++++\n")
-    }
-    println("++++++++++++++++++++")*/
-
-    var lower = 0.0
+    var lowerSet = Set.empty[Node]
     P_partition.foreach { p =>
-      if (c(positives.toSet, p) <= beta) lower += size(p)
-      if (c(negatives.toSet, p) <= beta) lower += size(p)
+      if (c(p, positives.toSet) <= beta) lowerSet ++= p
+      if (c(p, negatives.toSet) <= beta) lowerSet ++= p
     }
 
-    println(s"Lower: $lower")
-
-    var upper = 0.0
+    var upperSet = Set.empty[Node]
     P_partition.foreach { p =>
-      if (c(positives.toSet, p) <= 1 - beta) upper += size(p)
-      if (c(negatives.toSet, p) <= 1 - beta) upper += size(p)
+      if (c(p, positives.toSet) <= 1 - beta) upperSet ++= p
+      if (c(p, negatives.toSet) <= 1 - beta) upperSet ++= p
     }
 
-    println(s"Upper: $upper")
-
-    lower / upper
+    size(lowerSet) / size(upperSet)
   }
 
   def test(beta: Double, nodes: Seq[Node], cache: Option[NodeCache]): Set[Feature] = {
@@ -616,10 +787,12 @@ case class FeatureStats(
     val pF = nodes.filter(_.isPositive).flatMap(_.atoms.map(Feature.atom2Feature).toSet).toSet
     val nF = nodes.filter(_.isNegative).flatMap(_.atoms.map(Feature.atom2Feature).toSet).toSet
 
+    if (pF.isEmpty || nF.isEmpty) return features
+
     val best = (2 to features.size).map { len =>
       val k = features.toList.combinations(len).withFilter(f => pF.intersect(f.toSet).nonEmpty && nF.intersect(f.toSet).nonEmpty).map {
         f =>
-          val j = f -> computeBetaDependencyDegree_F(beta, f.toSet, nodes, cache)
+          val j = f -> wComputeBetaDependencyDegree_F(beta, f.toSet, nodes, Map.empty, cache)
           println(j)
           j
       }.maxBy(_._2)
@@ -628,6 +801,195 @@ case class FeatureStats(
     }.maxBy(_._2)._1.toSet
 
     best
+  }
+
+  def optimization(nodes: Seq[Node], cache: Option[NodeCache]): Set[Feature] = {
+
+    require(nodes.forall(_.isLabeled))
+
+    val weights = computeIG_F(nodes, cache)
+    val inconsistency = weights.keySet.map(k => k -> inconsistency_F(Set(k), nodes, cache)).toMap
+
+      def computeDegrees(
+          P: Set[Feature],
+          nodes: Seq[Node],
+          cache: Option[NodeCache]): (Double, Double, Double, Double, Double) = {
+
+          def size(nd: Iterable[Node]): Double =
+            nd.toList.map { n => if (cache.isDefined) cache.get.getOrElse(n, 0L).toDouble else 1.0 }.sum
+          //nd.size
+
+          def c(X: Set[Node], Y: Set[Node]): Double =
+            if (X.isEmpty) 0 else 1 - size(X intersect Y) / size(X)
+
+        val (positives, negatives) = nodes.partition(_.isPositive)
+        val U_size = size(nodes)
+        val U_size_freq = nodes.toList.map(n => cache.map(_.getOrElse(n, 0L).toDouble).getOrElse(1.0)).sum
+
+        var penalty = 0.0
+        val P_partition = nodes.foldLeft(Map.empty[IndexedSeq[Feature], Set[Node]]) {
+          case (partitions, node) =>
+            val key = node.atoms.map(Feature.atom2Feature).filter(P.contains).sortBy(_.toString)
+            if (key.isEmpty) {
+              penalty += cache.map(_.getOrElse(node, 0L).toDouble).getOrElse(1.0)
+              partitions
+            } else partitions + (key -> (partitions.getOrElse(key, Set.empty[Node]) + node))
+        }.values.toList
+
+        var acceptedP = 0.0
+        var POSet = Set.empty[Node]
+        P_partition.foreach { p =>
+          if (c(p, positives.toSet) == 0 || c(p, negatives.toSet) == 0) {
+            POSet ++= p
+            acceptedP += 1.0
+          }
+        }
+
+        (penalty / U_size_freq, acceptedP / nodes.size, size(POSet) / U_size, P.map(weights(_)).sum / P.size, P.map(inconsistency(_)).sum / P.size)
+      }
+
+      def unitExist(P: Set[Feature], nodes: Seq[Node], cache: Option[NodeCache]): Boolean = {
+        nodes.exists(n => n.atoms.map(Feature.atom2Feature).filter(P.contains).distinct.length == 1) // TODO this is buggy
+      }
+
+    val features = nodes.flatMap(_.atoms.map(Feature.atom2Feature).toSet).toSet
+    val fullSig = wComputeBetaDependencyDegree_F(0, features, nodes, weights, cache)
+
+    if (!nodes.exists(_.isPositive) || !nodes.exists(_.isNegative)) return features
+
+    var paretoSet = Set.empty[(List[Feature], (Double, Double, Double, Double, Double, Double))]
+    val outerResults = (2 to features.size /* TODO - 1*/ ).flatMap { len =>
+
+      val results = features.toList.combinations(len) /*.withFilter { featureSubset =>
+        !unitExist(featureSubset.toSet, nodes, cache)
+      }*/ .map { featureSubset =>
+          //println("SIG of " + featureSubset.toSet)
+          val sig = 1 - (wComputeBetaDependencyDegree_F(0, features -- featureSubset.toSet, nodes, weights, cache) / fullSig)
+          val (a, b, c, d, e) = computeDegrees(featureSubset.toSet, nodes, cache)
+          featureSubset -> (a, b, c, d, e, sig)
+        }.filter { case (_, (_, pt, degree, _, _, _)) => degree > 0.5 /*&& pt > 1 / nodes.length*/ }.toList
+
+      /*results.foreach { case (f, (penalty, partitions, degree, meanMI, sig)) =>
+        println(s"${f.mkString(", ")} | penalty: $penalty partitions: $partitions degree $degree mean_mi: $meanMI SIG: $sig")
+      }*/
+
+      if (results.isEmpty) None
+      else {
+
+        results.foreach {
+          case entry @ (_, (a, b, c, d, e, f)) =>
+
+            val updated = paretoSet + entry
+            paretoSet = updated.filter {
+              case (_, (aa, bb, cc, dd, ee, ff)) =>
+                !updated.exists {
+                  case (_, (x, y, z, w, q, r)) =>
+                    x < aa && y < bb && (1 - z) < (1 - cc) && (1 - w) < (1 - dd) && (1 - q) < (1 - ee) && (1 - r) < (1 - ff)
+                }
+            }
+
+          /*paretoSet = paretoSet.filter { case (_, (aa, bb, cc, dd)) =>
+            (aa < a || bb < b || (1 - cc) < (1 - c) || (1 - dd) < (1 - d)) || (aa == a && bb == b && cc == c && dd == d)
+          }
+
+          val add = !paretoSet.exists { case (_, (aa, bb, cc, dd)) =>
+            (aa < a && bb < b && (1 - cc) < (1 - c)) || (aa == a && bb == b && (1 - cc) < (1 - c)) ||
+              (aa == a && bb < b && (1 - cc) == (1 - c)) || (aa < a && bb == b && (1 - cc) == (1 - c)) ||
+              (aa == a && bb < b && (1 - cc) < (1 - c)) || (aa < a && bb == b && (1 - cc) < (1 - c)) ||
+              (aa < a && bb < b && (1 - cc) == (1 - c))
+          }
+
+          if (add) paretoSet += entry*/
+        }
+
+        // TODO works for meet 1,2,3,4,5,6,10
+        // TODO MEASURE PARTITION MASS INSTEAD OF JUST THE NUMBER OF PARTITIONS
+        Some(results.map(x => x._1 -> (x._2._1 + x._2._2 + (1 - x._2._3) /*+ (1 - x._2._4)*/ + (1 - x._2._5) + (1 - x._2._6))).minBy(_._2))
+        //val minPartitions = results.map(_._2._2).distinct.min
+        //Some(results.filter(_._2._2 == minPartitions).minBy(_._2._1))
+      }
+    }
+
+    println
+    println("PARETO SET")
+    paretoSet.toList.sortBy(_._2._4).reverse.foreach {
+      case (f, (penalty, partitions, degree, meanMI, incon, sig)) =>
+        println(s"${f.mkString(", ")} | penalty: $penalty partitions: $partitions degree $degree sig: $sig mean_mi: $meanMI incon: $incon")
+    }
+
+    outerResults.minBy(_._2)._1.toSet
+    //val minPartitions = outerResults.map(_._2._2).distinct.min
+    //outerResults.filter(_._2._2 == minPartitions).minBy(_._2._1)._1.toSet
+  }
+
+  def inconsistency_F(P: Set[Feature], nodes: Seq[Node], cache: Option[NodeCache]): Double = {
+    require(nodes.forall(_.isLabeled))
+
+      def size(nd: Iterable[Node]): Double =
+        nd.toList.map { n => if (cache.isDefined) cache.get.getOrElse(n, 0L).toDouble else 1.0 }.sum
+
+    val P_partition = nodes.foldLeft(Map.empty[IndexedSeq[Feature], Set[Node]]) {
+      case (partitions, node) =>
+        val key = node.atoms.map(Feature.atom2Feature).filter(P.contains).sortBy(_.toString)
+        if (key.isEmpty) partitions
+        else partitions + (key -> (partitions.getOrElse(key, Set.empty[Node]) + node))
+    }.values.toList
+
+    /*P_partition.map { nodes =>
+      val (p, n) = nodes.partition(_.isPositive)
+      nodes.size - (if (p.size > n.size) p.size else n.size)
+    }.sum / nodes.length.toDouble*/
+
+    P_partition.map { nodes =>
+      val (p, n) = nodes.partition(_.isPositive)
+      size(nodes) - (if (size(p) > size(n)) size(p) else size(n))
+    }.sum / size(nodes)
+  }
+
+  def roughSetFS(beta: Double, nodes: Seq[Node], cache: Option[NodeCache], weighted: Boolean = false): Set[Feature] = {
+
+    val weights = computeIG_F(nodes, cache)
+    var sorted = weights.toList.sortBy(_._2).reverse
+    var features = weights.keySet
+    val initialGamma = wComputeBetaDependencyDegree_F(beta, features, nodes, weights, None /*cache*/ )
+    println(initialGamma)
+    var nextGamma = 0.0
+    var reduct = Set.empty[Feature]
+
+    while (nextGamma <= initialGamma && features.nonEmpty) {
+
+      val (f, g) = features.map { f =>
+        /*println(f)
+        println(wComputeBetaDependencyDegree_F(beta, reduct + f, nodes, weights, cache))
+        println(invWComputeBetaDependencyDegree_F(beta, reduct + f, nodes, weights, cache))*/
+        f -> wComputeBetaDependencyDegree_F(beta, reduct + f, nodes, weights, None /*cache*/ )
+      }.maxBy(_._2)
+      features -= f
+      nextGamma = g
+      println(f)
+      println(nextGamma)
+      println("==============")
+      reduct += f
+    }
+
+    reduct
+  }
+
+  def core(nodes: IndexedSeq[Node]): Set[Feature] = {
+    val (positives, negatives) = nodes.partition(_.isPositive)
+
+    val matrix = positives.map { p =>
+      negatives.map { n =>
+        val a = p.atoms.map(Feature.atom2Feature).toSet
+        val b = n.atoms.map(Feature.atom2Feature).toSet
+        a.union(b) -- a.intersect(b)
+      }
+    }
+
+    //println(matrix.map(_.mkString(" | ")).mkString("\n"))
+
+    if (matrix.isEmpty || matrix.forall(_.isEmpty) || matrix.flatMap(_.filter(_.size == 1)).isEmpty) Set.empty[Feature]
+    else matrix.flatMap(_.filter(_.size == 1)).reduce(_ ++ _)
   }
 
   def roughSet(beta: Double, nodes: Seq[Node], cache: Option[NodeCache], weighted: Boolean = false): Set[Feature] = {
@@ -639,14 +1001,14 @@ case class FeatureStats(
 
     if (features.size < 2) return features
 
-//    println("-----------------------------")
-//    var set = Set.empty[Feature]
-//    sorted.map(_._1).foreach { f =>
-//      set += f
-//      val x = computeBetaDependencyDegree_F(0.1, set, nodes, cache)
-//      println(set -> x)
-//    }
-//    println("-----------------------------")
+    //    println("-----------------------------")
+    //    var set = Set.empty[Feature]
+    //    sorted.map(_._1).foreach { f =>
+    //      set += f
+    //      val x = computeBetaDependencyDegree_F(0.1, set, nodes, cache)
+    //      println(set -> x)
+    //    }
+    //    println("-----------------------------")
 
     var reduct = sorted.take(2).map(_._1).toSet
     var nextFeature = sorted.drop(1).take(1).head._1
@@ -657,7 +1019,7 @@ case class FeatureStats(
     println(reduct)
     println("Next score: " + nextScore)
 
-    if (prevScore == nextScore) return features
+    if (prevScore == nextScore) return reduct
 
     while (nextScore > prevScore) { // SOFT COMPARISON: prevScore - nextScore <= 0.1
       prevScore = nextScore
@@ -667,6 +1029,199 @@ case class FeatureStats(
       nextScore = wComputeBetaDependencyDegree_F(beta, reduct, nodes, weights, cache)
       println(reduct)
       println("Next score: " + nextScore)
+    }
+
+    reduct - nextFeature
+  }
+
+  def roughSet2(beta: Double, nodes: Seq[Node], cache: Option[NodeCache], weighted: Boolean = false): Set[Feature] = {
+
+    val weights = computeIG_F(nodes, cache)
+    var sorted = weights.toList.sortBy(_._2).reverse
+    val features = weights.keySet
+    var prevScore = wComputeBetaDependencyDegree_F(beta, features, nodes, weights, cache)
+
+    if (features.size <= 2) return features
+
+    //    println("-----------------------------")
+    //    var set = Set.empty[Feature]
+    //    sorted.map(_._1).foreach { f =>
+    //      set += f
+    //      val x = computeBetaDependencyDegree_F(0.1, set, nodes, cache)
+    //      println(set -> x)
+    //    }
+    //    println("-----------------------------")
+
+    var reduct = sorted.take(3).map(_._1).toSet
+    var nextFeature = sorted.drop(2).take(1).head._1
+    sorted = sorted.drop(3)
+    var nextScore = wComputeBetaDependencyDegree_F(beta, reduct, nodes, weights, cache)
+
+    println("Full score: " + prevScore)
+    println(reduct)
+    println("Next score: " + nextScore)
+
+    if (prevScore > nextScore) return features
+
+    while (sorted.nonEmpty && prevScore - nextScore <= 0.01 /*nextScore >= prevScore*/ ) { // SOFT COMPARISON: prevScore - nextScore <= 0.1
+      prevScore = nextScore
+      nextFeature = sorted.head._1
+      reduct += sorted.head._1
+      sorted = sorted.tail
+      nextScore = wComputeBetaDependencyDegree_F(beta, reduct, nodes, weights, cache)
+      println(reduct)
+      println("Next score: " + nextScore)
+      println(s"Subtraction: ${prevScore - nextScore}")
+    }
+
+    reduct - nextFeature
+  }
+
+  def roughSetLaplacian(beta: Double, nodes: IndexedSeq[Node], cache: Option[NodeCache], connector: GraphConnector, metric: Metric[_ <: AtomicFormula]): Set[Feature] = {
+
+    val weights = computeLaplacianScore_F(connector, metric, nodes)
+    var sorted = weights.toList.sortBy(_._2)
+    val features = weights.keySet
+    var prevScore = wComputeBetaDependencyDegree_F(beta, features, nodes, weights, cache)
+
+    if (features.size <= 2) return features
+
+    //    println("-----------------------------")
+    //    var set = Set.empty[Feature]
+    //    sorted.map(_._1).foreach { f =>
+    //      set += f
+    //      val x = computeBetaDependencyDegree_F(0.1, set, nodes, cache)
+    //      println(set -> x)
+    //    }
+    //    println("-----------------------------")
+
+    var reduct = sorted.take(3).map(_._1).toSet
+    var nextFeature = sorted.drop(2).take(1).head._1
+    sorted = sorted.drop(3)
+    var nextScore = wComputeBetaDependencyDegree_F(beta, reduct, nodes, weights, cache)
+
+    println("Full score: " + prevScore)
+    println(reduct)
+    println("Next score: " + nextScore)
+
+    //if (prevScore == nextScore) return features
+
+    while (sorted.nonEmpty && prevScore - nextScore <= 0.01 /*nextScore >= prevScore*/ ) { // SOFT COMPARISON: prevScore - nextScore <= 0.1
+      prevScore = nextScore
+      nextFeature = sorted.head._1
+      reduct += sorted.head._1
+      sorted = sorted.tail
+      nextScore = wComputeBetaDependencyDegree_F(beta, reduct, nodes, weights, cache)
+      println(reduct)
+      println("Next score: " + nextScore)
+      println(s"Subtraction: ${prevScore - nextScore}")
+    }
+
+    reduct - nextFeature
+  }
+
+  def roughSetGrouped(beta: Double, nodes: Seq[Node], cache: Option[NodeCache], weighted: Boolean = false): Set[Feature] = {
+
+    val weights = computeIG_F(nodes, cache)
+    var sorted = weights.groupBy(_._2).toList.sortBy(_._1).reverse.map(x => x._2.keySet)
+    val features = weights.keySet
+    var prevScore = wComputeBetaDependencyDegree_F(beta, features, nodes, weights, cache)
+
+    if (sorted.size <= 2) return features
+
+    var reduct = sorted.take(3).flatten.toSet
+    var nextFeatures = sorted.drop(2).take(1).head
+    sorted = sorted.drop(3)
+
+    var nextScore = wComputeBetaDependencyDegree_F(beta, reduct, nodes, weights, cache)
+
+    println("Full score: " + prevScore)
+    println(reduct)
+    println("Next score: " + nextScore)
+
+    //if (prevScore == nextScore) return features
+
+    while (sorted.nonEmpty && prevScore - nextScore <= 0.01 /*nextScore >= prevScore*/ ) { // SOFT COMPARISON: prevScore - nextScore <= 0.1
+      prevScore = nextScore
+      nextFeatures = sorted.head
+      reduct ++= sorted.head
+      sorted = sorted.tail
+      nextScore = wComputeBetaDependencyDegree_F(beta, reduct, nodes, weights, cache)
+      println(reduct)
+      println("Next score: " + nextScore)
+      println(s"Subtraction: ${prevScore - nextScore}")
+    }
+
+    reduct -- nextFeatures
+  }
+
+  def roughSetBF(beta: Double, nodes: Seq[Node], cache: Option[NodeCache], weighted: Boolean = false): Set[Feature] = {
+
+    val weights = computeIG_F(nodes, cache)
+    val features = weights.keySet
+
+    val positives = nodes.withFilter(_.isPositive).map(_.atoms.map(Feature.atom2Feature))
+    if (positives.isEmpty) return features
+
+    val (pFeatures, rest) = features.partition(f => positives.exists(_.contains(f)))
+
+    println(s"Positive features: $pFeatures")
+    println(s"Rest: $rest")
+
+    var sortedPFreatures = weights.toList.filter(x => pFeatures.contains(x._1)).sortBy(_._2).reverse
+    var prevScore = wComputeBetaDependencyDegree_F(beta, pFeatures, nodes, weights, cache)
+
+    println(s"ALL: $prevScore")
+    pFeatures.foreach { f =>
+      val s = wComputeBetaDependencyDegree_F(beta, pFeatures - f, nodes, weights, cache)
+      println(s"REMOVING $f YIELDS $s")
+    }
+
+    var reduct = sortedPFreatures.dropRight(1).map(_._1).toSet
+    var removed = sortedPFreatures.takeRight(1).head._1
+    sortedPFreatures = sortedPFreatures.dropRight(1)
+    var nextScore = wComputeBetaDependencyDegree_F(beta, reduct, nodes, weights, cache)
+
+    println("Full score: " + prevScore)
+    println(reduct)
+    println("Reduct score: " + nextScore)
+
+    if (nextScore != 0.0 && prevScore == nextScore) return features
+
+    while (nextScore > prevScore) { // SOFT COMPARISON: prevScore - nextScore <= 0.1
+      prevScore = nextScore
+      removed = sortedPFreatures.takeRight(1).head._1
+      reduct = sortedPFreatures.dropRight(1).map(_._1).toSet
+      sortedPFreatures = sortedPFreatures.dropRight(1)
+      nextScore = wComputeBetaDependencyDegree_F(beta, reduct, nodes, weights, cache)
+      println(reduct)
+      println("Reduct score: " + nextScore)
+    }
+
+    val be = reduct + removed
+
+    var sortedRestFreatures = weights.toList.filter(x => rest.contains(x._1)).sortBy(_._2).reverse
+    prevScore = wComputeBetaDependencyDegree_F(beta, be, nodes, weights, cache)
+
+    reduct = be ++ sortedRestFreatures.take(1).map(_._1).toSet
+    var nextFeature = sortedRestFreatures.take(1).head._1
+    sortedRestFreatures = sortedRestFreatures.drop(1)
+    nextScore = wComputeBetaDependencyDegree_F(beta, reduct, nodes, weights, cache)
+
+    println("BE score: " + prevScore)
+    println(reduct)
+    println("Reduct score: " + nextScore)
+
+    if (prevScore == nextScore) return be
+
+    while (nextScore > prevScore) { // SOFT COMPARISON: prevScore - nextScore <= 0.1
+      prevScore = nextScore
+      nextFeature = sortedRestFreatures.take(1).head._1
+      reduct = reduct ++ sortedRestFreatures.take(1).map(_._1).toSet
+      sortedRestFreatures = sortedRestFreatures.drop(1)
+      nextScore = wComputeBetaDependencyDegree_F(beta, reduct, nodes, weights, cache)
+      println(reduct)
+      println("Reduct score: " + nextScore)
     }
 
     reduct - nextFeature

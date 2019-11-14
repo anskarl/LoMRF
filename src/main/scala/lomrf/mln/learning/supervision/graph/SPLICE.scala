@@ -74,8 +74,7 @@ final class SPLICE private[graph] (
 
     val startGraphConnection = System.currentTimeMillis
     val encodedGraph = solver match {
-        // TODO what to do with nodeCache here?
-      case _: HFc => connector.smartConnect(nodes, unlabeledNodes/*, Some(nodeCache)*/)(metric)
+      case _: HFc => connector.smartConnect(nodes, unlabeledNodes, Some(nodeCache))(metric)
       case _      => connector.fullyConnect(nodes, Some(nodeCache))(metric)
     }
 
@@ -180,7 +179,7 @@ final class SPLICE private[graph] (
       var updatedNodeCache = nodeCache
       updatedNodeCache ++= pureLabeledNodes
       val cleanedUniqueLabeled = updatedNodeCache.collectNodes.filter(_.size >= minNodeSize)
-          //.filter(n => updatedNodeCache.getOrElse(n, 0) > 5)
+      //.filter(n => updatedNodeCache.getOrElse(n, 0) > 2)
 
       logger.info(msecTimeToTextUntilNow(s"Cache updated in: ", startCacheUpdate))
       logger.info(s"${cleanedUniqueLabeled.length}/${numberOfLabeled + labeled.length} unique labeled nodes kept.")
@@ -191,42 +190,80 @@ final class SPLICE private[graph] (
         if (weights.forall(_._2 == 0) || weights.forall(_._2 == Double.PositiveInfinity)) Map.empty[Feature, Double]
         else weights
 
-      //println(weights.toList.sortBy(_._2).reverse.mkString("\n"))
+      println(weights.toList.sortBy(_._2).reverse.mkString("\n"))
+
+      println("SIGNIFICANCE")
+      weights.keySet.foreach { f =>
+        val s = featureStats.wComputeBetaDependencyDegree_F(0, weights.keySet - f, cleanedUniqueLabeled, weights, None /*Some(updatedNodeCache)*/ )
+        println(s"$f -> $s")
+      }
+
+      println("INCONSISTENCY")
+      weights.keySet.foreach { f =>
+        val s = featureStats.inconsistency_F(Set(f), cleanedUniqueLabeled, Some(updatedNodeCache))
+        println(s"$f -> $s")
+      }
 
       //println("Keeping (weighted):")
       //println(cleanedUniqueLabeled.map(_.toText).mkString("\n"))
-      //println(cleanedUniqueLabeled.map(n => n.toText -> n.atoms.map(weights(_)).sum / n.size).sortBy(_._2).reverse.map(x => x._1 + " -> " + x._2).mkString("\n"))
-      //val best = featureStats.test(0.15, cleanedUniqueLabeled, Some(updatedNodeCache))
+      //println(cleanedUniqueLabeled.map(n => n.toText -> n.atoms.map(weights.getOrElse(_, 1d)).sum / n.size).sortBy(_._2).reverse.map(x => x._1 + " -> " + x._2).mkString("\n"))
+      //val best = featureStats.test(0, cleanedUniqueLabeled, None/*Some(updatedNodeCache)*/)
       //println(best)
 
-      // Compute neighborhoods and from these extract features
-      ////////////////////////////////
-//      println("**************************")
-//      val (pos, neg) = cleanedUniqueLabeled.partition(_.isPositive)
-//      if (pos.nonEmpty) {
-//        val ng = neg.filter(n =>
-//          pos.exists(n1 => connector.connect(n, n1)(metric) > 0.5)
-//        )
-//        ng.map(_.toText).foreach(println)
-//        val kept1 = featureStats.roughSet(0.15, pos ++ ng, Some(updatedNodeCache))
-//        println(kept1)
-//      }
-//      println("**************************")
-      //////////////////////////////
+      /*val core = featureStats.core(cleanedNodes)
+      val gamma = featureStats.wComputeBetaDependencyDegree_F(0.0, core, cleanedUniqueLabeled, weights, Some(updatedNodeCache))
+      val gamma_C = featureStats.wComputeBetaDependencyDegree_F(0.0, weights.keySet, cleanedUniqueLabeled, weights, Some(updatedNodeCache))
+      println("CORE: " + core + " CORE GAMMA: " + gamma + " C GAMMA: " + gamma_C)
 
-      val kept = featureStats.roughSet(0.15, cleanedUniqueLabeled, Some(updatedNodeCache))
+      println("SIGNIFICANCE")
+      println(s"TOTAL ${featureStats.wComputeBetaDependencyDegree_F(0, weights.keySet, cleanedUniqueLabeled, weights, None/*Some(updatedNodeCache)*/)}")
+      weights.keySet.foreach { f =>
+        val s = featureStats.strictComputeBetaDependencyDegree_F(Set(f), cleanedUniqueLabeled, weights, None/*Some(updatedNodeCache)*/)
+        println(s"$f -> $s")
+      }
+
+      println("FORWARD SELECTION GAMMA")
+      val fs = featureStats.roughSetFS(0, cleanedUniqueLabeled, Some(updatedNodeCache))
+      println("FS: " + fs)*/
+
+      //val kept = featureStats.roughSetFS(0.0, cleanedUniqueLabeled, Some(updatedNodeCache))
       //println(kept)
-      val general = generalise(cleanedUniqueLabeled, weights.keySet -- kept)
+      //val general = generalise(cl.reduce(_ ++ _), weights.keySet -- fs2/*, Some(updatedNodeCache)*/)
+      //val general = generalise(cleanedUniqueLabeled, weights.keySet.filterNot(f => f.signature.symbol == "Walking" || f.signature.symbol == "Exit")/*, Some(updatedNodeCache)*/)
       //println(general.map(_.toText).mkString("\n"))
       //weights = if (weights.nonEmpty) weights.map { case (f, d) => if (kept.contains(f)) f -> d else f -> 0d } else weights
       //println(weights.mkString("\n"))
 
+      //println
+      //println
+      cleanedUniqueLabeled.map(n => n.toText + " -> " + updatedNodeCache.get(n).get).foreach(println)
+      val f1 = featureStats.optimization(cleanedUniqueLabeled, Some(nodeCache))
+      println(f1)
+
+      val general1 = generalise(cleanedUniqueLabeled, weights.keySet -- f1)
+      println(general1.map(_.toText).mkString("\n"))
+
+      /*
+       * RendezVous
+       * k: 1
+       * Work (better or the same): 2, 3, 4, 5
+       *
+       * PilotOps
+       * k: 1
+       * Work (better or the same): 1, 2, 4,
+       * k: 2
+       * Work (better or the same): 1, 2, 4, 5, 6
+       *
+       * TODO Mutual information NOT so good!
+       * CHECK SIGNIFICANCE AGAIN
+       */
+
       // Labeled nodes MUST appear before unlabeled!
       new SPLICE(
-        general ++ nonEmptyUnlabeled,
+        cleanedUniqueLabeled ++ nonEmptyUnlabeled,
         querySignature,
         connector,
-        metric.normalizeWith(weights) ++ mln.evidence ++ pureNodes.flatMap(n => IndexedSeq.fill(n.clusterSize)(n.atoms)),
+        metric /*.normalizeWith(weights)*/ ++ mln.evidence ++ pureNodes.flatMap(n => IndexedSeq.fill(n.clusterSize)(n.atoms)),
         annotationBuilder,
         updatedNodeCache,
         featureStats,
