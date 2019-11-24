@@ -922,6 +922,117 @@ case class FeatureStats(
     //outerResults.filter(_._2._2 == minPartitions).minBy(_._2._1)._1.toSet
   }
 
+  def optimization_clusters(clusters: Set[Set[Node]], cache: Option[NodeCache]): Set[Feature] = {
+
+    val nodes = clusters.flatten.toIndexedSeq
+    require(nodes.forall(_.isLabeled))
+
+    val weights = computeIG_F(nodes, cache)
+    val inconsistency = weights.keySet.map(k => k -> inconsistency_F(Set(k), nodes, cache)).toMap
+
+    def computeDegrees(P: Set[Feature]): (Double, Double, Double, Double, Double) = {
+
+      def size(nd: Iterable[Node]): Double =
+        nd.toList.map { n => if (cache.isDefined) cache.get.getOrElse(n, 0L).toDouble else 1.0 }.sum
+
+      def c(X: Set[Node], Y: Set[Node]): Double =
+        if (X.isEmpty) 0 else 1 - size(X intersect Y) / size(X)
+
+      var U_size = size(nodes)
+      val U_size_freq = nodes.toList.map(n => cache.map(_.getOrElse(n, 0L).toDouble).getOrElse(1.0)).sum
+
+      var penalty = 0.0
+      val P_partition = nodes.foldLeft(Map.empty[IndexedSeq[Feature], Set[Node]]) {
+        case (partitions, node) =>
+          val key = node.atoms.map(Feature.atom2Feature).filter(P.contains).sortBy(_.toString)
+          if (key.isEmpty) {
+            penalty += cache.map(_.getOrElse(node, 0L).toDouble).getOrElse(1.0)
+            partitions
+          } else partitions + (key -> (partitions.getOrElse(key, Set.empty[Node]) + node))
+      }.values.toList
+
+      var acceptedP = 0.0
+      var POSet = Set.empty[Node]
+      P_partition.foreach { p =>
+        if (clusters.exists(cl => c(p, cl) == 0)) {
+          POSet ++= p
+          acceptedP += 1.0
+        }
+      }
+
+      U_size = size(P_partition.flatten)
+
+      (penalty / U_size_freq, acceptedP / U_size, size(POSet) / U_size, P.map(weights(_)).sum / P.size, P.map(inconsistency(_)).sum / P.size)
+    }
+
+    val features = nodes.flatMap(_.atoms.map(Feature.atom2Feature).toSet).toSet
+    //val fullSig = wComputeBetaDependencyDegree_F(0, features, nodes, weights, cache)
+
+    if (!nodes.exists(_.isPositive) || !nodes.exists(_.isNegative)) return features
+
+    var paretoSet = Set.empty[(List[Feature], (Double, Double, Double, Double, Double, Double))]
+    val outerResults = (2 to features.size).flatMap { len =>
+
+      val results = features.toList.combinations(len).map { featureSubset =>
+        //println("SIG of " + featureSubset.toSet)
+        val sig = 1.0 ///1 - (wComputeBetaDependencyDegree_F(0, features -- featureSubset.toSet, nodes, weights, cache) / fullSig)
+        val (a, b, c, d, e) = computeDegrees(featureSubset.toSet)
+        featureSubset -> (a, b, c, d, e, sig)
+      }.filter { case (_, (_, pt, degree, _, _, _)) => degree > 0.5 /*&& pt > 1 / nodes.length*/ }.toList
+
+      results.foreach { case (f, (penalty, partitions, degree, meanMI, meanInc, sig)) =>
+        println(s"${f.mkString(", ")} | penalty: $penalty partitions: $partitions degree $degree mean_mi: $meanMI  mean_ic $meanInc SIG: $sig")
+      }
+
+      if (results.isEmpty) None
+      else {
+
+        results.foreach {
+          case entry @ (_, (a, b, c, d, e, f)) =>
+
+            val updated = paretoSet + entry
+            paretoSet = updated.filter {
+              case (_, (aa, bb, cc, dd, ee, ff)) =>
+                !updated.exists {
+                  case (_, (x, y, z, w, q, r)) =>
+                    x < aa && y < bb && (1 - z) < (1 - cc) && (1 - w) < (1 - dd) && (1 - q) < (1 - ee) && (1 - r) < (1 - ff)
+                }
+            }
+
+          /*paretoSet = paretoSet.filter { case (_, (aa, bb, cc, dd)) =>
+            (aa < a || bb < b || (1 - cc) < (1 - c) || (1 - dd) < (1 - d)) || (aa == a && bb == b && cc == c && dd == d)
+          }
+
+          val add = !paretoSet.exists { case (_, (aa, bb, cc, dd)) =>
+            (aa < a && bb < b && (1 - cc) < (1 - c)) || (aa == a && bb == b && (1 - cc) < (1 - c)) ||
+              (aa == a && bb < b && (1 - cc) == (1 - c)) || (aa < a && bb == b && (1 - cc) == (1 - c)) ||
+              (aa == a && bb < b && (1 - cc) < (1 - c)) || (aa < a && bb == b && (1 - cc) < (1 - c)) ||
+              (aa < a && bb < b && (1 - cc) == (1 - c))
+          }
+
+          if (add) paretoSet += entry*/
+        }
+
+        // TODO works for meet 1,2,3,4,5,6,10
+        // TODO MEASURE PARTITION MASS INSTEAD OF JUST THE NUMBER OF PARTITIONS
+        Some(results.map(x => x._1 -> (x._2._1 + x._2._2 + (1 - x._2._3) /*+ (1 - x._2._4)*/ /*+ (1 - x._2._5) + (1 - x._2._6)*/)).minBy(_._2))
+        //val minPartitions = results.map(_._2._2).distinct.min
+        //Some(results.filter(_._2._2 == minPartitions).minBy(_._2._1))
+      }
+    }
+
+    println
+    println("PARETO SET")
+    paretoSet.toList.sortBy(_._2._4).reverse.foreach {
+      case (f, (penalty, partitions, degree, meanMI, incon, sig)) =>
+        println(s"${f.mkString(", ")} | penalty: $penalty partitions: $partitions degree $degree sig: $sig mean_mi: $meanMI incon: $incon")
+    }
+
+    outerResults.minBy(_._2)._1.toSet
+    //val minPartitions = outerResults.map(_._2._2).distinct.min
+    //outerResults.filter(_._2._2 == minPartitions).minBy(_._2._1)._1.toSet
+  }
+
   def inconsistency_F(P: Set[Feature], nodes: Seq[Node], cache: Option[NodeCache]): Double = {
     require(nodes.forall(_.isLabeled))
 
@@ -990,6 +1101,26 @@ case class FeatureStats(
 
     if (matrix.isEmpty || matrix.forall(_.isEmpty) || matrix.flatMap(_.filter(_.size == 1)).isEmpty) Set.empty[Feature]
     else matrix.flatMap(_.filter(_.size == 1)).reduce(_ ++ _)
+  }
+
+  def core2(nodes: IndexedSeq[Node]): Set[Feature] = {
+    val (positives, negatives) = nodes.partition(_.isPositive)
+
+    val matrix = positives.map { p =>
+      negatives.map { n =>
+        val a = p.atoms.map(Feature.atom2Feature).toSet
+        val b = n.atoms.map(Feature.atom2Feature).toSet
+        a.union(b) -- a.intersect(b)
+      }
+    }
+
+    //println(matrix.map(_.mkString(" | ")).mkString("\n"))
+
+    if (matrix.isEmpty || matrix.forall(_.isEmpty)) Set.empty[Feature]
+    else {
+      val m = matrix.minBy(_.size).size
+      matrix.flatMap(_.filter(_.size == m)).reduce(_ ++ _)
+    }
   }
 
   def roughSet(beta: Double, nodes: Seq[Node], cache: Option[NodeCache], weighted: Boolean = false): Set[Feature] = {
