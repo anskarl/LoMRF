@@ -930,40 +930,40 @@ case class FeatureStats(
     val weights = computeIG_F(nodes, cache)
     val inconsistency = weights.keySet.map(k => k -> inconsistency_F(Set(k), nodes, cache)).toMap
 
-    def computeDegrees(P: Set[Feature]): (Double, Double, Double, Double, Double) = {
+      def computeDegrees(P: Set[Feature]): (Double, Double, Double, Double, Double) = {
 
-      def size(nd: Iterable[Node]): Double =
-        nd.toList.map { n => if (cache.isDefined) cache.get.getOrElse(n, 0L).toDouble else 1.0 }.sum
+          def size(nd: Iterable[Node]): Double =
+            nd.toList.map { n => if (cache.isDefined) cache.get.getOrElse(n, 0L).toDouble else 1.0 }.sum
 
-      def c(X: Set[Node], Y: Set[Node]): Double =
-        if (X.isEmpty) 0 else 1 - size(X intersect Y) / size(X)
+          def c(X: Set[Node], Y: Set[Node]): Double =
+            if (X.isEmpty) 0 else 1 - size(X intersect Y) / size(X)
 
-      var U_size = size(nodes)
-      val U_size_freq = nodes.toList.map(n => cache.map(_.getOrElse(n, 0L).toDouble).getOrElse(1.0)).sum
+        var U_size = size(nodes)
+        val U_size_freq = nodes.toList.map(n => cache.map(_.getOrElse(n, 0L).toDouble).getOrElse(1.0)).sum
 
-      var penalty = 0.0
-      val P_partition = nodes.foldLeft(Map.empty[IndexedSeq[Feature], Set[Node]]) {
-        case (partitions, node) =>
-          val key = node.atoms.map(Feature.atom2Feature).filter(P.contains).sortBy(_.toString)
-          if (key.isEmpty) {
-            penalty += cache.map(_.getOrElse(node, 0L).toDouble).getOrElse(1.0)
-            partitions
-          } else partitions + (key -> (partitions.getOrElse(key, Set.empty[Node]) + node))
-      }.values.toList
+        var penalty = 0.0
+        val P_partition = nodes.foldLeft(Map.empty[IndexedSeq[Feature], Set[Node]]) {
+          case (partitions, node) =>
+            val key = node.atoms.map(Feature.atom2Feature).filter(P.contains).sortBy(_.toString)
+            if (key.isEmpty) {
+              penalty += cache.map(_.getOrElse(node, 0L).toDouble).getOrElse(1.0)
+              partitions
+            } else partitions + (key -> (partitions.getOrElse(key, Set.empty[Node]) + node))
+        }.values.toList
 
-      var acceptedP = 0.0
-      var POSet = Set.empty[Node]
-      P_partition.foreach { p =>
-        if (clusters.exists(cl => c(p, cl) == 0)) {
-          POSet ++= p
-          acceptedP += 1.0
+        var acceptedP = 0.0
+        var POSet = Set.empty[Node]
+        P_partition.foreach { p =>
+          if (clusters.exists(cl => c(p, cl) == 0)) {
+            POSet ++= p
+            acceptedP += 1.0
+          }
         }
+
+        U_size = size(P_partition.flatten)
+
+        (penalty / U_size_freq, acceptedP / U_size, size(POSet) / U_size, P.map(weights(_)).sum / P.size, P.map(inconsistency(_)).sum / P.size)
       }
-
-      U_size = size(P_partition.flatten)
-
-      (penalty / U_size_freq, acceptedP / U_size, size(POSet) / U_size, P.map(weights(_)).sum / P.size, P.map(inconsistency(_)).sum / P.size)
-    }
 
     val features = nodes.flatMap(_.atoms.map(Feature.atom2Feature).toSet).toSet
     //val fullSig = wComputeBetaDependencyDegree_F(0, features, nodes, weights, cache)
@@ -980,8 +980,9 @@ case class FeatureStats(
         featureSubset -> (a, b, c, d, e, sig)
       }.filter { case (_, (_, pt, degree, _, _, _)) => degree > 0.5 /*&& pt > 1 / nodes.length*/ }.toList
 
-      results.foreach { case (f, (penalty, partitions, degree, meanMI, meanInc, sig)) =>
-        println(s"${f.mkString(", ")} | penalty: $penalty partitions: $partitions degree $degree mean_mi: $meanMI  mean_ic $meanInc SIG: $sig")
+      results.foreach {
+        case (f, (penalty, partitions, degree, meanMI, meanInc, sig)) =>
+          println(s"${f.mkString(", ")} | penalty: $penalty partitions: $partitions degree $degree mean_mi: $meanMI  mean_ic $meanInc SIG: $sig")
       }
 
       if (results.isEmpty) None
@@ -1015,7 +1016,7 @@ case class FeatureStats(
 
         // TODO works for meet 1,2,3,4,5,6,10
         // TODO MEASURE PARTITION MASS INSTEAD OF JUST THE NUMBER OF PARTITIONS
-        Some(results.map(x => x._1 -> (x._2._1 + x._2._2 + (1 - x._2._3) /*+ (1 - x._2._4)*/ /*+ (1 - x._2._5) + (1 - x._2._6)*/)).minBy(_._2))
+        Some(results.map(x => x._1 -> (x._2._1 + x._2._2 + (1 - x._2._3) /*+ (1 - x._2._4)*/ /*+ (1 - x._2._5) + (1 - x._2._6)*/ )).minBy(_._2))
         //val minPartitions = results.map(_._2._2).distinct.min
         //Some(results.filter(_._2._2 == minPartitions).minBy(_._2._1))
       }

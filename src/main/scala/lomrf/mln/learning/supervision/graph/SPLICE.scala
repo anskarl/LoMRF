@@ -21,9 +21,9 @@
 package lomrf.mln.learning.supervision.graph
 
 import lomrf.logic._
-import breeze.linalg.{DenseMatrix, DenseVector, diag}
-import lomrf.mln.learning.supervision.graph.caching.{FastNodeCache, NodeCache}
-import lomrf.mln.learning.supervision.metric.features.{ Feature, FeatureStats }
+import breeze.linalg.DenseVector
+import lomrf.mln.learning.supervision.graph.caching.NodeCache
+import lomrf.mln.learning.supervision.metric.features.FeatureStats
 import lomrf.mln.learning.supervision.metric._
 import lomrf.mln.model._
 import lomrf.util.time._
@@ -74,7 +74,7 @@ final class SPLICE private[graph] (
 
     val startGraphConnection = System.currentTimeMillis
     val encodedGraph = solver match {
-      case _: HFc => connector.smartConnect(nodes, unlabeledNodes/*, Some(nodeCache)*/)(metric)
+      case _: HFc => connector.smartConnect(nodes, unlabeledNodes, Some(nodeCache))(metric) // TODO
       case _      => connector.fullyConnect(nodes, Some(nodeCache))(metric)
     }
 
@@ -183,308 +183,133 @@ final class SPLICE private[graph] (
 
       logger.info(msecTimeToTextUntilNow(s"Cache updated in: ", startCacheUpdate))
       logger.info(s"${cleanedUniqueLabeled.length}/${numberOfLabeled + labeled.length} unique labeled nodes kept.")
-      logger.info(updatedNodeCache.toString)
+      logger.debug(updatedNodeCache.toString)
 
-      var weights = featureStats.computeIG_F(cleanedUniqueLabeled, Some(updatedNodeCache))
-      weights =
-        if (weights.forall(_._2 == 0) || weights.forall(_._2 == Double.PositiveInfinity)) Map.empty[Feature, Double]
-        else weights
-
-      println(weights.toList.sortBy(_._2).reverse.mkString("\n"))
-
-      println("SIGNIFICANCE")
-      weights.keySet.foreach { f =>
-        val s = 1 - featureStats.wComputeBetaDependencyDegree_F(0, weights.keySet - f, cleanedUniqueLabeled, weights, None /*Some(updatedNodeCache)*/ )
-        println(s"$f -> $s")
+      logger.info {
+        s"""
+          |Labelled nodes kept:
+          |${cleanedUniqueLabeled.sortBy(_.isNegative).map(n => n.toText + " -> " + updatedNodeCache.get(n).get).mkString("\n")}
+        |""".stripMargin
       }
 
-      println("INCONSISTENCY")
-      weights.keySet.foreach { f =>
-        val s = featureStats.inconsistency_F(Set(f), cleanedUniqueLabeled, Some(updatedNodeCache))
-        println(s"$f -> $s")
-      }
+      val (positiveNodes, negativeNodes) = cleanedUniqueLabeled.sortBy(_.size).reverse.partition(_.isPositive)
 
-      cleanedUniqueLabeled.sortBy(_.isPositive).map(n => n.toText + " -> " + updatedNodeCache.get(n).get).foreach(println)
+      val resulted = if (positiveNodes.nonEmpty && negativeNodes.nonEmpty) {
+        var positiveClusters = Set(Set(positiveNodes.maxBy(_.size)))
+        var negativeClusters = Set(Set(negativeNodes.maxBy(_.size)))
 
-    /* cleanedUniqueLabeled.sortBy(_.isPositive).map(n => n.toText + " -> " + updatedNodeCache.get(n).get).foreach(println)
-      val (w, d) = kNNConnector(2).fullyConnect(cleanedUniqueLabeled.sortBy(_.isPositive)/*, Some(updatedNodeCache)*/)(
-        metric.asInstanceOf[HybridMetric].metrics.head)
-      val ww = (0 until w.rows).map(w(_, ::).t.toArray).toArray
-      //val res = smile.mds.mds(ww, 2).getCoordinates
-      if (count.counter > 5) {
-        val res1 = smile.manifold.lle(ww, 2, 2).getCoordinates
-        val xx = res1.map(a => a.head -> a.last).toSeq
-
-        println(xx.length)
-
-        val labels = smile.clustering.kmeans(res1, k = 3).getClusterLabel
-
-        cleanedUniqueLabeled.sortBy(_.isPositive).zip(labels).map(x => x._1.toText + " " + x._2).foreach(println)
-
-        println(labels.length)
-        println
-
-        xx.zip(cleanedUniqueLabeled.sortBy(_.isPositive)).map(x => x._2.toText + " " + x._1).foreach(println)
-
-        val (pxx, nxx) = xx.zip(cleanedUniqueLabeled.sortBy(_.isPositive)).zip(labels).partition(_._1._2.isPositive)
-
-        val pxx1 = pxx.filter(_._2 == 0).map(_._1._1)
-        val pxx2 = pxx.filter(_._2 == 1).map(_._1._1)
-        val pxx3 = pxx.filter(_._2 == 2).map(_._1._1)
-
-        val nxx1 = nxx.filter(_._2 == 0).map(_._1._1)
-        val nxx2 = nxx.filter(_._2 == 1).map(_._1._1)
-        val nxx3 = nxx.filter(_._2 == 2).map(_._1._1)
-
-        scalatikz.pgf.plots.Figure(s"mds_${count.counter}")
-          .scatter(markStrokeColor = scalatikz.pgf.enums.Color.GREEN, markFillColor = scalatikz.pgf.enums.Color.WHITE, markSize = 3)(pxx.map(_._1._1))
-          .scatter(markStrokeColor = scalatikz.pgf.enums.Color.RED, markFillColor = scalatikz.pgf.enums.Color.WHITE, markSize = 2)(nxx.map(_._1._1))
-          .saveAsPDF("/home/vagmcs/Desktop")
-      }*/
-     /* scalatikz.pgf.plots.Figure(s"cl_${count.counter}")
-        .scatter(markStrokeColor = scalatikz.pgf.enums.Color.GREEN,
-          markFillColor = scalatikz.pgf.enums.Color.WHITE,
-          marker = scalatikz.pgf.plots.enums.Mark.CIRCLE,
-          markSize = 2)(pxx1)
-        .scatter(markStrokeColor = scalatikz.pgf.enums.Color.GREEN,
-          markFillColor = scalatikz.pgf.enums.Color.WHITE,
-          marker = scalatikz.pgf.plots.enums.Mark.DIAMOND,
-          markSize = 2)(pxx2)
-        .scatter(markStrokeColor = scalatikz.pgf.enums.Color.GREEN,
-          markFillColor = scalatikz.pgf.enums.Color.WHITE,
-          marker = scalatikz.pgf.plots.enums.Mark.SQUARE,
-          markSize = 2)(pxx3)
-        .scatter(markStrokeColor = scalatikz.pgf.enums.Color.RED,
-          markFillColor = scalatikz.pgf.enums.Color.WHITE,
-          marker = scalatikz.pgf.plots.enums.Mark.CIRCLE,
-          markSize = 2)(nxx1)
-        .scatter(markStrokeColor = scalatikz.pgf.enums.Color.RED,
-          markFillColor = scalatikz.pgf.enums.Color.WHITE,
-          marker = scalatikz.pgf.plots.enums.Mark.DIAMOND,
-          markSize = 2)(nxx2)
-        .scatter(markStrokeColor = scalatikz.pgf.enums.Color.RED,
-          markFillColor = scalatikz.pgf.enums.Color.WHITE,
-          marker = scalatikz.pgf.plots.enums.Mark.SQUARE,
-          markSize = 2)(nxx3)
-        .saveAsPDF("/home/vagmcs/Desktop")*/
-
-      /*val l = d - w
-     val eg = breeze.linalg.eig(l)
-
-     //assert(l * eg.eigenvectors == eg.eigenvectors * diag(eg.eigenvalues), "WRONG")
-     println((l * eg.eigenvectors ).mkString())
-     println
-     println((eg.eigenvectors * diag(eg.eigenvalues)).mkString())
-     println
-     println(eg.eigenvectors.mkString())
-     println
-     println(eg.eigenvalues)
-     println(eg.eigenvalues.toArray.sorted.deep)
-
-     //val data = (0 until eg.eigenvectors.rows).map(eg.eigenvectors(_, ::).t.toArray).toArray
-     val ww = (0 until w.rows).map(w(_, ::).t.toArray).toArray
-     val km = smile.clustering.specc(ww, 2).getClusterLabel //.kmeans(data, 2)
-     cleanedUniqueLabeled.zip(km).foreach { case (n, v) =>
-       println(n.toText -> v)
-     }
-
-     val (c0, c1) = cleanedUniqueLabeled.zip(km).partition(_._2 == 0)
-     val maxP = cleanedUniqueLabeled.filter(_.isPositive).maxBy(n => updatedNodeCache.get(n).get)
-     val cc = if (c0.exists(_._1 == maxP)) {
-       c0.filter(_._1.isPositive).map(_._1) ++ c1.filter(_._1.isNegative).map(_._1)
-     } else {
-       c1.filter(_._1.isPositive).map(_._1) ++ c0.filter(_._1.isNegative).map(_._1)
-     }
-
-     cc.sortBy(_.isPositive).map(n => n.toText + " -> " + updatedNodeCache.get(n).get).foreach(println)*/
-
-      /*val sorted = cleanedUniqueLabeled.sortBy(_.isPositive).zip(eg.eigenvectors(1, ::).t.toArray).sortBy(_._2)
-      val n = cleanedUniqueLabeled.filter(_.isPositive).maxBy(n => updatedNodeCache.get(n).get)
-      val median = sorted.find(_._1 == n).get._2
-      val (c1, c2) = sorted.partition(_._2 <= median)
-      c1.map(x => x._1.toText -> x._2).foreach(println)
-      c2.map(x => x._1.toText -> x._2).foreach(println)
-
-      val c = if (c1.nonEmpty && c2.nonEmpty) {
-        val maxP = cleanedUniqueLabeled.filter(_.isPositive).maxBy(n => updatedNodeCache.get(n).get)
-        if (c1.exists(_._1 == maxP)) {
-          c1.withFilter(_._1.isPositive).map(_._1) ++ c2.withFilter(_._1.isNegative).map(_._1)
-        } else {
-          c1.withFilter(_._1.isNegative).map(_._1) ++ c2.withFilter(_._1.isPositive).map(_._1)
+        /*positiveClusters.foreach { c =>
+          println(c.map(n => n.toText + " -> " + updatedNodeCache.getOrElse(n, 0)).mkString("\n"))
+          println("##################")
         }
-      }
-      else cleanedUniqueLabeled
+        negativeClusters.foreach { c =>
+          println(c.map(n => n.toText + " -> " + updatedNodeCache.getOrElse(n, 0)).mkString("\n"))
+          println("##################")
+        }*/
 
-      println("$$$$$$$$$$$$$$$$$$$$$$$$$$$$")
-      c.map(_.toText).foreach(println)*/
-
-      //println("Keeping (weighted):")
-      //println(cleanedUniqueLabeled.map(_.toText).mkString("\n"))
-      //println(cleanedUniqueLabeled.map(n => n.toText -> n.atoms.map(weights.getOrElse(_, 1d)).sum / n.size).sortBy(_._2).reverse.map(x => x._1 + " -> " + x._2).mkString("\n"))
-      //val best = featureStats.test(0, cleanedUniqueLabeled, None/*Some(updatedNodeCache)*/)
-      //println(best)
-
-      /*val core = featureStats.core(cleanedNodes)
-      val gamma = featureStats.wComputeBetaDependencyDegree_F(0.0, core, cleanedUniqueLabeled, weights, Some(updatedNodeCache))
-      val gamma_C = featureStats.wComputeBetaDependencyDegree_F(0.0, weights.keySet, cleanedUniqueLabeled, weights, Some(updatedNodeCache))
-      println("CORE: " + core + " CORE GAMMA: " + gamma + " C GAMMA: " + gamma_C)
-
-      println("SIGNIFICANCE")
-      println(s"TOTAL ${featureStats.wComputeBetaDependencyDegree_F(0, weights.keySet, cleanedUniqueLabeled, weights, None/*Some(updatedNodeCache)*/)}")
-      weights.keySet.foreach { f =>
-        val s = featureStats.strictComputeBetaDependencyDegree_F(Set(f), cleanedUniqueLabeled, weights, None/*Some(updatedNodeCache)*/)
-        println(s"$f -> $s")
-      }
-
-      println("FORWARD SELECTION GAMMA")
-      val fs = featureStats.roughSetFS(0, cleanedUniqueLabeled, Some(updatedNodeCache))
-      println("FS: " + fs)*/
-
-      //val kept = featureStats.roughSetFS(0.0, cleanedUniqueLabeled, Some(updatedNodeCache))
-      //println(kept)
-      //val general = generalise(cl.reduce(_ ++ _), weights.keySet -- fs2/*, Some(updatedNodeCache)*/)
-      //val general = generalise(cleanedUniqueLabeled, weights.keySet.filterNot(f => f.signature.symbol == "Walking" || f.signature.symbol == "Exit")/*, Some(updatedNodeCache)*/)
-      //println(general.map(_.toText).mkString("\n"))
-      //weights = if (weights.nonEmpty) weights.map { case (f, d) => if (kept.contains(f)) f -> d else f -> 0d } else weights
-      //println(weights.mkString("\n"))
-
-      //println
-      //println
-      //cleanedUniqueLabeled.map(n => n.toText + " -> " + updatedNodeCache.get(n).get).foreach(println)
-      //val f1 = featureStats.optimization(cleanedUniqueLabeled, Some(nodeCache))
-      //println(f1)
-//
-//      val general1 = generalise(cleanedUniqueLabeled, weights.keySet -- f1)
-//      println(general1.map(_.toText).mkString("\n"))
-
-
-      /**
-        * Meet and Move works fine
-        */
-      /*val (pos, neg) = cleanedUniqueLabeled.partition(_.isPositive)
-      val kept =
-        if (pos.nonEmpty && neg.nonEmpty)
-        IndexedSeq(
-          pos.map(n => n -> updatedNodeCache.get(n).get).maxBy(_._2)._1,
-          neg.map(n => n -> updatedNodeCache.get(n).get).maxBy(_._2)._1
-        )
-      else cleanedUniqueLabeled
-
-      kept.map(_.toText).foreach(println)*/
-
-      // CLUSTERING // TODO IT SEEMS TO WORK
-
-      val (pp, nn) = cleanedUniqueLabeled.partition(_.isPositive)
-      var clustersP = Set.empty[Set[Node]]
-      var clustersN = Set.empty[Set[Node]]
-      var best = Set.empty[Set[Node]]
-
-      if (pp.nonEmpty && nn.nonEmpty) {
-        val a = pp.maxBy(_.size)
-        val b = nn.maxBy(_.size)
-        clustersP += Set(a)
-        clustersN += Set(b)
-        pp.filterNot(_ == a).sortBy(_.size).reverse.foreach { n =>
-          val cls = clustersP.filter(c => c.exists(n1 => n.relevantNode(n1)))
-          if (cls.size == 1) clustersP = (clustersP - cls.head) + (cls.head + n)
-          else if (cls.size == 0) clustersP += Set(n)
-        }
-        nn.filterNot(_ == b).sortBy(_.size).reverse.foreach { n =>
-          val cls = clustersN.filter(c => c.exists(n1 => n.relevantNode(n1)))
-          if (cls.size == 1) clustersN = (clustersN - cls.head) + (cls.head + n)
-          else if (cls.size == 0) clustersN += Set(n)
+        positiveClusters = positiveNodes.filterNot(positiveClusters.head.contains).foldLeft(positiveClusters) {
+          case (clusters, node) =>
+            println(node.toText)
+            clusters.filter(c => c.exists(n => node.relevantNode(n))) match {
+              case x if x.isEmpty => clusters + Set(node)
+              case x if x.size >= 1 =>
+                val xx = x.maxBy(_.toList.map(n => updatedNodeCache.get(n).get).sum)
+                (clusters - xx) + (xx + node)
+              case x =>
+                /*println("XAXAXa")
+                x.foreach { c =>
+                  println(c.map(n => n.toText + " -> " + updatedNodeCache.getOrElse(n, 0)).mkString("\n"))
+                  println("##################")
+                }
+                println*/
+                clusters
+            }
         }
 
         println
-
-        // TODO check clustering, it seems wrong
-        (clustersP ++ clustersN).foreach { c =>
-          println("#################")
-          c.map(n => n.toText + " -> " + updatedNodeCache.get(n).get).foreach(println)
+        positiveClusters.foreach { c =>
+          println(c.map(n => n.toText + " -> " + updatedNodeCache.getOrElse(n, 0)).mkString("\n"))
+          println("##################")
         }
 
-        val bestP = clustersP.maxBy(_.toList.map(n => updatedNodeCache.get(n).get).sum)
-        val restP = clustersP - bestP
-        val bestN = clustersN.maxBy(_.toList.map(n => updatedNodeCache.get(n).get).sum)
-        val restN = clustersN - bestN
+        negativeClusters = negativeNodes.filterNot(negativeClusters.head.contains).foldLeft(negativeClusters) {
+          case (clusters, node) =>
+            clusters.filter(c => c.exists(n => node.relevantNode(n))) match {
+              case x if x.isEmpty => clusters + Set(node)
+              case x if x.size >= 1 =>
+                val xx = x.maxBy(_.toList.map(n => updatedNodeCache.get(n).get).sum)
+                (clusters - xx) + (xx + node)
+              case _ => clusters
+            }
+        }
 
-        var rest = Set.empty[Set[Node]]
-        restN.foreach { c =>
-          clustersP.find(c1 => c1.exists(n => c.exists(n1 => connector.connect(n, n1)(metric) > 0.5))) match {
-            case Some(x) =>
-              rest += c
-              rest += x
-            case None =>
+        negativeClusters.foreach { c =>
+          println(c.map(n => n.toText + " -> " + updatedNodeCache.getOrElse(n, 0)).mkString("\n"))
+          println("##################")
+        }
+
+        var densePositive = positiveClusters.maxBy(_.toList.map(n => updatedNodeCache.get(n).get).sum)
+        var denseNegative = negativeClusters.maxBy(_.toList.map(n => updatedNodeCache.get(n).get).sum)
+
+        // Extend clusters while there is an overlap
+        var clusters = Set(densePositive, denseNegative)
+        var stop = false
+        while (densePositive.flatMap(n => n.signatures) == denseNegative.flatMap(_.signatures) && !stop) {
+          val remainingPositives = positiveClusters diff clusters
+          val remainingNegatives = negativeClusters diff clusters
+          if (remainingPositives.nonEmpty && remainingNegatives.nonEmpty) {
+            densePositive = remainingPositives.maxBy(_.toList.map(n => updatedNodeCache.get(n).get).sum)
+            denseNegative = remainingNegatives.maxBy(_.toList.map(n => updatedNodeCache.get(n).get).sum)
+            clusters ++= Set(densePositive, denseNegative)
+          } else stop = true
+        }
+
+        println("EXTENDED")
+        clusters.foreach { c =>
+          println(c.map(n => n.toText + " -> " + updatedNodeCache.getOrElse(n, 0)).mkString("\n"))
+          println("##################")
+        }
+
+        // Enhance using remaining clusters
+        var remainingPositives = positiveClusters diff clusters
+        var remainingNegatives = negativeClusters diff clusters
+        stop = false
+        while ((remainingPositives.nonEmpty || remainingNegatives.nonEmpty) && !stop) {
+          val a = remainingPositives.find(c => clusters.exists(cc => cc.head.isNegative && c.flatMap(_.signatures) == cc.flatMap(_.signatures)))
+          val b = remainingNegatives.find(c => clusters.exists(cc => cc.head.isPositive && c.flatMap(_.signatures) == cc.flatMap(_.signatures)))
+          if (a.isEmpty && b.isEmpty) stop = true
+          else {
+            clusters ++= Set(a.getOrElse(Set.empty), b.getOrElse(Set.empty)).filter(_.nonEmpty)
+            remainingPositives -= a.getOrElse(Set.empty)
+            remainingNegatives -= b.getOrElse(Set.empty)
           }
         }
 
-        //best = rest + bestP + bestN
-        println
-        /*best.foreach { c =>
-          println("#################")
-          c.map(n => n.toText + " -> " + updatedNodeCache.get(n).get).foreach(println)
-        }*/
-        //println(featureStats.core2((bestP ++ bestN).toIndexedSeq))
-
-        Set(bestP, bestN).foreach { c =>
-          println("#################")
-          c.map(n => n.toText + " -> " + updatedNodeCache.get(n).get).foreach(println)
+        println("ENHANCED")
+        clusters.foreach { c =>
+          println(c.map(n => n.toText + " -> " + updatedNodeCache.getOrElse(n, 0)).mkString("\n"))
+          println("##################")
         }
-        println("EXTRA")
-        bestP.flatMap(_.createSubNodes).map(_.toNegative).map(_.toText).foreach(println)
-        best = Set(bestP, bestN) ++ bestP.map(_.createSubNodes.map(_.toNegative))
+
+        (clusters ++ clusters.filter(_.head.isPositive).flatten.map(_.createSubNodes.map(_.toNegative))).flatten.toIndexedSeq
+      } else cleanedUniqueLabeled
+
+      logger.info {
+        s"""
+          |Labelled nodes selection and augmentation:
+          |${resulted.map(n => n.toText + " -> " + updatedNodeCache.getOrElse(n, 0L)).mkString("\n")}
+        |""".stripMargin
       }
 
-      val cc = (clustersP ++ clustersN).flatten.toIndexedSeq
-      val bb = best.flatten.toIndexedSeq
-
-      println
-      bb.map(_.toText).foreach(println)
-
-      //val res = featureStats.optimization_clusters(clustersP ++ clustersN, Some(updatedNodeCache))
-      //println(res)
-
-      /*println
-      (clustersP ++ clustersN).flatten.toIndexedSeq.sortBy(_.isPositive).map(_.toText).foreach(println)
-      println
-      compressed.flatten.toIndexedSeq.sortBy(_.isPositive).map(_.toText).foreach(println)
-      println*/
-
-
-      /////
-
-      //count.reducedCache = FastNodeCache(querySignature)
-      val (pos, neg) = cleanedUniqueLabeled.partition(_.isPositive)
-      val k1 = pos.filterNot { n =>
-        pos.filterNot(_ == n).exists(n1 => n.body.get.subsumes(n1.body.get))
-      }
-
-      val k2 = neg.filterNot { n =>
-        //println(n.toText)
-        //println("%%%%%")
-        val e = neg.filterNot(_ == n).exists { n1 =>
-          //println(n1.toText)
-          val tr = n.clause.get.subsumes(n1.clause.get) /*&& n.atoms.map(_.signature).diff(n1.atoms.map(_.signature)).isEmpty*/
-          //println(tr)
-          tr
-        }
-        //println("***********")
-        e
-      }
-
-      /*val ccg = generalise(cc, weights.keySet -- res, None)
-      ccg.map(_.toText).foreach(println)*/
-
-     /* println
-      println("TWO BEST")
-      (k1 ++ k2).map(_.toText).foreach(println)*/
+      println(cleanedUniqueLabeled.size)
+      println(resulted.size)
 
       // Labeled nodes MUST appear before unlabeled!
       new SPLICE(
-        bb ++ nonEmptyUnlabeled,
+        resulted ++ nonEmptyUnlabeled,
         querySignature,
         connector,
-        metric /*.normalizeWith(weights)*/ ++ mln.evidence ++ pureNodes.flatMap(n => IndexedSeq.fill(n.clusterSize)(n.atoms)),
+        metric ++ mln.evidence ++ pureNodes.flatMap(n => IndexedSeq.fill(n.clusterSize)(n.atoms)),
         annotationBuilder,
         updatedNodeCache,
         featureStats,

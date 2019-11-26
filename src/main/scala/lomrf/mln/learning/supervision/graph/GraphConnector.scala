@@ -413,7 +413,7 @@ case class kNNLConnector(k: Int) extends GraphConnector {
     */
   override def makeSparse(neighbors: DenseVector[Double], L: Int = 0): DenseVector[Double] = {
     // find distinct costs in the labeled neighbor vector
-    val distinctLabeledCosts = DenseVector(neighbors.toArray.take(L)/*.filter(_ > 0.5)*/.distinct)
+    val distinctLabeledCosts = DenseVector(neighbors.toArray.take(L) /*.filter(_ > 0.5)*/ .distinct)
 
     if (distinctLabeledCosts.length > k) {
       val topK = argtopk(distinctLabeledCosts, k).map(distinctLabeledCosts.apply)
@@ -422,8 +422,7 @@ case class kNNLConnector(k: Int) extends GraphConnector {
         neighbors.slice(0, L).map(cost => if (topK.contains(cost)) cost else UNCONNECTED),
         neighbors.slice(L, neighbors.length)
       )
-    }
-    //else if (distinctLabeledCosts.length == 0) neighbors.map(_ => 0.0)
+    } //else if (distinctLabeledCosts.length == 0) neighbors.map(_ => 0.0)
     else neighbors
   }
 

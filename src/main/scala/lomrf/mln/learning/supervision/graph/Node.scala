@@ -147,8 +147,8 @@ case class Node(
   }
 
   def relevantNode(other: Node): Boolean = {
-    if (size <= other.size) {
-      signatures.forall(s => other.signatures.contains(s))
+    if (size < other.size) {
+      atoms.map(Feature.atom2Feature).toSet.forall(s => other.atoms.map(Feature.atom2Feature).toSet.contains(s))
       /*var list = atoms.toList
       var otherList = other.atoms.toSet.filter(x => list.exists(_.signature == x.signature))
       for (a <- list) {
@@ -157,27 +157,31 @@ case class Node(
         otherList -= aa.get
       }
       true*/
+    } else if (size == other.size) {
+      atoms.map(Feature.atom2Feature).toSet == other.atoms.map(Feature.atom2Feature).toSet
     } else false
   }
 
   def createSubNodes: Set[Node] = {
     val domainVars = head.variables.groupBy(_.domain).filter { case (_, vars) => vars.size > 1 }
     val domainConst = query.terms.zip(head.terms.map(_.asInstanceOf[Variable].domain)).groupBy(_._2).mapValues(_.map(_._1)).filter(_._2.size > 1)
-    domainVars.flatMap { case (domain, vars) =>
-      val const = domainConst(domain).toSet
-      vars.zip(const).map { case (v, c) =>
-        val subEv = evidence.filter(e => e.constants.contains(c) && !(const - c).exists(cc =>e.constants.contains(cc)))
-        val subAtoms = atoms.filter(a => a.variables.contains(v) && !(vars - v).exists(vv => a.variables.contains(vv)))
-        Node(
-          query,
-          subEv,
-          clause.map(c => Clause(c.literals.filter(l => subAtoms.contains(l.sentence) || l.sentence == head))),
-          body.map(c => Clause(c.literals.filter(l => subAtoms.contains(l.sentence)))),
-          head,
-          orderIndex,
-          partitionIndices
-        )
-      }
+    domainVars.flatMap {
+      case (domain, vars) =>
+        val const = domainConst(domain).toSet
+        vars.zip(const).map {
+          case (v, c) =>
+            val subEv = evidence.filter(e => e.constants.contains(c) && !(const - c).exists(cc => e.constants.contains(cc)))
+            val subAtoms = atoms.filter(a => a.variables.contains(v) && !(vars - v).exists(vv => a.variables.contains(vv)))
+            Node(
+              query,
+              subEv,
+              clause.map(c => Clause(c.literals.filter(l => subAtoms.contains(l.sentence) || l.sentence == head))),
+              body.map(c => Clause(c.literals.filter(l => subAtoms.contains(l.sentence)))),
+              head,
+              orderIndex,
+              partitionIndices
+            )
+        }
     }.toSet
   }
 
