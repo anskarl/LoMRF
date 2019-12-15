@@ -25,9 +25,14 @@ import scala.language.implicitConversions
 
 /**
   * @param signature an atom signature
-  * @param constantArgs a sequence of constants or function symbols
+  * @param constantArgs a sequence of constants or function signatures
   */
-case class Feature(signature: AtomSignature, constantArgs: Set[String])
+case class Feature(signature: AtomSignature, constantArgs: Set[String]) {
+
+  override def toString: String =
+    if (constantArgs.isEmpty) signature.toString
+    else s"${signature}[${constantArgs.mkString(",")}]"
+}
 
 object Feature {
   implicit def atom2Feature(atom: AtomicFormula): Feature = {
