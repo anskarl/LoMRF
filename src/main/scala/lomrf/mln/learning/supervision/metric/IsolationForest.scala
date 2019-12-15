@@ -112,7 +112,7 @@ object IsolationForest {
     * @tparam T the feature type
     * @return an IsolationForest instance
     */
-  def apply[T](features: IndexedSeq[T], numberOfTrees: Int = 100): IsolationForest[T] =
+  def apply[T](features: IndexedSeq[T], numberOfTrees: Int): IsolationForest[T] =
     IsolationForest(features, numberOfTrees, features.length)
 
   /**
@@ -126,6 +126,31 @@ object IsolationForest {
     */
   def apply[T](features: IndexedSeq[T], numberOfTrees: Int, height: Int): IsolationForest[T] =
     IsolationForest(Seq.fill(numberOfTrees)(IsolationTree(features, height)))
+
+  /**
+    * Creates a forest of randomly generated trees.
+    *
+    * @param features a sequence of features
+    * @param recall maximum number of appearances for each feature
+    * @param numberOfTrees the number of trees in the forest (default is 100)
+    * @tparam T the feature type
+    * @return an IsolationForest instance
+    */
+  def apply[T](features: IndexedSeq[T], recall: Map[T, Int], numberOfTrees: Int): IsolationForest[T] =
+    IsolationForest(features, recall, numberOfTrees, features.length)
+
+  /**
+    * Creates a forest of randomly generated trees.
+    *
+    * @param features a sequence of features
+    * @param recall maximum number of appearances for each feature
+    * @param numberOfTrees the number of trees in the forest
+    * @param height the maximum tree height
+    * @tparam T the feature type
+    * @return an IsolationForest instance
+    */
+  def apply[T](features: IndexedSeq[T], recall: Map[T, Int], numberOfTrees: Int, height: Int): IsolationForest[T] =
+    IsolationForest(Seq.fill(numberOfTrees)(IsolationTree(features, recall, height)))
 
   /**
     *

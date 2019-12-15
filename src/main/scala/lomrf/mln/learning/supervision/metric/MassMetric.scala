@@ -21,6 +21,7 @@
 package lomrf.mln.learning.supervision.metric
 
 import lomrf.logic.{ AtomSignature, AtomicFormula }
+import lomrf.mln.model.ModeDeclarations
 
 case class MassMetric(forest: IsolationForest[AtomSignature]) extends Metric[AtomicFormula] {
 
@@ -87,7 +88,7 @@ object MassMetric {
     * @param numberOfTrees number of tree in the forest (default is 100)
     * @return a MassTreeMetric instance
     */
-  def apply(signatures: Set[AtomSignature], numberOfTrees: Int = 100): MassMetric =
+  def apply(signatures: Set[AtomSignature], numberOfTrees: Int): MassMetric =
     new MassMetric(IsolationForest(signatures.toIndexedSeq, numberOfTrees))
 
   /**
@@ -101,4 +102,25 @@ object MassMetric {
     */
   def apply(featureScores: Map[AtomSignature, Double]): MassMetric =
     new MassMetric(IsolationForest(featureScores))
+
+  /**
+    * Creates an empty mass metric, using an underlying isolation forest,
+    * from a set of atom signatures and mode declarations.
+    *
+    * @see [[lomrf.mln.learning.supervision.metric.IsolationForest]]
+    *
+    * @param signatures a set of atom signatures
+    * @param modes mode declarations
+    * @param numberOfTrees number of tree in the forest (default is 100)
+    * @return a MassTreeMetric instance
+    */
+  def apply(signatures: Set[AtomSignature], modes: ModeDeclarations, numberOfTrees: Int): MassMetric = {
+    val maxRecall = modes
+      .withFilter { case (_, mode) => mode.recall < Int.MaxValue }
+      .map { case (_, mode) => mode.recall }.max
+
+    val finiteRecall = modes.mapValues(mode => if (mode.recall < Int.MaxValue) mode.recall else maxRecall)
+
+    new MassMetric(IsolationForest(signatures.toIndexedSeq, finiteRecall, finiteRecall.values.sum))
+  }
 }

@@ -55,18 +55,21 @@ case class IsolationTree[T](
 
   @tailrec
   private def parentMass(xSeq: Seq[T], parentSize: Long): Long = {
-    if (xSeq.exists(isSplit) && hasRight)
-      right.get.parentMass(xSeq, size)
-    else if (!xSeq.exists(isSplit) && hasLeft)
+    if (xSeq.exists(isSplit) && hasRight) {
+      val (a, b) = xSeq.splitAt(xSeq.indexWhere(isSplit))
+      right.get.parentMass(a ++ b.tail, size)
+    } else if (!xSeq.exists(isSplit) && hasLeft)
       left.get.parentMass(xSeq, size)
     else parentSize
   }
 
   @tailrec
   private def internalMass(xSeq: Seq[T], ySeq: Seq[T]): Long = {
-    if (xSeq.exists(isSplit) && ySeq.exists(isSplit) && hasRight)
-      right.get.internalMass(xSeq, ySeq)
-    else if (!xSeq.exists(isSplit) && !ySeq.exists(isSplit) && hasLeft)
+    if (xSeq.exists(isSplit) && ySeq.exists(isSplit) && hasRight) {
+      val (xLeft, xRight) = xSeq.splitAt(xSeq.indexWhere(isSplit))
+      val (yLeft, yRight) = ySeq.splitAt(ySeq.indexWhere(isSplit))
+      right.get.internalMass(xLeft ++ xRight.tail, yLeft ++ yRight.tail)
+    } else if (!xSeq.exists(isSplit) && !ySeq.exists(isSplit) && hasLeft)
       left.get.internalMass(xSeq, ySeq)
     else size
   }
@@ -90,15 +93,16 @@ case class IsolationTree[T](
     * Updates the internal counts of the nodes containing the given features.
     *
     * @param features a sequence of features
-    * @param counts counts for the given sequence of features
+    * @param counts counts for the given sequence of features (default is 1)
     */
   @tailrec
   final def updateCounts(features: Seq[T], counts: Long = 1): Unit = {
     size += counts // update current node and then move deeper
 
-    if (features.exists(isSplit) && hasRight)
-      right.get.updateCounts(features, counts)
-    else if (!features.exists(isSplit) && hasLeft)
+    if (hasRight && features.exists(isSplit)) {
+      val (a, b) = features.splitAt(features.indexWhere(isSplit))
+      right.get.updateCounts(a ++ b.tail, counts)
+    } else if (hasLeft && !features.exists(isSplit))
       left.get.updateCounts(features, counts)
   }
 
@@ -194,6 +198,19 @@ object IsolationTree {
     IsolationTree.fromFeatures(features, 0, height)
 
   /**
+    * Creates an isolation tree from features. At each branch it selects
+    * a random feature split.
+    *
+    * @param features an indexed sequence of features
+    * @param recall maximum number of appearances for each feature
+    * @param height the maximum tree height
+    * @tparam T the feature type
+    * @return an IsolationTree
+    */
+  def apply[T](features: IndexedSeq[T], recall: Map[T, Int], height: Int): IsolationTree[T] =
+    IsolationTree.fromFeatures(features, recall, 0, height)
+
+  /**
     * Creates an isolation tree from feature scores. At each branch it selects
     * the best feature split based on given scores.
     *
@@ -248,6 +265,33 @@ object IsolationTree {
 
       val left = IsolationTree.fromFeatures(features.filterNot(_ == currentSplit), depth + 1, height)
       val right = IsolationTree.fromFeatures(features.filterNot(_ == currentSplit), depth + 1, height)
+
+      new IsolationTree(Some(currentSplit), Some(left), Some(right))
+    }
+  }
+
+  /**
+    * Creates an isolation tree from features. At each branch it selects
+    * a random feature split.
+    *
+    * @param features an indexed sequence of features
+    * @param recall maximum number of appearances for each feature
+    * @param depth the current depth of the tree
+    * @param height the maximum tree height
+    * @tparam T the feature type
+    * @return an IsolationTree
+    */
+  private def fromFeatures[T](features: IndexedSeq[T], recall: Map[T, Int], depth: Int, height: Int): IsolationTree[T] = {
+    if (depth > height || features.length < 1) empty
+    else {
+      val idx = Random.nextInt(features.length)
+      val currentSplit = features(idx)
+
+      val updatedRecall = recall.updated(currentSplit, recall(currentSplit) - 1)
+      val updatedFeatures = features.filter(updatedRecall(_) > 0)
+
+      val left = IsolationTree.fromFeatures(updatedFeatures, updatedRecall, depth + 1, height)
+      val right = IsolationTree.fromFeatures(updatedFeatures, updatedRecall, depth + 1, height)
 
       new IsolationTree(Some(currentSplit), Some(left), Some(right))
     }

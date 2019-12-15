@@ -87,11 +87,17 @@ object SemiSupervisionCLI extends CLIApp {
   // K value for the kNN graph
   private var _k = 2
 
+  // Number of trees for mass metric
+  private var _trees = 100
+
   // Memory for streaming synopsis
   private var _memory = 2
 
-  // Minimum node process size
+  // Minimum node size
   private var _minNodeSize = 2
+
+  // Minimum node occurrence
+  private var _minOccSize = 1
 
   opt("i", "input", "<kb file>", "Markov Logic file defining the predicate and function schema.", {
     v: String => _mlnFileName = Some(v)
@@ -207,15 +213,27 @@ object SemiSupervisionCLI extends CLIApp {
     _cluster = false
   })
 
-  intOpt("ms", "min-node-size", "Minimum node process size (default is " + _minNodeSize + ")", {
+  intOpt("tr", "trees-number", "Number of isolation trees (default is " + _trees + ")", {
     v: Int =>
-      if (v < 1) logger.fatal("minimum node size value must be any integer greater than zero, but you gave: " + v)
+      if (v < 1) logger.fatal("Number of isolation trees value must be any integer greater than one, but you gave: " + v)
+      else _trees = v
+  })
+
+  intOpt("ms", "min-node-size", "Minimum node size (default is " + _minNodeSize + ")", {
+    v: Int =>
+      if (v < 1) logger.fatal("Minimum node size value must be any integer greater than one, but you gave: " + v)
       else _minNodeSize = v
+  })
+
+  intOpt("mo", "min-node-occur", "Minimum node occurrence (default is " + _minOccSize + ")", {
+    v: Int =>
+      if (v < 1) logger.fatal("Minimum node occurrence value must be any integer greater than one, but you gave: " + v)
+      else _minOccSize = v
   })
 
   intOpt("mem", "memory", "Memory parameter (default is " + _memory + ")", {
     v: Int =>
-      if (v < 1) logger.fatal("memory value must be any integer greater than zero, but you gave: " + v)
+      if (v < 1) logger.fatal("memory value must be any integer greater than one, but you gave: " + v)
       else _memory = v
   })
 
@@ -293,8 +311,8 @@ object SemiSupervisionCLI extends CLIApp {
     val signatures = kb.predicateSchema.keySet.filter(sig => modes(sig).recall > 0)
 
     val distance: Metric[_ <: AtomicFormula] =
-      if (_distance == DistanceType.Hybrid) HybridMetric(AtomMetric(HungarianMatcher), MassMetric(signatures))
-      else if (_distance == DistanceType.Mass) MassMetric(signatures)
+      if (_distance == DistanceType.Hybrid) HybridMetric(AtomMetric(HungarianMatcher), MassMetric(signatures, modes, _trees))
+      else if (_distance == DistanceType.Mass) MassMetric(signatures, modes, _trees)
       else if (_distance == DistanceType.Binary) BinaryMetric(HungarianMatcher)
       else if (_distance == DistanceType.Atomic) AtomMetric(HungarianMatcher)
       else EvidenceMetric(modes, HungarianMatcher)
