@@ -84,11 +84,8 @@ trait GraphConnector {
 
     cfor(0)(_ < unlabeled.length, _ + 1) { ii =>
       val i = ii + L
-      /*println("===============")
-      println(unlabeled(ii).toText + " -> " + unlabeled(ii).query.terms.last.symbol)
-      println("===============")*/
 
-      for (j <- nodes.indices if i != j) { // A node cannot be connected to itself
+      for (j <- parallelIndices if i != j) { // A node cannot be connected to itself
 
         // W is symmetric and therefore avoid computing both upper and lower triangular
         if (j < L) {
@@ -98,14 +95,7 @@ trait GraphConnector {
           if (i > j) W(i, j) = W(j, i)
           else W(i, j) = connect(nodes(i), nodes(j))(metric)
         }
-
-        /*if (W(i, j) > 0) {
-          println(nodes(j).toText + " -> " + nodes(j).query.terms.last.symbol)
-          println(W(i, j))
-        }*/
-
       }
-      //println(makeSparse(W(i, ::).inner, L))
     }
 
     val frequencyVector = nodeCache.map { c =>
@@ -146,7 +136,6 @@ trait GraphConnector {
     val D = DenseMatrix.zeros[Double](numberOfNodes, numberOfNodes)
 
     cfor(0)(_ < numberOfNodes, _ + 1) { i =>
-      //val neighborCosts = DenseVector.zeros[Double](numberOfNodes)
       for (j <- parallelIndices if i != j) { // A node cannot be connected to itself
 
         // W is symmetric and therefore avoid computing both upper and lower triangular
@@ -183,6 +172,7 @@ trait GraphConnector {
     * @return the adjacency matrix of the resulted graph
     */
   def biConnect(leftNodes: IndexedSeq[Node], rightNodes: IndexedSeq[Node])(metric: Metric[_ <: AtomicFormula]): GraphMatrix = {
+
     val numberOfCols = rightNodes.length
     val parallelIndices = rightNodes.indices.par
     val W = DenseMatrix.fill[Double](leftNodes.length, rightNodes.length)(UNCONNECTED)
@@ -378,7 +368,8 @@ case class kNNConnector(k: Int) extends GraphConnector {
     *         everything else is unconnected (zero)
     */
   override def makeSparse(neighbors: DenseVector[Double], L: Int = 0): DenseVector[Double] = {
-    // find distinct costs in the neighbor vector
+
+    // Find distinct costs in the neighbor vector
     val distinctCosts = DenseVector(neighbors.toArray.distinct)
 
     if (distinctCosts.length > k) {
@@ -412,8 +403,9 @@ case class kNNLConnector(k: Int) extends GraphConnector {
     *         everything else is unconnected (zero). Unlabeled neighbors remain connected
     */
   override def makeSparse(neighbors: DenseVector[Double], L: Int = 0): DenseVector[Double] = {
-    // find distinct costs in the labeled neighbor vector
-    val distinctLabeledCosts = DenseVector(neighbors.toArray.take(L) /*.filter(_ > 0.5)*/ .distinct)
+
+    // Find distinct costs in the labeled neighbor vector
+    val distinctLabeledCosts = DenseVector(neighbors.toArray.take(L).distinct)
 
     if (distinctLabeledCosts.length > k) {
       val topK = argtopk(distinctLabeledCosts, k).map(distinctLabeledCosts.apply)
@@ -422,7 +414,7 @@ case class kNNLConnector(k: Int) extends GraphConnector {
         neighbors.slice(0, L).map(cost => if (topK.contains(cost)) cost else UNCONNECTED),
         neighbors.slice(L, neighbors.length)
       )
-    } //else if (distinctLabeledCosts.length == 0) neighbors.map(_ => 0.0)
+    }
     else neighbors
   }
 
