@@ -414,8 +414,7 @@ case class kNNLConnector(k: Int) extends GraphConnector {
         neighbors.slice(0, L).map(cost => if (topK.contains(cost)) cost else UNCONNECTED),
         neighbors.slice(L, neighbors.length)
       )
-    }
-    else neighbors
+    } else neighbors
   }
 
   override def toString: String = s"kNN.$k.labeled"

@@ -23,6 +23,7 @@ package lomrf.mln.learning.supervision.graph
 import lomrf.logic._
 import breeze.linalg.DenseVector
 import lomrf.mln.learning.supervision.graph.caching.NodeCache
+import lomrf.mln.learning.supervision.graph.optimize.LMNN
 import lomrf.mln.learning.supervision.metric.features.FeatureStats
 import lomrf.mln.learning.supervision.metric._
 import lomrf.mln.model._
@@ -58,7 +59,8 @@ final class SPLICE private[graph] (
     featureStats: FeatureStats,
     solver: GraphSolver,
     enableClusters: Boolean,
-    minNodeSize: Int)
+    minNodeSize: Int,
+    minNodeOcc: Int)
   extends SupervisionGraph(nodes, querySignature, connector, metric, supervisionBuilder, nodeCache, featureStats) {
 
   protected def optimize(potentials: Map[EvidenceAtom, Double]): Set[EvidenceAtom] = {
@@ -74,7 +76,7 @@ final class SPLICE private[graph] (
 
     val startGraphConnection = System.currentTimeMillis
     val encodedGraph = solver match {
-      case _: HFc => connector.smartConnect(nodes, unlabeledNodes, Some(nodeCache))(metric) // TODO
+      case _: HFc => connector.smartConnect(nodes, unlabeledNodes, Some(nodeCache))(metric)
       case _      => connector.fullyConnect(nodes, Some(nodeCache))(metric)
     }
 
@@ -125,7 +127,7 @@ final class SPLICE private[graph] (
     // Remove empty labelled nodes or nodes subsumed by the background knowledge
     val pureLabeledNodes = labeled.filterNot { n =>
       n.isEmpty || mln.clauses.exists(_.subsumes(n.clause.get))
-    }
+    }.flatMap(_.augment)
 
     // Labeled query atoms and empty unlabeled query atoms as FALSE.
     val labeledEntries =
@@ -166,7 +168,8 @@ final class SPLICE private[graph] (
         featureStats,
         solver,
         enableClusters,
-        minNodeSize)
+        minNodeSize,
+        minNodeOcc)
     else {
       /*
        * Update the cache using only non empty labeled nodes, i.e., nodes having at least
@@ -178,8 +181,8 @@ final class SPLICE private[graph] (
 
       var updatedNodeCache = nodeCache
       updatedNodeCache ++= pureLabeledNodes
-      val cleanedUniqueLabeled = updatedNodeCache.collectNodes.filter(_.size >= minNodeSize)
-        .filter(n => updatedNodeCache.getOrElse(n, 0) > 1) // TODO maybe this should be a parameter (e.g., minOcc)
+      val cleanedUniqueLabeled = updatedNodeCache.collectNodes
+        .filter(node => node.size >= minNodeSize && nodeCache.getOrElse(node, 0) >= minNodeOcc)
 
       logger.info(msecTimeToTextUntilNow(s"Cache updated in: ", startCacheUpdate))
       logger.info(s"${cleanedUniqueLabeled.length}/${numberOfLabeled + labeled.length} unique labeled nodes kept.")
@@ -188,134 +191,27 @@ final class SPLICE private[graph] (
       logger.info {
         s"""
           |Labelled nodes kept:
-          |${cleanedUniqueLabeled.sortBy(_.isNegative).map(n => n.toText + " -> " + updatedNodeCache.get(n).get).mkString("\n")}
+          |${cleanedUniqueLabeled.sortBy(_.isNegative).map(n => n.toText + " -> " + updatedNodeCache.getOrElse(n, 0L)).mkString("\n")}
         |""".stripMargin
       }
 
-      val (positiveNodes, negativeNodes) = cleanedUniqueLabeled.sortBy(_.size).reverse.partition(_.isPositive)
+      val (weights, selectedNodes) = LMNN(1, 0.6).optimize(cleanedUniqueLabeled, updatedNodeCache)(AtomMetric(HungarianMatcher))
 
-      val resulted = if (positiveNodes.nonEmpty && negativeNodes.nonEmpty) {
-        var positiveClusters = Set(Set(positiveNodes.maxBy(_.size)))
-        var negativeClusters = Set(Set(negativeNodes.maxBy(_.size)))
-
-        /*positiveClusters.foreach { c =>
-          println(c.map(n => n.toText + " -> " + updatedNodeCache.getOrElse(n, 0)).mkString("\n"))
-          println("##################")
-        }
-        negativeClusters.foreach { c =>
-          println(c.map(n => n.toText + " -> " + updatedNodeCache.getOrElse(n, 0)).mkString("\n"))
-          println("##################")
-        }*/
-
-        positiveClusters = positiveNodes.filterNot(positiveClusters.head.contains).foldLeft(positiveClusters) {
-          case (clusters, node) =>
-            println(node.toText)
-            clusters.filter(c => c.exists(n => node.relevantNode(n))) match {
-              case x if x.isEmpty => clusters + Set(node)
-              case x if x.size >= 1 =>
-                val xx = x.maxBy(_.toList.map(n => updatedNodeCache.get(n).get).sum)
-                (clusters - xx) + (xx + node)
-              case x =>
-                /*println("XAXAXa")
-                x.foreach { c =>
-                  println(c.map(n => n.toText + " -> " + updatedNodeCache.getOrElse(n, 0)).mkString("\n"))
-                  println("##################")
-                }
-                println*/
-                clusters
-            }
-        }
-
-        println
-        positiveClusters.foreach { c =>
-          println(c.map(n => n.toText + " -> " + updatedNodeCache.getOrElse(n, 0)).mkString("\n"))
-          println("##################")
-        }
-
-        negativeClusters = negativeNodes.filterNot(negativeClusters.head.contains).foldLeft(negativeClusters) {
-          case (clusters, node) =>
-            clusters.filter(c => c.exists(n => node.relevantNode(n))) match {
-              case x if x.isEmpty => clusters + Set(node)
-              case x if x.size >= 1 =>
-                val xx = x.maxBy(_.toList.map(n => updatedNodeCache.get(n).get).sum)
-                (clusters - xx) + (xx + node)
-              case _ => clusters
-            }
-        }
-
-        negativeClusters.foreach { c =>
-          println(c.map(n => n.toText + " -> " + updatedNodeCache.getOrElse(n, 0)).mkString("\n"))
-          println("##################")
-        }
-
-        var densePositive = positiveClusters.maxBy(_.toList.map(n => updatedNodeCache.get(n).get).sum)
-        var denseNegative = negativeClusters.maxBy(_.toList.map(n => updatedNodeCache.get(n).get).sum)
-
-        // Extend clusters while there is an overlap
-        var clusters = Set(densePositive, denseNegative)
-        var stop = false
-        while (densePositive.flatMap(n => n.signatures) == denseNegative.flatMap(_.signatures) && !stop) {
-          val remainingPositives = positiveClusters diff clusters
-          val remainingNegatives = negativeClusters diff clusters
-          if (remainingPositives.nonEmpty && remainingNegatives.nonEmpty) {
-            densePositive = remainingPositives.maxBy(_.toList.map(n => updatedNodeCache.get(n).get).sum)
-            denseNegative = remainingNegatives.maxBy(_.toList.map(n => updatedNodeCache.get(n).get).sum)
-            clusters ++= Set(densePositive, denseNegative)
-          } else stop = true
-        }
-
-        println("EXTENDED")
-        clusters.foreach { c =>
-          println(c.map(n => n.toText + " -> " + updatedNodeCache.getOrElse(n, 0)).mkString("\n"))
-          println("##################")
-        }
-
-        // Enhance using remaining clusters
-        var remainingPositives = positiveClusters diff clusters
-        var remainingNegatives = negativeClusters diff clusters
-        stop = false
-        while ((remainingPositives.nonEmpty || remainingNegatives.nonEmpty) && !stop) {
-          val a = remainingPositives.find(c => clusters.exists(cc => cc.head.isNegative && c.flatMap(_.signatures) == cc.flatMap(_.signatures)))
-          val b = remainingNegatives.find(c => clusters.exists(cc => cc.head.isPositive && c.flatMap(_.signatures) == cc.flatMap(_.signatures)))
-          if (a.isEmpty && b.isEmpty) stop = true
-          else {
-            clusters ++= Set(a.getOrElse(Set.empty), b.getOrElse(Set.empty)).filter(_.nonEmpty)
-            remainingPositives -= a.getOrElse(Set.empty)
-            remainingNegatives -= b.getOrElse(Set.empty)
-          }
-        }
-
-        println("ENHANCED")
-        clusters.foreach { c =>
-          println(c.map(n => n.toText + " -> " + updatedNodeCache.getOrElse(n, 0)).mkString("\n"))
-          println("##################")
-        }
-
-        (clusters ++ clusters.filter(_.head.isPositive).flatten.map(_.createSubNodes.map(_.toNegative))).flatten.toIndexedSeq
-      } else cleanedUniqueLabeled
-
-      logger.info {
-        s"""
-          |Labelled nodes selection and augmentation:
-          |${resulted.map(n => n.toText + " -> " + updatedNodeCache.getOrElse(n, 0L)).mkString("\n")}
-        |""".stripMargin
-      }
-
-      println(cleanedUniqueLabeled.size)
-      println(resulted.size)
+      weights.foreach(println)
 
       // Labeled nodes MUST appear before unlabeled!
       new SPLICE(
-        resulted ++ nonEmptyUnlabeled,
+        selectedNodes ++ nonEmptyUnlabeled,
         querySignature,
         connector,
-        metric ++ mln.evidence ++ pureNodes.flatMap(n => IndexedSeq.fill(n.clusterSize)(n.atoms)),
+        metric.normalizeWith(weights) ++ mln.evidence ++ pureNodes.flatMap(n => IndexedSeq.fill(n.clusterSize)(n.atoms)),
         annotationBuilder,
         updatedNodeCache,
         featureStats,
         solver,
         enableClusters,
-        minNodeSize)
+        minNodeSize,
+        minNodeOcc)
     }
   }
 }

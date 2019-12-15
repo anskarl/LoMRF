@@ -56,7 +56,8 @@ final class NNGraph private[graph] (
     nodeCache: NodeCache,
     featureStats: FeatureStats,
     enableClusters: Boolean,
-    minNodeSize: Int)
+    minNodeSize: Int,
+    minNodeOcc: Int)
   extends SupervisionGraph(nodes, querySignature, connector, metric, supervisionBuilder, nodeCache, featureStats) {
 
   protected def optimize(potentials: Map[EvidenceAtom, Double]): Set[EvidenceAtom] = {
@@ -127,7 +128,7 @@ final class NNGraph private[graph] (
     // Remove empty labelled nodes or nodes subsumed by the background knowledge
     val pureLabeledNodes = labeled.filterNot { node =>
       node.isEmpty || mln.clauses.exists(_.subsumes(node.clause.get))
-    }
+    }.flatMap(_.augment)
 
     // Labeled query atoms and empty unlabeled query atoms as FALSE.
     val labeledEntries =
@@ -167,7 +168,8 @@ final class NNGraph private[graph] (
         nodeCache,
         featureStats,
         enableClusters,
-        minNodeSize)
+        minNodeSize,
+        minNodeOcc)
     } else {
       /*
        * Update the cache using only non empty labeled nodes, i.e., nodes having at least
@@ -179,7 +181,8 @@ final class NNGraph private[graph] (
 
       var updatedNodeCache = nodeCache
       updatedNodeCache ++= pureLabeledNodes
-      val cleanedUniqueLabeled = updatedNodeCache.collectNodes.filter(_.size >= minNodeSize)
+      val cleanedUniqueLabeled = updatedNodeCache.collectNodes
+        .filter(node => node.size >= minNodeSize && nodeCache.getOrElse(node, 0) >= minNodeOcc)
 
       logger.info(msecTimeToTextUntilNow(s"Cache updated in: ", startCacheUpdate))
       logger.info(s"${cleanedUniqueLabeled.length}/${numberOfLabeled + labeled.length} unique labeled nodes kept.")
@@ -195,7 +198,8 @@ final class NNGraph private[graph] (
         updatedNodeCache,
         featureStats,
         enableClusters,
-        minNodeSize)
+        minNodeSize,
+        minNodeOcc)
     }
   }
 }

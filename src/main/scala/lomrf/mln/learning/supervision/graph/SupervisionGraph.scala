@@ -310,7 +310,8 @@ object SupervisionGraph extends LazyLogging {
       solver: GraphSolver,
       enableClusters: Boolean,
       useHoeffding: Boolean,
-      minNodeSize: Int): SPLICE = {
+      minNodeSize: Int,
+      minNodeOcc: Int): SPLICE = {
 
     // Group the given data into nodes
     val currentNodes = connector match {
@@ -329,7 +330,7 @@ object SupervisionGraph extends LazyLogging {
     // Remove empty labelled nodes or nodes subsumed by the background knowledge
     val pureLabeledNodes = labeledNodes.filterNot { node =>
       node.isEmpty || mln.clauses.exists(_.subsumes(node.clause.get))
-    }
+    }.flatMap(_.augment)
 
     /*
      * Create a cache using only non empty labeled nodes, i.e., nodes having at least
@@ -340,7 +341,8 @@ object SupervisionGraph extends LazyLogging {
     val startCacheConstruction = System.currentTimeMillis
 
     val nodeCache = FastNodeCache(querySignature, useHoeffding) ++ pureLabeledNodes
-    val uniqueLabeled = nodeCache.collectNodes.filter(_.size >= minNodeSize)
+    val uniqueLabeled = nodeCache.collectNodes
+      .filter(node => node.size >= minNodeSize && nodeCache.getOrElse(node, 0) >= minNodeOcc)
 
     logger.info(msecTimeToTextUntilNow(s"Cache constructed in: ", startCacheConstruction))
     logger.info(s"${uniqueLabeled.length} / ${labeledNodes.length} unique labeled nodes kept.")
@@ -379,7 +381,8 @@ object SupervisionGraph extends LazyLogging {
       FeatureStats.empty,
       solver,
       enableClusters,
-      minNodeSize
+      minNodeSize,
+      minNodeOcc
     )
   }
 
@@ -410,7 +413,8 @@ object SupervisionGraph extends LazyLogging {
       metric: Metric[_ <: AtomicFormula],
       enableClusters: Boolean,
       useHoeffding: Boolean,
-      minNodeSize: Int): NNGraph = {
+      minNodeSize: Int,
+      minNodeOcc: Int): NNGraph = {
 
     // Group the given data into nodes
     val currentNodes = connector match {
@@ -428,7 +432,7 @@ object SupervisionGraph extends LazyLogging {
     // Remove empty labelled nodes or nodes subsumed by the background knowledge
     val pureLabeledNodes = labeledNodes.filterNot { node =>
       node.isEmpty || mln.clauses.exists(_.subsumes(node.clause.get))
-    }
+    }.flatMap(_.augment)
 
     /*
      * Create a cache using only non empty labeled nodes, i.e., nodes having at least
@@ -439,7 +443,8 @@ object SupervisionGraph extends LazyLogging {
     val startCacheConstruction = System.currentTimeMillis
 
     val nodeCache = FastNodeCache(querySignature, useHoeffding) ++ pureLabeledNodes
-    val uniqueLabeled = nodeCache.collectNodes.filter(_.size >= minNodeSize)
+    val uniqueLabeled = nodeCache.collectNodes
+      .filter(node => node.size >= minNodeSize && nodeCache.getOrElse(node, 0) >= minNodeOcc)
 
     logger.info(msecTimeToTextUntilNow(s"Cache constructed in: ", startCacheConstruction))
     logger.info(s"${uniqueLabeled.length} / ${labeledNodes.length} unique labeled nodes kept.")
@@ -477,7 +482,8 @@ object SupervisionGraph extends LazyLogging {
       nodeCache,
       FeatureStats.empty,
       enableClusters,
-      minNodeSize
+      minNodeSize,
+      minNodeOcc
     )
   }
 
@@ -508,7 +514,8 @@ object SupervisionGraph extends LazyLogging {
       metric: Metric[_ <: AtomicFormula],
       enableClusters: Boolean,
       useHoeffding: Boolean,
-      minNodeSize: Int): ExtNNGraph = {
+      minNodeSize: Int,
+      minNodeOcc: Int): ExtNNGraph = {
 
     // Group the given data into nodes
     val currentNodes = connector match {
@@ -526,7 +533,7 @@ object SupervisionGraph extends LazyLogging {
     // Remove empty labelled nodes or nodes subsumed by the background knowledge
     val pureLabeledNodes = labeledNodes.filterNot { node =>
       node.isEmpty || mln.clauses.exists(_.subsumes(node.clause.get))
-    }
+    }.flatMap(_.augment)
 
     /*
      * Create a cache using only non empty labeled nodes, i.e., nodes having at least
@@ -537,7 +544,8 @@ object SupervisionGraph extends LazyLogging {
     val startCacheConstruction = System.currentTimeMillis
 
     val nodeCache = FastNodeCache(querySignature, useHoeffding) ++ pureLabeledNodes
-    val uniqueLabeled = nodeCache.collectNodes.filter(_.size >= minNodeSize)
+    val uniqueLabeled = nodeCache.collectNodes
+      .filter(node => node.size >= minNodeSize && nodeCache.getOrElse(node, 0) >= minNodeOcc)
 
     logger.info(msecTimeToTextUntilNow(s"Cache constructed in: ", startCacheConstruction))
     logger.info(s"${uniqueLabeled.length} / ${labeledNodes.length} unique labeled nodes kept.")
@@ -575,7 +583,8 @@ object SupervisionGraph extends LazyLogging {
       nodeCache,
       FeatureStats.empty,
       enableClusters,
-      minNodeSize
+      minNodeSize,
+      minNodeOcc
     )
   }
 
@@ -608,7 +617,8 @@ object SupervisionGraph extends LazyLogging {
       solver: GraphSolver,
       useHoeffding: Boolean,
       memory: Int,
-      minNodeSize: Int): StreamingGraph = {
+      minNodeSize: Int,
+      minNodeOcc: Int): StreamingGraph = {
 
     // Group the given data into nodes
     val currentNodes = connector match {
@@ -626,7 +636,7 @@ object SupervisionGraph extends LazyLogging {
     // Remove empty labelled nodes or nodes subsumed by the background knowledge
     val pureLabeledNodes = labeledNodes.filterNot { node =>
       node.isEmpty || mln.clauses.exists(_.subsumes(node.clause.get))
-    }
+    }.flatMap(_.augment)
 
     /*
      * Create a cache using only non empty labeled nodes, i.e., nodes having at least
@@ -637,7 +647,8 @@ object SupervisionGraph extends LazyLogging {
     val startCacheConstruction = System.currentTimeMillis
 
     val nodeCache = FastNodeCache(querySignature, useHoeffding) ++ pureLabeledNodes
-    val uniqueLabeled = nodeCache.collectNodes.filter(_.size >= minNodeSize)
+    val uniqueLabeled = nodeCache.collectNodes
+      .filter(node => node.size >= minNodeSize && nodeCache.getOrElse(node, 0) >= minNodeOcc)
 
     logger.info(msecTimeToTextUntilNow(s"Cache constructed in: ", startCacheConstruction))
     logger.info(s"${uniqueLabeled.length} / ${labeledNodes.length} unique labeled nodes kept.")
@@ -678,7 +689,8 @@ object SupervisionGraph extends LazyLogging {
       IndexedSeq.empty,
       DenseMatrix.zeros[Double](2, 2),
       memory,
-      minNodeSize
+      minNodeSize,
+      minNodeOcc
     )
   }
 }

@@ -370,28 +370,28 @@ object SemiSupervisionCLI extends CLIApp {
           case Some(graph) => supervisionGraphs += querySignature -> (graph ++ (mln, annotationDB, modes))
           case None if _solver == LP_TLP =>
             supervisionGraphs += querySignature ->
-              SupervisionGraph.TLP(mln, modes, annotationDB, querySignature, connector, distance, LP(), useHoeffding, _memory, _minNodeSize)
+              SupervisionGraph.TLP(mln, modes, annotationDB, querySignature, connector, distance, LP(), useHoeffding, _memory, _minNodeSize, _minOccSize)
           case None if _solver == HFC_TLP =>
             supervisionGraphs += querySignature ->
-              SupervisionGraph.TLP(mln, modes, annotationDB, querySignature, connector, distance, new HFc, useHoeffding, _memory, _minNodeSize)
+              SupervisionGraph.TLP(mln, modes, annotationDB, querySignature, connector, distance, new HFc, useHoeffding, _memory, _minNodeSize, _minOccSize)
           case None if _solver == LGC_TLP =>
             supervisionGraphs += querySignature ->
-              SupervisionGraph.TLP(mln, modes, annotationDB, querySignature, connector, distance, LGCc(), useHoeffding, _memory, _minNodeSize)
+              SupervisionGraph.TLP(mln, modes, annotationDB, querySignature, connector, distance, LGCc(), useHoeffding, _memory, _minNodeSize, _minOccSize)
           case None if _solver == LP_SPLICE =>
             supervisionGraphs += querySignature ->
-              SupervisionGraph.SPLICE(mln, modes, annotationDB, querySignature, connector, distance, LP(), _cluster, useHoeffding, _minNodeSize)
+              SupervisionGraph.SPLICE(mln, modes, annotationDB, querySignature, connector, distance, LP(), _cluster, useHoeffding, _minNodeSize, _minOccSize)
           case None if _solver == HFC_SPLICE =>
             supervisionGraphs += querySignature ->
-              SupervisionGraph.SPLICE(mln, modes, annotationDB, querySignature, connector, distance, new HFc, _cluster, useHoeffding, _minNodeSize)
+              SupervisionGraph.SPLICE(mln, modes, annotationDB, querySignature, connector, distance, new HFc, _cluster, useHoeffding, _minNodeSize, _minOccSize)
           case None if _solver == LGC_SPLICE =>
             supervisionGraphs += querySignature ->
-              SupervisionGraph.SPLICE(mln, modes, annotationDB, querySignature, connector, distance, LGCc(), _cluster, useHoeffding, _minNodeSize)
+              SupervisionGraph.SPLICE(mln, modes, annotationDB, querySignature, connector, distance, LGCc(), _cluster, useHoeffding, _minNodeSize, _minOccSize)
           case None if _solver == NN =>
             supervisionGraphs += querySignature ->
-              SupervisionGraph.nearestNeighbor(mln, modes, annotationDB, querySignature, connector, distance, _cluster, useHoeffding, _minNodeSize)
+              SupervisionGraph.nearestNeighbor(mln, modes, annotationDB, querySignature, connector, distance, _cluster, useHoeffding, _minNodeSize, _minOccSize)
           case None if _solver == EXT_NN =>
             supervisionGraphs += querySignature ->
-              SupervisionGraph.extNearestNeighbor(mln, modes, annotationDB, querySignature, connector, distance, _cluster, useHoeffding, _minNodeSize)
+              SupervisionGraph.extNearestNeighbor(mln, modes, annotationDB, querySignature, connector, distance, _cluster, useHoeffding, _minNodeSize, _minOccSize)
         }
       }
 

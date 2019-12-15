@@ -21,6 +21,7 @@
 package lomrf.mln.learning.supervision.graph
 
 import lomrf.logic._
+import lomrf.logic.LogicOps._
 import lomrf.util.logging.Implicits._
 import com.typesafe.scalalogging.LazyLogging
 import lomrf.mln.learning.supervision.metric.features.Feature
@@ -63,6 +64,9 @@ case class Node(
   lazy val literals: Set[Literal] =
     body.getOrElse(logger.fatal("Body does not exist.")).literals
 
+  lazy val features: Set[Feature] =
+    atoms.map(Feature.atom2Feature).toSet
+
   lazy val opposite: Node = if (isPositive) toNegative else toPositive
 
   lazy val clusterSize: Int = similarNodeQueryAtoms.size + 1
@@ -82,6 +86,33 @@ case class Node(
   def labelUsingValue(value: Boolean): Seq[EvidenceAtom] =
     similarNodeQueryAtoms.toIndexedSeq.map(q => EvidenceAtom(q.symbol, q.terms, value)) :+
       EvidenceAtom(query.symbol, query.terms, value)
+
+  /**
+    * @param that another node
+    * @return true if this node subsumes the given one, false otherwise
+    */
+  def subsumes(that: Node): Boolean = {
+    clause.exists(_ subsumes that.clause.getOrElse(Clause(Set.empty)))
+  }
+
+  /**
+    * @param that another node
+    * @return true if this node subsumes the given one, false otherwise
+    */
+  def softSubsumes(that: Node): Boolean = {
+    if (size <= that.size) {
+      var otherAtoms = that.atoms.toBuffer
+      atoms.forall { atom =>
+        otherAtoms.find(atom2 => atom =~= atom2) match {
+          case Some(matchedAtom) =>
+            otherAtoms -= matchedAtom
+            true
+          case _ => false
+        }
+      }
+    }
+    else false
+  }
 
   /**
     * @return the current node as positive.
@@ -133,56 +164,40 @@ case class Node(
     )
   }
 
-  def subNode(other: Node): Boolean = {
-    if (size <= other.size) {
-      var list = atoms.toList
-      var otherList = other.atoms.toSet.filter(x => list.exists(_.signature == x.signature))
-      for (a <- list) {
-        val aa = otherList.find(_ =~= a)
-        if (aa.isEmpty || otherList.isEmpty) return false
-        otherList -= aa.get
-      }
-      true
-    } else false
-  }
+  /**
+    * @return a set of nodes (including this one)
+    */
+  def augment: Set[Node] = {
 
-  def relevantNode(other: Node): Boolean = {
-    if (size < other.size) {
-      atoms.map(Feature.atom2Feature).toSet.forall(s => other.atoms.map(Feature.atom2Feature).toSet.contains(s))
-      /*var list = atoms.toList
-      var otherList = other.atoms.toSet.filter(x => list.exists(_.signature == x.signature))
-      for (a <- list) {
-        val aa = otherList.find(_ =~= a)
-        if (aa.isEmpty || otherList.isEmpty) return false
-        otherList -= aa.get
-      }
-      true*/
-    } else if (size == other.size) {
-      atoms.map(Feature.atom2Feature).toSet == other.atoms.map(Feature.atom2Feature).toSet
-    } else false
-  }
+    val variablesPerDomain = head.variables.groupBy(_.domain)
+      .filter { case (_, vars) => vars.size > 1 }
 
-  def createSubNodes: Set[Node] = {
-    val domainVars = head.variables.groupBy(_.domain).filter { case (_, vars) => vars.size > 1 }
-    val domainConst = query.terms.zip(head.terms.map(_.asInstanceOf[Variable].domain)).groupBy(_._2).mapValues(_.map(_._1)).filter(_._2.size > 1)
-    domainVars.flatMap {
-      case (domain, vars) =>
-        val const = domainConst(domain).toSet
-        vars.zip(const).map {
-          case (v, c) =>
-            val subEv = evidence.filter(e => e.constants.contains(c) && !(const - c).exists(cc => e.constants.contains(cc)))
-            val subAtoms = atoms.filter(a => a.variables.contains(v) && !(vars - v).exists(vv => a.variables.contains(vv)))
-            Node(
-              query,
-              subEv,
-              clause.map(c => Clause(c.literals.filter(l => subAtoms.contains(l.sentence) || l.sentence == head))),
-              body.map(c => Clause(c.literals.filter(l => subAtoms.contains(l.sentence)))),
-              head,
-              orderIndex,
-              partitionIndices
-            )
-        }
-    }.toSet
+    val constantsPerDomain = query.terms
+      .zip(head.terms.map(_.asInstanceOf[Variable].domain))
+      .groupBy { case (_, domain) => domain }
+      .mapValues(_.map { case (constant, _) => constant })
+      .filter { case (_, constants) => constants.length > 1 }
+
+    val augmentedNodes = for {
+      (domain, variables) <- variablesPerDomain
+      constants = constantsPerDomain(domain).toSet
+      (variable, constant) <- variables.zip(constants)
+      relevantEvidence = evidence
+        .filter(e => e.constants.contains(constant) && !(constants - constant).exists(c => e.constants.contains(c)))
+      relevantAtoms = atoms
+        .filter(a => a.variables.contains(variable) && !(variables - variable).exists(v => a.variables.contains(v)))
+      if relevantEvidence.nonEmpty && relevantAtoms.nonEmpty
+    } yield Node(
+      query,
+      relevantEvidence,
+      clause.map(c => Clause(c.literals.filter(l => relevantAtoms.contains(l.sentence) || l.sentence == head))),
+      body.map(c => Clause(c.literals.filter(l => relevantAtoms.contains(l.sentence)))),
+      head,
+      orderIndex,
+      partitionIndices
+    ).toNegative
+
+    augmentedNodes.toSet + this
   }
 
   /**
@@ -265,10 +280,7 @@ case class Node(
 class DongleNode(symbol: String, constants: Vector[Constant], potential: Double, isPositive: Boolean)
   extends Node(
     EvidenceAtom(symbol, constants, isPositive),
-    IndexedSeq.empty,
-    None,
-    None,
-    EvidenceAtom(symbol, constants, isPositive)) {
+    IndexedSeq.empty, None, None, EvidenceAtom(symbol, constants, isPositive)) {
 
   override def isDongle: Boolean = true
 
