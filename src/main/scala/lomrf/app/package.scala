@@ -91,7 +91,7 @@ package object app {
     case object Atomic extends DistanceType("atomic")
     case object Evidence extends DistanceType("evidence")
     case object Mass extends DistanceType("mass")
-    case object Hybrid extends DistanceType("hybrid.tree")
+    case object Hybrid extends DistanceType("hybrid")
   }
 
   sealed class CacheFilter(override val entryName: String) extends EnumEntry {

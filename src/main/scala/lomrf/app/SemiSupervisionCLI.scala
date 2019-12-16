@@ -78,10 +78,10 @@ object SemiSupervisionCLI extends CLIApp {
   // By default run using a simple cache filter
   private var _cacheFilter: CacheFilter = CacheFilter.Simple
 
-  // By default cluster similar nodes
-  private var _cluster: Boolean = true
+  // By default do no cluster identical unlabeled nodes
+  private var _clusterUnlabeled: Boolean = false
 
-  //By default do not perform instance and feature selection
+  // By default do not perform instance and feature selection
   private var _selection: Boolean = false
 
   // Epsilon threshold for the eNN graph
@@ -92,6 +92,12 @@ object SemiSupervisionCLI extends CLIApp {
 
   // Number of trees for mass metric
   private var _trees = 100
+
+  // Alpha parameter for LGC solver
+  private var _alpha = 0.01
+
+  // Maximum density for instance selection
+  private var _maxDensity = 1.0
 
   // Memory for streaming synopsis
   private var _memory = 2
@@ -160,7 +166,7 @@ object SemiSupervisionCLI extends CLIApp {
           case "atomic"      => _distance = DistanceType.Atomic
           case "evidence"    => _distance = DistanceType.Evidence
           case "mass"        => _distance = DistanceType.Mass
-          case "hybrid.tree" => _distance = DistanceType.Hybrid
+          case "hybrid"      => _distance = DistanceType.Hybrid
           case _             => logger.fatal(s"Unknown distance of type '$v'.")
         }
     }
@@ -201,7 +207,21 @@ object SemiSupervisionCLI extends CLIApp {
   })
 
   doubleOpt("e", "epsilon", "Epsilon parameter for eNN connector (default is " + _epsilon + ").", {
-    v: Double => if (v < 0 || v > 1) logger.fatal("Epsilon value must be any number greater or equal to zero and less or equal to one, but you gave: " + v) else _epsilon = v
+    v: Double =>
+      if (v < 0 || v > 1) logger.fatal("Epsilon value must be any number greater or equal to zero and less or equal to one, but you gave: " + v)
+      else _epsilon = v
+  })
+
+  doubleOpt("p", "alpha", "Alpha parameter for local and global consistency (default is " + _alpha + ").", {
+    v: Double =>
+      if (v < 0 || v > 1) logger.fatal("Alpha value must be any number greater or equal to zero and less or equal to one, but you gave: " + v)
+      else _alpha = v
+  })
+
+  doubleOpt("md", "max-density", "Maximum density parameter for instance selection (default is " + _maxDensity + ").", {
+    v: Double =>
+      if (v < 0 || v > 1) logger.fatal("Alpha value must be any number greater or equal to zero and less or equal to one, but you gave: " + v)
+      else _maxDensity = v
   })
 
   flagOpt("sn", "skip-negatives", "Do not output negative labels into the resulted files.", {
@@ -212,15 +232,15 @@ object SemiSupervisionCLI extends CLIApp {
     _compressResults = true
   })
 
-  flagOpt("dc", "disable-clustering", "Disable clustering on similar nodes.", {
-    _cluster = false
+  flagOpt("cu", "cluster-unlabeled", "Perform clustering on identical unlabeled nodes.", {
+    _clusterUnlabeled = true
   })
 
-  flagOpt("ifs", "enable-selection", "Enable instance and feature selection.", {
-    _cluster = true
+  flagOpt("fs", "feature-selection", "Perform instance and feature selection.", {
+    _selection = true
   })
 
-  intOpt("tr", "trees-number", "Number of isolation trees (default is " + _trees + ")", {
+  intOpt("trees", "isolation-trees", "Number of isolation trees (default is " + _trees + ")", {
     v: Int =>
       if (v < 1) logger.fatal("Number of isolation trees value must be any integer greater than one, but you gave: " + v)
       else _trees = v
@@ -289,8 +309,13 @@ object SemiSupervisionCLI extends CLIApp {
       + "\n\t(epsilon) Epsilon parameter for the eNN connector: " + _epsilon
       + "\n\t(negatives) Output negative labels: " + _outputNegatives
       + "\n\t(compress-results) Output all results in a single file: " + _compressResults
-      + "\n\t(disable-clustering) Disable clustering on similar nodes: " + !_cluster
+      + "\n\t(cluster-unlabeled) Cluster identical unlabelled nodes: " + _clusterUnlabeled
+      + "\n\t(feature-selection) Perform instance and feature selection: " + _selection
+      + "\n\t(isolation-trees) Number of isolation trees for mass metric: " + _trees
+      + "\n\t(alpha) Alpha parameter for LGC solver: " + _alpha
+      + "\n\t(max-density) Maximum density parameter for instance selection: " + _maxDensity
       + "\n\t(min-node-size) Minimum node size: " + _minNodeSize
+      + "\n\t(min-node-occ) Minimum node occurrence: " + _minOccSize
       + "\n\t(memory) Streaming memory: " + _memory)
 
     // Init all statistics values to zero
@@ -326,9 +351,31 @@ object SemiSupervisionCLI extends CLIApp {
 
     val useHoeffding = if (_cacheFilter == CacheFilter.Simple) false else true
 
-    val clusterTag = if (_solver == HFC_TLP || _solver == LGC_TLP) "no.cluster" else if (_cluster) "clustered" else "no.cluster"
-    val memoryTag = if (_solver == HFC_TLP || _solver == LGC_TLP) s".m${_memory}" else ""
-    val defaultName = s"$connector.$clusterTag.${_cacheFilter}.${_distance}.${_solver}$memoryTag"
+    val defaultName = {
+      val builder = StringBuilder.newBuilder
+
+      builder ++= s"$connector"
+      if (_clusterUnlabeled && (_solver != HFC_TLP &&
+        _solver != LGC_TLP &&
+        _connector != kNNTemporal &&
+        _connector != eNNTemporal &&
+        _connector != aNNTemporal)
+      ) builder ++= "[clustered]"
+
+      builder ++= s".cf[${_cacheFilter}:${_minNodeSize}:${_minOccSize}]"
+
+      if (_selection) builder ++= s".fs[${_maxDensity}]"
+
+      if (_distance == DistanceType.Mass || _distance == DistanceType.Hybrid) builder ++= s".${_distance}[${_trees}]"
+      else builder ++= s".${_distance}"
+
+      if (_solver == LGC_TLP || _solver == LGC_SPLICE) builder ++= s".${_solver}[${_alpha}]"
+      else builder ++= s".${_solver}"
+
+      if (_solver == HFC_TLP || _solver == LGC_TLP) builder ++= s".mem[${_memory}]"
+
+      builder.result
+    }
 
     val resultName = _resultsFileName match {
       case Some(path) => new File(path).getName.reverse.dropWhile(_ != '.').tail.reverse
@@ -376,29 +423,29 @@ object SemiSupervisionCLI extends CLIApp {
         supervisionGraphs.get(querySignature) match {
           case Some(graph) => supervisionGraphs += querySignature -> (graph ++ (mln, annotationDB, modes))
           case None if _solver == LP_TLP =>
-            supervisionGraphs += querySignature ->
-              SupervisionGraph.TLP(mln, modes, annotationDB, querySignature, connector, distance, LP(), useHoeffding, _memory, _minNodeSize, _minOccSize)
+            supervisionGraphs += querySignature -> SupervisionGraph.TLP(
+              mln, modes, annotationDB, querySignature, connector, distance, LP(), useHoeffding, _memory, _minNodeSize, _minOccSize)
           case None if _solver == HFC_TLP =>
-            supervisionGraphs += querySignature ->
-              SupervisionGraph.TLP(mln, modes, annotationDB, querySignature, connector, distance, new HFc, useHoeffding, _memory, _minNodeSize, _minOccSize)
+            supervisionGraphs += querySignature -> SupervisionGraph.TLP(
+              mln, modes, annotationDB, querySignature, connector, distance, new HFc, useHoeffding, _memory, _minNodeSize, _minOccSize)
           case None if _solver == LGC_TLP =>
-            supervisionGraphs += querySignature ->
-              SupervisionGraph.TLP(mln, modes, annotationDB, querySignature, connector, distance, LGCc(), useHoeffding, _memory, _minNodeSize, _minOccSize)
+            supervisionGraphs += querySignature -> SupervisionGraph.TLP(
+              mln, modes, annotationDB, querySignature, connector, distance, LGCc(alpha = _alpha), useHoeffding, _memory, _minNodeSize, _minOccSize)
           case None if _solver == LP_SPLICE =>
-            supervisionGraphs += querySignature ->
-              SupervisionGraph.SPLICE(mln, modes, annotationDB, querySignature, connector, distance, LP(), _cluster, _selection, useHoeffding, _minNodeSize, _minOccSize)
+            supervisionGraphs += querySignature -> SupervisionGraph.SPLICE(
+              mln, modes, annotationDB, querySignature, connector, distance, LP(), _clusterUnlabeled, _selection, useHoeffding, _minNodeSize, _minOccSize)
           case None if _solver == HFC_SPLICE =>
-            supervisionGraphs += querySignature ->
-              SupervisionGraph.SPLICE(mln, modes, annotationDB, querySignature, connector, distance, new HFc, _cluster, _selection, useHoeffding, _minNodeSize, _minOccSize)
+            supervisionGraphs += querySignature -> SupervisionGraph.SPLICE(
+              mln, modes, annotationDB, querySignature, connector, distance, new HFc, _clusterUnlabeled, _selection, useHoeffding, _minNodeSize, _minOccSize)
           case None if _solver == LGC_SPLICE =>
-            supervisionGraphs += querySignature ->
-              SupervisionGraph.SPLICE(mln, modes, annotationDB, querySignature, connector, distance, LGCc(), _cluster, _selection, useHoeffding, _minNodeSize, _minOccSize)
+            supervisionGraphs += querySignature -> SupervisionGraph.SPLICE(
+              mln, modes, annotationDB, querySignature, connector, distance, LGCc(alpha = _alpha), _clusterUnlabeled, _selection, useHoeffding, _minNodeSize, _minOccSize)
           case None if _solver == NN =>
-            supervisionGraphs += querySignature ->
-              SupervisionGraph.nearestNeighbor(mln, modes, annotationDB, querySignature, connector, distance, _cluster, useHoeffding, _minNodeSize, _minOccSize)
+            supervisionGraphs += querySignature -> SupervisionGraph.nearestNeighbor(
+              mln, modes, annotationDB, querySignature, connector, distance, _clusterUnlabeled, useHoeffding, _minNodeSize, _minOccSize)
           case None if _solver == EXT_NN =>
-            supervisionGraphs += querySignature ->
-              SupervisionGraph.extNearestNeighbor(mln, modes, annotationDB, querySignature, connector, distance, _cluster, useHoeffding, _minNodeSize, _minOccSize)
+            supervisionGraphs += querySignature -> SupervisionGraph.extNearestNeighbor(
+              mln, modes, annotationDB, querySignature, connector, distance, _clusterUnlabeled, useHoeffding, _minNodeSize, _minOccSize)
         }
       }
 

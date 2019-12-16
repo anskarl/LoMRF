@@ -271,7 +271,7 @@ object aNNConnector extends GraphConnector {
     } else neighbors
   }
 
-  override def toString: String = "aNN"
+  override def toString: String = "ann"
 }
 
 /**
@@ -311,7 +311,7 @@ class aNNLConnector extends GraphConnector {
     } else neighbors
   }
 
-  override def toString: String = s"aNN.labeled"
+  override def toString: String = s"ann.lb"
 }
 
 /**
@@ -346,7 +346,7 @@ class aNNTemporalConnector extends aNNLConnector {
     }
   }
 
-  override def toString: String = s"aNN.temporal"
+  override def toString: String = s"ann.temp"
 }
 
 /**
@@ -380,7 +380,7 @@ case class kNNConnector(k: Int) extends GraphConnector {
     } else neighbors
   }
 
-  override def toString: String = s"kNN.$k"
+  override def toString: String = s"knn[$k]"
 }
 
 /**
@@ -417,7 +417,7 @@ case class kNNLConnector(k: Int) extends GraphConnector {
     } else neighbors
   }
 
-  override def toString: String = s"kNN.$k.labeled"
+  override def toString: String = s"knn.lb[$k]"
 }
 
 /**
@@ -456,7 +456,7 @@ class kNNTemporalConnector(k: Int) extends kNNLConnector(k) {
     }
   }
 
-  override def toString: String = s"kNN.$k.temporal"
+  override def toString: String = s"knn.temp[$k]"
 }
 
 /**
@@ -478,7 +478,7 @@ final case class eNNConnector(epsilon: Double) extends GraphConnector {
   override def makeSparse(neighbors: DenseVector[Double], L: Int = 0): DenseVector[Double] =
     neighbors.map(cost => if (cost < epsilon) UNCONNECTED else cost)
 
-  override def toString: String = s"eNN.$epsilon"
+  override def toString: String = s"enn[$epsilon]"
 }
 
 /**
@@ -505,7 +505,7 @@ case class eNNLConnector(epsilon: Double) extends GraphConnector {
     )
   }
 
-  override def toString: String = s"eNN.$epsilon.labeled"
+  override def toString: String = s"enn.lb[$epsilon]"
 }
 
 class eNNTemporalConnector(epsilon: Double) extends eNNLConnector(epsilon) {
@@ -523,5 +523,5 @@ class eNNTemporalConnector(epsilon: Double) extends eNNLConnector(epsilon) {
     }
   }
 
-  override def toString: String = s"eNN.$epsilon.temporal"
+  override def toString: String = s"enn.temp[$epsilon]"
 }

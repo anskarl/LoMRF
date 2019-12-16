@@ -129,12 +129,6 @@ case class LMNN(k: Int, mu: Double) {
         else set + n
     }.toIndexedSeq
 
-    /*val r = (classes.flatMap(_.nodes) ++ classes.flatMap(_.nodes).flatMap(_.createSubNodes.map(_.toNegative)).foldLeft(classes.flatMap(_.nodes)) {
-      case (set, n) =>
-        if (set.exists(_.clause.get =~= n.clause.get)) set
-        else set + n
-    }).toIndexedSeq*/
-
     println {
       s"""
          |Labelled nodes selection and augmentation:
