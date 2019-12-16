@@ -26,6 +26,9 @@ import lomrf.mln.learning.supervision.graph.Node
 
 trait NodeCache extends LazyLogging {
 
+  // Monitor flag!
+  private[graph] var hasChanged: Boolean = false
+
   val useHoeffdingBound: Boolean
   val querySignature: AtomSignature
 

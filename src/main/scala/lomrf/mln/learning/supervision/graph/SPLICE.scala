@@ -24,6 +24,7 @@ import lomrf.logic._
 import breeze.linalg.DenseVector
 import lomrf.mln.learning.supervision.graph.caching.NodeCache
 import lomrf.mln.learning.supervision.graph.optimize.LMNN
+import lomrf.mln.learning.supervision.graph.clustering.Clustering
 import lomrf.mln.learning.supervision.metric.features.FeatureStats
 import lomrf.mln.learning.supervision.metric._
 import lomrf.mln.model._
@@ -59,6 +60,7 @@ final class SPLICE private[graph] (
     featureStats: FeatureStats,
     solver: GraphSolver,
     enableClusters: Boolean,
+    enableSelection: Boolean,
     minNodeSize: Int,
     minNodeOcc: Int)
   extends SupervisionGraph(nodes, querySignature, connector, metric, supervisionBuilder, nodeCache, featureStats) {
@@ -157,20 +159,29 @@ final class SPLICE private[graph] (
      * case try to separate old labeled nodes that are dissimilar to the ones in the current batch
      * of data (the current supervision graph). Moreover remove noisy nodes using the Hoeffding bound.
      */
-    if (pureLabeledNodes.isEmpty)
+    if (pureLabeledNodes.isEmpty) {
+
+      val (selectedNodes, updatedMetric) = if (nodeCache.hasChanged && enableSelection) {
+        nodeCache.hasChanged = false
+        val clusters = Clustering(1).cluster(labeledNodes, nodeCache)
+        val (weights, selectedNodes) = LMNN(1, 0.6).optimize(clusters, nodeCache)(AtomMetric(HungarianMatcher))
+        selectedNodes -> metric.normalizeWith(weights)
+      } else (labeledNodes, metric)
+
       new SPLICE(
-        labeledNodes ++ nonEmptyUnlabeled,
+        selectedNodes ++ nonEmptyUnlabeled,
         querySignature,
         connector,
-        metric ++ mln.evidence ++ pureNodes.flatMap(n => IndexedSeq.fill(n.clusterSize)(n.atoms)),
+        updatedMetric ++ mln.evidence ++ pureNodes.flatMap(n => IndexedSeq.fill(n.clusterSize)(n.atoms)),
         annotationBuilder,
         nodeCache,
         featureStats,
         solver,
         enableClusters,
+        enableSelection,
         minNodeSize,
         minNodeOcc)
-    else {
+    } else {
       /*
        * Update the cache using only non empty labeled nodes, i.e., nodes having at least
        * one evidence predicate in their body
@@ -188,28 +199,27 @@ final class SPLICE private[graph] (
       logger.info(s"${cleanedUniqueLabeled.length}/${numberOfLabeled + labeled.length} unique labeled nodes kept.")
       logger.debug(updatedNodeCache.toString)
 
-      logger.info {
-        s"""
-          |Labelled nodes kept:
-          |${cleanedUniqueLabeled.sortBy(_.isNegative).map(n => n.toText + " -> " + updatedNodeCache.getOrElse(n, 0L)).mkString("\n")}
-        |""".stripMargin
-      }
-
-      val (weights, selectedNodes) = LMNN(1, 0.6).optimize(cleanedUniqueLabeled, updatedNodeCache)(AtomMetric(HungarianMatcher))
-
-      weights.foreach(println)
+      updatedNodeCache.hasChanged = true
+      val (selectedNodes, updatedMetric) = if (nonEmptyUnlabeled.nonEmpty && enableSelection) {
+        updatedNodeCache.hasChanged = false
+        val clusters = Clustering(1).cluster(labeledNodes, nodeCache)
+        val (weights, selectedNodes) =
+          LMNN(1, 0.6).optimize(clusters, updatedNodeCache)(AtomMetric(HungarianMatcher))
+        selectedNodes -> metric.normalizeWith(weights)
+      } else (cleanedUniqueLabeled, metric)
 
       // Labeled nodes MUST appear before unlabeled!
       new SPLICE(
         selectedNodes ++ nonEmptyUnlabeled,
         querySignature,
         connector,
-        metric.normalizeWith(weights) ++ mln.evidence ++ pureNodes.flatMap(n => IndexedSeq.fill(n.clusterSize)(n.atoms)),
+        updatedMetric ++ mln.evidence ++ pureNodes.flatMap(n => IndexedSeq.fill(n.clusterSize)(n.atoms)),
         annotationBuilder,
         updatedNodeCache,
         featureStats,
         solver,
         enableClusters,
+        enableSelection,
         minNodeSize,
         minNodeOcc)
     }

@@ -18,13 +18,21 @@
  *
  */
 
-package lomrf.mln.learning.supervision.graph.optimize
+package lomrf.mln.learning.supervision.graph.clustering
 
 import lomrf.mln.learning.supervision.graph.Node
 import lomrf.mln.learning.supervision.graph.caching.NodeCache
 import lomrf.mln.learning.supervision.metric.features.Feature
 
 case class NodeCluster(prototype: Set[Feature], nodes: Set[Node], density: Long) {
+
+  def isPositive: Boolean = nodes.forall(_.isPositive)
+
+  def hasPositive: Boolean = nodes.exists(_.isPositive)
+
+  def isNegative: Boolean = nodes.forall(_.isNegative)
+
+  def hasNegative: Boolean = nodes.exists(_.isNegative)
 
   def isEmpty: Boolean = nodes.isEmpty
 
@@ -55,9 +63,9 @@ case class NodeCluster(prototype: Set[Feature], nodes: Set[Node], density: Long)
   def toText(nodeCache: NodeCache, totalMass: Double = 0): String = {
     s"""
        |Prototype: ${prototype.mkString(", ")}
-       |Density: $density ${if (totalMass != 0) "(" + density / totalMass + ")" else ""}
+       |Density: $density ${if (totalMass != 0) "(" + f"${density / totalMass}%1.4f" + "%)" else ""}
        |Nodes:
-       |${nodes.map(n => "# " + n.toText + " : " + nodeCache.getOrElse(n, 1L)).mkString("\n")}
+       |${nodes.map(n => "* " + n.toText + " : " + nodeCache.getOrElse(n, 1L)).mkString("\n")}
        |""".stripMargin
   }
 
@@ -66,7 +74,7 @@ case class NodeCluster(prototype: Set[Feature], nodes: Set[Node], density: Long)
       |Prototype: ${prototype.mkString(", ")}
       |Density: $density
       |Nodes:
-      |${nodes.map(n => "# " + n.toText).mkString("\n")}
+      |${nodes.map(n => s"* ${n.toText}").mkString("\n")}
       |""".stripMargin
   }
 }

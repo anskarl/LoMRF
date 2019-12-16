@@ -81,6 +81,9 @@ object SemiSupervisionCLI extends CLIApp {
   // By default cluster similar nodes
   private var _cluster: Boolean = true
 
+  //By default do not perform instance and feature selection
+  private var _selection: Boolean = false
+
   // Epsilon threshold for the eNN graph
   private var _epsilon = 0.75
 
@@ -211,6 +214,10 @@ object SemiSupervisionCLI extends CLIApp {
 
   flagOpt("dc", "disable-clustering", "Disable clustering on similar nodes.", {
     _cluster = false
+  })
+
+  flagOpt("ifs", "enable-selection", "Enable instance and feature selection.", {
+    _cluster = true
   })
 
   intOpt("tr", "trees-number", "Number of isolation trees (default is " + _trees + ")", {
@@ -379,13 +386,13 @@ object SemiSupervisionCLI extends CLIApp {
               SupervisionGraph.TLP(mln, modes, annotationDB, querySignature, connector, distance, LGCc(), useHoeffding, _memory, _minNodeSize, _minOccSize)
           case None if _solver == LP_SPLICE =>
             supervisionGraphs += querySignature ->
-              SupervisionGraph.SPLICE(mln, modes, annotationDB, querySignature, connector, distance, LP(), _cluster, useHoeffding, _minNodeSize, _minOccSize)
+              SupervisionGraph.SPLICE(mln, modes, annotationDB, querySignature, connector, distance, LP(), _cluster, _selection, useHoeffding, _minNodeSize, _minOccSize)
           case None if _solver == HFC_SPLICE =>
             supervisionGraphs += querySignature ->
-              SupervisionGraph.SPLICE(mln, modes, annotationDB, querySignature, connector, distance, new HFc, _cluster, useHoeffding, _minNodeSize, _minOccSize)
+              SupervisionGraph.SPLICE(mln, modes, annotationDB, querySignature, connector, distance, new HFc, _cluster, _selection, useHoeffding, _minNodeSize, _minOccSize)
           case None if _solver == LGC_SPLICE =>
             supervisionGraphs += querySignature ->
-              SupervisionGraph.SPLICE(mln, modes, annotationDB, querySignature, connector, distance, LGCc(), _cluster, useHoeffding, _minNodeSize, _minOccSize)
+              SupervisionGraph.SPLICE(mln, modes, annotationDB, querySignature, connector, distance, LGCc(), _cluster, _selection, useHoeffding, _minNodeSize, _minOccSize)
           case None if _solver == NN =>
             supervisionGraphs += querySignature ->
               SupervisionGraph.nearestNeighbor(mln, modes, annotationDB, querySignature, connector, distance, _cluster, useHoeffding, _minNodeSize, _minOccSize)

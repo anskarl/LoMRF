@@ -20,124 +20,21 @@
 
 package lomrf.mln.learning.supervision.graph.optimize
 
-import akka.protobuf.DescriptorProtos.MethodDescriptorProtoOrBuilder
 import lomrf.logic.AtomicFormula
-import lomrf.mln.learning.supervision.graph.{ FullConnector, Node }
+import lomrf.mln.learning.supervision.graph.{FullConnector, Node}
 import lomrf.mln.learning.supervision.graph.caching.NodeCache
+import lomrf.mln.learning.supervision.graph.clustering.NodeCluster
 import lomrf.mln.learning.supervision.metric.Metric
 import lomrf.mln.learning.supervision.metric.features.Feature
 import optimus.algebra.AlgebraOps.sum
 import optimus.algebra.Expression
-import optimus.optimization.enums.{ PreSolve, SolverLib }
-import optimus.optimization.{ MPModel, add, minimize, start }
-import optimus.optimization.model.{ MPBinaryVar, MPFloatVar, ModelSpec }
+import optimus.optimization.enums.{PreSolve, SolverLib}
+import optimus.optimization.{MPModel, add, minimize, start}
+import optimus.optimization.model.{MPBinaryVar, MPFloatVar, ModelSpec}
 
 case class LMNN(k: Int, mu: Double) {
 
-  protected def cluster(nodes: IndexedSeq[Node], cache: NodeCache): Set[NodeCluster] = {
-
-    val (positiveNodes, negativeNodes) = nodes.sortBy(_.size).reverse.partition(_.isPositive)
-
-    var dp = NodeCluster.emptyCluster
-    var dn = NodeCluster.emptyCluster
-
-    if (positiveNodes.nonEmpty && negativeNodes.nonEmpty) {
-      var positiveClusters = Set(NodeCluster.fromNodes(Set(positiveNodes.maxBy(_.size)), Some(cache)))
-      var negativeClusters = Set(NodeCluster.fromNodes(Set(negativeNodes.maxBy(_.size)), Some(cache)))
-
-      positiveClusters = positiveNodes.filterNot(positiveClusters.head.contains).foldLeft(positiveClusters) {
-        case (clusters, node) =>
-          println(node.toText)
-          clusters.filter(c => c.nodes.exists(n => node.subsumes(n))) match {
-            case x if x.isEmpty =>
-              clusters + NodeCluster.fromNodes(Seq(node), Some(cache))
-            case x if x.nonEmpty =>
-              val xx = x.maxBy(_.density)
-              (clusters - xx) + (xx + (node, Some(cache)))
-            case x =>
-              clusters
-          }
-      }
-
-      println
-      positiveClusters.foreach { c =>
-        println(c.majorityPrototype(cache).toText(cache, nodes.flatMap(cache.get).sum))
-        println("##################")
-      }
-
-      negativeClusters = negativeNodes.filterNot(negativeClusters.head.contains).foldLeft(negativeClusters) {
-        case (clusters, node) =>
-          clusters.filter(c => c.nodes.exists(n => node.subsumes(n))) match {
-            case x if x.isEmpty => clusters + NodeCluster.fromNodes(Seq(node), Some(cache))
-            case x if x.nonEmpty =>
-              val xx = x.maxBy(_.density)
-              (clusters - xx) + (xx + (node, Some(cache)))
-            case _ => clusters
-          }
-      }
-
-      negativeClusters.foreach { c =>
-        println(c.majorityPrototype(cache).toText(cache, nodes.flatMap(cache.get).sum))
-        println("##################")
-      }
-
-      /*var densePositive = positiveClusters.maxBy(_.density)
-      var denseNegative = negativeClusters.maxBy(_.density)
-      dp = densePositive
-      dn = denseNegative
-
-      // Extend clusters while there is an overlap
-      var clusters = Set(densePositive, denseNegative)
-      var stop = false
-      while (densePositive.nodes.flatMap(n => n.signatures) == denseNegative.nodes.flatMap(_.signatures) && !stop) {
-        val remainingPositives = positiveClusters diff clusters
-        val remainingNegatives = negativeClusters diff clusters
-        if (remainingPositives.nonEmpty && remainingNegatives.nonEmpty) {
-          densePositive = remainingPositives.maxBy(_.density)
-          denseNegative = remainingNegatives.maxBy(_.density)
-          clusters ++= Set(densePositive, denseNegative)
-        } else stop = true
-      }
-
-      println("EXTENDED")
-      clusters.foreach { c =>
-        println(c.majorityPrototype(cache).toText(cache))
-        println("##################")
-      }
-
-      // Enhance using remaining clusters
-      var remainingPositives = positiveClusters diff clusters
-      var remainingNegatives = negativeClusters diff clusters
-      stop = false
-      while ((remainingPositives.nonEmpty || remainingNegatives.nonEmpty) && !stop) {
-        val a = remainingPositives.find(c => clusters.exists(cc => cc.nodes.head.isNegative && c.nodes.flatMap(_.signatures) == cc.nodes.flatMap(_.signatures)))
-        val b = remainingNegatives.find(c => clusters.exists(cc => cc.nodes.head.isPositive && c.nodes.flatMap(_.signatures) == cc.nodes.flatMap(_.signatures)))
-        if (a.isEmpty && b.isEmpty) stop = true
-        else {
-          clusters ++= Set(a.getOrElse(NodeCluster.emptyCluster), b.getOrElse(NodeCluster.emptyCluster)).filter(_.nonEmpty)
-          remainingPositives -= a.getOrElse(NodeCluster.emptyCluster)
-          remainingNegatives -= b.getOrElse(NodeCluster.emptyCluster)
-        }
-      }
-
-      println("ENHANCED")
-      clusters.foreach { c =>
-        println(c.majorityPrototype(cache).toText(cache))
-        println("##################")
-      }*/
-
-      //clusters
-      positiveClusters ++ negativeClusters
-    } else Set(NodeCluster.fromNodes(positiveNodes, Some(cache)), NodeCluster.fromNodes(negativeNodes, Some(cache)))
-
-    //Set(NodeCluster.fromNodes(positiveNodes, Some(cache)), NodeCluster.fromNodes(negativeNodes, Some(cache)))
-  }
-
-  def optimize(nodes: IndexedSeq[Node], cache: NodeCache)(metric: Metric[_ <: AtomicFormula]): (Map[Feature, Double], IndexedSeq[Node]) = {
-
-    println("CLUSTERS")
-
-    val classes = cluster(nodes, cache)
+  def optimize(classes: Set[NodeCluster], cache: NodeCache)(metric: Metric[_ <: AtomicFormula]): (Map[Feature, Double], IndexedSeq[Node]) = {
 
     var weights1 = classes.flatMap(_.nodes.flatMap(_.features)).map(f => f -> 0.0).toMap
 
@@ -146,10 +43,7 @@ case class LMNN(k: Int, mu: Double) {
 
     val (neighbors, _) = FullConnector.fullyConnect(sortedNodes)(metric)
 
-    import lomrf.mln.learning.supervision.graph._
-    println(neighbors.mkString())
-
-    if (nodes.exists(_.isPositive) && nodes.exists(_.isNegative)) classes.foreach {
+    if (classes.exists(_.hasPositive) && classes.exists(_.hasNegative)) classes.foreach {
       c =>
 
         implicit val model = MPModel(SolverLib.LpSolve)
