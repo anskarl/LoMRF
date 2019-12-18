@@ -198,12 +198,12 @@ trait GraphConnector {
     */
   def synopsisOf(W: GraphMatrix, start: Int, end: Int): GraphMatrix = {
     var reducedGraph = W
-    for (_ <- 1 to W.cols - (start + end)) {
+    for (_ <- 1 to W.cols - (start + end)) { // for all nodes out of memory
 
-      // compute degree of the oldest entry
+      // compute degree of the oldest node (that is start, since arrays begin at 0)
       val degree = sum(reducedGraph(start, ::))
 
-      for {
+      if (degree != 0) for {
         i <- 0 until reducedGraph.cols if i != start
         j <- 0 until reducedGraph.cols if j != start
         if i != j && (i > start || j > start)
@@ -212,7 +212,7 @@ trait GraphConnector {
         reducedGraph(j, i) += (reducedGraph(start, i) * reducedGraph(j, start)) / degree
       }
 
-      // delete oldest entry, denoted by the start pointer
+      // delete oldest node, denoted by the start pointer
       reducedGraph = reducedGraph.delete(start, Axis._0).delete(start, Axis._1)
     }
     reducedGraph
