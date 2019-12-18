@@ -21,16 +21,16 @@
 package lomrf.mln.learning.supervision.graph.optimize
 
 import lomrf.logic.AtomicFormula
-import lomrf.mln.learning.supervision.graph.{FullConnector, Node}
+import lomrf.mln.learning.supervision.graph.{ FullConnector, Node }
 import lomrf.mln.learning.supervision.graph.caching.NodeCache
 import lomrf.mln.learning.supervision.graph.clustering.NodeCluster
 import lomrf.mln.learning.supervision.metric.Metric
 import lomrf.mln.learning.supervision.metric.features.Feature
 import optimus.algebra.AlgebraOps.sum
 import optimus.algebra.Expression
-import optimus.optimization.enums.{PreSolve, SolverLib}
-import optimus.optimization.{MPModel, add, minimize, start}
-import optimus.optimization.model.{MPBinaryVar, MPFloatVar, ModelSpec}
+import optimus.optimization.enums.{ PreSolve, SolverLib }
+import optimus.optimization.{ MPModel, add, minimize, start }
+import optimus.optimization.model.{ MPBinaryVar, MPFloatVar, ModelSpec }
 
 case class LMNN(k: Int, mu: Double) {
 

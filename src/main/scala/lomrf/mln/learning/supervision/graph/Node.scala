@@ -44,10 +44,6 @@ case class Node(
     private val orderIndex: Int = -1,
     private val partitionIndices: Vector[Int] = Vector.empty) extends Ordered[Node] with LazyLogging {
 
-  private lazy val orderedTerm: Int =
-    if (orderIndex > -1) query.terms(orderIndex).symbol.toInt
-    else 0
-
   private[graph] var similarNodeQueryAtoms =
     scala.collection.mutable.Set.empty[EvidenceAtom]
 
@@ -110,8 +106,7 @@ case class Node(
           case _ => false
         }
       }
-    }
-    else false
+    } else false
   }
 
   /**
@@ -159,7 +154,7 @@ case class Node(
       clause.map(c => Clause(c.literals.filterNot(l => features.contains(l.sentence)))),
       body.map(c => Clause(c.literals.filterNot(l => features.contains(l.sentence)))),
       head,
-      orderedTerm,
+      orderIndex,
       partitionIndices
     )
   }
@@ -274,7 +269,11 @@ case class Node(
   override def toString: String =
     s"[ $query = ${query.state} ]\n${evidence.map(_.toText).mkString("\n")}"
 
-  override def compare(that: Node): Int = that.orderedTerm - this.orderedTerm
+  override def compare(that: Node): Int = {
+      @inline
+      def orderedTermOf(x: Node): Int = if (x.orderIndex > -1) x.query.terms(x.orderIndex).symbol.toInt else 0
+    orderedTermOf(that) - orderedTermOf(this)
+  }
 }
 
 class DongleNode(symbol: String, constants: Vector[Constant], potential: Double, isPositive: Boolean)

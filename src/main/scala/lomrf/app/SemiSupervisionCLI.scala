@@ -162,12 +162,12 @@ object SemiSupervisionCLI extends CLIApp {
     "Specify a distance over atoms (default is atomic).", {
       v: String =>
         v.trim.toLowerCase match {
-          case "binary"      => _distance = DistanceType.Binary
-          case "atomic"      => _distance = DistanceType.Atomic
-          case "evidence"    => _distance = DistanceType.Evidence
-          case "mass"        => _distance = DistanceType.Mass
-          case "hybrid"      => _distance = DistanceType.Hybrid
-          case _             => logger.fatal(s"Unknown distance of type '$v'.")
+          case "binary"   => _distance = DistanceType.Binary
+          case "atomic"   => _distance = DistanceType.Atomic
+          case "evidence" => _distance = DistanceType.Evidence
+          case "mass"     => _distance = DistanceType.Mass
+          case "hybrid"   => _distance = DistanceType.Hybrid
+          case _          => logger.fatal(s"Unknown distance of type '$v'.")
         }
     }
   )
@@ -359,8 +359,7 @@ object SemiSupervisionCLI extends CLIApp {
         _solver != LGC_TLP &&
         _connector != kNNTemporal &&
         _connector != eNNTemporal &&
-        _connector != aNNTemporal)
-      ) builder ++= "[clustered]"
+        _connector != aNNTemporal)) builder ++= "[clustered]"
 
       builder ++= s".cf[${_cacheFilter}:${_minNodeSize}:${_minOccSize}]"
 

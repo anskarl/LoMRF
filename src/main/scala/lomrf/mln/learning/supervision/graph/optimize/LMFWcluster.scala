@@ -23,14 +23,14 @@ package lomrf.mln.learning.supervision.graph.optimize
 import lomrf.logic.AtomicFormula
 import lomrf.mln.learning.supervision.graph.caching.NodeCache
 import lomrf.mln.learning.supervision.graph.clustering.NodeCluster
-import lomrf.mln.learning.supervision.graph.{FullConnector, Node}
+import lomrf.mln.learning.supervision.graph.{ FullConnector, Node }
 import lomrf.mln.learning.supervision.metric.Metric
 import lomrf.mln.learning.supervision.metric.features.Feature
 import optimus.algebra._
 import optimus.optimization._
 import optimus.algebra.AlgebraOps._
 import optimus.optimization.enums.SolverLib
-import optimus.optimization.model.{MPBinaryVar, MPFloatVar, ModelSpec}
+import optimus.optimization.model.{ MPBinaryVar, MPFloatVar, ModelSpec }
 
 case class LMFWcluster(k: Int, CE: Double, CF: Double, features: Set[Feature], metric: Metric[_ <: AtomicFormula]) extends ModelSpec(SolverLib.LpSolve) {
 
