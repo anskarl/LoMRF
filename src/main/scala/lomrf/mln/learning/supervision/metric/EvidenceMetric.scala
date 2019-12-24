@@ -56,19 +56,21 @@ class EvidenceMetric private (
     modes: ModeDeclarations,
     auxConstructs: Map[Constant, AuxConstruct],
     override val matcher: Matcher,
-    override val featureWeights: Option[Map[Feature, Double]] = None) extends StructureMetric[EvidenceAtom] {
+    override val featureWeights: Option[Map[Feature, Int]] = None) extends StructureMetric[EvidenceAtom] {
 
   /**
-    * Normalize distance using the given feature importance weights.
+    * A reduced metric using only selected features for computing
+    * the distance. Everything else is ignored.
     *
-    * @note For features that do not exist in the map the given
-    *       default value will be used.
+    * @note All weights should be either 0 or 1.
     *
-    * @param weights a map from features to weight values
-    * @return a normalized metric
+    * @param weights a map from features to binary values
+    * @return a weighted metric
     */
-  override def normalizeWith(weights: Map[Feature, Double]): StructureMetric[EvidenceAtom] =
-    new EvidenceMetric(modes, auxConstructs, matcher, featureWeights = Some(weights))
+  override def havingWeights(weights: Map[Feature, Double]): StructureMetric[EvidenceAtom] = {
+    require(weights.forall { case (_, w) => w == 0 || w == 1 }, "All weights should be 0 or 1.")
+    new EvidenceMetric(modes, auxConstructs, matcher, featureWeights = Some(weights.mapValues(_.toInt)))
+  }
 
   /**
     * Distance for ground evidence atoms. The function must obey to the following properties:

@@ -63,15 +63,12 @@ trait Metric[A <: AtomicFormula] {
   def distance(xAtomSeq: IndexedSeq[A], yAtomSeq: IndexedSeq[A]): Double
 
   /**
-    * Normalize distance using the given feature importance weights.
-    *
-    * @note For features that do not exist in the map the given
-    *       default value will be used.
+    * Weight metric using the given feature weights.
     *
     * @param weights a map from features to weight values
-    * @return a normalized metric
+    * @return a weighted metric
     */
-  def normalizeWith(weights: Map[Feature, Double]): Metric[A] = this
+  def havingWeights(weights: Map[Feature, Double]): Metric[A] = this
 
   /**
     * Append evidence information to the metric.
@@ -110,8 +107,8 @@ trait StructureMetric[A <: AtomicFormula] extends Metric[A] {
   // Matcher used for finding a mapping between atoms sequences
   val matcher: Matcher
 
-  // Feature scores are used for normalizing the distance
-  val featureWeights: Option[Map[Feature, Double]]
+  // Binary weights used for feature selection
+  val featureWeights: Option[Map[Feature, Int]]
 
   /**
     * Distance over sequences of atoms.
@@ -140,14 +137,13 @@ trait StructureMetric[A <: AtomicFormula] extends Metric[A] {
         val num = longAtomSeq.zipWithIndex.map {
           case (atom, i) =>
             if (matches(i) == -1) {
-              totalScore += weights.getOrElse(atom, 1.0)
-              weights.getOrElse(atom, 1.0)
-            } else if (Feature.atom2Feature(atom) == Feature.atom2Feature(shortAtomSeq(matches(i)))) {
-              totalScore += weights.getOrElse(atom, 1.0)
-              weights.getOrElse(atom, 1.0) * distanceMatrix(i)(matches(i))
+              totalScore += weights.getOrElse(atom, 1)
+              weights.getOrElse(atom, 1)
             } else {
-              totalScore += weights.getOrElse(atom, 1.0) + weights.getOrElse(shortAtomSeq(matches(i)), 1.0)
-              weights.getOrElse(atom, 1.0) + weights.getOrElse(shortAtomSeq(matches(i)), 1.0)
+              val bx = weights.getOrElse(atom, 1)
+              val by = weights.getOrElse(shortAtomSeq(matches(i)), 1)
+              totalScore += bx | by
+              if (bx != by) 1 else (bx | by) * distanceMatrix(i)(matches(i))
             }
         }.sum
 
@@ -196,16 +192,13 @@ case class HybridMetric(metrics: Set[Metric[AtomicFormula]]) extends Metric[Atom
     metrics.foldLeft(0.0) { case (sum, metric) => sum + metric.distance(xAtomSeq, yAtomSeq) } / numberOfMetrics
 
   /**
-    * Normalize distance using the given feature importance weights.
-    *
-    * @note For features that do not exist in the map the given
-    *       default value will be used.
+    * Weight metric using the given feature weights.
     *
     * @param weights a map from features to weight values
-    * @return a normalized metric
+    * @return a weighted metric
     */
-  override def normalizeWith(weights: Map[Feature, Double]): Metric[AtomicFormula] =
-    HybridMetric(metrics.map(_ normalizeWith weights))
+  override def havingWeights(weights: Map[Feature, Double]): Metric[AtomicFormula] =
+    HybridMetric(metrics.map(_ havingWeights weights))
 
   /**
     * Append evidence information to the metric.

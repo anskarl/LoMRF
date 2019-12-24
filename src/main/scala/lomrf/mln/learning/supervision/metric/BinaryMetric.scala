@@ -32,19 +32,21 @@ import lomrf.mln.learning.supervision.metric.features.Feature
   */
 case class BinaryMetric(
     matcher: Matcher,
-    featureWeights: Option[Map[Feature, Double]] = None) extends StructureMetric[AtomicFormula] {
+    featureWeights: Option[Map[Feature, Int]] = None) extends StructureMetric[AtomicFormula] {
 
   /**
-    * Normalize distance using the given feature importance weights.
+    * A reduced metric using only selected features for computing
+    * the distance. Everything else is ignored.
     *
-    * @note For features that do not exist in the map the given
-    *       default value will be used.
+    * @note All weights should be either 0 or 1.
     *
-    * @param weights a map from features to weight values
-    * @return a normalized metric
+    * @param weights a map from features to binary values
+    * @return a weighted metric
     */
-  override def normalizeWith(weights: Map[Feature, Double]): StructureMetric[AtomicFormula] =
-    copy(featureWeights = Some(weights))
+  override def havingWeights(weights: Map[Feature, Double]): StructureMetric[AtomicFormula] = {
+    require(weights.forall { case (_, w) => w == 0 || w == 1 }, "All weights should be 0 or 1.")
+    copy(featureWeights = Some(weights.mapValues(_.toInt)))
+  }
 
   /**
     * Distance for atoms. The function must obey to the following properties:
