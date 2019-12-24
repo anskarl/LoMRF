@@ -271,7 +271,9 @@ case class Node(
 
   override def compare(that: Node): Int = {
       @inline
-      def orderedTermOf(x: Node): Int = if (x.orderIndex > -1) x.query.terms(x.orderIndex).symbol.toInt else 0
+      def orderedTermOf(x: Node): Int =
+        if (x.orderIndex > -1) x.query.terms(x.orderIndex).symbol.toInt else 0
+
     orderedTermOf(that) - orderedTermOf(this)
   }
 }

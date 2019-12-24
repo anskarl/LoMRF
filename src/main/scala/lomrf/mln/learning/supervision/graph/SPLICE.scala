@@ -60,7 +60,9 @@ final class SPLICE private[graph] (
     featureStats: FeatureStats,
     solver: GraphSolver,
     enableClusters: Boolean,
+    edgeReWeighing: Boolean,
     enableSelection: Boolean,
+    maxDensity: Double,
     minNodeSize: Int,
     minNodeOcc: Int)
   extends SupervisionGraph(nodes, querySignature, connector, metric, supervisionBuilder, nodeCache, featureStats) {
@@ -77,9 +79,10 @@ final class SPLICE private[graph] (
     }
 
     val startGraphConnection = System.currentTimeMillis
+    val cache = if (edgeReWeighing) Some(nodeCache) else None
     val encodedGraph = solver match {
-      case _: HFc => connector.smartConnect(nodes, unlabeledNodes, Some(nodeCache))(metric)
-      case _      => connector.fullyConnect(nodes, Some(nodeCache))(metric)
+      case _: HFc => connector.smartConnect(nodes, unlabeledNodes, cache)(metric)
+      case _      => connector.fullyConnect(nodes, cache)(metric)
     }
 
     val W = encodedGraph._1
@@ -163,9 +166,9 @@ final class SPLICE private[graph] (
 
       val (selectedNodes, updatedMetric) = if (nodeCache.hasChanged && enableSelection) {
         nodeCache.hasChanged = false
-        val clusters = Clustering(1).cluster(labeledNodes, nodeCache)
-        val (weights, selectedNodes) = LMNN(1, 0.6).optimize(clusters, nodeCache)(AtomMetric(HungarianMatcher))
-        selectedNodes -> metric.normalizeWith(weights)
+        val clusters = Clustering(maxDensity).cluster(labeledNodes, nodeCache)
+        val (weights, selectedNodes) = LMNN(1, 0.5).optimize(clusters, nodeCache)(AtomMetric(HungarianMatcher))
+        selectedNodes -> metric.havingWeights(weights)
       } else (labeledNodes, metric)
 
       new SPLICE(
@@ -178,7 +181,9 @@ final class SPLICE private[graph] (
         featureStats,
         solver,
         enableClusters,
+        edgeReWeighing,
         enableSelection,
+        maxDensity,
         minNodeSize,
         minNodeOcc)
     } else {
@@ -202,10 +207,10 @@ final class SPLICE private[graph] (
       updatedNodeCache.hasChanged = true
       val (selectedNodes, updatedMetric) = if (nonEmptyUnlabeled.nonEmpty && enableSelection) {
         updatedNodeCache.hasChanged = false
-        val clusters = Clustering(1).cluster(labeledNodes, nodeCache)
+        val clusters = Clustering(maxDensity).cluster(labeledNodes, nodeCache)
         val (weights, selectedNodes) =
-          LMNN(1, 0.6).optimize(clusters, updatedNodeCache)(AtomMetric(HungarianMatcher))
-        selectedNodes -> metric.normalizeWith(weights)
+          LMNN(1, 0.5).optimize(clusters, updatedNodeCache)(AtomMetric(HungarianMatcher))
+        selectedNodes -> metric.havingWeights(weights)
       } else (cleanedUniqueLabeled, metric)
 
       // Labeled nodes MUST appear before unlabeled!
@@ -219,7 +224,9 @@ final class SPLICE private[graph] (
         featureStats,
         solver,
         enableClusters,
+        edgeReWeighing,
         enableSelection,
+        maxDensity,
         minNodeSize,
         minNodeOcc)
     }

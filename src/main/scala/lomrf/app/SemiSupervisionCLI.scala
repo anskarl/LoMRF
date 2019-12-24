@@ -108,6 +108,9 @@ object SemiSupervisionCLI extends CLIApp {
   // Minimum node occurrence
   private var _minOccSize = 1
 
+  // Re-weighting graph edges using node counts
+  private var _edgeReWeighing: Boolean = false
+
   opt("i", "input", "<kb file>", "Markov Logic file defining the predicate and function schema.", {
     v: String => _mlnFileName = Some(v)
   })
@@ -238,6 +241,10 @@ object SemiSupervisionCLI extends CLIApp {
 
   flagOpt("fs", "feature-selection", "Perform instance and feature selection.", {
     _selection = true
+  })
+
+  flagOpt("rw", "edge-re-weighting", "Re-weight edges using node counts.", {
+    _edgeReWeighing = true
   })
 
   intOpt("trees", "isolation-trees", "Number of isolation trees (default is " + _trees + ")", {
@@ -432,13 +439,13 @@ object SemiSupervisionCLI extends CLIApp {
               mln, modes, annotationDB, querySignature, connector, distance, LGCc(alpha = _alpha), useHoeffding, _memory, _minNodeSize, _minOccSize)
           case None if _solver == LP_SPLICE =>
             supervisionGraphs += querySignature -> SupervisionGraph.SPLICE(
-              mln, modes, annotationDB, querySignature, connector, distance, LP(), _clusterUnlabeled, _selection, useHoeffding, _minNodeSize, _minOccSize)
+              mln, modes, annotationDB, querySignature, connector, distance, LP(), _clusterUnlabeled, _edgeReWeighing, _selection, _maxDensity, useHoeffding, _minNodeSize, _minOccSize)
           case None if _solver == HFC_SPLICE =>
             supervisionGraphs += querySignature -> SupervisionGraph.SPLICE(
-              mln, modes, annotationDB, querySignature, connector, distance, new HFc, _clusterUnlabeled, _selection, useHoeffding, _minNodeSize, _minOccSize)
+              mln, modes, annotationDB, querySignature, connector, distance, new HFc, _clusterUnlabeled, _edgeReWeighing, _selection, _maxDensity, useHoeffding, _minNodeSize, _minOccSize)
           case None if _solver == LGC_SPLICE =>
             supervisionGraphs += querySignature -> SupervisionGraph.SPLICE(
-              mln, modes, annotationDB, querySignature, connector, distance, LGCc(alpha = _alpha), _clusterUnlabeled, _selection, useHoeffding, _minNodeSize, _minOccSize)
+              mln, modes, annotationDB, querySignature, connector, distance, LGCc(alpha = _alpha), _clusterUnlabeled, _edgeReWeighing, _selection, _maxDensity, useHoeffding, _minNodeSize, _minOccSize)
           case None if _solver == NN =>
             supervisionGraphs += querySignature -> SupervisionGraph.nearestNeighbor(
               mln, modes, annotationDB, querySignature, connector, distance, _clusterUnlabeled, useHoeffding, _minNodeSize, _minOccSize)

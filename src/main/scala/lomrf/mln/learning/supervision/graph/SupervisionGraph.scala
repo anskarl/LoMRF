@@ -309,7 +309,9 @@ object SupervisionGraph extends LazyLogging {
       metric: Metric[_ <: AtomicFormula],
       solver: GraphSolver,
       enableClusters: Boolean,
+      edgeReWeighting: Boolean,
       enableSelection: Boolean,
+      maxDensity: Double,
       useHoeffding: Boolean,
       minNodeSize: Int,
       minNodeOcc: Int): SPLICE = {
@@ -382,7 +384,9 @@ object SupervisionGraph extends LazyLogging {
       FeatureStats.empty,
       solver,
       enableClusters,
+      edgeReWeighting,
       enableSelection,
+      maxDensity,
       minNodeSize,
       minNodeOcc
     )
