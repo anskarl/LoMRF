@@ -24,13 +24,14 @@ import lomrf.logic.AtomicFormula
 import breeze.linalg.{ Axis, DenseMatrix, DenseVector, argtopk, sum }
 import lomrf.mln.learning.supervision.graph.caching.NodeCache
 import lomrf.mln.learning.supervision.metric.{ EvidenceMetric, Metric }
+import com.typesafe.scalalogging.LazyLogging
 import spire.syntax.cfor._
 
 /**
   * A graph connector constructs a graph and changes the number of connected
   * neighbors (edges) to each vertex according to a given strategy.
   */
-trait GraphConnector {
+trait GraphConnector extends LazyLogging {
 
   /**
     * @param neighbors a vector containing the edge values of neighboring nodes
@@ -85,6 +86,14 @@ trait GraphConnector {
     cfor(0)(_ < unlabeled.length, _ + 1) { ii =>
       val i = ii + L
 
+      logger.debug {
+        s"""
+          |===== Current Unlabeled =====
+          |${unlabeled(ii).toText} -> ${unlabeled(ii).query.terms.last.symbol}
+          |=============================
+          |""".stripMargin
+      }
+
       for (j <- parallelIndices if i != j) { // A node cannot be connected to itself
 
         // W is symmetric and therefore avoid computing both upper and lower triangular
@@ -95,20 +104,39 @@ trait GraphConnector {
           if (i > j) W(i, j) = W(j, i)
           else W(i, j) = connect(nodes(i), nodes(j))(metric)
         }
+
+        logger.whenDebugEnabled {
+          if (W(i, j) > 0) {
+            val counts = nodeCache.map(_.getOrElse(nodes(j), 0)).getOrElse(1)
+            logger.debug {
+              s"""
+                |${nodes(j).toText} [$counts] -> ${nodes(j).query.terms.last.symbol}
+                |Similarity: ${W(i, j)}
+                |""".stripMargin
+            }
+          }
+        }
+
       }
     }
 
-    val frequencyVector = nodeCache.map { c =>
-      DenseVector(nodes.map(c.getOrElse(_, 1).toDouble).toArray) -> nodes.map(c.getOrElse(_, 0).toDouble).toArray
+    val countsPerNode = nodeCache.map { cache =>
+      DenseVector(nodes.map(cache.getOrElse(_, 1).toDouble).toArray) ->
+        nodes.map(cache.getOrElse(_, 0).toDouble).toArray
     }
 
     for (i <- parallelIndices) {
-      W(i, ::).inner := makeSparse(W(i, ::).inner, L)
-      if (frequencyVector.nonEmpty) {
-        val div = W(i, ::).inner.toArray.zip(frequencyVector.get._2).withFilter(_._1 > 0).map(_._2).sum
-        W(i, ::).inner := W(i, ::).inner *:* frequencyVector.get._1
-        if (div != 0) W(i, ::).inner := W(i, ::).inner / div
+      W(i, ::).t := makeSparse(W(i, ::).t, L)
+
+      countsPerNode.map { case (counts, labeledCounts) =>
+        val div = W(i, ::).t.toArray.zip(labeledCounts)
+          .withFilter { case (w, _) => w > 0 }
+          .map { case (_, count) => count }.sum
+
+        W(i, ::).t := W(i, ::).t *:* counts
+        if (div != 0) W(i, ::).t := W(i, ::).t / div
       }
+
       D(i, i) = sum(W(i, ::))
     }
 
@@ -144,17 +172,23 @@ trait GraphConnector {
       }
     }
 
-    val frequencyVector = nodeCache.map { c =>
-      DenseVector(nodes.map(c.getOrElse(_, 1).toDouble).toArray) -> nodes.map(c.getOrElse(_, 0).toDouble).toArray
+    val countsPerNode = nodeCache.map { cache =>
+      DenseVector(nodes.map(cache.getOrElse(_, 1).toDouble).toArray) ->
+        nodes.map(cache.getOrElse(_, 0).toDouble).toArray
     }
 
     for (i <- parallelIndices) {
-      W(i, ::).inner := makeSparse(W(i, ::).inner, L)
-      if (frequencyVector.nonEmpty) {
-        val div = W(i, ::).inner.toArray.zip(frequencyVector.get._2).withFilter(_._1 > 0).map(_._2).sum
-        W(i, ::).inner := W(i, ::).inner *:* frequencyVector.get._1
-        if (div != 0) W(i, ::).inner := W(i, ::).inner / div
+      W(i, ::).t := makeSparse(W(i, ::).t, L)
+
+      countsPerNode.map { case (counts, labeledCounts) =>
+        val div = W(i, ::).t.toArray.zip(labeledCounts)
+          .withFilter { case (w, _) => w > 0 }
+          .map { case (_, count) => count }.sum
+
+        W(i, ::).t := W(i, ::).t *:* counts
+        if (div != 0) W(i, ::).t := W(i, ::).t / div
       }
+
       D(i, i) = sum(W(i, ::))
     }
 
@@ -182,7 +216,7 @@ trait GraphConnector {
       for (j <- parallelIndices if i != j) // A node cannot be connected to itself
         neighborCosts(j) = connect(leftNodes(i), rightNodes(j))(metric)
 
-      W(i, ::).inner := makeSparse(neighborCosts, numberOfCols)
+      W(i, ::).t := makeSparse(neighborCosts, numberOfCols)
     }
     W // return the final (fully connected) adjacency matrix
   }
@@ -202,14 +236,25 @@ trait GraphConnector {
 
       // compute degree of the oldest node (that is start, since arrays begin at 0)
       val degree = sum(reducedGraph(start, ::))
+      logger.debug(s"Degree of current node [$start] is $degree.")
 
       if (degree != 0) for {
         i <- 0 until reducedGraph.cols if i != start
         j <- 0 until reducedGraph.cols if j != start
-        if i != j && (i > start || j > start)
+        if i < j && (i > start || j > start)
       } {
         reducedGraph(i, j) += (reducedGraph(i, start) * reducedGraph(start, j)) / degree
         reducedGraph(j, i) += (reducedGraph(start, i) * reducedGraph(j, start)) / degree
+
+        logger.debug {
+          s"""
+             |($i, $start) * ($start, $j) / degree :=
+             |${reducedGraph(i, start)} * ${reducedGraph(start, j)} / $degree := ${reducedGraph(i, j)}
+             |
+             |($start, $i) * ($j, $start) / degree :=
+             |${reducedGraph(start, i)} * ${reducedGraph(j, start)} / $degree := ${reducedGraph(j, i)}
+          """.stripMargin
+        }
       }
 
       // delete oldest node, denoted by the start pointer
