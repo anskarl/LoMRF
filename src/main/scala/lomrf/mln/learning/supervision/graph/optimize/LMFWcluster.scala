@@ -22,7 +22,7 @@ package lomrf.mln.learning.supervision.graph.optimize
 
 import lomrf.logic.AtomicFormula
 import lomrf.mln.learning.supervision.graph.caching.NodeCache
-import lomrf.mln.learning.supervision.graph.clustering.NodeCluster
+import lomrf.mln.learning.supervision.graph.selection.NodeCluster
 import lomrf.mln.learning.supervision.graph.{ FullConnector, Node }
 import lomrf.mln.learning.supervision.metric.Metric
 import lomrf.mln.learning.supervision.metric.features.Feature

@@ -23,16 +23,16 @@ package lomrf.mln.learning.supervision.graph.optimize
 import lomrf.logic.AtomicFormula
 import lomrf.mln.learning.supervision.graph.{ FullConnector, Node }
 import lomrf.mln.learning.supervision.graph.caching.NodeCache
-import lomrf.mln.learning.supervision.graph.clustering.NodeCluster
+import lomrf.mln.learning.supervision.graph.selection.NodeCluster
 import lomrf.mln.learning.supervision.metric.Metric
 import lomrf.mln.learning.supervision.metric.features.Feature
 import optimus.algebra.AlgebraOps.sum
 import optimus.algebra.Expression
 import optimus.optimization.enums.{ PreSolve, SolverLib }
-import optimus.optimization.{ MPModel, add, minimize, start }
+import optimus.optimization.{ MPModel, add, minimize, maximize, start }
 import optimus.optimization.model.{ MPBinaryVar, MPFloatVar, ModelSpec }
 
-case class LMNN(k: Int, mu: Double) {
+case class LMNN_old(k: Int, mu: Double) {
 
   def optimize(classes: Set[NodeCluster], cache: NodeCache)(metric: Metric[_ <: AtomicFormula]): (Map[Feature, Double], IndexedSeq[Node]) = {
 
@@ -98,7 +98,15 @@ case class LMNN(k: Int, mu: Double) {
                 val bDiff = b diff ab
                 //val expr = sum(aDiff.map(-weights(_))) + sum(bDiff.map(weights(_)))
                 val expr = sum((nodeDiffComm ++ missNodeDiff).map(weights(_))) + sum(commFeatures.map(weights(_) * 1e-10))
-                -sum((nodeDiff ++ hitNodeDiff).map(weights(_))) - sum(commonFeatures.map(weights(_) * 1e-10))
+                - sum((nodeDiff ++ hitNodeDiff).map(weights(_))) - sum(commonFeatures.map(weights(_) * 1e-10))
+
+                // TODO For similarity uncomment the following
+                /*val expr =
+                  (
+                    sum((nodeDiffComm ++ missNodeDiff).map(-weights(_))) + sum(commFeatures.map(weights(_) /** 1e-10*/))
+                    ) - (
+                    sum((nodeDiff ++ hitNodeDiff).map(-weights(_))) + sum(commonFeatures.map(weights(_) /** 1e-10*/))
+                    )*/
 
                 //val expr = sum(aDiff.map(-weights(_))) + sum(bDiff.map(weights(_)))
                 //val expr = sum((nodeDiff ++ hitNodeDiff).map(weights(_))) + sum(commonFeatures.map(-weights(_))) -
@@ -106,14 +114,18 @@ case class LMNN(k: Int, mu: Double) {
 
                 slackVariables ::= MPFloatVar(0)
                 add(expr >:= 1 - slackVariables.head)
+
+                // TODO for similarity
+                //add(expr <:= 1 - slackVariables.head)
               }
             }
 
-            if (c.nodes.exists(_.isPositive)) {
+            //if (c.nodes.exists(_.isPositive)) {
               c.nodes.foreach(n => add(sum(n.atoms.map(a => weights(Feature.atom2Feature(a)))) >:= 1))
-            }
+            //}
         }
 
+        // TODO maximize instead of minimize for sim
         minimize((1 - mu) * sum(expressions) + mu * sum(slackVariables) /*+ 2 * sum(weights.values.map(-_))*/ )
         start(PreSolve.AGGRESSIVE)
 
@@ -123,11 +135,26 @@ case class LMNN(k: Int, mu: Double) {
     }
 
     val nn = classes.flatMap(_.nodes)
-    val r = nn.flatMap(_.augment).foldLeft(nn) {
+    val r = nn/*.flatMap(_.augment).foldLeft(nn) {
       case (set, n) =>
         if (set.exists(_.clause.get =~= n.clause.get)) set
         else set + n
-    }.toIndexedSeq
+    }*/.toIndexedSeq
+
+//    val (pClusters, nClusters) = classes.partition(_.isPositive)
+//    val totalMass = r.flatMap(cache.get).sum.toDouble
+//    val maxP = pClusters.maxBy(_.density)
+//    val maxN = nClusters.maxBy(_.density)
+//    var rest = (pClusters - maxP) ++ (nClusters - maxN)
+//    var clusters = Set(maxP, maxN)
+//    println(clusters.map(c => c.majorityPrototype(cache).toText(cache, totalMass)).mkString("\n"))
+//    while (clusters.map(_.density).sum / totalMass < 0.85 && rest.nonEmpty) {
+//      val next = rest.maxBy(_.density)
+//      clusters += next
+//      println(next.majorityPrototype(cache).toText(cache, totalMass))
+//      rest -= next
+//    }
+//    val rr = clusters.flatMap(_.nodes).toIndexedSeq
 
     println {
       s"""

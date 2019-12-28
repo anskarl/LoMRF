@@ -18,7 +18,7 @@
  *
  */
 
-package lomrf.mln.learning.supervision.graph.clustering
+package lomrf.mln.learning.supervision.graph.selection
 
 import lomrf.mln.learning.supervision.graph.Node
 import lomrf.mln.learning.supervision.graph.caching.NodeCache

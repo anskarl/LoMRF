@@ -23,8 +23,7 @@ package lomrf.mln.learning.supervision.graph
 import lomrf.logic._
 import breeze.linalg.DenseVector
 import lomrf.mln.learning.supervision.graph.caching.NodeCache
-import lomrf.mln.learning.supervision.graph.optimize.LMNN
-import lomrf.mln.learning.supervision.graph.clustering.Clustering
+import lomrf.mln.learning.supervision.graph.selection.{ Clustering, LMNN }
 import lomrf.mln.learning.supervision.metric.features.FeatureStats
 import lomrf.mln.learning.supervision.metric._
 import lomrf.mln.model._

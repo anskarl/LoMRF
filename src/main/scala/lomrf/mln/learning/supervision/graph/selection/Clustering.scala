@@ -18,14 +18,13 @@
  *
  */
 
-package lomrf.mln.learning.supervision.graph.clustering
+package lomrf.mln.learning.supervision.graph.selection
 
 import com.typesafe.scalalogging.LazyLogging
 import lomrf.mln.learning.supervision.graph.Node
 import lomrf.mln.learning.supervision.graph.caching.NodeCache
 
 /**
-  *
   * @param maxDensity maximum density
   */
 case class Clustering(maxDensity: Double) extends LazyLogging {
@@ -73,7 +72,21 @@ case class Clustering(maxDensity: Double) extends LazyLogging {
            |""".stripMargin
       }
 
-      pClusters ++ nClusters
+      if (maxDensity > 1) pClusters ++ nClusters
+      else {
+        val totalMass = nodes.flatMap(cache.get).sum.toDouble
+        val maxP = pClusters.maxBy(_.density)
+        val maxN = nClusters.maxBy(_.density)
+        var rest = (pClusters - maxP) ++ (nClusters - maxN)
+        var clusters = Set(maxP, maxN)
+        while (clusters.map(_.density).sum / totalMass < maxDensity && rest.nonEmpty) {
+          val next = rest.maxBy(_.density)
+          clusters += next
+          //println(next.majorityPrototype(cache).toText(cache, totalMass))
+          rest -= next
+        }
+        clusters
+      }
 
     } else Set(
       NodeCluster.fromNodes(positiveNodes, Some(cache)),
