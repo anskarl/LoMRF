@@ -141,7 +141,7 @@ final class SPLICE private[graph] (
       logger.warn(s"Found ${emptyUnlabeled.length} empty unlabeled nodes. Set them to FALSE.")
 
     val pureNodes = pureLabeledNodes ++ nonEmptyUnlabeled
-    logger.info(s"Found ${pureLabeledNodes.length} pure labelled and unlabeled nodes.")
+    logger.info(s"Found ${pureNodes.length} pure labelled and unlabeled nodes.")
 
     /*
      * Create an annotation builder and append every query atom that is TRUE or FALSE,
@@ -163,8 +163,10 @@ final class SPLICE private[graph] (
      */
     if (pureLabeledNodes.isEmpty) {
 
-      val (selectedNodes, updatedMetric) = if (nodeCache.hasChanged && enableSelection) {
+      val mixed = labeledNodes.exists(_.isPositive) && labeledNodes.exists(_.isNegative)
+      val (selectedNodes, updatedMetric) = if (mixed && nodeCache.hasChanged && nonEmptyUnlabeled.nonEmpty && enableSelection) {
         nodeCache.hasChanged = false
+        logger.info("Performing feature selection.")
         val clusters = Clustering(maxDensity).cluster(labeledNodes, nodeCache)
         val (weights, selectedNodes) = LMNN(1, 0.5).optimize(clusters, nodeCache)(AtomMetric(HungarianMatcher))
         selectedNodes -> metric.havingWeights(weights)
@@ -204,9 +206,11 @@ final class SPLICE private[graph] (
       logger.debug(updatedNodeCache.toString)
 
       updatedNodeCache.hasChanged = true
-      val (selectedNodes, updatedMetric) = if (nonEmptyUnlabeled.nonEmpty && enableSelection) {
+      val mixed = cleanedUniqueLabeled.exists(_.isPositive) && cleanedUniqueLabeled.exists(_.isNegative)
+      val (selectedNodes, updatedMetric) = if (mixed && nonEmptyUnlabeled.nonEmpty && enableSelection) {
         updatedNodeCache.hasChanged = false
-        val clusters = Clustering(maxDensity).cluster(labeledNodes, nodeCache)
+        logger.info("Performing feature selection.")
+        val clusters = Clustering(maxDensity).cluster(cleanedUniqueLabeled, nodeCache)
         val (weights, selectedNodes) =
           LMNN(1, 0.5).optimize(clusters, updatedNodeCache)(AtomMetric(HungarianMatcher))
         selectedNodes -> metric.havingWeights(weights)

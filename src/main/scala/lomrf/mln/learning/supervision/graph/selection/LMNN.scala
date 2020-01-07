@@ -74,7 +74,7 @@ case class LMNN(k: Int, mu: Double) extends LazyLogging {
       model.minimize((1 - mu) * sum(expressions) + mu * sum(slackVariables))
       model.start(preSolve = PreSolve.AGGRESSIVE)
 
-      logger.info {
+      logger.debug {
         s"""
           |Slack variables:
           |${slackVariables.map(v => s"${v.toText} := ${v.value}").mkString("\n")}
