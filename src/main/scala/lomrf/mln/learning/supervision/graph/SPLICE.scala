@@ -23,7 +23,7 @@ package lomrf.mln.learning.supervision.graph
 import lomrf.logic._
 import breeze.linalg.DenseVector
 import lomrf.mln.learning.supervision.graph.caching.NodeCache
-import lomrf.mln.learning.supervision.graph.selection.{ Clustering, LMNN }
+import lomrf.mln.learning.supervision.graph.selection.{ Clustering, LargeMarginNN }
 import lomrf.mln.learning.supervision.metric.features.FeatureStats
 import lomrf.mln.learning.supervision.metric._
 import lomrf.mln.model._
@@ -168,7 +168,7 @@ final class SPLICE private[graph] (
         nodeCache.hasChanged = false
         logger.info("Performing feature selection.")
         val clusters = Clustering(maxDensity).cluster(labeledNodes, nodeCache)
-        val (weights, selectedNodes) = LMNN(1, 0.5).optimize(clusters, nodeCache)(AtomMetric(HungarianMatcher))
+        val (weights, selectedNodes) = LargeMarginNN(1, 0.5).optimize(clusters, nodeCache)(AtomMetric(HungarianMatcher))
         selectedNodes -> metric.havingWeights(weights)
       } else (labeledNodes, metric)
 
@@ -210,9 +210,9 @@ final class SPLICE private[graph] (
       val (selectedNodes, updatedMetric) = if (mixed && nonEmptyUnlabeled.nonEmpty && enableSelection) {
         updatedNodeCache.hasChanged = false
         logger.info("Performing feature selection.")
-        val clusters = Clustering(maxDensity).cluster(cleanedUniqueLabeled, nodeCache)
+        val clusters = Clustering(maxDensity).cluster(cleanedUniqueLabeled, updatedNodeCache)
         val (weights, selectedNodes) =
-          LMNN(1, 0.5).optimize(clusters, updatedNodeCache)(AtomMetric(HungarianMatcher))
+          LargeMarginNN(1, 0.5).optimize(clusters, updatedNodeCache)(AtomMetric(HungarianMatcher))
         selectedNodes -> metric.havingWeights(weights)
       } else (cleanedUniqueLabeled, metric)
 

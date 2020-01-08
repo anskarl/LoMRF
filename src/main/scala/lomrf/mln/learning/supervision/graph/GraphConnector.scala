@@ -128,13 +128,14 @@ trait GraphConnector extends LazyLogging {
     for (i <- parallelIndices) {
       W(i, ::).t := makeSparse(W(i, ::).t, L)
 
-      countsPerNode.map { case (counts, labeledCounts) =>
-        val div = W(i, ::).t.toArray.zip(labeledCounts)
-          .withFilter { case (w, _) => w > 0 }
-          .map { case (_, count) => count }.sum
+      countsPerNode.map {
+        case (counts, labeledCounts) =>
+          val div = W(i, ::).t.toArray.zip(labeledCounts)
+            .withFilter { case (w, _) => w > 0 }
+            .map { case (_, count) => count }.sum
 
-        W(i, ::).t := W(i, ::).t *:* counts
-        if (div != 0) W(i, ::).t := W(i, ::).t / div
+          W(i, ::).t := W(i, ::).t *:* counts
+          if (div != 0) W(i, ::).t := W(i, ::).t / div
       }
 
       D(i, i) = sum(W(i, ::))
@@ -180,13 +181,14 @@ trait GraphConnector extends LazyLogging {
     for (i <- parallelIndices) {
       W(i, ::).t := makeSparse(W(i, ::).t, L)
 
-      countsPerNode.map { case (counts, labeledCounts) =>
-        val div = W(i, ::).t.toArray.zip(labeledCounts)
-          .withFilter { case (w, _) => w > 0 }
-          .map { case (_, count) => count }.sum
+      countsPerNode.map {
+        case (counts, labeledCounts) =>
+          val div = W(i, ::).t.toArray.zip(labeledCounts)
+            .withFilter { case (w, _) => w > 0 }
+            .map { case (_, count) => count }.sum
 
-        W(i, ::).t := W(i, ::).t *:* counts
-        if (div != 0) W(i, ::).t := W(i, ::).t / div
+          W(i, ::).t := W(i, ::).t *:* counts
+          if (div != 0) W(i, ::).t := W(i, ::).t / div
       }
 
       D(i, i) = sum(W(i, ::))
