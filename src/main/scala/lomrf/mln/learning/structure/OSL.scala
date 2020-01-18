@@ -29,6 +29,7 @@ import lomrf.mln.learning.structure.hypergraph.HyperGraph
 import lomrf.mln.model.mrf.{ MRF, MRFState }
 import lomrf.mln.model._
 import lomrf.logic.AtomSignatureOps._
+import lomrf.mln.learning.TrainingEvidence
 import lomrf.util.time._
 import lomrf.util.logging.Implicits._
 import optimus.optimization.enums.SolverLib

@@ -27,6 +27,7 @@ import lomrf.mln.learning.structure.ModeParser
 import lomrf.mln.model.KB
 import lomrf.mln.learning.structure._
 import lomrf.logic.AtomSignatureOps._
+import lomrf.mln.learning.TrainingEvidence
 import lomrf.util.NaturalComparator
 import lomrf.util.time._
 import lomrf.util.logging.Implicits._
@@ -261,7 +262,7 @@ object StructureLearningCLI extends CLIApp {
 
         logger.info(s"Step ${step + 1} / ${strTrainingFileNames.length}: Processing chunk ${strTrainingFileNames(step)}")
 
-        val trainingEvidence = TrainingEvidence.fromFiles(kb, constants, _nonEvidenceAtoms, List(strTrainingFileNames(step)))
+        val trainingEvidence = TrainingEvidence.fromPath(kb, constants, _nonEvidenceAtoms, strTrainingFileNames(step))
 
         learnedClauses ++= learner.reviseTheory(trainingEvidence)
 
@@ -286,7 +287,7 @@ object StructureLearningCLI extends CLIApp {
 
         logger.info(s"Step ${step + 1} / ${strTrainingFileNames.length}: Processing chunk ${strTrainingFileNames(step)}")
 
-        val trainingEvidence = TrainingEvidence.fromFiles(kb, constants, _nonEvidenceAtoms, List(strTrainingFileNames(step)))
+        val trainingEvidence = TrainingEvidence.fromPath(kb, constants, _nonEvidenceAtoms, strTrainingFileNames(step))
 
         learnedClauses = learner.reviseTheory(trainingEvidence)
 

@@ -28,6 +28,7 @@ import lomrf.mln.model._
 import lomrf.logic.LogicOps._
 import lomrf.logic.AtomSignatureOps._
 import lomrf.logic.compile.{ NormalForm, PredicateCompletion }
+import lomrf.mln.learning.TrainingEvidence
 import lomrf.mln.model.mrf.{ MRF, MRFState }
 import lomrf.util.time._
 import lomrf.util.logging.Implicits._

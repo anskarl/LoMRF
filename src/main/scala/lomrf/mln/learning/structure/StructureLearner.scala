@@ -22,9 +22,9 @@ package lomrf.mln.learning.structure
 
 import java.io.PrintStream
 import java.text.DecimalFormat
-
 import com.typesafe.scalalogging.LazyLogging
 import lomrf.logic.Clause
+import lomrf.mln.learning.TrainingEvidence
 import lomrf.mln.model._
 
 /**
