@@ -60,6 +60,7 @@ final class SPLICE private[graph] (
     solver: GraphSolver,
     enableClusters: Boolean,
     edgeReWeighing: Boolean,
+    augment: Boolean,
     enableSelection: Boolean,
     maxDensity: Double,
     minNodeSize: Int,
@@ -169,7 +170,8 @@ final class SPLICE private[graph] (
         logger.info("Performing feature selection.")
         val clusters = Clustering(maxDensity).cluster(labeledNodes, nodeCache)
         val (weights, selectedNodes) = LargeMarginNN(1, 0.5).optimize(clusters, nodeCache)(AtomMetric(HungarianMatcher))
-        selectedNodes -> metric.havingWeights(weights)
+        if (augment) selectedNodes.flatMap(_.augment) -> metric.havingWeights(weights)
+        else selectedNodes -> metric.havingWeights(weights)
       } else (labeledNodes, metric)
 
       new SPLICE(
@@ -183,6 +185,7 @@ final class SPLICE private[graph] (
         solver,
         enableClusters,
         edgeReWeighing,
+        augment,
         enableSelection,
         maxDensity,
         minNodeSize,
@@ -213,7 +216,8 @@ final class SPLICE private[graph] (
         val clusters = Clustering(maxDensity).cluster(cleanedUniqueLabeled, updatedNodeCache)
         val (weights, selectedNodes) =
           LargeMarginNN(1, 0.5).optimize(clusters, updatedNodeCache)(AtomMetric(HungarianMatcher))
-        selectedNodes -> metric.havingWeights(weights)
+        if (augment) selectedNodes.flatMap(_.augment) -> metric.havingWeights(weights)
+        else selectedNodes -> metric.havingWeights(weights)
       } else (cleanedUniqueLabeled, metric)
 
       // Labeled nodes MUST appear before unlabeled!
@@ -228,6 +232,7 @@ final class SPLICE private[graph] (
         solver,
         enableClusters,
         edgeReWeighing,
+        augment,
         enableSelection,
         maxDensity,
         minNodeSize,

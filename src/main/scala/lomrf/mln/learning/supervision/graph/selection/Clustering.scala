@@ -74,7 +74,7 @@ case class Clustering(maxDensity: Double) extends LazyLogging {
 
       if (maxDensity > 1) pClusters ++ nClusters
       else {
-        logger.info(s"Keeping only $maxDensity of the total density")
+        logger.debug(s"Keeping only $maxDensity of the total density")
         val totalMass = nodes.flatMap(cache.get).sum.toDouble
         val maxP = pClusters.maxBy(_.density)
         val maxN = nClusters.maxBy(_.density)
@@ -83,10 +83,13 @@ case class Clustering(maxDensity: Double) extends LazyLogging {
         while (clusters.map(_.density).sum / totalMass < maxDensity && rest.nonEmpty) {
           val next = rest.maxBy(_.density)
           clusters += next
-          //println(next.majorityPrototype(cache).toText(cache, totalMass))
           rest -= next
         }
-        //clusters.map(c => c.majorityPrototype(cache).toText(cache, nodes.flatMap(cache.get).sum)).foreach(println)
+        logger.debug(s"${
+          clusters.map(c => c.majorityPrototype(cache).toText(cache, nodes.flatMap(cache.get).sum))
+            .mkString("\n")
+        }")
+
         clusters
       }
 
