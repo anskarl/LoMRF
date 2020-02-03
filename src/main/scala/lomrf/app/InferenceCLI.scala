@@ -324,7 +324,7 @@ object InferenceCLI extends CLIApp {
          |  (saTemperature) Temperature for the simulated annealing step: ${_saTemperature}
          |  (maxFlips) Maximum number of flips: ${_maxFlips}
          |  (maxTries) Maximum number of attempts: ${_maxTries}
-         |  (targetCost) Target cost: ${_targetCost}
+         |  (targetCost) Target cost: ${_targetCost.toString}
          |  (tabuLength) Minimum number of flips between flipping the same atom: ${_tabuLength}
          |  (numSolutions) Number of solutions in MC-SAT: ${_numSolutions}
          |  (lateSA) Simulated annealing is performed only when MC-SAT reaches a plateau: ${_lateSA}
