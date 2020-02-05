@@ -123,7 +123,7 @@ final class StructureMetricSpecTest extends FunSpec with Matchers {
       Set.empty,
       Set.empty,
       constantsDomain,
-      convertFunctionsToPredicates = true)
+      convertFunctions = true)
 
     // Append function mappings for walking/1, inactive/1 and active/1
     builder.functions += FunctionMapping("Inactive_A", "inactive", Vector(Constant("A")))
@@ -218,7 +218,7 @@ final class StructureMetricSpecTest extends FunSpec with Matchers {
       Set.empty,
       Set.empty,
       constantsDomain,
-      convertFunctionsToPredicates = true)
+      convertFunctions = true)
 
     // Append function mappings for largeBox/2, smallBox/2, tinyBox/1
     builder.functions += FunctionMapping("Large_RRR_Box", "largeBox", Vector("Small_RR_Box", "R").map(Constant))
@@ -295,7 +295,7 @@ final class StructureMetricSpecTest extends FunSpec with Matchers {
       Set.empty,
       Set.empty,
       constantsDomain,
-      convertFunctionsToPredicates = true)
+      convertFunctions = true)
 
     // Append function mappings for largeBox/2, smallBox/2, tinyBox/1
     builder.functions += FunctionMapping("AvgSpeed_85_4354", "avg_speed", Vector("4354", "85").map(Constant))

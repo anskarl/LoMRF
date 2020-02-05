@@ -241,7 +241,7 @@ final class HypergraphSpecTest extends FunSpec with Matchers {
       "event" -> ConstantsSet("Walking_ID1", "Walking_ID2", "Inactive_ID1", "Inactive_ID2"))
 
     // Evidence Builder
-    val builder = EvidenceBuilder(predicateSchema, functionSchema, queryPredicates, Set.empty, constantsDomain, convertFunctionsToPredicates = true)
+    val builder = EvidenceBuilder(predicateSchema, functionSchema, queryPredicates, Set.empty, constantsDomain, convertFunctions = true)
 
     // Append evidence atoms for Next predicate
     builder.evidence ++= (0 until TIME_DOMAIN_SIZE).map { timePoint =>
@@ -438,7 +438,7 @@ final class HypergraphSpecTest extends FunSpec with Matchers {
       "quzDomain" -> ConstantsSet("Quz_AT", "Quz_STAR"))
 
     // Evidence Builder
-    val builder = EvidenceBuilder(predicateSchema, functionSchema, queryPredicates, Set.empty, constantsDomain, convertFunctionsToPredicates = true)
+    val builder = EvidenceBuilder(predicateSchema, functionSchema, queryPredicates, Set.empty, constantsDomain, convertFunctions = true)
 
     // Append evidence atoms for Evidence predicate
     builder.evidence += EvidenceAtom.asTrue("Evidence", Vector[Constant](Constant("Foo_AT_A_0"), Constant("ID1")))

@@ -20,14 +20,18 @@
 
 package lomrf.mln.model.builders
 
-import lomrf.logic.AtomSignatureOps._
 import lomrf.logic._
+import lomrf.logic.AtomSignatureOps._
 import lomrf.mln.model.{ AtomIdentityFunction, ConstantsSet }
 import org.scalatest.{ FunSpec, Matchers }
-
 import scala.language.implicitConversions
 
-class EvidenceBuilderSpecTest extends FunSpec with Matchers {
+/**
+  * A series of specification test for the evidence builder.
+  *
+  * @see [[lomrf.mln.model.builders.EvidenceBuilder]]
+  */
+final class EvidenceBuilderSpecTest extends FunSpec with Matchers {
 
   implicit def str2Constant(symbol: String): Constant = Constant(symbol)
 
@@ -481,7 +485,7 @@ class EvidenceBuilderSpecTest extends FunSpec with Matchers {
   describe("Incremental addition of function mappings, converted to auxiliary predicates, using EvidenceBuilder") {
     val builder = EvidenceBuilder(
       samplePredicateSchemas, sampleFunctionSchema, queryPredicates,
-      hiddenPredicates, constantsDomain, convertFunctionsToPredicates = true)
+      hiddenPredicates, constantsDomain, convertFunctions = true)
 
     // construct the schema of all auxiliary predicates
     val auxPredicateSchema = sampleFunctionSchema.map {
