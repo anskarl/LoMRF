@@ -26,9 +26,11 @@ import lomrf.logic.predef.{ dynAtoms, dynFunctions }
 import org.scalatest.{ FunSpec, Matchers }
 
 /**
-  * A series of API behaviour tests for KBBuilder
+  * A series of specification test for the KB builder.
+  *
+  * @see [[lomrf.mln.model.builders.KBBuilder]]
   */
-class KBBuilderSpecTest extends FunSpec with Matchers {
+final class KBBuilderSpecTest extends FunSpec with Matchers {
 
   private val samplePredicateSchema = Map(
     AtomSignature("InitiatedAt", 2) -> Vector("fluent", "time"),
@@ -50,15 +52,16 @@ class KBBuilderSpecTest extends FunSpec with Matchers {
     ("Initiates", Vector("event", "fluent", "time")),
     ("Terminates", Vector("event", "fluent", "time"))).map(schema => AtomSignature(schema._1, schema._2.size) -> schema._2)
 
-  val sampleFormulas = Seq(
+  private val sampleFormulas = Seq(
     "0.32 Happens(Walking, t) => InitiatedAt(Moving,t)",
     "Happens(walking(person1), t) ^ Happens(walking(person2), t) => InitiatedAt(move(person1,person2),t).",
     "1.27 InitiatedAt(f, t) => HoldsAt(f, t + 1)",
     "InitiatedAt(f, t) => HoldsAt(f, t++).").map(parser.parseWeightedFormula).toSet
 
-  val sampleDefiniteClauses = Seq(
+  private val sampleDefiniteClauses = Seq(
     "0.32 InitiatedAt(Moving, t) :- Happens(Walking, t)",
-    "InitiatedAt(move(person1,person2),t) :- Happens(walking(person1), t) ^ Happens(walking(person2), t)").map(parser.parseDefiniteClause).toSet
+    "InitiatedAt(move(person1,person2),t) :- Happens(walking(person1), t) ^ Happens(walking(person2), t)")
+    .map(parser.parseDefiniteClause).toSet
 
   // --------------------------------------------------------
   // --- KB Builder (creation of empty KB)
@@ -243,9 +246,9 @@ class KBBuilderSpecTest extends FunSpec with Matchers {
           assert {
             kb.functionSchema.forall {
               case (origSignature, (retType, argTypes)) =>
-                val convSignature = AtomSignature(lomrf.AUX_PRED_PREFIX + origSignature.symbol, origSignature.arity + 1)
-                val convTypes = argTypes.+:(retType)
-                auxSchema(convSignature) == convTypes
+                val convertedSignature = AtomSignature(lomrf.AUX_PRED_PREFIX + origSignature.symbol, origSignature.arity + 1)
+                val convertedTypes = argTypes.+:(retType)
+                auxSchema(convertedSignature) == convertedTypes
             }
           }
         }

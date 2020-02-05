@@ -26,76 +26,99 @@ import lomrf.logic.{ Constant, FunctionMapping }
 import lomrf.mln.model.{ AtomIdentityFunction, FunctionMapper, FunctionMapperDefaultImpl }
 import scala.collection.{ breakOut, mutable }
 import scala.language.implicitConversions
-import scala.util.Try
 import lomrf.util.collection.trove.TroveConversions._
 
+/**
+  * Function mapper builder.
+  *
+  * @param identityFunction an atom identity function
+  */
 final class FunctionMapperBuilder(identityFunction: AtomIdentityFunction)
-  extends mutable.Builder[(Vector[String], String), FunctionMapper]
-  with Traversable[(Int, String)] with Iterable[(Int, String)] { self =>
+  extends mutable.Builder[(Vector[String], String), FunctionMapper] { self =>
 
   private var dirty = false
+
   private var args2Value = new TIntObjectHashMap[String]()
 
-  def decode(t: (Int, String)): Try[(IndexedSeq[String], String)] = {
-    identityFunction.decode(t._1).map(v => (v, t._2))
+  /**
+    * Copies all function mappings to new collections in case the result function has
+    * been called. That way the builder avoids side-effects, that is the resulting function
+    * mappers behave like immutable collections.
+    */
+  private def copyIfDirty(): Unit = if (dirty) {
+    val cp_args2Value = new TIntObjectHashMap[String](args2Value.size)
+    cp_args2Value.putAll(args2Value)
+    args2Value = cp_args2Value
+    dirty = false
   }
 
-  override def +=(elems: (Vector[String], String)): self.type = {
-    insert(elems._1, elems._2)
-    self
+  /**
+    * Inserts the given mapping into the builder.
+    *
+    * @param args a vector of constant arguments
+    * @param value a function return value
+    */
+  private def insert(args: Vector[String], value: String) {
+    copyIfDirty()
+    val id = identityFunction.encode(args)
+    args2Value.putIfAbsent(id, value)
   }
 
+  /**
+    * Adds the given mapping into the builder.
+    *
+    * @param args a vector of constant arguments
+    * @param value a function return value
+    * @return a FunctionMapperBuilder instance
+    */
   def +=(args: Vector[String], value: String): self.type = {
     insert(args, value)
     self
   }
 
-  private def insert(args: Vector[String], value: String) {
-    checkDirty()
-    val id = identityFunction.encode(args)
-    args2Value.putIfAbsent(id, value)
+  /**
+    * Adds the given mapping into the builder.
+    *
+    * @param mapping a tuple of a vector of constant arguments and a function return value
+    * @return a FunctionMapperBuilder instance
+    */
+  override def +=(mapping: (Vector[String], String)): self.type = {
+    insert(mapping._1, mapping._2)
+    self
   }
 
-  private def checkDirty(): Unit = {
-    if (dirty) {
-      //copy
-      val cp_args2Value = new TIntObjectHashMap[String](args2Value.size)
-      cp_args2Value.putAll(args2Value)
-      args2Value = cp_args2Value
-      dirty = false
-    }
-  }
-
+  /**
+    * Creates a function mapper from the given function mappings.
+    *
+    * @return a FunctionMapper instance
+    */
   def result(): FunctionMapper = {
+    /*
+     Mark builder as dirty. Then copy collections in order to avoid side effects
+     in the resulting ConstantsSet if any more constants are added.
+     */
     dirty = true
     new FunctionMapperDefaultImpl(identityFunction, TCollections.unmodifiableMap(args2Value))
   }
 
+  /**
+    * Clears the builder.
+    */
   def clear() {
     args2Value = new TIntObjectHashMap[String]()
     dirty = false
   }
 
-  override def foreach[U](f: ((Int, String)) => U): Unit = {
-    val iterator = args2Value.iterator()
-    while (iterator.hasNext) {
-      iterator.advance()
-      f(iterator.key(), iterator.value())
-    }
-  }
-
-  override def iterator: Iterator[(Int, String)] = args2Value.iterator()
-
   object decoded extends Iterable[FunctionMapping] with Traversable[FunctionMapping] {
 
     override def iterator: Iterator[FunctionMapping] = new Iterator[FunctionMapping] {
-      private val iter = self.iterator
+      private val iterator = args2Value.iterator
       private val symbol = identityFunction.signature.symbol
 
-      override def hasNext: Boolean = iter.hasNext
+      override def hasNext: Boolean = iterator.hasNext
 
-      override def next(): FunctionMapping = {
-        val (id, retVal) = iter.next()
+      override def next: FunctionMapping = {
+        val (id, retVal) = iterator.next
         val decoded: Vector[Constant] = identityFunction
           .decode(id)
           .getOrElse(throw new IllegalStateException())
@@ -104,19 +127,25 @@ final class FunctionMapperBuilder(identityFunction: AtomIdentityFunction)
         FunctionMapping(retVal, symbol, decoded)
       }
 
-      override def hasDefiniteSize: Boolean = iter.hasDefiniteSize
+      override def hasDefiniteSize: Boolean = iterator.hasDefiniteSize
 
-      override def isEmpty: Boolean = iter.isEmpty
+      override def isEmpty: Boolean = iterator.isEmpty
 
-      override def isTraversableAgain: Boolean = iter.isTraversableAgain
+      override def isTraversableAgain: Boolean = iterator.isTraversableAgain
     }
   }
-
 }
 
 object FunctionMapperBuilder {
 
-  implicit def functionMappingConv(fm: FunctionMapping): (Vector[String], String) = (fm.values, fm.retValue)
+  implicit def functionMappingConversion(fm: FunctionMapping): (Vector[String], String) = (fm.values, fm.retValue)
 
-  def apply(identityFunction: AtomIdentityFunction) = new FunctionMapperBuilder(identityFunction)
+  /**
+    * Creates a function mapper builder.
+    *
+    * @param identityFunction an atom identity function
+    * @return a FunctionMapperBuilder instance
+    */
+  def apply(identityFunction: AtomIdentityFunction): FunctionMapperBuilder =
+    new FunctionMapperBuilder(identityFunction)
 }

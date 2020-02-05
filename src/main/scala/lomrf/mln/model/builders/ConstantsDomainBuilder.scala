@@ -21,25 +21,79 @@
 package lomrf.mln.model.builders
 
 import lomrf.mln.model._
-
 import scala.collection.mutable
 
 /**
-  * Constants domain builder (fluent interface)
+  * Constants domain builder.
   */
-final class ConstantsDomainBuilder extends mutable.Builder[(String, String), ConstantsDomain] { self =>
-
-  private var constantBuilders = Map.empty[String, ConstantsSetBuilder]
+final class ConstantsDomainBuilder
+  extends mutable.Builder[(String, String), ConstantsDomain] { self =>
 
   private var dirty = false
 
-  def apply(key: String) = {
-    constantBuilders(key)
+  private var constantBuilders = Map.empty[String, ConstantsSetBuilder]
+
+  /**
+    * Adds the given domain name, constant symbol tuple to the builder.
+    *
+    * @note In case the domain name does not exists, it also creates
+    *       a corresponding constants set for that domain name.
+    *
+    * @param key a domain name
+    * @param value a constant symbol
+    */
+  private def addUnchecked(key: String, value: String): Unit = constantBuilders.get(key) match {
+    case Some(builder) => builder += value
+    case _             => constantBuilders += (key -> ConstantsSetBuilder(value))
   }
 
+  /**
+    * Copies all domain constants set to new collections in case the result function has
+    * been called. That way the builder avoids side-effects, that is the resulting constants
+    * per domain behave like immutable collections.
+    */
+  private def copyIfDirty(): Unit = if (self.dirty) {
+    constantBuilders = constantBuilders.map { case (key, value) => key -> value.copy() }
+    dirty = false
+  }
+
+  /**
+    * @return a map from domain names to constants set builder
+    */
   def apply(): Map[String, ConstantsSetBuilder] = constantBuilders
 
-  def of(key: String) = {
+  /**
+    * @param key a domain name
+    * @return the ConstantSetBuilder for the given domain name
+    */
+  def apply(key: String): ConstantsSetBuilder = constantBuilders(key)
+
+  /**
+    * @param key a domain name
+    * @return an option value containing the ConstantSetBuilder for the given domain name,
+    *         or None if the domain name does not exists
+    */
+  def get(key: String): Option[ConstantsSetBuilder] = constantBuilders.get(key)
+
+  /**
+    * @param key a domain name
+    * @param default a default computation
+    * @return the ConstantSetBuilder for the given domain name if it exists, otherwise
+    *         the result of the default computation
+    */
+  def getOrElse(key: String, default: => ConstantsSetBuilder): ConstantsSetBuilder =
+    constantBuilders.getOrElse(key, default)
+
+  /**
+    * Gets the constants set builder for a given domain name.
+    *
+    * @note If the domain name does not exist, it creates a builder
+    *       for it and returns that builder.
+    *
+    * @param key a domain name
+    * @return the ConstantSetBuilder for the given domain name
+    */
+  def of(key: String): ConstantsSetBuilder = {
     constantBuilders.getOrElse(key, {
       copyIfDirty()
       val builder = ConstantsSetBuilder()
@@ -48,55 +102,92 @@ final class ConstantsDomainBuilder extends mutable.Builder[(String, String), Con
     })
   }
 
-  def update(input: Map[String, ConstantsSetBuilder]): self.type = {
-    constantBuilders = input
+  /**
+    * Assigns the given constants set builders to their corresponding domain names.
+    *
+    * @param builders a map from domain names to constants set builders
+    * @return a ConstantsDomainBuilder instance
+    */
+  def update(builders: Map[String, ConstantsSetBuilder]): self.type = {
+    constantBuilders = builders
     dirty = false
     self
   }
 
-  def get(key: String): Option[ConstantsSetBuilder] = constantBuilders.get(key)
-
-  def getOrElse(key: String, default: => ConstantsSetBuilder): ConstantsSetBuilder = constantBuilders.getOrElse(key, default)
-
+  /**
+    * Adds the numeric constant to the constants set of the given domain name.
+    *
+    * @param key a domain name
+    * @param value a numeric constant
+    * @return a ConstantsDomainBuilder instance
+    */
   def +=(key: String, value: Number): self.type = {
     copyIfDirty()
-
     addUnchecked(key, value.toString)
-
     self
   }
 
+  /**
+    * Adds the constant symbol to the constants set of the given domain name.
+    *
+    * @param key a domain name
+    * @param value a constant symbol
+    * @return a ConstantsDomainBuilder instance
+    */
   def +=(key: String, value: String): self.type = {
     copyIfDirty()
-
     addUnchecked(key, value)
-
     self
   }
 
-  private def addUnchecked(key: String, value: String): Unit = constantBuilders.get(key) match {
-    case Some(builder) => builder += value
-    case _             => constantBuilders += (key -> ConstantsSetBuilder(value))
+  /**
+    * Adds the constant symbol to the constants set of the given domain name.
+    *
+    * @param entry a tuple of a domain name and a constant symbol
+    * @return a ConstantsDomainBuilder instance
+    */
+  override def +=(entry: (String, String)): self.type = {
+    val (key, value) = entry
+    self += (key, value)
   }
 
-  override def +=(entry: (String, String)): self.type = self += (entry._1, entry._2)
-
+  /**
+    * Add all given constant symbols to the constants set of the given domain name.
+    *
+    * @param entry a tuple of a domain name and an iterable of constant symbols
+    * @return a ConstantsDomainBuilder instance
+    */
   def ++=(entry: (String, Iterable[String])): self.type = {
     copyIfDirty()
-
     val (key, values) = entry
-
     constantBuilders.get(key) match {
       case Some(builder) => builder ++= values
       case _             => constantBuilders += (key -> ConstantsSetBuilder(values))
     }
-
     self
   }
 
+  /**
+    * Adds all given tuples to the constants domain builder.
+    *
+    * @param entries an iterable of domain names to constant symbol tuples
+    * @return a ConstantsDomainBuilder instance
+    */
+  def ++=(entries: Iterable[(String, String)]): self.type = {
+    copyIfDirty()
+    entries.foreach(entry => addUnchecked(entry._1, entry._2))
+    self
+  }
+
+  /**
+    * Adds the given domain name to the builder (if it does not already exist)
+    * and creates a corresponding constants set builder.
+    *
+    * @param key a domain name
+    * @return a ConstantsDomainBuilder instance
+    */
   def addKey(key: String): self.type = {
     copyIfDirty()
-
     constantBuilders.get(key) match {
       case None => constantBuilders += (key -> ConstantsSetBuilder())
       case _    => // do nothing
@@ -104,60 +195,73 @@ final class ConstantsDomainBuilder extends mutable.Builder[(String, String), Con
     self
   }
 
+  /**
+    * Adds all given domain names to the builder (if they do not already exist)
+    * and creates a constants set builder for each of them.
+    *
+    * @param keys an iterable of domain names
+    * @return a ConstantsDomainBuilder instance
+    */
   def addKeys(keys: Iterable[String]): self.type = {
     copyIfDirty()
-
     for (key <- keys) {
       constantBuilders.get(key) match {
         case None => constantBuilders += (key -> ConstantsSetBuilder())
         case _    => // do nothing
       }
     }
-
     self
   }
 
-  def ++=(entries: Iterable[(String, String)]): self.type = {
-    copyIfDirty()
-
-    entries.foreach(entry => addUnchecked(entry._1, entry._2))
-
-    self
-  }
-
-  override def clear(): Unit = constantBuilders = Map.empty
-
+  /**
+    * Creates a constants domain from the given constant symbols of each domain name.
+    *
+    * @return a ConstantsDomain instance
+    */
   override def result(): ConstantsDomain = {
     dirty = true
-    constantBuilders.map(e => e._1 -> e._2.result())
+    constantBuilders.map { case (key, value) => key -> value.result() }
   }
 
-  private def copyIfDirty(): Unit = {
-    if (self.dirty) {
-      constantBuilders = constantBuilders.map { case (k, v) => k -> v.copy() }
-      dirty = false
-    }
-  }
-
+  /**
+    * Clears the builder.
+    */
+  override def clear(): Unit = constantBuilders = Map.empty
 }
 
 object ConstantsDomainBuilder {
 
+  /**
+    * Creates an empty constants domain builder.
+    *
+    * @return an empty ConstantsDomainBuilder instance
+    */
   def apply(): ConstantsDomainBuilder = new ConstantsDomainBuilder()
 
+  /**
+    * Creates a constants domain builder.
+    *
+    * @param initial a map from domain names to constants set builder
+    * @return a ConstantsDomainBuilder instance
+    */
   def apply(initial: Map[String, ConstantsSetBuilder]): ConstantsDomainBuilder = {
     val builder = new ConstantsDomainBuilder()
     builder() = initial
     builder
   }
 
-  def from(initial: ConstantsDomain): ConstantsDomainBuilder = {
-
+  /**
+    * Creates a constants domain builder.
+    *
+    * @see [[lomrf.mln.model.ConstantsSet]]
+    *
+    * @param constantsDomain a map from domain names to constants set
+    * @return a ConstantsDomainBuilder instance
+    */
+  def from(constantsDomain: ConstantsDomain): ConstantsDomainBuilder = {
     val builder = new ConstantsDomainBuilder()
-
-    for ((domainName, constantsDomain) <- initial)
-      builder ++= (domainName, constantsDomain.iterator.toIterable)
-
+    for ((domainName, constantSet) <- constantsDomain)
+      builder ++= (domainName, constantSet.iterator.toIterable)
     builder
   }
 }

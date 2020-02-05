@@ -27,7 +27,7 @@ package object model {
 
   type ConstantsDomain = Map[String, ConstantsSet]
 
-  type PredicateSchema = Map[AtomSignature, Seq[String]]
+  type PredicateSchema = Map[AtomSignature, Vector[String]]
 
   type FunctionSchema = Map[AtomSignature, (String, Vector[String])]
 

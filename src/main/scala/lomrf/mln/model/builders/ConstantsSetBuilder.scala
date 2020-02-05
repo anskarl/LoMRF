@@ -22,38 +22,76 @@ package lomrf.mln.model.builders
 
 import gnu.trove.TCollections
 import gnu.trove.map.hash.TObjectIntHashMap
+import gnu.trove.impl.Constants._
 import lomrf.logic.Constant
 import lomrf.mln.model.{ ConstantsSet, ConstantsSetImpl, ConstantsSetUnaryImpl }
 import scala.collection.mutable
-import gnu.trove.impl.{ Constants => TC }
 
 /**
-  * A builder with which we can incrementally create a ConstantSet.
+  * Constants set builder.
+  *
+  * @param constants2Id a map from constants to ids
+  * @param id2Constants an array buffer of constants
   */
 final class ConstantsSetBuilder(
     private var constants2Id: TObjectIntHashMap[String],
-    private var id2Constants: mutable.ArrayBuffer[String]) extends mutable.Builder[String, ConstantsSet] with Iterable[String] { self =>
+    private var id2Constants: mutable.ArrayBuffer[String])
+  extends mutable.Builder[String, ConstantsSet] with Iterable[String] { self =>
 
-  import ConstantsSet.NO_ENTRY
-  import ConstantsSetBuilder.ConstantSymbol
-  import gnu.trove.impl.{ Constants => TC }
-
-  def this() =
-    this(new TObjectIntHashMap[String](TC.DEFAULT_CAPACITY, TC.DEFAULT_LOAD_FACTOR, ConstantsSet.NO_ENTRY), new mutable.ArrayBuffer[String]())
-
-  /**
-    * flag to mark if [[result()]] function is being called
-    */
   private var dirty = false
 
   private var _size = id2Constants.size
 
-  override def iterator: Iterator[String] = id2Constants.iterator
+  def this() = this(
+    new TObjectIntHashMap[String](DEFAULT_CAPACITY, DEFAULT_LOAD_FACTOR, ConstantsSet.NO_ENTRY),
+    mutable.ArrayBuffer.empty[String]
+  )
 
   /**
-    * Adds a constant symbol, if it has been never included.
+    * Puts a constant symbol into the constants set.
     *
-    * @param constant the specified constant symbol
+    * @param constant a constant symbol
+    */
+  private def put(constant: String): Unit = {
+    if (constants2Id.putIfAbsent(constant, _size) == ConstantsSet.NO_ENTRY) {
+      id2Constants += constant
+      _size += 1
+    }
+  }
+
+  /**
+    * Puts a given value into the constants set.
+    *
+    * @param element a value
+    * @throws UnsupportedOperationException in case the given value is not supported.
+    */
+  private def putMatching(element: Any): Unit = element match {
+    case symbol: String     => put(symbol)
+    case constant: Constant => put(constant.symbol)
+    case _: Number          => put(element.toString)
+    case _                  => throw new UnsupportedOperationException("")
+  }
+
+  /**
+    * Copies all constant symbols to new collections in case the result function has
+    * been called. That way the builder avoids side-effects, that is the resulting constant
+    * sets behave like immutable collections.
+    */
+  private def copyIfDirty(): Unit = if (dirty) {
+    val cp_constants2Id = new TObjectIntHashMap[String](_size + 23, DEFAULT_LOAD_FACTOR, ConstantsSet.NO_ENTRY)
+    cp_constants2Id.putAll(constants2Id)
+    val cp_id2Constants = mutable.ArrayBuffer.empty[String]
+    id2Constants.foreach(cp_id2Constants += _)
+    constants2Id = cp_constants2Id
+    id2Constants = cp_id2Constants
+    dirty = false
+  }
+
+  /**
+    * Adds a constant symbol to the constants set builder.
+    *
+    * @param constant a constant symbol
+    * @return a ConstantsSetBuilder instance
     */
   override def +=(constant: String): self.type = {
     copyIfDirty()
@@ -61,11 +99,26 @@ final class ConstantsSetBuilder(
     this
   }
 
+  /**
+    * Adds a numeric constant to the constants set builder.
+    *
+    * @param constant a numeric constant
+    * @return a ConstantsSetBuilder instance
+    */
   def +=(constant: Number): self.type = {
     this += constant.toString
   }
 
-  def ++=[T: ConstantSymbol](elements: Iterable[T]): self.type = {
+  /**
+    * Adds all given elements to the constants set builder.
+    *
+    * @see [[lomrf.mln.model.builders.ConstantsSetBuilder.ConstantSymbol]]
+    *
+    * @param elements an iterable of constant elements
+    * @tparam T a constant type
+    * @return a ConstantsSetBuilder instance
+    */
+  def ++=[T: ConstantsSetBuilder.ConstantSymbol](elements: Iterable[T]): self.type = {
     copyIfDirty()
     for (element <- elements) element match {
       case symbol: String     => put(symbol)
@@ -75,67 +128,41 @@ final class ConstantsSetBuilder(
     this
   }
 
+  /**
+    * Adds all given values to the constants set builder.
+    *
+    * @param e a value
+    * @param elements a sequence of values
+    * @return a ConstantsSetBuilder instance
+    */
   def ++=(e: Any, elements: Any*): self.type = {
     copyIfDirty()
-
     putMatching(e)
-    for (element <- elements) putMatching(element)
-
+    elements.foreach(putMatching)
     this
   }
 
-  private def putMatching(element: Any): Unit = {
-    element match {
-      case symbol: String     => put(symbol)
-      case constant: Constant => put(constant.symbol)
-      case _: Number          => put(element.toString)
-      case _                  => throw new UnsupportedOperationException("")
-    }
-  }
-
-  private def put(constant: String): Unit = {
-    if (constants2Id.putIfAbsent(constant, _size) == NO_ENTRY) {
-      id2Constants += constant
-      _size += 1
-    }
-  }
-
-  override def sizeHint(size: Int): Unit = {
-    constants2Id.setUp(size)
-    id2Constants.sizeHint(size)
-  }
-
   /**
-    * Gives the constructed ConstantsSet
+    * Creates a constant set from all the given constant symbols.
     *
-    * @return a ConstantsSet instance that contains all constant symbols that have been added so far.
+    * @return a ConstantsSet instance
     */
   override def result(): ConstantsSet = {
-    // Mark builder as dirty, thus if we do another addition we will not have any side effects in the resulting
-    // ConstantsSet, by performing copies.
+    /*
+     Mark builder as dirty. Then copy collections in order to avoid side effects
+     in the resulting ConstantsSet if any more constants are added.
+     */
     dirty = true
     new ConstantsSetImpl(TCollections.unmodifiableMap(constants2Id), id2Constants)
   }
 
   /**
-    * Empties this builder.
+    * Creates a copy of the builder. The copy contains all constant symbols.
+    *
+    * @return a ConstantsSetBuilder instance
     */
-  override def clear() {
-    constants2Id = new TObjectIntHashMap[String](TC.DEFAULT_CAPACITY, TC.DEFAULT_LOAD_FACTOR, NO_ENTRY)
-    id2Constants = new mutable.ArrayBuffer[String]()
-    dirty = false
-  }
-
-  override def toString(): String =
-    s"ConstantsSetBuilder(constants2Id->{${constants2Id.size()} elements}, id2Constants->{${id2Constants.size} elements})"
-
-  /**
-    * @return the number of the unique collected constant symbols
-    */
-  override def size = _size
-
-  def copy() = {
-    val cp_constants2Id = new TObjectIntHashMap[String](_size + 23, TC.DEFAULT_LOAD_FACTOR, NO_ENTRY)
+  def copy(): ConstantsSetBuilder = {
+    val cp_constants2Id = new TObjectIntHashMap[String](_size + 23, DEFAULT_LOAD_FACTOR, ConstantsSet.NO_ENTRY)
     cp_constants2Id.putAll(constants2Id)
 
     val cp_id2Constants = new mutable.ArrayBuffer[String]()
@@ -145,22 +172,36 @@ final class ConstantsSetBuilder(
   }
 
   /**
-    * When a ConstantSet has been created from this ConstantsSetBuilder by a previous call of the this.result function,
-    * then before adding the specified symbol, we copy all constant symbols.
-    * The reason behind that copy, is that the resulting ConstantsSets must behave like immutable collections.
+    * Clears the builder.
     */
-  private def copyIfDirty(): Unit = {
-    if (dirty) {
-      val cp_constants2Id = new TObjectIntHashMap[String](_size + 23, TC.DEFAULT_LOAD_FACTOR, NO_ENTRY)
-      cp_constants2Id.putAll(constants2Id)
-      val cp_id2Constants = new mutable.ArrayBuffer[String]()
-      id2Constants.foreach(cp_id2Constants += _)
-      constants2Id = cp_constants2Id
-      id2Constants = cp_id2Constants
-      dirty = false
-    }
+  override def clear(): Unit = {
+    constants2Id = new TObjectIntHashMap[String](DEFAULT_CAPACITY, DEFAULT_LOAD_FACTOR, ConstantsSet.NO_ENTRY)
+    id2Constants = new mutable.ArrayBuffer[String]()
+    dirty = false
   }
 
+  /**
+    * @return an iterator over all constant symbols in the builder
+    */
+  override def iterator: Iterator[String] = id2Constants.iterator
+
+  /**
+    * @return the number of unique constant symbols in the builder
+    */
+  override def size: Int = _size
+
+  /**
+    * Gives a hint of the expected set size.
+    *
+    * @param size a hint of the expected size
+    */
+  override def sizeHint(size: Int): Unit = {
+    constants2Id.setUp(size)
+    id2Constants.sizeHint(size)
+  }
+
+  override def toString(): String =
+    s"ConstantsSetBuilder(constants2Id->{${constants2Id.size} elements}, id2Constants->{${id2Constants.size} elements})"
 }
 
 object ConstantsSetBuilder {
@@ -177,19 +218,41 @@ object ConstantsSetBuilder {
     implicit object StringWitness extends ConstantSymbol[String]
     implicit object ConstantWitness extends ConstantSymbol[Constant]
   }
-  def apply: ConstantsSetBuilder = new ConstantsSetBuilder
 
-  def apply(symbols: Iterable[String]): ConstantsSetBuilder = this.apply ++= symbols
+  /**
+    * Creates an empty constants set builder.
+    *
+    * @return an empty ConstantSetBuilder instance
+    */
+  def apply(): ConstantsSetBuilder = new ConstantsSetBuilder
 
-  def apply(symbols: String*): ConstantsSetBuilder = this.apply ++= symbols
+  /**
+    * Creates a constants set builder from a sequence of symbols.
+    *
+    * @param symbols a sequence of symbols
+    * @return an ConstantSetBuilder instance
+    */
+  def apply(symbols: String*): ConstantsSetBuilder = apply ++= symbols
 
-  def apply(constantsSet: ConstantsSet) = constantsSet match {
+  /**
+    * Creates a constants set builder from an iterable of symbols.
+    *
+    * @param symbols an iterable of symbols
+    * @return an ConstantSetBuilder instance
+    */
+  def apply(symbols: Iterable[String]): ConstantsSetBuilder = apply ++= symbols
+
+  /**
+    * Creates a constants set builder from an existing constant set.
+    *
+    * @param constantsSet a constants set
+    * @return an ConstantSetBuilder instance
+    */
+  def apply(constantsSet: ConstantsSet): ConstantsSetBuilder = constantsSet match {
     case c: ConstantsSetImpl =>
       val _id2Constants = new mutable.ArrayBuffer[String](c.size)
       new ConstantsSetBuilder(new TObjectIntHashMap[String](c.constants2Id), _id2Constants ++= c.id2Constants)
-
     case c: ConstantsSetUnaryImpl =>
       new ConstantsSetBuilder += c.head
   }
-
 }

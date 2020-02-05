@@ -22,9 +22,14 @@ package lomrf.mln.model.builders
 
 import org.scalatest.{ FunSpec, Matchers }
 
-class ConstantsDomainBuilderSpecTest extends FunSpec with Matchers {
+/**
+  * A series of specification test for constants domain builder.
+  *
+  * @see [[lomrf.mln.model.builders.ConstantsDomainBuilder]]
+  */
+final class ConstantsDomainBuilderSpecTest extends FunSpec with Matchers {
 
-  describe("ConstantsDomainBuilder insertion of constant symbols") {
+  describe("Insertion of constant symbols") {
 
     describe("Incremental addition of domain 'time' with constants from 1 to 10") {
       val builder = ConstantsDomainBuilder()
