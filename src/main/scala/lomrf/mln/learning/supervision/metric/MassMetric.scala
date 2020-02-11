@@ -121,6 +121,6 @@ object MassMetric {
 
     val finiteRecall = modes.mapValues(mode => if (mode.recall < Int.MaxValue) mode.recall else maxRecall)
 
-    new MassMetric(IsolationForest(signatures.toIndexedSeq, finiteRecall, finiteRecall.values.sum))
+    new MassMetric(IsolationForest(signatures.toIndexedSeq, finiteRecall, numberOfTrees, finiteRecall.values.sum))
   }
 }
