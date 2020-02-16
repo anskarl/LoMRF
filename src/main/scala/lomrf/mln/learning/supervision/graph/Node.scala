@@ -24,7 +24,7 @@ import lomrf.logic._
 import lomrf.logic.LogicOps._
 import lomrf.util.logging.Implicits._
 import com.typesafe.scalalogging.LazyLogging
-import lomrf.mln.learning.supervision.metric.features.Feature
+import lomrf.mln.learning.supervision.metric.Feature
 
 /**
   * Node is a collection of evidence atoms that correspond to a query atom,
@@ -61,7 +61,7 @@ case class Node(
     body.getOrElse(logger.fatal("Body does not exist.")).literals
 
   lazy val features: Set[Feature] =
-    atoms.map(Feature.atom2Feature).toSet
+    atoms.map(Feature.fromAtomicFormula).toSet
 
   lazy val opposite: Node = if (isPositive) toNegative else toPositive
 

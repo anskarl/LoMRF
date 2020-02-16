@@ -21,9 +21,10 @@
 package lomrf.mln.learning.supervision.metric
 
 import lomrf.logic.{ AtomSignature, AtomicFormula }
-import lomrf.mln.model.ModeDeclarations
+import lomrf.mln.model.{ ConstantsDomain, ModeDeclarations, PredicateSchema }
+import lomrf.util.Cartesian.CartesianIterator
 
-case class MassMetric(forest: IsolationForest[AtomSignature]) extends Metric[AtomicFormula] {
+case class MassMetric(forest: IsolationForest[Feature]) extends Metric[AtomicFormula] {
 
   /**
     * Distance for atoms. The function may obey to the following properties:
@@ -40,7 +41,7 @@ case class MassMetric(forest: IsolationForest[AtomSignature]) extends Metric[Ato
     * @return a distance for the given atoms
     */
   override def distance(xAtom: AtomicFormula, yAtom: AtomicFormula): Double =
-    forest.mass(Seq(xAtom.signature), Seq(yAtom.signature))
+    forest.mass(Seq(xAtom), Seq(yAtom))
 
   /**
     * Distance over sequences of atoms.
@@ -50,7 +51,7 @@ case class MassMetric(forest: IsolationForest[AtomSignature]) extends Metric[Ato
     * @return a distance for the given sequences of atoms
     */
   override def distance(xAtomSeq: IndexedSeq[AtomicFormula], yAtomSeq: IndexedSeq[AtomicFormula]): Double =
-    forest.mass(xAtomSeq.map(_.signature), yAtomSeq.map(_.signature))
+    forest.mass(xAtomSeq.map(Feature.fromAtomicFormula), yAtomSeq.map(Feature.fromAtomicFormula))
 
   /**
     * Append information from atom sequences to the metric.
@@ -62,7 +63,7 @@ case class MassMetric(forest: IsolationForest[AtomSignature]) extends Metric[Ato
     * @return an updated metric
     */
   override def ++(atomSeqSeq: Seq[Seq[AtomicFormula]]): Metric[AtomicFormula] = {
-    atomSeqSeq.foreach(seq => forest.updateCounts(seq.map(_.signature)))
+    atomSeqSeq.foreach(seq => forest.updateCounts(seq.map(Feature.fromAtomicFormula)))
     new MassMetric(forest)
   }
 }
@@ -75,7 +76,7 @@ object MassMetric {
     * @param trees a sequence of isolation trees
     * @return a MassTreeMetric instance
     */
-  def apply(trees: Seq[IsolationTree[AtomSignature]]): MassMetric =
+  def apply(trees: Seq[IsolationTree[Feature]]): MassMetric =
     MassMetric(IsolationForest(trees))
 
   /**
@@ -85,11 +86,11 @@ object MassMetric {
     * @see [[lomrf.mln.learning.supervision.metric.IsolationForest]]
     *
     * @param signatures a set of atom signatures
-    * @param numberOfTrees number of tree in the forest (default is 100)
+    * @param numberOfTrees number of tree in the forest
     * @return a MassTreeMetric instance
     */
   def apply(signatures: Set[AtomSignature], numberOfTrees: Int): MassMetric =
-    new MassMetric(IsolationForest(signatures.toIndexedSeq, numberOfTrees))
+    new MassMetric(IsolationForest(signatures.map(Feature.fromAtomSignature).toIndexedSeq, numberOfTrees))
 
   /**
     * Creates an empty mass metric, using an underlying isolation forest,
@@ -100,7 +101,7 @@ object MassMetric {
     * @param featureScores a map from atom signatures to scores
     * @return a MassTreeMetric instance
     */
-  def apply(featureScores: Map[AtomSignature, Double]): MassMetric =
+  def apply(featureScores: Map[Feature, Double]): MassMetric =
     new MassMetric(IsolationForest(featureScores))
 
   /**
@@ -111,7 +112,7 @@ object MassMetric {
     *
     * @param signatures a set of atom signatures
     * @param modes mode declarations
-    * @param numberOfTrees number of tree in the forest (default is 100)
+    * @param numberOfTrees number of tree in the forest
     * @return a MassTreeMetric instance
     */
   def apply(signatures: Set[AtomSignature], modes: ModeDeclarations, numberOfTrees: Int): MassMetric = {
@@ -119,8 +120,66 @@ object MassMetric {
       .withFilter { case (_, mode) => mode.recall < Int.MaxValue }
       .map { case (_, mode) => mode.recall }.max
 
-    val finiteRecall = modes.mapValues(mode => if (mode.recall < Int.MaxValue) mode.recall else maxRecall)
+    val finiteRecall = modes.map {
+      case (signature, mode) =>
+        Feature.fromAtomSignature(signature) -> (if (mode.recall < Int.MaxValue) mode.recall else maxRecall)
+    }
 
-    new MassMetric(IsolationForest(signatures.toIndexedSeq, finiteRecall, numberOfTrees, finiteRecall.values.sum))
+    new MassMetric(IsolationForest(
+      signatures.map(Feature.fromAtomSignature).toIndexedSeq, finiteRecall, numberOfTrees, finiteRecall.values.sum))
+  }
+
+  /**
+    * Creates an empty mass metric, using an underlying isolation forest,
+    * from a set of atom signatures and mode declarations.
+    *
+    * @see [[lomrf.mln.learning.supervision.metric.IsolationForest]]
+    *
+    * @param signatures a set of atom signatures
+    * @param predicateSchema a predicate schema
+    * @param constants a constants domain
+    * @param modes mode declarations
+    * @param numberOfTrees number of tree in the forest
+    * @param maxHeight maximum number of height per tree (default is 10)
+    * @return a MassTreeMetric instance
+    */
+  def apply(
+      signatures: Set[AtomSignature],
+      predicateSchema: PredicateSchema,
+      constants: ConstantsDomain,
+      modes: ModeDeclarations,
+      numberOfTrees: Int,
+      maxHeight: Int = 10): MassMetric = {
+
+    val maxRecall = modes
+      .withFilter { case (_, mode) => mode.recall < Int.MaxValue }
+      .map { case (_, mode) => mode.recall }.max
+
+    var finiteRecall = Map.empty[Feature, Int]
+
+    val features = signatures.flatMap { signature =>
+
+      val domainConstants = modes(signature).placeMarkers.zip(predicateSchema(signature))
+        .withFilter { case (placeMarker, _) => placeMarker.isConstant }
+        .map { case (_, argDomain) => constants(argDomain) }
+
+      if (domainConstants.forall(_.isEmpty)) {
+        val feature = Feature.fromAtomSignature(signature)
+        val signatureRecall = modes(signature).recall
+        finiteRecall += feature -> (if (signatureRecall < Int.MaxValue) signatureRecall else maxRecall)
+        IndexedSeq(feature)
+      } else {
+        val constantsCombinations = CartesianIterator(domainConstants)
+        constantsCombinations.map { c =>
+          val feature = Feature(signature, c.toSet)
+          val signatureRecall = modes(signature).recall
+          finiteRecall += feature -> (if (signatureRecall < Int.MaxValue) signatureRecall else maxRecall)
+          feature
+        }.toIndexedSeq
+      }
+    }
+
+    val height = math.min(maxHeight, finiteRecall.values.sum)
+    new MassMetric(IsolationForest(features.toIndexedSeq, finiteRecall, numberOfTrees, height))
   }
 }

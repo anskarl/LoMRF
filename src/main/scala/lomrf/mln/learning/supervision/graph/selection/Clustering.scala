@@ -25,7 +25,7 @@ import lomrf.mln.learning.supervision.graph.Node
 import lomrf.mln.learning.supervision.graph.caching.NodeCache
 
 /**
-  * @param maxDensity maximum density
+  * @param maxDensity clusters maximum density
   */
 case class Clustering(maxDensity: Double) extends LazyLogging {
 
@@ -72,9 +72,9 @@ case class Clustering(maxDensity: Double) extends LazyLogging {
            |""".stripMargin
       }
 
-      if (maxDensity > 1) pClusters ++ nClusters
+      if (maxDensity >= 1) pClusters ++ nClusters
       else {
-        logger.debug(s"Keeping only $maxDensity of the total density")
+        logger.info(s"Keeping only $maxDensity of the total density:")
         val totalMass = nodes.flatMap(cache.get).sum.toDouble
         val maxP = pClusters.maxBy(_.density)
         val maxN = nClusters.maxBy(_.density)
@@ -85,7 +85,7 @@ case class Clustering(maxDensity: Double) extends LazyLogging {
           clusters += next
           rest -= next
         }
-        logger.debug(s"${
+        logger.info(s"${
           clusters.map(c => c.majorityPrototype(cache).toText(cache, nodes.flatMap(cache.get).sum))
             .mkString("\n")
         }")

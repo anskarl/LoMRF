@@ -24,7 +24,6 @@ import lomrf.logic._
 import breeze.linalg.DenseVector
 import lomrf.mln.learning.supervision.graph.caching.NodeCache
 import lomrf.mln.learning.supervision.graph.selection.{ Clustering, LargeMarginNN }
-import lomrf.mln.learning.supervision.metric.features.FeatureStats
 import lomrf.mln.learning.supervision.metric._
 import lomrf.mln.model._
 import lomrf.util.time._
@@ -46,8 +45,14 @@ import lomrf.logic.LogicOps._
   * @param supervisionBuilder a supervision evidence builder that contains the completed annotation
   * @param nodeCache a node cache for storing labelled nodes
   * @param solver a graph solver for supervision completion
+  * @param edgeReWeighting re-weight edges using cache frequency
+  * @param minNodeSize minimum node size
+  * @param minNodeOcc minimum node occurrences
+  * @param augment augment examples
   * @param enableClusters enables clustering of unlabeled examples
-  * @param minNodeSize minimum node process size
+  * @param enableSelection enables feature selection
+  * @param enableHardSelection enables hard feature selection
+  * @param maxDensity clusters maximum density
   */
 final class SPLICE private[graph] (
     nodes: IndexedSeq[Node],
@@ -56,16 +61,16 @@ final class SPLICE private[graph] (
     metric: Metric[_ <: AtomicFormula],
     supervisionBuilder: EvidenceBuilder,
     nodeCache: NodeCache,
-    featureStats: FeatureStats,
     solver: GraphSolver,
-    enableClusters: Boolean,
-    edgeReWeighing: Boolean,
-    augment: Boolean,
-    enableSelection: Boolean,
-    maxDensity: Double,
+    edgeReWeighting: Boolean,
     minNodeSize: Int,
-    minNodeOcc: Int)
-  extends SupervisionGraph(nodes, querySignature, connector, metric, supervisionBuilder, nodeCache, featureStats) {
+    minNodeOcc: Int,
+    augment: Boolean,
+    enableClusters: Boolean,
+    enableSelection: Boolean,
+    enableHardSelection: Boolean,
+    maxDensity: Double)
+  extends SupervisionGraph(nodes, querySignature, connector, metric, supervisionBuilder, nodeCache) {
 
   protected def optimize(potentials: Map[EvidenceAtom, Double]): Set[EvidenceAtom] = {
 
@@ -79,7 +84,7 @@ final class SPLICE private[graph] (
     }
 
     val startGraphConnection = System.currentTimeMillis
-    val cache = if (edgeReWeighing) Some(nodeCache) else None
+    val cache = if (edgeReWeighting) Some(nodeCache) else None
     val encodedGraph = solver match {
       case _: HFc => connector.smartConnect(nodes, unlabeledNodes, cache)(metric)
       case _      => connector.fullyConnect(nodes, cache)(metric)
@@ -165,14 +170,17 @@ final class SPLICE private[graph] (
     if (pureLabeledNodes.isEmpty) {
 
       val mixed = labeledNodes.exists(_.isPositive) && labeledNodes.exists(_.isNegative)
-      val (selectedNodes, updatedMetric) = if (mixed && nodeCache.hasChanged && nonEmptyUnlabeled.nonEmpty && enableSelection) {
-        nodeCache.hasChanged = false
-        logger.info("Performing feature selection.")
-        val clusters = Clustering(maxDensity).cluster(labeledNodes, nodeCache)
-        val (weights, selectedNodes) = LargeMarginNN(1, 0.5).optimize(clusters, nodeCache)(AtomMetric(HungarianMatcher))
-        if (augment) selectedNodes.flatMap(_.augment) -> metric.havingWeights(weights)
-        else selectedNodes -> metric.havingWeights(weights)
-      } else (labeledNodes, metric)
+      val (selectedNodes, updatedMetric) =
+        if (mixed && nodeCache.hasChanged && nonEmptyUnlabeled.nonEmpty && (enableSelection || enableHardSelection)) {
+          nodeCache.hasChanged = false
+          logger.info("Performing feature selection.")
+          val clusters = Clustering(maxDensity).cluster(labeledNodes, nodeCache)
+          val (weights, selectedNodes) =
+            if (enableHardSelection) LargeMarginNN(1, 0.5).optimizeTogether(clusters, modes, nodeCache)(AtomMetric(HungarianMatcher))
+            else LargeMarginNN(1, 0.5).optimizeAloneAndMerge(clusters, nodeCache)(AtomMetric(HungarianMatcher))
+          if (augment) selectedNodes.flatMap(_.augment) -> metric.havingWeights(weights)
+          else selectedNodes -> metric.havingWeights(weights)
+        } else (labeledNodes, metric)
 
       new SPLICE(
         selectedNodes ++ nonEmptyUnlabeled,
@@ -181,15 +189,16 @@ final class SPLICE private[graph] (
         updatedMetric ++ mln.evidence ++ pureNodes.flatMap(n => IndexedSeq.fill(n.clusterSize)(n.atoms)),
         annotationBuilder,
         nodeCache,
-        featureStats,
         solver,
-        enableClusters,
-        edgeReWeighing,
-        augment,
-        enableSelection,
-        maxDensity,
+        edgeReWeighting,
         minNodeSize,
-        minNodeOcc)
+        minNodeOcc,
+        augment,
+        enableClusters,
+        enableSelection,
+        enableHardSelection,
+        maxDensity
+      )
     } else {
       /*
        * Update the cache using only non empty labeled nodes, i.e., nodes having at least
@@ -210,15 +219,17 @@ final class SPLICE private[graph] (
 
       updatedNodeCache.hasChanged = true
       val mixed = cleanedUniqueLabeled.exists(_.isPositive) && cleanedUniqueLabeled.exists(_.isNegative)
-      val (selectedNodes, updatedMetric) = if (mixed && nonEmptyUnlabeled.nonEmpty && enableSelection) {
-        updatedNodeCache.hasChanged = false
-        logger.info("Performing feature selection.")
-        val clusters = Clustering(maxDensity).cluster(cleanedUniqueLabeled, updatedNodeCache)
-        val (weights, selectedNodes) =
-          LargeMarginNN(1, 0.5).optimize(clusters, updatedNodeCache)(AtomMetric(HungarianMatcher))
-        if (augment) selectedNodes.flatMap(_.augment) -> metric.havingWeights(weights)
-        else selectedNodes -> metric.havingWeights(weights)
-      } else (cleanedUniqueLabeled, metric)
+      val (selectedNodes, updatedMetric) =
+        if (mixed && nonEmptyUnlabeled.nonEmpty && (enableSelection || enableHardSelection)) {
+          updatedNodeCache.hasChanged = false
+          logger.info("Performing feature selection.")
+          val clusters = Clustering(maxDensity).cluster(cleanedUniqueLabeled, updatedNodeCache)
+          val (weights, selectedNodes) =
+            if (enableHardSelection) LargeMarginNN(1, 0.5).optimizeTogether(clusters, modes, nodeCache)(AtomMetric(HungarianMatcher))
+            else LargeMarginNN(1, 0.5).optimizeAloneAndMerge(clusters, nodeCache)(AtomMetric(HungarianMatcher))
+          if (augment) selectedNodes.flatMap(_.augment) -> metric.havingWeights(weights)
+          else selectedNodes -> metric.havingWeights(weights)
+        } else (cleanedUniqueLabeled, metric)
 
       // Labeled nodes MUST appear before unlabeled!
       new SPLICE(
@@ -228,15 +239,15 @@ final class SPLICE private[graph] (
         updatedMetric ++ mln.evidence ++ pureNodes.flatMap(n => IndexedSeq.fill(n.clusterSize)(n.atoms)),
         annotationBuilder,
         updatedNodeCache,
-        featureStats,
         solver,
-        enableClusters,
-        edgeReWeighing,
-        augment,
-        enableSelection,
-        maxDensity,
+        edgeReWeighting,
         minNodeSize,
-        minNodeOcc)
+        minNodeOcc,
+        augment,
+        enableClusters,
+        enableSelection,
+        enableHardSelection,
+        maxDensity)
     }
   }
 }

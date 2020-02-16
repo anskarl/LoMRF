@@ -22,7 +22,6 @@ package lomrf.mln.learning.supervision.metric
 
 import lomrf.logic.{ Constant, EvidenceAtom }
 import lomrf.mln.learning.structure.PlaceMarker
-import lomrf.mln.learning.supervision.metric.features.Feature
 import lomrf.mln.model.{ Evidence, ModeDeclarations }
 
 /**
@@ -51,12 +50,13 @@ import lomrf.mln.model.{ Evidence, ModeDeclarations }
   * @param modes mode declarations
   * @param auxConstructs a map from return constants to auxiliary constructs
   * @param matcher a matcher function
+  * @param selectedFeatures a map from features to binary indicator values
   */
 class EvidenceMetric private (
     modes: ModeDeclarations,
     auxConstructs: Map[Constant, AuxConstruct],
     override val matcher: Matcher,
-    override val featureWeights: Option[Map[Feature, Int]] = None) extends StructureMetric[EvidenceAtom] {
+    override val selectedFeatures: Option[Map[Feature, Int]] = None) extends StructureMetric[EvidenceAtom] {
 
   /**
     * A reduced metric using only selected features for computing
@@ -69,7 +69,7 @@ class EvidenceMetric private (
     */
   override def havingWeights(weights: Map[Feature, Double]): StructureMetric[EvidenceAtom] = {
     require(weights.forall { case (_, w) => w == 0 || w == 1 }, "All weights should be 0 or 1.")
-    new EvidenceMetric(modes, auxConstructs, matcher, featureWeights = Some(weights.mapValues(_.toInt)))
+    new EvidenceMetric(modes, auxConstructs, matcher, selectedFeatures = Some(weights.mapValues(_.toInt)))
   }
 
   /**

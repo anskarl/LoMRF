@@ -21,17 +21,17 @@
 package lomrf.mln.learning.supervision.metric
 
 import lomrf.logic._
-import lomrf.mln.learning.supervision.metric.features.Feature
 
 /**
   * A atomic metric is a distance for atomic formulas that measures the
   * structural distance of atoms by ignoring the variables.
   *
   * @param matcher a matcher function
+  * @param selectedFeatures a map from features to binary indicator values
   */
 case class AtomMetric(
     matcher: Matcher,
-    featureWeights: Option[Map[Feature, Int]] = None) extends StructureMetric[AtomicFormula] {
+    selectedFeatures: Option[Map[Feature, Int]] = None) extends StructureMetric[AtomicFormula] {
 
   /**
     * A reduced metric using only selected features for computing
@@ -44,7 +44,7 @@ case class AtomMetric(
     */
   override def havingWeights(weights: Map[Feature, Double]): StructureMetric[AtomicFormula] = {
     require(weights.forall { case (_, w) => w == 0 || w == 1 }, "All weights should be 0 or 1.")
-    copy(featureWeights = Some(weights.mapValues(_.toInt)))
+    copy(selectedFeatures = Some(weights.mapValues(_.toInt)))
   }
 
   /**

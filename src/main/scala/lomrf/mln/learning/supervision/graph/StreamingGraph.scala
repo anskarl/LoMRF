@@ -24,11 +24,11 @@ import spire.syntax.cfor._
 import breeze.linalg.{ DenseMatrix, DenseVector, sum }
 import lomrf.logic.{ AtomSignature, AtomicFormula, EvidenceAtom, FALSE, TRUE }
 import lomrf.mln.learning.supervision.graph.caching.NodeCache
-import lomrf.mln.learning.supervision.metric.Metric
 import lomrf.mln.model.{ EvidenceDB, MLN, ModeDeclarations }
+import lomrf.mln.learning.supervision.graph.selection.{ Clustering, LargeMarginNN }
+import lomrf.mln.learning.supervision.metric.{ AtomMetric, HungarianMatcher, Metric }
 import lomrf.util.time.msecTimeToTextUntilNow
 import lomrf.logic.LogicOps._
-import lomrf.mln.learning.supervision.metric.features.FeatureStats
 import lomrf.mln.model.builders.EvidenceBuilder
 
 final class StreamingGraph private[graph] (
@@ -38,14 +38,16 @@ final class StreamingGraph private[graph] (
     metric: Metric[_ <: AtomicFormula],
     supervisionBuilder: EvidenceBuilder,
     nodeCache: NodeCache,
-    featureStats: FeatureStats,
     solver: GraphSolver,
     storedUnlabeled: IndexedSeq[Node],
     previousGraph: GraphMatrix,
     memory: Int,
     minNodeSize: Int,
-    minNodeOcc: Int)
-  extends SupervisionGraph(nodes, querySignature, connector, metric, supervisionBuilder, nodeCache, featureStats) {
+    minNodeOcc: Int,
+    enableSelection: Boolean,
+    enableHardSelection: Boolean,
+    maxDensity: Double)
+  extends SupervisionGraph(nodes, querySignature, connector, metric, supervisionBuilder, nodeCache) {
 
   private var W = previousGraph
   private val numberOfStoredUnlabeled = storedUnlabeled.length
@@ -95,7 +97,7 @@ final class StreamingGraph private[graph] (
           W(Wi, clusterId) += WW(WWi, j) // TODO switch clusterId to j
           W(clusterId, Wi) += WW(j, WWi)
         } else {
-          val Wj = 2 + storedUnlabeled.length + (numberOfLabeled - j) // TODO switch 2 to number of labeled
+          val Wj = 2 + storedUnlabeled.length + (j - numberOfLabeled) // TODO switch 2 to number of labeled
           W(Wi, Wj) = WW(WWi, j)
           W(Wj, Wi) = WW(j, WWi)
         }
@@ -115,15 +117,7 @@ final class StreamingGraph private[graph] (
       """.stripMargin
     }
 
-    // Delete old nodes that do not fit into memory
-    W = connector.synopsisOf(W, 2, memory) // TODO switch 2 to number of labeled
-
-    logger.debug {
-      s"""
-         |After synopsis
-         |${W.mkString()}
-      """.stripMargin
-    }
+    // WARN: SYNOPSIS WAS HERE AT THE BEGINNING. IS THERE A DIFFERENCE?
 
     val D = DenseMatrix.zeros[Double](W.rows, W.cols)
     cfor(0)(_ < W.rows, _ + 1) { i => D(i, i) = sum(W(i, ::)) }
@@ -137,6 +131,16 @@ final class StreamingGraph private[graph] (
 
     val solution = solver.solve(W, D, fl).toArray.slice(2, numberOfNodes) // TODO switch 2 to number of labeled
     val truthValues = solution.map(value => if (value <= UNCONNECTED) FALSE else TRUE)
+
+    // Delete old nodes that do not fit into memory
+    W = connector.synopsisOf(W, 2, memory) // TODO switch 2 to number of labeled
+
+    logger.debug {
+      s"""
+         |After synopsis
+         |${W.mkString()}
+      """.stripMargin
+    }
 
     logger.info(msecTimeToTextUntilNow(s"Labeling solution found in: ", startSolution))
 
@@ -194,7 +198,7 @@ final class StreamingGraph private[graph] (
 
     val updatedStoredUnlabeled =
       if (numberOfStoredUnlabeled + numberOfUnlabeled > memory)
-        storedUnlabeled.drop(numberOfStoredUnlabeled + numberOfUnlabeled - memory) ++ unlabeledNodes
+        (storedUnlabeled ++ unlabeledNodes).drop(numberOfStoredUnlabeled + numberOfUnlabeled - memory)
       else storedUnlabeled ++ unlabeledNodes
 
     /*
@@ -202,22 +206,38 @@ final class StreamingGraph private[graph] (
      * case try to separate old labeled nodes that are dissimilar to the ones in the current batch
      * of data (the current supervision graph). Moreover remove noisy nodes using the Hoeffding bound.
      */
-    if (pureLabeledNodes.isEmpty)
+    if (pureLabeledNodes.isEmpty) {
+
+      val mixed = labeledNodes.exists(_.isPositive) && labeledNodes.exists(_.isNegative)
+      val (selectedNodes, updatedMetric) =
+        if (mixed && nodeCache.hasChanged && nonEmptyUnlabeled.nonEmpty && (enableSelection || enableHardSelection)) {
+          nodeCache.hasChanged = false
+          logger.info("Performing feature selection.")
+          val clusters = Clustering(maxDensity).cluster(labeledNodes, nodeCache)
+          val (weights, selectedNodes) =
+            if (enableHardSelection) LargeMarginNN(1, 0.5).optimizeTogether(clusters, modes, nodeCache)(AtomMetric(HungarianMatcher))
+            else LargeMarginNN(1, 0.5).optimizeAloneAndMerge(clusters, nodeCache)(AtomMetric(HungarianMatcher))
+          selectedNodes -> metric.havingWeights(weights)
+        } else (labeledNodes, metric)
+
       new StreamingGraph(
-        labeledNodes ++ nonEmptyUnlabeled,
+        selectedNodes ++ nonEmptyUnlabeled,
         querySignature,
         connector,
-        metric ++ mln.evidence ++ pureNodes.map(_.atoms),
+        updatedMetric ++ mln.evidence ++ pureNodes.flatMap(n => IndexedSeq.fill(n.clusterSize)(n.atoms)),
         annotationBuilder,
         nodeCache,
-        featureStats,
         solver,
         updatedStoredUnlabeled,
         W.copy,
         memory,
         minNodeSize,
-        minNodeOcc)
-    else {
+        minNodeOcc,
+        enableSelection,
+        enableHardSelection,
+        maxDensity
+      )
+    } else {
       /*
        * Update the cache using only non empty labeled nodes, i.e., nodes having at least
        * one evidence predicate in their body
@@ -235,6 +255,19 @@ final class StreamingGraph private[graph] (
       logger.info(s"${cleanedUniqueLabeled.length}/${numberOfLabeled + labeled.length} unique labeled nodes kept.")
       logger.debug(updatedNodeCache.toString)
 
+      updatedNodeCache.hasChanged = true
+      val mixed = cleanedUniqueLabeled.exists(_.isPositive) && cleanedUniqueLabeled.exists(_.isNegative)
+      val (selectedNodes, updatedMetric) =
+        if (mixed && nonEmptyUnlabeled.nonEmpty && (enableSelection || enableHardSelection)) {
+          updatedNodeCache.hasChanged = false
+          logger.info("Performing feature selection.")
+          val clusters = Clustering(maxDensity).cluster(cleanedUniqueLabeled, updatedNodeCache)
+          val (weights, selectedNodes) =
+            if (enableHardSelection) LargeMarginNN(1, 0.5).optimizeTogether(clusters, modes, nodeCache)(AtomMetric(HungarianMatcher))
+            else LargeMarginNN(1, 0.5).optimizeAloneAndMerge(clusters, nodeCache)(AtomMetric(HungarianMatcher))
+          selectedNodes -> metric.havingWeights(weights)
+        } else (cleanedUniqueLabeled, metric)
+
       /*val Wnew = if (cleanedUniqueLabeled.length - numberOfLabeled > 0) {
         val A = W(0 until numberOfLabeled, 0 until numberOfLabeled)
         val B = DenseMatrix.vertcat(A, DenseMatrix.zeros[Double](cleanedUniqueLabeled.length - numberOfLabeled, numberOfLabeled))
@@ -244,19 +277,22 @@ final class StreamingGraph private[graph] (
 
       // Labeled nodes MUST appear before unlabeled!
       new StreamingGraph(
-        cleanedUniqueLabeled ++ nonEmptyUnlabeled,
+        selectedNodes ++ nonEmptyUnlabeled,
         querySignature,
         connector,
-        metric ++ mln.evidence ++ pureNodes.map(_.atoms),
+        updatedMetric ++ mln.evidence ++ pureNodes.flatMap(n => IndexedSeq.fill(n.clusterSize)(n.atoms)),
         annotationBuilder,
         updatedNodeCache,
-        featureStats,
         solver,
         updatedStoredUnlabeled,
         W.copy,
         memory,
         minNodeSize,
-        minNodeOcc)
+        minNodeOcc,
+        enableSelection,
+        enableHardSelection,
+        maxDensity
+      )
     }
   }
 }

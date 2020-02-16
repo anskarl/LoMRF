@@ -21,7 +21,6 @@
 package lomrf.mln.learning.supervision.metric
 
 import lomrf.logic.AtomicFormula
-import lomrf.mln.learning.supervision.metric.features.Feature
 
 /**
   * A binary metric is a very simple distance for atomic formulas where an atom
@@ -29,10 +28,11 @@ import lomrf.mln.learning.supervision.metric.features.Feature
   * distance is always one.
   *
   * @param matcher a matcher function
+  * @param selectedFeatures a map from features to binary indicator values
   */
 case class BinaryMetric(
     matcher: Matcher,
-    featureWeights: Option[Map[Feature, Int]] = None) extends StructureMetric[AtomicFormula] {
+    selectedFeatures: Option[Map[Feature, Int]] = None) extends StructureMetric[AtomicFormula] {
 
   /**
     * A reduced metric using only selected features for computing
@@ -45,7 +45,7 @@ case class BinaryMetric(
     */
   override def havingWeights(weights: Map[Feature, Double]): StructureMetric[AtomicFormula] = {
     require(weights.forall { case (_, w) => w == 0 || w == 1 }, "All weights should be 0 or 1.")
-    copy(featureWeights = Some(weights.mapValues(_.toInt)))
+    copy(selectedFeatures = Some(weights.mapValues(_.toInt)))
   }
 
   /**

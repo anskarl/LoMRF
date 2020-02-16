@@ -18,7 +18,7 @@
  *
  */
 
-package lomrf.mln.learning.supervision.metric.features
+package lomrf.mln.learning.supervision.metric
 
 import lomrf.logic.{ AtomSignature, AtomicFormula }
 import scala.language.implicitConversions
@@ -31,11 +31,14 @@ case class Feature(signature: AtomSignature, constantArgs: Set[String]) {
 
   override def toString: String =
     if (constantArgs.isEmpty) signature.toString
-    else s"${signature}[${constantArgs.mkString(",")}]"
+    else s"$signature[${constantArgs.mkString(",")}]"
 }
 
 object Feature {
-  implicit def atom2Feature(atom: AtomicFormula): Feature = {
+
+  implicit def fromAtomSignature(signature: AtomSignature): Feature =
+    Feature(signature, Set.empty)
+
+  implicit def fromAtomicFormula(atom: AtomicFormula): Feature =
     Feature(atom.signature, atom.functions.map(_.signature.toString) ++ atom.constants.map(_.symbol))
-  }
 }

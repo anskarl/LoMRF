@@ -22,7 +22,6 @@ package lomrf.mln.learning.supervision.metric
 
 import lomrf.logic.AtomicFormula
 import lomrf.mln.model.Evidence
-import lomrf.mln.learning.supervision.metric.features.Feature
 
 /**
   * A metric for atomic formulas is defined by a distance function over atoms
@@ -107,8 +106,8 @@ trait StructureMetric[A <: AtomicFormula] extends Metric[A] {
   // Matcher used for finding a mapping between atoms sequences
   val matcher: Matcher
 
-  // Binary weights used for feature selection
-  val featureWeights: Option[Map[Feature, Int]]
+  // Binary values indicating the selected features
+  val selectedFeatures: Option[Map[Feature, Int]]
 
   /**
     * Distance over sequences of atoms.
@@ -130,7 +129,7 @@ trait StructureMetric[A <: AtomicFormula] extends Metric[A] {
     // Compute a matching and a total cost
     val (matches, unweightedDistance) = matcher(distanceMatrix)
 
-    featureWeights match {
+    selectedFeatures match {
       case Some(weights) =>
 
         var totalScore = 0.0

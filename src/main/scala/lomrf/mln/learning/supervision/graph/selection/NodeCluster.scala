@@ -22,7 +22,7 @@ package lomrf.mln.learning.supervision.graph.selection
 
 import lomrf.mln.learning.supervision.graph.Node
 import lomrf.mln.learning.supervision.graph.caching.NodeCache
-import lomrf.mln.learning.supervision.metric.features.Feature
+import lomrf.mln.learning.supervision.metric.Feature
 
 case class NodeCluster(prototype: Set[Feature], nodes: Set[Node], density: Long) {
 

@@ -25,7 +25,6 @@ import lomrf.logic._
 import lomrf.mln.learning.supervision.graph.caching.{ FastNodeCache, NodeCache, NodeHashSet }
 import lomrf.mln.model.builders.EvidenceBuilder
 import lomrf.util.time._
-import lomrf.mln.learning.supervision.metric.features.FeatureStats
 import lomrf.mln.learning.supervision.metric.Metric
 import lomrf.mln.model.{ Evidence, EvidenceDB, MLN, ModeDeclarations }
 import lomrf.util.logging.Implicits._
@@ -40,8 +39,7 @@ abstract class SupervisionGraph(
     connector: GraphConnector,
     metric: Metric[_ <: AtomicFormula],
     supervisionBuilder: EvidenceBuilder,
-    nodeCache: NodeCache,
-    featureStats: FeatureStats) extends LazyLogging {
+    nodeCache: NodeCache) extends LazyLogging {
 
   protected val (labeledNodes, unlabeledNodes) = nodes.partition(_.isLabeled)
 
@@ -59,7 +57,7 @@ abstract class SupervisionGraph(
       (Set.empty[EvidenceAtom], supervisionBuilder.result())
     } else if (labeledNodes.isEmpty) {
       logger.warn("No labeled nodes found. Set all unlabeled nodes to FALSE due to close world assumption!")
-      val unlabeledAtoms = unlabeledNodes.head.labelUsingValue(FALSE).toSet
+      val unlabeledAtoms = unlabeledNodes.flatMap(_.labelUsingValue(FALSE)).toSet
       supervisionBuilder.evidence ++= unlabeledAtoms
       (unlabeledAtoms, supervisionBuilder.result())
     } else {
@@ -287,7 +285,6 @@ object SupervisionGraph extends LazyLogging {
     * able to label the unlabeled ground query atoms.
     *
     * @see [[lomrf.mln.learning.structure.ModeDeclaration]]
-    *
     * @param mln an MLN
     * @param modes a map from atom signature to mode declarations
     * @param annotationDB an annotation database
@@ -295,9 +292,15 @@ object SupervisionGraph extends LazyLogging {
     * @param connector a graph connector
     * @param metric a metric for atomic formula
     * @param solver a graph solver
-    * @param enableClusters enables clustering of unlabeled examples
+    * @param edgeReWeighting re-weight edges using cache frequency
     * @param useHoeffding use hoeffding bound for cache filtering
-    * @param minNodeSize minimum node process size
+    * @param minNodeSize minimum node size
+    * @param minNodeOcc minimum node occurrences
+    * @param augment augment examples
+    * @param enableClusters enables clustering of unlabeled examples
+    * @param enableSelection enables feature selection
+    * @param enableHardSelection enables hard feature selection
+    * @param maxDensity clusters maximum density
     * @return a SPLICE supervision graph instance
     */
   def SPLICE(
@@ -308,14 +311,15 @@ object SupervisionGraph extends LazyLogging {
       connector: GraphConnector,
       metric: Metric[_ <: AtomicFormula],
       solver: GraphSolver,
-      enableClusters: Boolean,
       edgeReWeighting: Boolean,
-      augment: Boolean,
-      enableSelection: Boolean,
-      maxDensity: Double,
       useHoeffding: Boolean,
       minNodeSize: Int,
-      minNodeOcc: Int): SPLICE = {
+      minNodeOcc: Int,
+      augment: Boolean,
+      enableClusters: Boolean,
+      enableSelection: Boolean,
+      enableHardSelection: Boolean,
+      maxDensity: Double): SPLICE = {
 
     // Group the given data into nodes
     val currentNodes = connector match {
@@ -382,15 +386,15 @@ object SupervisionGraph extends LazyLogging {
       metric ++ mln.evidence ++ pureNodes.flatMap(n => IndexedSeq.fill(n.clusterSize)(n.atoms)),
       annotationBuilder,
       nodeCache,
-      FeatureStats.empty,
       solver,
-      enableClusters,
       edgeReWeighting,
-      augment,
-      enableSelection,
-      maxDensity,
       minNodeSize,
-      minNodeOcc
+      minNodeOcc,
+      augment,
+      enableClusters,
+      enableSelection,
+      enableHardSelection,
+      maxDensity
     )
   }
 
@@ -400,16 +404,19 @@ object SupervisionGraph extends LazyLogging {
     * able to label the unlabeled ground query atoms.
     *
     * @see [[lomrf.mln.learning.structure.ModeDeclaration]]
-    *
     * @param mln an MLN
     * @param modes a map from atom signature to mode declarations
     * @param annotationDB an annotation database
     * @param querySignature the query signature of interest
     * @param connector a graph connector
     * @param metric a metric for atomic formula
-    * @param enableClusters enables clustering of unlabeled examples
     * @param useHoeffding use hoeffding bound for cache filtering
-    * @param minNodeSize minimum node process size
+    * @param minNodeSize  minimum node size
+    * @param minNodeOcc minimum node occurrences
+    * @param enableClusters enables clustering of unlabeled examples
+    * @param enableSelection enables feature selection
+    * @param enableHardSelection enables hard feature selection
+    * @param maxDensity clusters maximum density
     * @return a nearest neighbor graph instance
     */
   def nearestNeighbor(
@@ -419,10 +426,13 @@ object SupervisionGraph extends LazyLogging {
       querySignature: AtomSignature,
       connector: GraphConnector,
       metric: Metric[_ <: AtomicFormula],
-      enableClusters: Boolean,
       useHoeffding: Boolean,
       minNodeSize: Int,
-      minNodeOcc: Int): NNGraph = {
+      minNodeOcc: Int,
+      enableClusters: Boolean,
+      enableSelection: Boolean,
+      enableHardSelection: Boolean,
+      maxDensity: Double): NNGraph = {
 
     // Group the given data into nodes
     val currentNodes = connector match {
@@ -488,10 +498,12 @@ object SupervisionGraph extends LazyLogging {
       metric ++ mln.evidence ++ pureNodes.flatMap(n => IndexedSeq.fill(n.clusterSize)(n.atoms)),
       annotationBuilder,
       nodeCache,
-      FeatureStats.empty,
-      enableClusters,
       minNodeSize,
-      minNodeOcc
+      minNodeOcc,
+      enableClusters,
+      enableSelection,
+      enableHardSelection,
+      maxDensity
     )
   }
 
@@ -508,9 +520,13 @@ object SupervisionGraph extends LazyLogging {
     * @param querySignature the query signature of interest
     * @param connector a graph connector
     * @param metric a metric for atomic formula
-    * @param enableClusters enables clustering of unlabeled examples
     * @param useHoeffding use hoeffding bound for cache filtering
-    * @param minNodeSize minimum node process size
+    * @param minNodeSize minimum node size
+    * @param minNodeOcc minimum node occurrences
+    * @param enableClusters enables clustering of unlabeled examples
+    * @param enableSelection enables feature selection
+    * @param enableHardSelection enables hard feature selection
+    * @param maxDensity clusters maximum density
     * @return a nearest neighbor graph instance
     */
   def extNearestNeighbor(
@@ -520,10 +536,13 @@ object SupervisionGraph extends LazyLogging {
       querySignature: AtomSignature,
       connector: GraphConnector,
       metric: Metric[_ <: AtomicFormula],
-      enableClusters: Boolean,
       useHoeffding: Boolean,
       minNodeSize: Int,
-      minNodeOcc: Int): ExtNNGraph = {
+      minNodeOcc: Int,
+      enableClusters: Boolean,
+      enableSelection: Boolean,
+      enableHardSelection: Boolean,
+      maxDensity: Double): ExtNNGraph = {
 
     // Group the given data into nodes
     val currentNodes = connector match {
@@ -589,10 +608,12 @@ object SupervisionGraph extends LazyLogging {
       metric ++ mln.evidence ++ pureNodes.flatMap(n => IndexedSeq.fill(n.clusterSize)(n.atoms)),
       annotationBuilder,
       nodeCache,
-      FeatureStats.empty,
-      enableClusters,
       minNodeSize,
-      minNodeOcc
+      minNodeOcc,
+      enableClusters,
+      enableSelection,
+      enableHardSelection,
+      maxDensity
     )
   }
 
@@ -602,7 +623,6 @@ object SupervisionGraph extends LazyLogging {
     * able to label the unlabeled ground query atoms.
     *
     * @see [[lomrf.mln.learning.structure.ModeDeclaration]]
-    *
     * @param mln an MLN
     * @param modes a map from atom signature to mode declarations
     * @param annotationDB an annotation database
@@ -611,8 +631,12 @@ object SupervisionGraph extends LazyLogging {
     * @param metric a metric for atomic formula
     * @param solver a graph solver
     * @param useHoeffding use hoeffding bound for cache filtering
+    * @param minNodeSize minimum node size
+    * @param minNodeOcc minimum node occurrences
+    * @param enableSelection enables feature selection
+    * @param enableHardSelection enables hard feature selection
+    * @param maxDensity clusters maximum density
     * @param memory the graph memory (number of unlabeled nodes)
-    * @param minNodeSize minimum node process size
     * @return a temporal label propagation graph instance
     */
   def TLP(
@@ -624,9 +648,12 @@ object SupervisionGraph extends LazyLogging {
       metric: Metric[_ <: AtomicFormula],
       solver: GraphSolver,
       useHoeffding: Boolean,
-      memory: Int,
       minNodeSize: Int,
-      minNodeOcc: Int): StreamingGraph = {
+      minNodeOcc: Int,
+      enableSelection: Boolean,
+      enableHardSelection: Boolean,
+      maxDensity: Double,
+      memory: Int): StreamingGraph = {
 
     // Group the given data into nodes
     val currentNodes = connector match {
@@ -689,16 +716,18 @@ object SupervisionGraph extends LazyLogging {
       uniqueLabeled ++ nonEmptyUnlabeled,
       querySignature,
       connector,
-      metric ++ mln.evidence ++ pureNodes.map(_.atoms),
+      metric ++ mln.evidence ++ pureNodes.flatMap(n => IndexedSeq.fill(n.clusterSize)(n.atoms)),
       annotationBuilder,
       nodeCache,
-      FeatureStats.empty,
       solver,
       IndexedSeq.empty,
       DenseMatrix.zeros[Double](2, 2),
       memory,
       minNodeSize,
-      minNodeOcc
+      minNodeOcc,
+      enableSelection,
+      enableHardSelection,
+      maxDensity
     )
   }
 }

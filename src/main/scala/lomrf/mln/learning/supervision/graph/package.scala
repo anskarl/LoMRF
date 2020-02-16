@@ -27,7 +27,7 @@ import scala.util.{ Failure, Success, Try }
 import lomrf.{ AUX_PRED_PREFIX => PREFIX }
 import breeze.linalg.DenseMatrix
 import lomrf.mln.learning.supervision.graph.caching.NodeCache
-import lomrf.mln.learning.supervision.metric.features.Feature
+import lomrf.mln.learning.supervision.metric.Feature
 
 package object graph {
 
@@ -54,15 +54,25 @@ package object graph {
     * @param cache node cache holding labelled nodes (optional)
     * @return a indexed sequence of generalized nodes
     */
-  private[graph] def generalise(nodes: IndexedSeq[Node], features: Set[Feature], cache: Option[NodeCache] = None): IndexedSeq[Node] = {
+  private[graph] def generalise(
+      nodes: IndexedSeq[Node],
+      features: Set[Feature],
+      cache: Option[NodeCache] = None): IndexedSeq[Node] = {
+
     nodes.foldLeft(IndexedSeq.empty[(Node, Long)]) {
       case (reducedNodes, node) =>
         val freq = cache.map(_.getOrElse(node, 1L)).getOrElse(1L)
         val generalizedNode = node.generalise(features)
 
         if (generalizedNode.isEmpty ||
-          reducedNodes.exists { case (otherNode, otherFreq) => otherNode.clause.get =~= generalizedNode.clause.get && otherFreq >= freq } ||
-          reducedNodes.exists { case (otherNode, otherFreq) => otherNode.body.get =~= generalizedNode.body.get && otherFreq > freq }) reducedNodes
+          reducedNodes.exists {
+            case (otherNode, otherFreq) =>
+              otherNode.clause.get =~= generalizedNode.clause.get && otherFreq >= freq
+          } ||
+          reducedNodes.exists {
+            case (otherNode, otherFreq) =>
+              otherNode.body.get =~= generalizedNode.body.get && otherFreq > freq
+          }) reducedNodes
         else
           reducedNodes :+ generalizedNode -> freq
 

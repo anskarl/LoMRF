@@ -22,13 +22,12 @@ package lomrf.mln.learning.supervision.graph
 
 import lomrf.logic._
 import lomrf.mln.learning.supervision.graph.caching.NodeCache
+import lomrf.mln.learning.supervision.graph.selection.{ Clustering, LargeMarginNN }
 import lomrf.mln.learning.supervision.metric._
 import lomrf.mln.model._
 import lomrf.util.time._
-
 import scala.language.existentials
 import lomrf.logic.LogicOps._
-import lomrf.mln.learning.supervision.metric.features.FeatureStats
 import lomrf.mln.model.builders.EvidenceBuilder
 
 /**
@@ -44,8 +43,12 @@ import lomrf.mln.model.builders.EvidenceBuilder
   * @param metric a metric for atomic formula
   * @param supervisionBuilder a supervision evidence builder that contains the completed annotation
   * @param nodeCache a node cache for storing labelled nodes
+  * @param minNodeSize minimum node size
+  * @param minNodeOcc minimum node occurrences
   * @param enableClusters enables clustering of unlabeled examples
-  * @param minNodeSize minimum node process size
+  * @param enableSelection enables feature selection
+  * @param enableHardSelection enables hard feature selection
+  * @param maxDensity clusters maximum density
   */
 final class ExtNNGraph private[graph] (
     nodes: IndexedSeq[Node],
@@ -54,11 +57,13 @@ final class ExtNNGraph private[graph] (
     metric: Metric[_ <: AtomicFormula],
     supervisionBuilder: EvidenceBuilder,
     nodeCache: NodeCache,
-    featureStats: FeatureStats,
-    enableClusters: Boolean,
     minNodeSize: Int,
-    minNodeOcc: Int)
-  extends SupervisionGraph(nodes, querySignature, connector, metric, supervisionBuilder, nodeCache, featureStats) {
+    minNodeOcc: Int,
+    enableClusters: Boolean,
+    enableSelection: Boolean,
+    enableHardSelection: Boolean,
+    maxDensity: Double)
+  extends SupervisionGraph(nodes, querySignature, connector, metric, supervisionBuilder, nodeCache) {
 
   protected def optimize(potentials: Map[EvidenceAtom, Double]): Set[EvidenceAtom] = {
 
@@ -192,17 +197,32 @@ final class ExtNNGraph private[graph] (
      * of data (the current supervision graph). Moreover remove noisy nodes using the Hoeffding bound.
      */
     if (pureLabeledNodes.isEmpty) {
+
+      val mixed = labeledNodes.exists(_.isPositive) && labeledNodes.exists(_.isNegative)
+      val (selectedNodes, updatedMetric) =
+        if (mixed && nodeCache.hasChanged && nonEmptyUnlabeled.nonEmpty && (enableSelection || enableHardSelection)) {
+          nodeCache.hasChanged = false
+          logger.info("Performing feature selection.")
+          val clusters = Clustering(maxDensity).cluster(labeledNodes, nodeCache)
+          val (weights, selectedNodes) =
+            if (enableHardSelection) LargeMarginNN(1, 0.5).optimizeTogether(clusters, modes, nodeCache)(AtomMetric(HungarianMatcher))
+            else LargeMarginNN(1, 0.5).optimizeAloneAndMerge(clusters, nodeCache)(AtomMetric(HungarianMatcher))
+          selectedNodes -> metric.havingWeights(weights)
+        } else (labeledNodes, metric)
+
       new ExtNNGraph(
-        labeledNodes ++ nonEmptyUnlabeled,
+        selectedNodes ++ nonEmptyUnlabeled,
         querySignature,
         connector,
-        metric ++ mln.evidence ++ pureNodes.flatMap(n => IndexedSeq.fill(n.clusterSize)(n.atoms)),
+        updatedMetric ++ mln.evidence ++ pureNodes.flatMap(n => IndexedSeq.fill(n.clusterSize)(n.atoms)),
         annotationBuilder,
         nodeCache,
-        featureStats,
-        enableClusters,
         minNodeSize,
-        minNodeOcc)
+        minNodeOcc,
+        enableClusters,
+        enableSelection,
+        enableHardSelection,
+        maxDensity)
     } else {
       /*
        * Update the cache using only non empty labeled nodes, i.e., nodes having at least
@@ -221,18 +241,33 @@ final class ExtNNGraph private[graph] (
       logger.info(s"${cleanedUniqueLabeled.length}/${numberOfLabeled + labeled.length} unique labeled nodes kept.")
       logger.debug(updatedNodeCache.toString)
 
+      updatedNodeCache.hasChanged = true
+      val mixed = cleanedUniqueLabeled.exists(_.isPositive) && cleanedUniqueLabeled.exists(_.isNegative)
+      val (selectedNodes, updatedMetric) =
+        if (mixed && nonEmptyUnlabeled.nonEmpty && (enableSelection || enableHardSelection)) {
+          updatedNodeCache.hasChanged = false
+          logger.info("Performing feature selection.")
+          val clusters = Clustering(maxDensity).cluster(cleanedUniqueLabeled, updatedNodeCache)
+          val (weights, selectedNodes) =
+            if (enableHardSelection) LargeMarginNN(1, 0.5).optimizeTogether(clusters, modes, nodeCache)(AtomMetric(HungarianMatcher))
+            else LargeMarginNN(1, 0.5).optimizeAloneAndMerge(clusters, nodeCache)(AtomMetric(HungarianMatcher))
+          selectedNodes -> metric.havingWeights(weights)
+        } else (cleanedUniqueLabeled, metric)
+
       // Labeled nodes MUST appear before unlabeled!
       new ExtNNGraph(
-        cleanedUniqueLabeled ++ nonEmptyUnlabeled,
+        selectedNodes ++ nonEmptyUnlabeled,
         querySignature,
         connector,
-        metric ++ mln.evidence ++ pureNodes.flatMap(n => IndexedSeq.fill(n.clusterSize)(n.atoms)),
+        updatedMetric ++ mln.evidence ++ pureNodes.flatMap(n => IndexedSeq.fill(n.clusterSize)(n.atoms)),
         annotationBuilder,
         updatedNodeCache,
-        featureStats,
-        enableClusters,
         minNodeSize,
-        minNodeOcc)
+        minNodeOcc,
+        enableClusters,
+        enableSelection,
+        enableHardSelection,
+        maxDensity)
     }
   }
 }

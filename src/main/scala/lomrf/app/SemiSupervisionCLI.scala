@@ -14,7 +14,7 @@
  *  o   o o-o-o  o  o-o o-o o o o     o    | o-o o  o-o o-o
  *
  *  Logical Markov Random Fields (LoMRF).
- *
+ *     
  *
  */
 
@@ -83,6 +83,9 @@ object SemiSupervisionCLI extends CLIApp {
 
   // By default do not perform instance and feature selection
   private var _selection: Boolean = false
+
+  // By default do not perform hard selection
+  private var _hardSelection: Boolean = false
 
   // Epsilon threshold for the eNN graph
   private var _epsilon = 0.75
@@ -246,6 +249,10 @@ object SemiSupervisionCLI extends CLIApp {
     _selection = true
   })
 
+  flagOpt("hs", "hard-selection", "Perform hard instance and feature selection.", {
+    _hardSelection = true
+  })
+
   flagOpt("rw", "edge-re-weighting", "Re-weight edges using node counts.", {
     _edgeReWeighing = true
   })
@@ -379,7 +386,8 @@ object SemiSupervisionCLI extends CLIApp {
 
       builder ++= s".cf[${_cacheFilter}:${_minNodeSize}:${_minOccSize}]"
 
-      if (_selection) builder ++= s".fs[${_maxDensity}]"
+      if (_hardSelection) builder ++= s".fhs[${_maxDensity}]"
+      else if (_selection) builder ++= s".fs[${_maxDensity}]"
 
       if (_distance == DistanceType.Mass || _distance == DistanceType.Hybrid) builder ++= s".${_distance}[${_trees}]"
       else builder ++= s".${_distance}"
@@ -439,30 +447,74 @@ object SemiSupervisionCLI extends CLIApp {
       _nonEvidenceAtoms.foreach { querySignature =>
         supervisionGraphs.get(querySignature) match {
           case Some(graph) => supervisionGraphs += querySignature -> (graph ++ (mln, annotationDB, modes))
-          case None if _solver == LP_TLP =>
+          case None if _solver == LP_TLP | _solver == HFC_TLP | _solver == LGC_TLP =>
             supervisionGraphs += querySignature -> SupervisionGraph.TLP(
-              mln, modes, annotationDB, querySignature, connector, distance, LP(), useHoeffding, _memory, _minNodeSize, _minOccSize)
-          case None if _solver == HFC_TLP =>
-            supervisionGraphs += querySignature -> SupervisionGraph.TLP(
-              mln, modes, annotationDB, querySignature, connector, distance, new HFc, useHoeffding, _memory, _minNodeSize, _minOccSize)
-          case None if _solver == LGC_TLP =>
-            supervisionGraphs += querySignature -> SupervisionGraph.TLP(
-              mln, modes, annotationDB, querySignature, connector, distance, LGCc(alpha = _alpha), useHoeffding, _memory, _minNodeSize, _minOccSize)
-          case None if _solver == LP_SPLICE =>
+              mln,
+              modes,
+              annotationDB,
+              querySignature,
+              connector,
+              distance,
+              if (_solver == LP_TLP) LP() else if ( _solver == HFC_TLP) new HFc else LGCc(alpha = _alpha),
+              useHoeffding,
+              _minNodeSize,
+              _minOccSize,
+              _selection,
+              _hardSelection,
+              _maxDensity,
+              _memory
+            )
+          case None if _solver == LP_SPLICE | _solver == HFC_SPLICE | _solver == LGC_SPLICE =>
             supervisionGraphs += querySignature -> SupervisionGraph.SPLICE(
-              mln, modes, annotationDB, querySignature, connector, distance, LP(), _clusterUnlabeled, _edgeReWeighing, _augment, _selection, _maxDensity, useHoeffding, _minNodeSize, _minOccSize)
-          case None if _solver == HFC_SPLICE =>
-            supervisionGraphs += querySignature -> SupervisionGraph.SPLICE(
-              mln, modes, annotationDB, querySignature, connector, distance, new HFc, _clusterUnlabeled, _edgeReWeighing, _augment, _selection, _maxDensity, useHoeffding, _minNodeSize, _minOccSize)
-          case None if _solver == LGC_SPLICE =>
-            supervisionGraphs += querySignature -> SupervisionGraph.SPLICE(
-              mln, modes, annotationDB, querySignature, connector, distance, LGCc(alpha = _alpha), _clusterUnlabeled, _edgeReWeighing, _augment, _selection, _maxDensity, useHoeffding, _minNodeSize, _minOccSize)
+              mln,
+              modes,
+              annotationDB,
+              querySignature,
+              connector,
+              distance,
+              if (_solver == LP_TLP) LP() else if ( _solver == HFC_TLP) new HFc else LGCc(alpha = _alpha),
+              _edgeReWeighing,
+              useHoeffding,
+              _minNodeSize,
+              _minOccSize,
+              _augment,
+              _clusterUnlabeled,
+              _selection,
+              _hardSelection,
+              _maxDensity,
+            )
           case None if _solver == NN =>
             supervisionGraphs += querySignature -> SupervisionGraph.nearestNeighbor(
-              mln, modes, annotationDB, querySignature, connector, distance, _clusterUnlabeled, useHoeffding, _minNodeSize, _minOccSize)
+              mln,
+              modes,
+              annotationDB,
+              querySignature,
+              connector,
+              distance,
+              useHoeffding,
+              _minNodeSize,
+              _minOccSize,
+              _clusterUnlabeled,
+              _selection,
+              _hardSelection,
+              _maxDensity
+            )
           case None if _solver == EXT_NN =>
             supervisionGraphs += querySignature -> SupervisionGraph.extNearestNeighbor(
-              mln, modes, annotationDB, querySignature, connector, distance, _clusterUnlabeled, useHoeffding, _minNodeSize, _minOccSize)
+              mln,
+              modes,
+              annotationDB,
+              querySignature,
+              connector,
+              distance,
+              useHoeffding,
+              _minNodeSize,
+              _minOccSize,
+              _clusterUnlabeled,
+              _selection,
+              _hardSelection,
+              _maxDensity
+            )
         }
       }
 
