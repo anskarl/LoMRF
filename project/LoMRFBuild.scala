@@ -166,7 +166,7 @@ object LoMRFBuild extends AutoPlugin {
       scalaBinaryVersion.value match {
 
         case "2.11" =>
-          // Scala compiler settings for Scala 2.12.x
+          // Scala compiler settings for Scala 2.11.x
           Seq(
             "-deprecation",       // Emit warning and location for usages of deprecated APIs.
             "-unchecked",         // Enable additional warnings where generated code depends on assumptions.
@@ -213,43 +213,49 @@ object LoMRFBuild extends AutoPlugin {
       new Dockerfile {
 
         // Base image
-        from("frolvlad/alpine-oraclejdk8")
+        from("openjdk:11-slim")
 
         // Copy to docker
         copy(universalBuildDir, targetDir)
 
         // Add Bash support
-        runRaw("apk add --update bash")
 
-        // clean up package cache to reduce space
-        runRaw("rm -rf /var/cache/apk/*")
+        runRaw("apt update && apt install -y bash lp-solve wget zip unzip && rm -rf /var/lib/apt/lists/*")
 
-        // Make consumer script executable
+        runRaw (
+          "cd /tmp && " +
+            "wget https://sourceforge.net/projects/lpsolve/files/lpsolve/5.5.2.5/lp_solve_5.5.2.5_java.zip && " +
+            "unzip lp_solve_5.5.2.5_java.zip && " +
+            "cp lp_solve_5.5_java/lib/ux64/liblpsolve55j.so /usr/lib/lp_solve && " +
+            "ldconfig && " +
+            "rm -rf /tmp/lp_solve_5.5_java && " +
+            "rm /tmp/lp_solve_5.5.2.5_java.zip"
+          )
+
+        env("LD_LIBRARY_PATH", "/usr/lib/lp_solve")
+
         runRaw(s"chmod +x $targetDir/bin/lomrf")
-
-
         runRaw("mkdir /data")
-        // set working dir
         workDir(s"/data")
-
         volume("/data")
-
         entryPoint(s"$targetDir/bin/lomrf")
       }
     },
 
     imageNames in docker := {
-      val localTag = ImageName(s"${name.value.toLowerCase}:latest")
+      val tags =
+        sys.env.get("REPOSITORY_OWNER") match {
+          case Some(repositoryOwner) =>
+            Seq(
+              s"docker.pkg.github.com/${repositoryOwner.toLowerCase}/lomrf:${version.value}",
+              s"docker.pkg.github.com/${repositoryOwner.toLowerCase}/lomrf:latest")
+          case None =>
+            Seq(
+              s"lomrf:${version.value}",
+              s"lomrf:latest")
+        }
 
-      // Set a name with a tag that contains the project version.
-      val versionTag = ImageName(s"${organization.value}/${name.value.toLowerCase}:${version.value}")
-
-      // Set a name with the latest tag, only for stable versions.
-      if(!isSnapshot.value) {
-        val latestTag = ImageName(s"${organization.value}/${name.value.toLowerCase}:latest")
-        Seq(versionTag, latestTag, localTag)
-      }
-      else Seq(versionTag, localTag)
+      tags.map(tag => ImageName(tag))
 
     },
 

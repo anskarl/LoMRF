@@ -20,16 +20,16 @@
 
 package lomrf.mln.model.builders
 
-import org.scalacheck.Gen
-import org.scalatest.prop.PropertyChecks
-import org.scalatest.{FunSpec, Matchers}
+import org.scalatest.{ FunSpec, Matchers }
+
+import scala.util.Random
 
 /**
   * A series of specification test for constants set builder.
   *
   * @see [[lomrf.mln.model.builders.ConstantsSetBuilder]]
   */
-final class ConstantsSetBuilderSpecTest extends FunSpec with Matchers with PropertyChecks {
+final class ConstantsSetBuilderSpecTest extends FunSpec with Matchers {
 
   describe("An empty builder") {
     val builder = ConstantsSetBuilder()
@@ -83,10 +83,8 @@ final class ConstantsSetBuilderSpecTest extends FunSpec with Matchers with Prope
 
   describe("A builder holding a more constant symbols") {
 
-    var constants = List.empty[String]
-    forAll(Gen.alphaNumStr) { symbol: String =>
-      constants = symbol :: constants
-    }
+    val constants =
+      for (idx <- 1 to 10) yield s"C${idx}" + Random.alphanumeric.take(5).toString()
 
     val builder = ConstantsSetBuilder(constants)
 

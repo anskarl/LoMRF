@@ -1,0 +1,53 @@
+name: build
+
+on: [push, pull_request]
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          fetch-depth: 1
+      - name: Fetch example data
+        shell: bash
+        run: git submodule update --init
+      - name: Set up JDK 1.8
+        uses: actions/setup-java@v1
+        with:
+          java-version: 1.8
+      - name: Install lp_solve
+        run: sudo apt update && sudo apt install -y bash lp-solve wget zip unzip && sudo rm -rf /var/lib/apt/lists/*
+      - name: Install lp_solve java
+        run: (cd /tmp && wget https://sourceforge.net/projects/lpsolve/files/lpsolve/5.5.2.5/lp_solve_5.5.2.5_java.zip && unzip lp_solve_5.5.2.5_java.zip && sudo cp lp_solve_5.5_java/lib/ux64/liblpsolve55j.so /usr/lib/lp_solve && sudo ldconfig && sudo rm -rf /tmp/lp_solve_5.5_java && rm /tmp/lp_solve_5.5.2.5_java.zip)
+      - name: Docker login
+        uses: azure/docker-login@v1
+        with:
+          login-server: 'docker.pkg.github.com'
+          username: ${GITHUB_ACTOR}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Cache SBT ivy cache
+        uses: actions/cache@v1
+        with:
+          path: ~/.ivy2/cache
+          key: ${{ runner.os }}-sbt-ivy-cache-${{ hashFiles('**/build.sbt') }}
+      - name: Cache SBT
+        uses: actions/cache@v1
+        with:
+          path: ~/.sbt
+          key: ${{ runner.os }}-sbt-${{ hashFiles('**/build.sbt') }}
+      - name: Build for Scala 2.12
+        run: sbt ++2.12.10 clean compile
+      - name: Run Tests
+        run: sbt ++2.12.10 test
+      - name: Create Docker Image
+        run: sbt ++2.12.10 docker
+      - name: Push docker images
+        if: github.event_name != 'pull_request'
+        run: sbt ++2.12.10 dockerPush
+    env:
+      _JAVA_OPTIONS: "-Xms512m -Xmx4g"
+      REPOSITORY_OWNER: ${{ github.repository }}
+      LD_LIBRARY_PATH: "/usr/lib/lp_solve"

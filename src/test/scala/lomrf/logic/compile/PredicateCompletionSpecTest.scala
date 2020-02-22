@@ -220,7 +220,7 @@ final class PredicateCompletionSpecTest extends FunSpec with Matchers {
     val expected = Set(
       parser.parseWeightedFormula(
         """
-          | (Exist t1 Happens(inactive(x),t) ^ !Happens(walking(y),t1) ^ lessThan(t1,t)) v
+          | (Exist t1 Happens(inactive(x),t) ^ !Happens(walking(y),t1) ^ LessThan(t1,t)) v
           | (Happens(active(x),t) ^ Happens(inactive(y),t)) =>
           | HoldsAt(meet(x, y), t++).
         """.stripMargin
@@ -228,7 +228,7 @@ final class PredicateCompletionSpecTest extends FunSpec with Matchers {
       parser.parseWeightedFormula(
         """
           | !HoldsAt(meet(x, y),t) ^
-          | !((Exist t1 Happens(inactive(x),t) ^ !Happens(walking(y),t1) ^ lessThan(t1,t)) v
+          | !((Exist t1 Happens(inactive(x),t) ^ !Happens(walking(y),t1) ^ LessThan(t1,t)) v
           | (Happens(active(x),t) ^ Happens(inactive(y),t))) =>
           | !HoldsAt(meet(x, y),t++)
         """.stripMargin

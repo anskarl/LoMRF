@@ -501,7 +501,7 @@ final class KBParserSpecTest extends FunSpec with Matchers {
       parsed.functions.size shouldEqual 0
     }
 
-    val dynamicFormula7 = "HoldsAt(f, t) <=> substr(Meet, f)."
+    val dynamicFormula7 = "HoldsAt(f, t) <=> Substr(Meet, f)."
     it(s"$dynamicFormula7 should be a valid FOL sentence") {
       val parsed = parser.parseLogicalSentence(dynamicFormula7)
 

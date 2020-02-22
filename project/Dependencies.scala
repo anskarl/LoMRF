@@ -32,7 +32,6 @@ object Dependencies {
     final val JANSI = "1.11"
 
     final val ScalaTest = "3.0.5"
-    final val ScalaCheck = "1.14.1"
 
     final val Trove4j = "3.0.3" // todo upgrade to 3.1
     final val JTS = "1.14.0"
@@ -62,8 +61,7 @@ object Dependencies {
 
   // ScalaTest got Unit testing
   lazy val Testing = Seq(
-    "org.scalatest" %% "scalatest" % v.ScalaTest % "test",
-    "org.scalacheck" %% "scalacheck" % v.ScalaCheck % "test"
+    "org.scalatest" %% "scalatest" % v.ScalaTest % "test"
   )
 
   lazy val Utils = Seq(
