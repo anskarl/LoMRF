@@ -86,10 +86,11 @@ object KB {
 
   private lazy val logger = Logger(this.getClass)
 
-  private lazy val formulaRegex =
-    Pattern.compile("^[^(//)](.*\\s=>\\s.*|.*\\s<=>\\s.*|.*\\s:-\\s.*|.*\\s^\\s.*|.*\\sv\\s.*|.*\\s!\\s.*|\\d.*|.*\\.)")
-  private lazy val ignoreRegex =
+  private final lazy val IgnoreRegex =
     Pattern.compile("(\\s*\\*.*|/\\*.*|//.*|\\s+)+")
+
+  private final lazy val DomainSchemaRegex =
+    Pattern.compile("(^\\s*[a-z]\\w*\\s*=\\s*[{].*[}]\\s*$)|(^\\s*[A-Z][a-zA-Z0-9(, ]*[)]\\s*$)|(^\\s*[a-z][a-zA-Z0-9]*\\s+[a-z][a-zA-Z0-9(, ]*[)]\\s*$)")
 
   /**
     * Parse a knowledge base from a given file.
@@ -109,8 +110,9 @@ object KB {
       logger.fatal(s"Cannot read input MLN file '${kbFile.getPath}'.")
 
     val fileReader = new BufferedReader(new FileReader(kbFile))
-    val formulaMatcher = formulaRegex.matcher("")
-    val commentMatcher = ignoreRegex.matcher("")
+
+    val commentMatcher = IgnoreRegex.matcher("")
+    val domainMatcher = DomainSchemaRegex.matcher("")
 
     val domainParser = new DomainParser()
 
@@ -174,41 +176,52 @@ object KB {
     // ---------------------------------------------------
     // Parse schema and constants
     // ---------------------------------------------------
+
     var stop = false
     var lineIdx = 0
 
     while (fileReader.ready() && !stop) {
+
       val line = fileReader.readLine()
       lineIdx += 1
+
       if (!line.isEmpty) {
-        if (formulaMatcher.reset(line).matches()) stop = true
-        else if (!commentMatcher.reset(line).matches()) {
+        if (commentMatcher.reset(line).matches()) {
+          logger.trace(s"Parsing comment expressions: ${line}")
+          fileReader.mark(0)
+        } else if (domainMatcher.reset(line).matches()) {
+          logger.trace(s"Parsing domain expressions: ${line}")
           fileReader.mark(0)
           domainParser.parse(domainParser.definition, line) match {
-            case domainParser.Success(expr, _) => expr match {
-              case ConstantTypeDefinition(symbol, cons)      => constantsBuilder ++= (symbol, cons)
+            case domainParser.Success(expr, _) => {
+              expr match {
+                case ConstantTypeDefinition(symbol, cons)      => constantsBuilder ++= (symbol, cons)
 
-              case IntegerTypeDefinition(symbol, start, end) => constantsBuilder ++= (symbol, (start to end).map(_.toString))
+                case IntegerTypeDefinition(symbol, start, end) => constantsBuilder ++= (symbol, (start to end).map(_.toString))
 
-              case FunctionType(retType, functionName, args) =>
-                kbBuilder.functionSchema += (AtomSignature(functionName, args.size) -> (retType, args))
-                constantsBuilder addKey retType
-                constantsBuilder addKeys args
+                case FunctionType(retType, functionName, args) =>
+                  kbBuilder.functionSchema += (AtomSignature(functionName, args.size) -> (retType, args))
+                  constantsBuilder addKey retType
+                  constantsBuilder addKeys args
 
-              case AtomicType(predicateName, args) =>
-                val atomSignature = AtomSignature(predicateName, args.size)
+                case AtomicType(predicateName, args) =>
+                  val atomSignature = AtomSignature(predicateName, args.size)
 
-                kbBuilder.predicateSchema().get(atomSignature) match {
-                  case None =>
-                    kbBuilder.predicateSchema += (atomSignature -> (for (element <- args) yield element))
-                    constantsBuilder addKeys args
+                  kbBuilder.predicateSchema().get(atomSignature) match {
+                    case None =>
+                      kbBuilder.predicateSchema += (atomSignature -> (for (element <- args) yield element))
+                      constantsBuilder addKeys args
 
-                  case _ => stop = true
-                }
-              case _ => sys.error("Cannot parse type definition '" + expr + "' in line " + lineIdx)
+                    case _ => stop = true
+                  }
+                case _ => sys.error("Cannot parse type definition '" + expr + "' in line " + lineIdx)
+              }
             }
-            case _ => // ignore
+            case domainParser.Failure(msg, _) => logger.error(msg)
           }
+        } else {
+          logger.trace(s"Formulas starting from line: ${lineIdx}")
+          stop = true
         }
       }
 
@@ -218,7 +231,9 @@ object KB {
     // Parse formulas and definite clauses
     // ---------------------------------------------------
 
+    //    fileReader.mark(0)
     fileReader.reset()
+
     val kbParser = new KBParser(
       kbBuilder.predicateSchema(),
       kbBuilder.functionSchema(),
