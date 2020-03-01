@@ -1,4 +1,4 @@
-[![Build](https://github.com/anskarl/lomrf/workflows/build/badge.svg?branch=master)](https://github.com/anskarl/lomrf/actions)
+[![Build](https://github.com/anskarl/lomrf/workflows/build/badge.svg?branch=develop)](https://github.com/anskarl/LoMRF/tree/develop)
 
 <pre>
     o                        o     o   o         o
