@@ -456,6 +456,7 @@ object SemiSupervisionCLI extends CLIApp {
               connector,
               distance,
               if (_solver == LP_TLP) LP() else if ( _solver == HFC_TLP) new HFc else LGCc(alpha = _alpha),
+              _edgeReWeighing,
               useHoeffding,
               _minNodeSize,
               _minOccSize,

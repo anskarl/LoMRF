@@ -39,6 +39,7 @@ final class StreamingGraph private[graph] (
     supervisionBuilder: EvidenceBuilder,
     nodeCache: NodeCache,
     solver: GraphSolver,
+    edgeReWeighting: Boolean,
     storedUnlabeled: IndexedSeq[Node],
     previousGraph: GraphMatrix,
     memory: Int,
@@ -65,7 +66,12 @@ final class StreamingGraph private[graph] (
 
     val startGraphConnection = System.currentTimeMillis
 
-    val encodedGraph = connector.smartConnect(nodes, unlabeledNodes, Some(nodeCache))(metric)
+    val cache = if (edgeReWeighting) Some(nodeCache) else None
+    val encodedGraph = solver match {
+      case _: HFc => connector.smartConnect(nodes, unlabeledNodes, cache)(metric)
+      case _      => connector.fullyConnect(nodes, cache)(metric)
+    }
+
     val WW = encodedGraph._1
 
     logger.debug {
@@ -129,7 +135,8 @@ final class StreamingGraph private[graph] (
     // Vector holding the labeled values
     val fl = DenseVector(-1d, 1d)
 
-    val solution = solver.solve(W, D, fl).toArray.slice(2, numberOfNodes) // TODO switch 2 to number of labeled
+    val s1 = solver.solve(W, D, fl).toArray
+    val solution = solver.solve(W, D, fl).toArray.drop(2) // TODO switch 2 to number of labeled
     val truthValues = solution.map(value => if (value <= UNCONNECTED) FALSE else TRUE)
 
     // Delete old nodes that do not fit into memory
@@ -228,6 +235,7 @@ final class StreamingGraph private[graph] (
         annotationBuilder,
         nodeCache,
         solver,
+        edgeReWeighting,
         updatedStoredUnlabeled,
         W.copy,
         memory,
@@ -284,6 +292,7 @@ final class StreamingGraph private[graph] (
         annotationBuilder,
         updatedNodeCache,
         solver,
+        edgeReWeighting,
         updatedStoredUnlabeled,
         W.copy,
         memory,
