@@ -365,12 +365,15 @@ object SemiSupervisionCLI extends CLIApp {
     // Keep only signatures having positive recall
     val signatures = kb.predicateSchema.keySet.filter(sig => modes(sig).recall > 0)
 
+    // Measure distance creation time (useful mainly for isolation trees)
+    val startDistanceCreation = System.currentTimeMillis
     val distance: Metric[_ <: AtomicFormula] =
       if (_distance == DistanceType.Hybrid) HybridMetric(AtomMetric(HungarianMatcher), MassMetric(signatures, modes, _trees))
       else if (_distance == DistanceType.Mass) MassMetric(signatures, modes, _trees)
       else if (_distance == DistanceType.Binary) BinaryMetric(HungarianMatcher)
       else if (_distance == DistanceType.Atomic) AtomMetric(HungarianMatcher)
       else EvidenceMetric(modes, HungarianMatcher)
+    logger.info(msecTimeToTextUntilNow(s"'${_distance}' distance created in: ", startDistanceCreation))
 
     val useHoeffding = if (_cacheFilter == CacheFilter.Simple) false else true
 
