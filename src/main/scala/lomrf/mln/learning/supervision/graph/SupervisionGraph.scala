@@ -379,11 +379,16 @@ object SupervisionGraph extends LazyLogging {
         mln.evidence.constants
       ).withCWAForAll().evidence ++= labeledEntries
 
+    val startMetricUpdate = System.currentTimeMillis
+    val updatedMetric =
+      metric ++ mln.evidence ++ pureNodes.flatMap(n => IndexedSeq.fill(n.clusterSize)(n.atoms))
+    logger.info(msecTimeToTextUntilNow(s"Metric updated in: ", startMetricUpdate))
+
     new SPLICE(
       uniqueLabeled ++ nonEmptyUnlabeled,
       querySignature,
       connector,
-      metric ++ mln.evidence ++ pureNodes.flatMap(n => IndexedSeq.fill(n.clusterSize)(n.atoms)),
+      updatedMetric,
       annotationBuilder,
       nodeCache,
       solver,
@@ -491,11 +496,16 @@ object SupervisionGraph extends LazyLogging {
         mln.evidence.constants
       ).withCWAForAll().evidence ++= labeledEntries
 
+    val startMetricUpdate = System.currentTimeMillis
+    val updatedMetric =
+      metric ++ mln.evidence ++ pureNodes.flatMap(n => IndexedSeq.fill(n.clusterSize)(n.atoms))
+    logger.info(msecTimeToTextUntilNow(s"Metric updated in: ", startMetricUpdate))
+
     new NNGraph(
       uniqueLabeled ++ nonEmptyUnlabeled,
       querySignature,
       connector,
-      metric ++ mln.evidence ++ pureNodes.flatMap(n => IndexedSeq.fill(n.clusterSize)(n.atoms)),
+      updatedMetric,
       annotationBuilder,
       nodeCache,
       minNodeSize,
@@ -601,11 +611,16 @@ object SupervisionGraph extends LazyLogging {
         mln.evidence.constants
       ).withCWAForAll().evidence ++= labeledEntries
 
+    val startMetricUpdate = System.currentTimeMillis
+    val updatedMetric =
+      metric ++ mln.evidence ++ pureNodes.flatMap(n => IndexedSeq.fill(n.clusterSize)(n.atoms))
+    logger.info(msecTimeToTextUntilNow(s"Metric updated in: ", startMetricUpdate))
+
     new ExtNNGraph(
       uniqueLabeled ++ nonEmptyUnlabeled,
       querySignature,
       connector,
-      metric ++ mln.evidence ++ pureNodes.flatMap(n => IndexedSeq.fill(n.clusterSize)(n.atoms)),
+      updatedMetric,
       annotationBuilder,
       nodeCache,
       minNodeSize,
@@ -713,11 +728,16 @@ object SupervisionGraph extends LazyLogging {
         mln.evidence.constants
       ).withCWAForAll().evidence ++= labeledEntries
 
+    val startMetricUpdate = System.currentTimeMillis
+    val updatedMetric =
+      metric ++ mln.evidence ++ pureNodes.flatMap(n => IndexedSeq.fill(n.clusterSize)(n.atoms))
+    logger.info(msecTimeToTextUntilNow(s"Metric updated in: ", startMetricUpdate))
+
     new StreamingGraph(
       uniqueLabeled ++ nonEmptyUnlabeled,
       querySignature,
       connector,
-      metric ++ mln.evidence ++ pureNodes.flatMap(n => IndexedSeq.fill(n.clusterSize)(n.atoms)),
+      updatedMetric,
       annotationBuilder,
       nodeCache,
       solver,

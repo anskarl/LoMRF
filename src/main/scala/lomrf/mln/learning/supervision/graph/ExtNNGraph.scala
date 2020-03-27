@@ -199,22 +199,33 @@ final class ExtNNGraph private[graph] (
     if (pureLabeledNodes.isEmpty) {
 
       val mixed = labeledNodes.exists(_.isPositive) && labeledNodes.exists(_.isNegative)
-      val (selectedNodes, updatedMetric) =
+      if (!mixed) logger.info("Labeled nodes contain either only positive or only negative examples.")
+
+      val (selectedNodes, weightedMetric) =
         if (mixed && nodeCache.hasChanged && nonEmptyUnlabeled.nonEmpty && (enableSelection || enableHardSelection)) {
           nodeCache.hasChanged = false
           logger.info("Performing feature selection.")
+          val startSelection = System.currentTimeMillis
           val clusters = Clustering(maxDensity).cluster(labeledNodes, nodeCache)
           val (weights, selectedNodes) =
             if (enableHardSelection) LargeMarginNN(1, 0.5).optimizeTogether(clusters, modes, nodeCache)(AtomMetric(HungarianMatcher))
             else LargeMarginNN(1, 0.5).optimizeAloneAndMerge(clusters, nodeCache)(AtomMetric(HungarianMatcher))
+          logger.info(msecTimeToTextUntilNow(s"Feature selection completed in: ", startSelection))
           selectedNodes -> metric.havingWeights(weights)
         } else (labeledNodes, metric)
+
+      val startMetricUpdate = System.currentTimeMillis
+      val updatedMetric =
+        weightedMetric ++
+          mln.evidence ++
+          pureNodes.flatMap(n => IndexedSeq.fill(n.clusterSize)(n.atoms))
+      logger.info(msecTimeToTextUntilNow(s"Metric updated in: ", startMetricUpdate))
 
       new ExtNNGraph(
         selectedNodes ++ nonEmptyUnlabeled,
         querySignature,
         connector,
-        updatedMetric ++ mln.evidence ++ pureNodes.flatMap(n => IndexedSeq.fill(n.clusterSize)(n.atoms)),
+        updatedMetric,
         annotationBuilder,
         nodeCache,
         minNodeSize,
@@ -241,25 +252,36 @@ final class ExtNNGraph private[graph] (
       logger.info(s"${cleanedUniqueLabeled.length}/${numberOfLabeled + labeled.length} unique labeled nodes kept.")
       logger.debug(updatedNodeCache.toString)
 
-      updatedNodeCache.hasChanged = true
       val mixed = cleanedUniqueLabeled.exists(_.isPositive) && cleanedUniqueLabeled.exists(_.isNegative)
-      val (selectedNodes, updatedMetric) =
+      if (!mixed) logger.info("Labeled nodes contain either only positive or only negative examples.")
+
+      updatedNodeCache.hasChanged = true
+      val (selectedNodes, weightedMetric) =
         if (mixed && nonEmptyUnlabeled.nonEmpty && (enableSelection || enableHardSelection)) {
           updatedNodeCache.hasChanged = false
           logger.info("Performing feature selection.")
+          val startSelection = System.currentTimeMillis
           val clusters = Clustering(maxDensity).cluster(cleanedUniqueLabeled, updatedNodeCache)
           val (weights, selectedNodes) =
             if (enableHardSelection) LargeMarginNN(1, 0.5).optimizeTogether(clusters, modes, nodeCache)(AtomMetric(HungarianMatcher))
             else LargeMarginNN(1, 0.5).optimizeAloneAndMerge(clusters, nodeCache)(AtomMetric(HungarianMatcher))
+          logger.info(msecTimeToTextUntilNow(s"Feature selection completed in: ", startSelection))
           selectedNodes -> metric.havingWeights(weights)
         } else (cleanedUniqueLabeled, metric)
+
+      val startMetricUpdate = System.currentTimeMillis
+      val updatedMetric =
+        weightedMetric ++
+        mln.evidence ++
+        pureNodes.flatMap(n => IndexedSeq.fill(n.clusterSize)(n.atoms))
+      logger.info(msecTimeToTextUntilNow(s"Metric updated in: ", startMetricUpdate))
 
       // Labeled nodes MUST appear before unlabeled!
       new ExtNNGraph(
         selectedNodes ++ nonEmptyUnlabeled,
         querySignature,
         connector,
-        updatedMetric ++ mln.evidence ++ pureNodes.flatMap(n => IndexedSeq.fill(n.clusterSize)(n.atoms)),
+        updatedMetric,
         annotationBuilder,
         updatedNodeCache,
         minNodeSize,
