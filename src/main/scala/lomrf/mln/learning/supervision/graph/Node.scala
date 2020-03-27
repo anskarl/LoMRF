@@ -274,7 +274,7 @@ case class Node(
       def orderedTermOf(x: Node): Int =
         if (x.orderIndex > -1) x.query.terms(x.orderIndex).symbol.toInt else 0
 
-    orderedTermOf(that) - orderedTermOf(this)
+    orderedTermOf(this) - orderedTermOf(that)
   }
 }
 
