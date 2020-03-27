@@ -64,6 +64,18 @@ final class StreamingGraph private[graph] (
       """.stripMargin
     }
 
+    logger.info {
+      s"""
+        |Stored in memory: ${storedUnlabeled.map(_.query).mkString(", ")}
+        |Current unlabelled: ${unlabeledNodes.head.query} ... ${unlabeledNodes.last.query}
+      """.stripMargin
+    }
+
+    /*
+     * NOTE: In order to use all labelled examples instead of 2 clusters,
+     * change '2' to 'numberOfLabeled' and 'clusterId' to 'j'.
+     */
+
     val startGraphConnection = System.currentTimeMillis
 
     val cache = if (edgeReWeighting) Some(nodeCache) else None
@@ -76,7 +88,7 @@ final class StreamingGraph private[graph] (
 
     logger.debug {
       s"""
-        |Connected
+        |1) Labelled data were connected to incoming unlabelled data (${WW.rows} x ${WW.cols}):
         |${WW.mkString()}
       """.stripMargin
     }
@@ -88,42 +100,40 @@ final class StreamingGraph private[graph] (
 
     logger.debug {
       s"""
-         |Connected
+         |2) Stored W is zero padded to hold all incoming unlabelled data (${W.rows} x ${W.cols}):
          |${W.mkString()}
       """.stripMargin
     }
 
     cfor(0)(_ < numberOfUnlabeled, _ + 1) { i =>
       val WWi = numberOfLabeled + i
-      val Wi = 2 + storedUnlabeled.length + i // TODO switch 2 to number of labeled
+      val Wi = 2 + numberOfStoredUnlabeled + i
 
       cfor(0)(_ < numberOfNodes, _ + 1) { j =>
         if (j < numberOfLabeled) {
           val clusterId = if (labeledNodes(j).isNegative) 0 else 1
-          W(Wi, clusterId) += WW(WWi, j) // TODO switch clusterId to j
+          W(Wi, clusterId) += WW(WWi, j)
           W(clusterId, Wi) += WW(j, WWi)
         } else {
-          val Wj = 2 + storedUnlabeled.length + (j - numberOfLabeled) // TODO switch 2 to number of labeled
+          val Wj = 2 + numberOfStoredUnlabeled + (j - numberOfLabeled)
           W(Wi, Wj) = WW(WWi, j)
           W(Wj, Wi) = WW(j, WWi)
         }
       }
 
-      cfor(0)(_ < storedUnlabeled.length, _ + 1) { j =>
+      cfor(0)(_ < numberOfStoredUnlabeled, _ + 1) { j =>
         val weight = connector.connect(unlabeledNodes(i), storedUnlabeled(j))(metric)
-        W(Wi, j + 2) = weight
-        W(j + 2, Wi) = weight
+        W(Wi, 2 + j) = weight
+        W(2 + j, Wi) = weight
       }
     }
 
     logger.debug {
       s"""
-         |Connected
+         |3) W is filled using the values computed in step (1):
          |${W.mkString()}
       """.stripMargin
     }
-
-    // WARN: SYNOPSIS WAS HERE AT THE BEGINNING. IS THERE A DIFFERENCE?
 
     val D = DenseMatrix.zeros[Double](W.rows, W.cols)
     cfor(0)(_ < W.rows, _ + 1) { i => D(i, i) = sum(W(i, ::)) }
@@ -134,22 +144,19 @@ final class StreamingGraph private[graph] (
 
     // Vector holding the labeled values
     val fl = DenseVector(-1d, 1d)
-
-    val s1 = solver.solve(W, D, fl).toArray
-    val solution = solver.solve(W, D, fl).toArray.drop(2) // TODO switch 2 to number of labeled
+    val solution = solver.solve(W, D, fl).toArray.drop(2)
     val truthValues = solution.map(value => if (value <= UNCONNECTED) FALSE else TRUE)
+    logger.info(msecTimeToTextUntilNow(s"Labeling solution found in: ", startSolution))
 
     // Delete old nodes that do not fit into memory
-    W = connector.synopsisOf(W, 2, memory) // TODO switch 2 to number of labeled
+    W = connector.synopsisOf(W, 2, memory)
 
     logger.debug {
       s"""
-         |After synopsis
+         |4) W after synopsis is performed (${W.rows} x ${W.cols}):
          |${W.mkString()}
       """.stripMargin
     }
-
-    logger.info(msecTimeToTextUntilNow(s"Labeling solution found in: ", startSolution))
 
     logger.whenDebugEnabled {
       logger.debug {
@@ -168,8 +175,8 @@ final class StreamingGraph private[graph] (
 
   def ++(mln: MLN, annotationDB: EvidenceDB, modes: ModeDeclarations): StreamingGraph = {
 
-    // Group the given data into nodes, using the domains of the existing graph
-    val currentNodes = SupervisionGraph.partition(mln, modes, annotationDB, querySignature)
+    // Group the given data into nodes, using the domains of the existing graph (TLP requires sorting)
+    val currentNodes = SupervisionGraph.partition(mln, modes, annotationDB, querySignature).sorted
 
     // Partition nodes into labeled and unlabeled. Then find empty unlabeled nodes.
     val (labeled, unlabeled) = currentNodes.partition(_.isLabeled)
@@ -188,7 +195,7 @@ final class StreamingGraph private[graph] (
       logger.warn(s"Found ${emptyUnlabeled.length} empty unlabeled nodes. Set them to FALSE.")
 
     val pureNodes = pureLabeledNodes ++ nonEmptyUnlabeled
-    logger.info(s"Found ${pureLabeledNodes.length} pure labelled and unlabeled nodes.")
+    logger.info(s"Found ${pureNodes.length} pure labelled and unlabeled nodes.")
 
     /*
      * Create an annotation builder and append every query atom that is TRUE or FALSE,
@@ -204,8 +211,10 @@ final class StreamingGraph private[graph] (
       ).withCWAForAll().evidence ++= labeledEntries
 
     val updatedStoredUnlabeled =
-      if (numberOfStoredUnlabeled + numberOfUnlabeled > memory)
-        (storedUnlabeled ++ unlabeledNodes).drop(numberOfStoredUnlabeled + numberOfUnlabeled - memory)
+      if (storedUnlabeled.isEmpty && (labeledNodes.isEmpty || unlabeledNodes.isEmpty))
+        IndexedSeq.empty[Node]
+      else if (numberOfStoredUnlabeled + numberOfUnlabeled > memory)
+        (storedUnlabeled ++ unlabeledNodes).takeRight(memory)
       else storedUnlabeled ++ unlabeledNodes
 
     /*
@@ -216,22 +225,33 @@ final class StreamingGraph private[graph] (
     if (pureLabeledNodes.isEmpty) {
 
       val mixed = labeledNodes.exists(_.isPositive) && labeledNodes.exists(_.isNegative)
-      val (selectedNodes, updatedMetric) =
+      if (!mixed) logger.info("Labeled nodes contain either only positive or negative examples.")
+
+      val (selectedNodes, weightedMetric) =
         if (mixed && nodeCache.hasChanged && nonEmptyUnlabeled.nonEmpty && (enableSelection || enableHardSelection)) {
           nodeCache.hasChanged = false
           logger.info("Performing feature selection.")
+          val startSelection= System.currentTimeMillis
           val clusters = Clustering(maxDensity).cluster(labeledNodes, nodeCache)
           val (weights, selectedNodes) =
             if (enableHardSelection) LargeMarginNN(1, 0.5).optimizeTogether(clusters, modes, nodeCache)(AtomMetric(HungarianMatcher))
             else LargeMarginNN(1, 0.5).optimizeAloneAndMerge(clusters, nodeCache)(AtomMetric(HungarianMatcher))
+          logger.info(msecTimeToTextUntilNow(s"Feature selection completed in: ", startSelection))
           selectedNodes -> metric.havingWeights(weights)
         } else (labeledNodes, metric)
+
+      val startMetricUpdate = System.currentTimeMillis
+      val updatedMetric =
+        weightedMetric ++
+          mln.evidence ++
+          pureNodes.flatMap(n => IndexedSeq.fill(n.clusterSize)(n.atoms))
+      logger.info(msecTimeToTextUntilNow(s"Metric updated in: ", startMetricUpdate))
 
       new StreamingGraph(
         selectedNodes ++ nonEmptyUnlabeled,
         querySignature,
         connector,
-        updatedMetric ++ mln.evidence ++ pureNodes.flatMap(n => IndexedSeq.fill(n.clusterSize)(n.atoms)),
+        updatedMetric,
         annotationBuilder,
         nodeCache,
         solver,
@@ -263,16 +283,20 @@ final class StreamingGraph private[graph] (
       logger.info(s"${cleanedUniqueLabeled.length}/${numberOfLabeled + labeled.length} unique labeled nodes kept.")
       logger.debug(updatedNodeCache.toString)
 
-      updatedNodeCache.hasChanged = true
       val mixed = cleanedUniqueLabeled.exists(_.isPositive) && cleanedUniqueLabeled.exists(_.isNegative)
-      val (selectedNodes, updatedMetric) =
+      if (!mixed) logger.info("Labeled nodes contain either only positive or negative examples.")
+
+      updatedNodeCache.hasChanged = true
+      val (selectedNodes, weightedMetric) =
         if (mixed && nonEmptyUnlabeled.nonEmpty && (enableSelection || enableHardSelection)) {
           updatedNodeCache.hasChanged = false
           logger.info("Performing feature selection.")
+          val startSelection= System.currentTimeMillis
           val clusters = Clustering(maxDensity).cluster(cleanedUniqueLabeled, updatedNodeCache)
           val (weights, selectedNodes) =
             if (enableHardSelection) LargeMarginNN(1, 0.5).optimizeTogether(clusters, modes, nodeCache)(AtomMetric(HungarianMatcher))
             else LargeMarginNN(1, 0.5).optimizeAloneAndMerge(clusters, nodeCache)(AtomMetric(HungarianMatcher))
+          logger.info(msecTimeToTextUntilNow(s"Feature selection completed in: ", startSelection))
           selectedNodes -> metric.havingWeights(weights)
         } else (cleanedUniqueLabeled, metric)
 
@@ -283,12 +307,19 @@ final class StreamingGraph private[graph] (
         C
       } else W.copy*/
 
+      val startMetricUpdate = System.currentTimeMillis
+      val updatedMetric =
+        weightedMetric ++
+          mln.evidence ++
+          pureNodes.flatMap(n => IndexedSeq.fill(n.clusterSize)(n.atoms))
+      logger.info(msecTimeToTextUntilNow(s"Metric updated in: ", startMetricUpdate))
+
       // Labeled nodes MUST appear before unlabeled!
       new StreamingGraph(
         selectedNodes ++ nonEmptyUnlabeled,
         querySignature,
         connector,
-        updatedMetric ++ mln.evidence ++ pureNodes.flatMap(n => IndexedSeq.fill(n.clusterSize)(n.atoms)),
+        updatedMetric,
         annotationBuilder,
         updatedNodeCache,
         solver,

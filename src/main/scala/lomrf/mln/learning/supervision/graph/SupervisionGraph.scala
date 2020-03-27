@@ -671,10 +671,10 @@ object SupervisionGraph extends LazyLogging {
       maxDensity: Double,
       memory: Int): StreamingGraph = {
 
-    // Group the given data into nodes
+    // Group the given data into nodes (TLP requires sorting)
     val currentNodes = connector match {
       case _: kNNTemporalConnector | _: eNNTemporalConnector | _: aNNTemporalConnector =>
-        partition(mln, modes, annotationDB, querySignature)
+        partition(mln, modes, annotationDB, querySignature).sorted
       case _ => logger.fatal("Temporal label propagation requires a temporal connection strategy!")
     }
 
