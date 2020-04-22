@@ -170,7 +170,8 @@ final class ExtNNGraph private[graph] (
 
     // Labeled query atoms and empty unlabeled query atoms as FALSE.
     val labeledEntries =
-      labeled.map(_.query) ++ emptyUnlabeled.flatMap(_.labelUsingValue(FALSE))
+      labeled.flatMap(x => x.similarNodeQueryAtoms + x.query) ++
+        emptyUnlabeled.flatMap(_.labelUsingValue(FALSE))
 
     if (emptyUnlabeled.nonEmpty)
       logger.warn(s"Found ${emptyUnlabeled.length} empty unlabeled nodes. Set them to FALSE.")
@@ -272,8 +273,8 @@ final class ExtNNGraph private[graph] (
       val startMetricUpdate = System.currentTimeMillis
       val updatedMetric =
         weightedMetric ++
-        mln.evidence ++
-        pureNodes.flatMap(n => IndexedSeq.fill(n.clusterSize)(n.atoms))
+          mln.evidence ++
+          pureNodes.flatMap(n => IndexedSeq.fill(n.clusterSize)(n.atoms))
       logger.info(msecTimeToTextUntilNow(s"Metric updated in: ", startMetricUpdate))
 
       // Labeled nodes MUST appear before unlabeled!

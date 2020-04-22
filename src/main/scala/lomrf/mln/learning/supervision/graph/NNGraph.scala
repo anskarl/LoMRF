@@ -138,7 +138,8 @@ final class NNGraph private[graph] (
 
     // Labeled query atoms and empty unlabeled query atoms as FALSE.
     val labeledEntries =
-      labeled.map(_.query) ++ emptyUnlabeled.flatMap(_.labelUsingValue(FALSE))
+      labeled.flatMap(x => x.similarNodeQueryAtoms + x.query) ++
+        emptyUnlabeled.flatMap(_.labelUsingValue(FALSE))
 
     if (emptyUnlabeled.nonEmpty)
       logger.warn(s"Found ${emptyUnlabeled.length} empty unlabeled nodes. Set them to FALSE.")

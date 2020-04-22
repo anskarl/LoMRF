@@ -358,7 +358,8 @@ object SupervisionGraph extends LazyLogging {
 
     // Labeled query atoms and empty unlabeled query atoms as FALSE.
     val labeledEntries =
-      labeledNodes.map(_.query) ++ emptyUnlabeled.flatMap(_.labelUsingValue(FALSE))
+      labeledNodes.flatMap(x => x.similarNodeQueryAtoms + x.query) ++
+        emptyUnlabeled.flatMap(_.labelUsingValue(FALSE))
 
     if (emptyUnlabeled.nonEmpty)
       logger.warn(s"Found ${emptyUnlabeled.length} empty unlabeled nodes. Set them to FALSE.")
@@ -475,7 +476,8 @@ object SupervisionGraph extends LazyLogging {
 
     // Labeled query atoms and empty unlabeled query atoms as FALSE.
     val labeledEntries =
-      labeledNodes.map(_.query) ++ emptyUnlabeled.flatMap(_.labelUsingValue(FALSE))
+      labeledNodes.flatMap(x => x.similarNodeQueryAtoms + x.query) ++
+        emptyUnlabeled.flatMap(_.labelUsingValue(FALSE))
 
     if (emptyUnlabeled.nonEmpty)
       logger.warn(s"Found ${emptyUnlabeled.length} empty unlabeled nodes. Set them to FALSE.")
@@ -590,7 +592,8 @@ object SupervisionGraph extends LazyLogging {
 
     // Labeled query atoms and empty unlabeled query atoms as FALSE.
     val labeledEntries =
-      labeledNodes.map(_.query) ++ emptyUnlabeled.flatMap(_.labelUsingValue(FALSE))
+      labeledNodes.flatMap(x => x.similarNodeQueryAtoms + x.query) ++
+        emptyUnlabeled.flatMap(_.labelUsingValue(FALSE))
 
     if (emptyUnlabeled.nonEmpty)
       logger.warn(s"Found ${emptyUnlabeled.length} empty unlabeled nodes. Set them to FALSE.")
@@ -707,7 +710,8 @@ object SupervisionGraph extends LazyLogging {
 
     // Labeled query atoms and empty unlabeled query atoms as FALSE.
     val labeledEntries =
-      labeledNodes.map(_.query) ++ emptyUnlabeled.flatMap(_.labelUsingValue(FALSE))
+      labeledNodes.flatMap(x => x.similarNodeQueryAtoms + x.query) ++
+        emptyUnlabeled.flatMap(_.labelUsingValue(FALSE))
 
     if (emptyUnlabeled.nonEmpty)
       logger.warn(s"Found ${emptyUnlabeled.length} empty unlabeled nodes. Set them to FALSE.")

@@ -189,7 +189,8 @@ final class StreamingGraph private[graph] (
 
     // Labeled query atoms and empty unlabeled query atoms as FALSE.
     val labeledEntries =
-      labeled.map(_.query) ++ emptyUnlabeled.flatMap(_.labelUsingValue(FALSE))
+      labeled.flatMap(x => x.similarNodeQueryAtoms + x.query) ++
+        emptyUnlabeled.flatMap(_.labelUsingValue(FALSE))
 
     if (emptyUnlabeled.nonEmpty)
       logger.warn(s"Found ${emptyUnlabeled.length} empty unlabeled nodes. Set them to FALSE.")
@@ -231,7 +232,7 @@ final class StreamingGraph private[graph] (
         if (mixed && nodeCache.hasChanged && nonEmptyUnlabeled.nonEmpty && (enableSelection || enableHardSelection)) {
           nodeCache.hasChanged = false
           logger.info("Performing feature selection.")
-          val startSelection= System.currentTimeMillis
+          val startSelection = System.currentTimeMillis
           val clusters = Clustering(maxDensity).cluster(labeledNodes, nodeCache)
           val (weights, selectedNodes) =
             if (enableHardSelection) LargeMarginNN(1, 0.5).optimizeTogether(clusters, modes, nodeCache)(AtomMetric(HungarianMatcher))
@@ -291,7 +292,7 @@ final class StreamingGraph private[graph] (
         if (mixed && nonEmptyUnlabeled.nonEmpty && (enableSelection || enableHardSelection)) {
           updatedNodeCache.hasChanged = false
           logger.info("Performing feature selection.")
-          val startSelection= System.currentTimeMillis
+          val startSelection = System.currentTimeMillis
           val clusters = Clustering(maxDensity).cluster(cleanedUniqueLabeled, updatedNodeCache)
           val (weights, selectedNodes) =
             if (enableHardSelection) LargeMarginNN(1, 0.5).optimizeTogether(clusters, modes, nodeCache)(AtomMetric(HungarianMatcher))
