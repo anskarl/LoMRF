@@ -148,7 +148,7 @@ case class LargeMarginNN(k: Int, mu: Double) extends LazyLogging {
       model.start(preSolve = PreSolve.AGGRESSIVE)
     }
 
-    logger.info {
+    logger.debug {
       s"""
          |Slack variables:
          |${slackVariables.map(v => s"${v.toText} := ${v.value}").mkString("\n")}

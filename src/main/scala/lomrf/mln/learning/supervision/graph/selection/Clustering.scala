@@ -48,7 +48,7 @@ case class Clustering(maxDensity: Double) extends LazyLogging {
           }
       }
 
-      logger.info {
+      logger.debug {
         s"""
           |Positive clusters:
           |${pClusters.map(c => c.majorityPrototype(cache).toText(cache, nodes.flatMap(cache.get).sum)).mkString("\n")}
@@ -65,7 +65,7 @@ case class Clustering(maxDensity: Double) extends LazyLogging {
           }
       }
 
-      logger.info {
+      logger.debug {
         s"""
            |Negative clusters:
            |${nClusters.map(c => c.majorityPrototype(cache).toText(cache, nodes.flatMap(cache.get).sum)).mkString("\n")}
