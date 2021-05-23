@@ -135,10 +135,10 @@ trait StructureMetric[A <: AtomicFormula] extends Metric[A] {
         var totalScore = 0.0
         val num = longAtomSeq.zipWithIndex.map {
           case (atom, i) =>
-            if (matches(i) == -1) {
+            if (matches(i) == -1) { // unmatched atom
               totalScore += weights.getOrElse(atom, 1)
               weights.getOrElse(atom, 1)
-            } else {
+            } else { // matched atom
               val bx = weights.getOrElse(atom, 1)
               val by = weights.getOrElse(shortAtomSeq(matches(i)), 1)
               totalScore += bx | by
