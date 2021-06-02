@@ -27,7 +27,7 @@ import lomrf.mln.learning.supervision.graph.caching.NodeCache
 /**
   * @param maxDensity clusters maximum density
   */
-case class Clustering(maxDensity: Double) extends LazyLogging {
+case class Clustering(maxDensity: Double, retainNoise: Boolean = false) extends LazyLogging {
 
   def cluster(nodes: Seq[Node], cache: NodeCache): Set[NodeCluster] = {
 
@@ -48,7 +48,9 @@ case class Clustering(maxDensity: Double) extends LazyLogging {
           }
       }
 
-      logger.debug {
+      if (!retainNoise) pClusters = pClusters.filter(_.nodes.exists(n => cache.getOrElse(n, 0) > 1))
+
+      logger.info {
         s"""
           |Positive clusters:
           |${pClusters.map(c => c.majorityPrototype(cache).toText(cache, nodes.flatMap(cache.get).sum)).mkString("\n")}
@@ -65,7 +67,9 @@ case class Clustering(maxDensity: Double) extends LazyLogging {
           }
       }
 
-      logger.debug {
+      if (!retainNoise) nClusters = nClusters.filter(_.nodes.exists(n => cache.getOrElse(n, 0) > 1))
+
+      logger.info {
         s"""
            |Negative clusters:
            |${nClusters.map(c => c.majorityPrototype(cache).toText(cache, nodes.flatMap(cache.get).sum)).mkString("\n")}
