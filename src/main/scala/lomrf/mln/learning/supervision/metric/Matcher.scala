@@ -23,7 +23,7 @@ package lomrf.mln.learning.supervision.metric
 import breeze.optimize.linear.KuhnMunkres
 
 /**
-  * A Matcher is any object that solves the assignment problem. The problem consists of finding
+  * Matcher is any object that solves an assignment problem. The problem consists of finding
   * a maximum cost matching (or a minimum cost perfect matching) in a bipartite graph. The input
   * graph is usually represented as a cost matrix. Zero values define the absence of edges.
   *
@@ -37,7 +37,7 @@ import breeze.optimize.linear.KuhnMunkres
   *
   * @see https://en.wikipedia.org/wiki/Assignment_problem
   */
-trait Matcher[T] extends (CostMatrix[T] => T)
+trait Matcher extends (CostMatrix[Double] => (Array[Int], Double))
 
 /**
   * The Hungarian matcher is a combinatorial optimization algorithm that solves the assignment problem in
@@ -45,7 +45,7 @@ trait Matcher[T] extends (CostMatrix[T] => T)
   *
   * @see https://en.wikipedia.org/wiki/Hungarian_algorithm
   */
-object HungarianMatcher extends Matcher[Double] {
+object HungarianMatcher extends Matcher {
 
   /**
     * It solves the assignment problem for the given cost matrix. The cost
@@ -54,10 +54,14 @@ object HungarianMatcher extends Matcher[Double] {
     * @param costMatrix the bipartite graph cost matrix
     * @return the cost of the optimal assignment
     */
-  override def apply(costMatrix: CostMatrix[Double]): Double =
+  override def apply(costMatrix: CostMatrix[Double]): (Array[Int], Double) = {
+    val unmatched = math.abs(costMatrix.length - costMatrix.head.length)
+    val maxDimension = math.max(costMatrix.length, costMatrix.head.length)
+
     KuhnMunkres.extractMatching(costMatrix) match {
-      case (_, cost) => cost
+      case (matches, cost) => matches.toArray -> (cost + unmatched) / maxDimension
     }
+  }
 }
 
 /**
@@ -72,7 +76,7 @@ object HungarianMatcher extends Matcher[Double] {
   *      Distance Between Herbrand Interpretations: A Measure for Approximations
   *      to a Target Concept (1997)
   */
-object HausdorffMatcher extends Matcher[Double] {
+object HausdorffMatcher extends Matcher {
 
   /**
     * It solves the assignment problem for a given cost matrix. The cost
@@ -81,6 +85,6 @@ object HausdorffMatcher extends Matcher[Double] {
     * @param costMatrix the bipartite graph cost matrix
     * @return the cost of the assignment
     */
-  override def apply(costMatrix: CostMatrix[Double]): Double =
-    math.max(costMatrix.map(_.min).max, costMatrix.transpose.map(_.min).max)
+  override def apply(costMatrix: CostMatrix[Double]): (Array[Int], Double) =
+    Array.empty[Int] -> math.max(costMatrix.map(_.min).max, costMatrix.transpose.map(_.min).max)
 }

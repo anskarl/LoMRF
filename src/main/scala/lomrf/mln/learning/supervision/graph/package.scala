@@ -25,14 +25,78 @@ import lomrf.logic.compile.LogicFormatter
 import lomrf.mln.model.{ MLN, ModeDeclarations }
 import scala.util.{ Failure, Success, Try }
 import lomrf.{ AUX_PRED_PREFIX => PREFIX }
+import breeze.linalg.DenseMatrix
+import lomrf.mln.learning.supervision.graph.caching.NodeCache
+import lomrf.mln.learning.supervision.metric.Feature
 
-package object graphs {
+package object graph {
+
+  type GraphMatrix = DenseMatrix[Double]
+  type EncodedGraph = (GraphMatrix, GraphMatrix)
 
   /*
    * Use a very close to zero (non zero) value in order to avoid singular
    * or degenerate matrices, i.e. having zero determinant.
    */
-  val UNCONNECTED = 0.0001
+  val UNCONNECTED = 0.0
+
+  implicit class DenseMatrixOps(M: DenseMatrix[Double]) {
+    def mkString(sep: String = " ", precision: Int = 2): String = (0 until M.rows).map { i =>
+      M(i, ::).t.map(s"%1.${precision}f" format _).toArray.mkString(sep)
+    }.mkString("\n")
+  }
+
+  /**
+    * Generalize nodes by removing atoms that correspond to the given features.
+    *
+    * @param nodes an indexed sequence of nodes
+    * @param features a set of features
+    * @param cache node cache holding labelled nodes (optional)
+    * @return a indexed sequence of generalized nodes
+    */
+  private[graph] def generalise(
+      nodes: IndexedSeq[Node],
+      features: Set[Feature],
+      cache: Option[NodeCache] = None): IndexedSeq[Node] = {
+
+    nodes.foldLeft(IndexedSeq.empty[(Node, Long)]) {
+      case (reducedNodes, node) =>
+        val freq = cache.map(_.getOrElse(node, 1L)).getOrElse(1L)
+        val generalizedNode = node.generalise(features)
+
+        if (generalizedNode.isEmpty ||
+          reducedNodes.exists {
+            case (otherNode, otherFreq) =>
+              otherNode.clause.get =~= generalizedNode.clause.get && otherFreq >= freq
+          } ||
+          reducedNodes.exists {
+            case (otherNode, otherFreq) =>
+              otherNode.body.get =~= generalizedNode.body.get && otherFreq > freq
+          }) reducedNodes
+        else
+          reducedNodes :+ generalizedNode -> freq
+
+    }.map { case (node, _) => node }
+  }
+
+  /**
+    * Combine maps into a single map by merging their values for shared keys.
+    *
+    * @param mapA a map
+    * @param mapB another map
+    * @return a combination of the given maps containing all their values
+    */
+  private[graph] def combine[K, V](
+      mapA: Map[K, IndexedSeq[V]],
+      mapB: Map[K, IndexedSeq[V]]): Map[K, IndexedSeq[V]] = {
+
+    val keySet = mapA.keySet & mapB.keySet
+
+    val merged = keySet.map(key =>
+      key -> (mapA(key) ++ mapB(key))).toMap
+
+    merged ++ mapA.filterKeys(!keySet.contains(_)) ++ mapB.filterKeys(!keySet.contains(_))
+  }
 
   /**
     * Hoeffding bound is a tool that can be used as a probabilistic estimator of the generalization
@@ -47,8 +111,8 @@ package object graphs {
     * @param delta delta parameter (default is 0.0001)
     * @return true in case the bound is satisfied, else false
     */
-  private[graphs] def HoeffdingBound(x: Double, y: Double, N: Int, delta: Double = 0.0001) =
-    math.abs(x - y) > math.sqrt(math.log(1 / delta) / (2 * N))
+  @inline private[graph] def HoeffdingBound(x: Double, y: Double, N: Long, delta: Double = 0.0001): Boolean =
+    math.abs(x - y) > math.sqrt(math.log(2 / delta) / (2 * N))
 
   /**
     * Produce a clause given a sequence of evidence atoms.
@@ -59,7 +123,7 @@ package object graphs {
     * @param modes mode declarations
     * @return a clause
     */
-  private[graphs] def asPattern(
+  private[graph] def asPattern(
       querySignature: AtomSignature,
       atoms: IndexedSeq[EvidenceAtom],
       mln: MLN, modes: ModeDeclarations): Try[Clause] = {
@@ -71,7 +135,7 @@ package object graphs {
       constants <- db.identity.decode(id).toOption
     } yield Constant(constants.head) -> (signature, constants.map(Constant))
 
-    // flatten evidence atoms by adding auxiliary predicates
+    // Flatten evidence atoms by adding auxiliary predicates
     val flattenEvidence = atoms
       .foldLeft(Set.empty[EvidenceAtom]) {
         case (result, atom) =>
