@@ -7,7 +7,7 @@ syntax: glob
 #*.off
 *.old
 .DS_Store
-
+.bsp/
 
 # eclipse conf file
 .settings
