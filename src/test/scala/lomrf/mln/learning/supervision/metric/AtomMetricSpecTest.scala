@@ -140,11 +140,11 @@ final class AtomMetricSpecTest extends FunSpec with Matchers {
     }
 
     it("Distance of Person(x, Tall, Thin, Young, Handsome) to Person(y, Tall, Thin, Old, Ugly) should be 0.2") {
-      metric.distance(predicateE, predicateF) shouldEqual 0.2 +- 1E-6
+      metric.distance(predicateE, predicateF) shouldEqual 0.25 +- 1E-6
     }
 
     it("Distance of Person(x, Tall, Thin, Young, Handsome) to Person(z, Tall, Fat, Young, Handsome) should be 0.1") {
-      metric.distance(predicateE, predicateG) shouldEqual 0.1 +- 1E-6
+      metric.distance(predicateE, predicateG) shouldEqual 0.125 +- 1E-6
     }
 
     it("Associative property should hold for any distance over predicates") {
@@ -242,19 +242,19 @@ final class AtomMetricSpecTest extends FunSpec with Matchers {
     }
 
     it("Distance of Happens(walking(A), t) to Happens(walking(B), t) should be 0.125") {
-      metric.distance(predicateA, predicateB) shouldEqual 0.125
+      metric.distance(predicateA, predicateB) shouldEqual 0.25
     }
 
     it("Distance of Happens(walking(A), t) to Happens(inactive(A), t) should be 0.25") {
-      metric.distance(predicateA, predicateC) shouldEqual 0.25
+      metric.distance(predicateA, predicateC) shouldEqual 0.5
     }
 
     it("Distance of Happens(walking(A), t) to Happens(inactive(B), t) should be 0.25") {
-      metric.distance(predicateA, predicateD) shouldEqual 0.25
+      metric.distance(predicateA, predicateD) shouldEqual 0.5
     }
 
     it("Distance of Happens(inactive(A), t) to Happens(inactive(B), t) should be 0.125") {
-      metric.distance(predicateC, predicateD) shouldEqual 0.125
+      metric.distance(predicateC, predicateD) shouldEqual 0.25
     }
 
     it("Associative property should hold for any distance over predicates") {
