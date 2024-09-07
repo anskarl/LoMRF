@@ -26,10 +26,13 @@ package lomrf.mln.learning.supervision.metric
   * @param trees a sequence of IsolationTree
   * @tparam T the feature type
   */
-case class IsolationForest[T](trees: Seq[IsolationTree[T]]) {
+case class IsolationForest[T](features: IndexedSeq[T], recall: Map[T, Int], trees: Seq[IsolationTree[T]]) {
 
   // The number of trees in the forest
   lazy val numberOfTrees: Int = trees.size
+
+  // The number of features used to create the forest
+  lazy val numberOfFeatures: Int = features.size
 
   /**
     * Update the internal counts of all the trees.
@@ -38,15 +41,6 @@ case class IsolationForest[T](trees: Seq[IsolationTree[T]]) {
     */
   def updateCounts(features: Seq[T]): Unit =
     trees.foreach(_.updateCounts(features))
-
-  /**
-    * Create a rebalanced forest according to the given feature scores.
-    *
-    * @param featureScores a map from features to scores
-    * @return an rebalanced IsolationForest
-    */
-  def reBalance(featureScores: Map[T, Double]): IsolationForest[T] =
-    IsolationForest(trees.map(_.reBalance(featureScores)))
 
   /**
     * Compute the average mass of the given feature sequences.
@@ -84,7 +78,7 @@ case class IsolationForest[T](trees: Seq[IsolationTree[T]]) {
     * @return an IsolationForest instance
     */
   def +(tree: IsolationTree[T]): IsolationForest[T] =
-    IsolationForest(trees :+ tree)
+    IsolationForest(features, recall, trees :+ tree)
 
   /**
     * Append an isolation tree sequence into the forest.
@@ -93,7 +87,7 @@ case class IsolationForest[T](trees: Seq[IsolationTree[T]]) {
     * @return an IsolationForest instance
     */
   def ++(trees: Seq[IsolationTree[T]]): IsolationForest[T] =
-    IsolationForest(this.trees ++ trees)
+    IsolationForest(features, recall, this.trees ++ trees)
 }
 
 object IsolationForest {
@@ -102,13 +96,24 @@ object IsolationForest {
     * @tparam T the feature type
     * @return an empty IsolationForest
     */
-  def empty[T]: IsolationForest[T] = IsolationForest(Seq.empty)
+  def empty[T]: IsolationForest[T] = IsolationForest(IndexedSeq.empty[T], Map.empty[T, Int], Seq.empty)
 
   /**
     * Creates a forest of randomly generated trees.
     *
     * @param features a sequence of features
-    * @param numberOfTrees the number of trees in the forest (default is 100)
+    * @param trees a sequence of trees
+    * @tparam T the feature type
+    * @return an IsolationForest instance
+    */
+  def apply[T](features: IndexedSeq[T], trees: Seq[IsolationTree[T]]): IsolationForest[T] =
+    new IsolationForest(features, Map.empty[T, Int], trees)
+
+  /**
+    * Creates a forest of randomly generated trees.
+    *
+    * @param features a sequence of features
+    * @param numberOfTrees the number of trees in the forest
     * @tparam T the feature type
     * @return an IsolationForest instance
     */
@@ -125,19 +130,19 @@ object IsolationForest {
     * @return an IsolationForest instance
     */
   def apply[T](features: IndexedSeq[T], numberOfTrees: Int, height: Int): IsolationForest[T] =
-    IsolationForest(Seq.fill(numberOfTrees)(IsolationTree(features, height)))
+    IsolationForest(features, Seq.fill(numberOfTrees)(IsolationTree(features, height)))
 
   /**
     * Creates a forest of randomly generated trees.
     *
     * @param features a sequence of features
-    * @param recall maximum number of appearances for each feature
+    * @param recall maximum number of occurrences for each feature
     * @param numberOfTrees the number of trees in the forest (default is 100)
     * @tparam T the feature type
     * @return an IsolationForest instance
     */
   def apply[T](features: IndexedSeq[T], recall: Map[T, Int], numberOfTrees: Int): IsolationForest[T] =
-    IsolationForest(features, recall, numberOfTrees, features.length)
+    IsolationForest(features, recall, numberOfTrees, features.map(recall.getOrElse(_, 1)).sum)
 
   /**
     * Creates a forest of randomly generated trees.
@@ -150,59 +155,49 @@ object IsolationForest {
     * @return an IsolationForest instance
     */
   def apply[T](features: IndexedSeq[T], recall: Map[T, Int], numberOfTrees: Int, height: Int): IsolationForest[T] =
-    IsolationForest(Seq.fill(numberOfTrees)(IsolationTree(features, recall, height)))
+    IsolationForest(features, recall, Seq.fill(numberOfTrees)(IsolationTree(features, recall, height)))
 
   /**
+    *  Creates a forest of randomly generated trees.
     *
-    * @param featureScores a map of feature score tuples
-    * @tparam Τ the feature type
+    * @param features a sequence of features
+    * @param priority a selection of priority features
+    * @param recall maximum number of appearances for each feature
+    * @param numberOfTrees the number of trees in the forest
+    * @tparam T the feature type
     * @return an IsolationForest instance
     */
-  def apply[Τ](featureScores: Map[Τ, Double]): IsolationForest[Τ] =
-    IsolationForest(Seq(IsolationTree(featureScores, featureScores.size)))
+  def apply[T](
+      features: IndexedSeq[T],
+      priority: Map[T, Double],
+      recall: Map[T, Int],
+      numberOfTrees: Int): IsolationForest[T] =
+    IsolationForest(features, recall,
+                    Seq.fill(numberOfTrees)(
+        IsolationTree(features, priority, recall, features.map(recall.getOrElse(_, 1)).sum)
+      )
+    )
 
   /**
+    *  Creates a forest of randomly generated trees.
     *
-    * @param data a sequence of data (sequence of features)
+    * @param features a sequence of features
+    * @param priority a selection of priority features
+    * @param recall maximum number of appearances for each feature
     * @param numberOfTrees the number of trees in the forest
     * @param height the maximum tree height
     * @tparam T the feature type
     * @return an IsolationForest instance
     */
-  def fromData[T](data: IndexedSeq[Seq[T]], numberOfTrees: Int, height: Int): IsolationForest[T] = {
-    var remaining = data
-    val batchSize = data.size / numberOfTrees
-    var trees = Seq.empty[IsolationTree[T]]
-
-    while (remaining.nonEmpty) {
-      val shuffled = scala.util.Random.shuffle(remaining)
-      trees :+= IsolationTree.fromData(shuffled.take(batchSize), height)
-      remaining = shuffled.drop(batchSize)
-    }
-    IsolationForest(trees)
-  }
-
-  /**
-    *
-    * @param f a function that computes a score for each feature in the data
-    * @param data a sequence of data (sequence of features)
-    * @param numberOfTrees the number of trees in the forest
-    * @param height the maximum tree height
-    * @tparam T the feature type
-    * @return an IsolationForest instance
-    */
-  def fromData[T](f: Seq[Seq[T]] => Map[T, Double])
-    (data: IndexedSeq[Seq[T]], numberOfTrees: Int, height: Int): IsolationForest[T] = {
-
-    var remaining = data
-    val batchSize = data.size / numberOfTrees
-    var trees = Seq.empty[IsolationTree[T]]
-
-    while (remaining.nonEmpty) {
-      val shuffled = scala.util.Random.shuffle(remaining)
-      trees :+= IsolationTree.fromData(f)(shuffled.take(batchSize), height)
-      remaining = shuffled.drop(batchSize)
-    }
-    IsolationForest(trees)
-  }
+  def apply[T](
+      features: IndexedSeq[T],
+      priority: Map[T, Double],
+      recall: Map[T, Int],
+      numberOfTrees: Int,
+      height: Int): IsolationForest[T] =
+    IsolationForest(features, recall,
+                    Seq.fill(numberOfTrees)(
+        IsolationTree(features, priority, recall, height)
+      )
+    )
 }

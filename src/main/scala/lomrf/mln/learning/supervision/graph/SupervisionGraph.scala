@@ -293,6 +293,7 @@ object SupervisionGraph extends LazyLogging {
     * @param metric a metric for atomic formula
     * @param solver a graph solver
     * @param edgeReWeighting re-weight edges using cache frequency
+    * @param labelReWeighting re-weight labels using cache frequency
     * @param useHoeffding use hoeffding bound for cache filtering
     * @param minNodeSize minimum node size
     * @param minNodeOcc minimum node occurrences
@@ -312,6 +313,7 @@ object SupervisionGraph extends LazyLogging {
       metric: Metric[_ <: AtomicFormula],
       solver: GraphSolver,
       edgeReWeighting: Boolean,
+      labelReWeighting: Boolean,
       useHoeffding: Boolean,
       minNodeSize: Int,
       minNodeOcc: Int,
@@ -394,6 +396,7 @@ object SupervisionGraph extends LazyLogging {
       nodeCache,
       solver,
       edgeReWeighting,
+      labelReWeighting,
       minNodeSize,
       minNodeOcc,
       augment,
@@ -666,6 +669,7 @@ object SupervisionGraph extends LazyLogging {
       metric: Metric[_ <: AtomicFormula],
       solver: GraphSolver,
       edgeReWeighting: Boolean,
+      labelReWeighting: Boolean,
       useHoeffding: Boolean,
       minNodeSize: Int,
       minNodeOcc: Int,
@@ -737,6 +741,9 @@ object SupervisionGraph extends LazyLogging {
       metric ++ mln.evidence ++ pureNodes.flatMap(n => IndexedSeq.fill(n.clusterSize)(n.atoms))
     logger.info(msecTimeToTextUntilNow(s"Metric updated in: ", startMetricUpdate))
 
+    // In case label re-weighting is enabled do not cluster the labelled nodes
+    val numberOfClusters = if (labelReWeighting) uniqueLabeled.length else 2
+
     new StreamingGraph(
       uniqueLabeled ++ nonEmptyUnlabeled,
       querySignature,
@@ -746,8 +753,9 @@ object SupervisionGraph extends LazyLogging {
       nodeCache,
       solver,
       edgeReWeighting,
+      labelReWeighting,
       IndexedSeq.empty,
-      DenseMatrix.zeros[Double](2, 2),
+      DenseMatrix.zeros[Double](numberOfClusters, numberOfClusters),
       memory,
       minNodeSize,
       minNodeOcc,

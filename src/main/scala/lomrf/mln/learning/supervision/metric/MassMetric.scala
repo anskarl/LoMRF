@@ -24,7 +24,9 @@ import lomrf.logic.{ AtomSignature, AtomicFormula }
 import lomrf.mln.model.{ ConstantsDomain, ModeDeclarations, PredicateSchema }
 import lomrf.util.Cartesian.CartesianIterator
 
-case class MassMetric(forest: IsolationForest[Feature]) extends Metric[AtomicFormula] {
+case class MassMetric(forest: IsolationForest[Feature], usePriorityTrees: Boolean) extends Metric[AtomicFormula] {
+
+  private lazy val hasSignatureFeaturesOnly: Boolean = forest.features.forall(_.constantArgs.isEmpty)
 
   /**
     * Distance for atoms. The function may obey to the following properties:
@@ -54,6 +56,26 @@ case class MassMetric(forest: IsolationForest[Feature]) extends Metric[AtomicFor
     forest.mass(xAtomSeq.map(Feature.fromAtomicFormula), yAtomSeq.map(Feature.fromAtomicFormula))
 
   /**
+    * A priority mass metric that uses selected features higher on the isolation trees
+    * in order to split important atoms earlier.
+    *
+    * @note All weights should be either 0 or 1.
+    *
+    * @param weights a map from features to binary values
+    * @return a weighted metric
+    */
+  override def havingWeights(weights: Map[Feature, Double]): Metric[AtomicFormula] = {
+    require(weights.forall { case (_, w) => w == 0 || w == 1 }, "All weights should be 0 or 1.")
+
+    if (usePriorityTrees) {
+      val tree = forest.trees.head
+      val priorityForest = IsolationForest(forest.features, weights, forest.recall, forest.numberOfTrees)
+      priorityForest.trees.foreach(_.updateCounts(tree))
+      MassMetric(priorityForest, usePriorityTrees)
+    } else this
+  }
+
+  /**
     * Append information from atom sequences to the metric.
     *
     * @note It should be extended by metrics that can
@@ -63,21 +85,14 @@ case class MassMetric(forest: IsolationForest[Feature]) extends Metric[AtomicFor
     * @return an updated metric
     */
   override def ++(atomSeqSeq: Seq[Seq[AtomicFormula]]): Metric[AtomicFormula] = {
-    atomSeqSeq.foreach(seq => forest.updateCounts(seq.map(Feature.fromAtomicFormula)))
-    new MassMetric(forest)
+    if (hasSignatureFeaturesOnly) // in case features use only signatures
+      atomSeqSeq.foreach(seq => forest.updateCounts(seq.map(atom => Feature.fromAtomSignature(atom.signature))))
+    else atomSeqSeq.foreach(seq => forest.updateCounts(seq.map(Feature.fromAtomicFormula)))
+    MassMetric(forest, usePriorityTrees)
   }
 }
 
 object MassMetric {
-
-  /**
-    * @see [[lomrf.mln.learning.supervision.metric.IsolationForest]]
-    *
-    * @param trees a sequence of isolation trees
-    * @return a MassTreeMetric instance
-    */
-  def apply(trees: Seq[IsolationTree[Feature]]): MassMetric =
-    MassMetric(IsolationForest(trees))
 
   /**
     * Creates an empty mass metric, using an underlying isolation forest,
@@ -90,24 +105,16 @@ object MassMetric {
     * @return a MassTreeMetric instance
     */
   def apply(signatures: Set[AtomSignature], numberOfTrees: Int): MassMetric =
-    new MassMetric(IsolationForest(signatures.map(Feature.fromAtomSignature).toIndexedSeq, numberOfTrees))
-
-  /**
-    * Creates an empty mass metric, using an underlying isolation forest,
-    * from a set of atom signatures.
-    *
-    * @see [[lomrf.mln.learning.supervision.metric.IsolationForest]]
-    *
-    * @param featureScores a map from atom signatures to scores
-    * @return a MassTreeMetric instance
-    */
-  def apply(featureScores: Map[Feature, Double]): MassMetric =
-    new MassMetric(IsolationForest(featureScores))
+    MassMetric(
+      IsolationForest(signatures.map(Feature.fromAtomSignature).toIndexedSeq, numberOfTrees),
+      usePriorityTrees = false
+    )
 
   /**
     * Creates an empty mass metric, using an underlying isolation forest,
     * from a set of atom signatures and mode declarations.
     *
+    * @note Signature trees do not make use of feature selection.
     * @see [[lomrf.mln.learning.supervision.metric.IsolationForest]]
     *
     * @param signatures a set of atom signatures
@@ -116,6 +123,7 @@ object MassMetric {
     * @return a MassTreeMetric instance
     */
   def apply(signatures: Set[AtomSignature], modes: ModeDeclarations, numberOfTrees: Int): MassMetric = {
+
     val maxRecall = modes
       .withFilter { case (_, mode) => mode.recall < Int.MaxValue }
       .map { case (_, mode) => mode.recall }.max
@@ -125,8 +133,11 @@ object MassMetric {
         Feature.fromAtomSignature(signature) -> (if (mode.recall < Int.MaxValue) mode.recall else maxRecall)
     }
 
-    new MassMetric(IsolationForest(
-      signatures.map(Feature.fromAtomSignature).toIndexedSeq, finiteRecall, numberOfTrees, finiteRecall.values.sum))
+    MassMetric(
+      IsolationForest(
+        signatures.map(Feature.fromAtomSignature).toIndexedSeq, finiteRecall, numberOfTrees, finiteRecall.values.sum),
+      usePriorityTrees = false
+    )
   }
 
   /**
@@ -140,6 +151,7 @@ object MassMetric {
     * @param constants a constants domain
     * @param modes mode declarations
     * @param numberOfTrees number of tree in the forest
+    * @param usePriorityTrees create priority trees
     * @param maxHeight maximum number of height per tree (default is 10)
     * @return a MassTreeMetric instance
     */
@@ -149,7 +161,8 @@ object MassMetric {
       constants: ConstantsDomain,
       modes: ModeDeclarations,
       numberOfTrees: Int,
-      maxHeight: Int = 10): MassMetric = {
+      usePriorityTrees: Boolean,
+      maxHeight: Int = 15): MassMetric = {
 
     val maxRecall = modes
       .withFilter { case (_, mode) => mode.recall < Int.MaxValue }
@@ -180,6 +193,6 @@ object MassMetric {
     }
 
     val height = math.min(maxHeight, finiteRecall.values.sum)
-    new MassMetric(IsolationForest(features.toIndexedSeq, finiteRecall, numberOfTrees, height))
+    MassMetric(IsolationForest(features.toIndexedSeq, finiteRecall, numberOfTrees, height), usePriorityTrees)
   }
 }

@@ -200,7 +200,7 @@ final class FastNodeCache private (
       }
     }
 
-    _uniqueNodes
+    _uniqueNodes.sorted
   }
 
   override def toString: String =

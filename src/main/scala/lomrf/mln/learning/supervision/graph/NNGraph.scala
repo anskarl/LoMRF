@@ -97,15 +97,16 @@ final class NNGraph private[graph] (
         if (nearest.isEmpty) node.labelUsingValue(false)
         else {
           val (posCounts, negCounts) = nearest.foldLeft(0L -> 0L) {
-            case ((p, n), (_, isPos, counts)) =>
-              if (isPos) (p + counts, n)
-              else (p, n + counts)
+            case ((p, n), (_, isPos, _)) =>
+              if (isPos) (p + 1, n)
+              else (p, n + 1)
           }
 
           val truthValue =
             if (posCounts > negCounts) true
-            else if (negCounts > posCounts) false
-            else nearest.maxBy(_._1)._2
+            else false
+          //else if (negCounts > posCounts) false
+          //else nearest.maxBy(_._1)._2
 
           node.labelUsingValue(truthValue)
         }
@@ -205,7 +206,7 @@ final class NNGraph private[graph] (
         maxDensity)
     } else {
       /*
-       * Update the cache using only non empty labeled nodes, i.e., nodes having at least
+       * Update the cache using only non-empty labeled nodes, i.e., nodes having at least
        * one evidence predicate in their body
        *
        * Cache stores only unique nodes (patterns) along their counts.

@@ -1,7 +1,27 @@
+/*
+ *
+ *  o                        o     o   o         o
+ *  |             o          |     |\ /|         | /
+ *  |    o-o o--o    o-o  oo |     | O |  oo o-o OO   o-o o   o
+ *  |    | | |  | | |    | | |     |   | | | |   | \  | |  \ /
+ *  O---oo-o o--O |  o-o o-o-o     o   o o-o-o   o  o o-o   o
+ *              |
+ *           o--o
+ *  o--o              o               o--o       o    o
+ *  |   |             |               |    o     |    |
+ *  O-Oo   oo o-o   o-O o-o o-O-o     O-o    o-o |  o-O o-o
+ *  |  \  | | |  | |  | | | | | |     |    | |-' | |  |  \
+ *  o   o o-o-o  o  o-o o-o o o o     o    | o-o o  o-o o-o
+ *
+ *  Logical Markov Random Fields (LoMRF).
+ *
+ *
+ */
+
 package lomrf.mln.learning.supervision.metric
 
 import lomrf.logic._
-import org.scalatest.{FunSpec, Matchers}
+import org.scalatest.{ FunSpec, Matchers }
 
 final class AtomMetricSpecTest extends FunSpec with Matchers {
 
@@ -65,8 +85,8 @@ final class AtomMetricSpecTest extends FunSpec with Matchers {
     it("Associative property should hold for any distance over predicates") {
       List(predicateA, predicateB, predicateC, predicateD, predicateE, predicateF, predicateG)
         .sliding(2).foreach { pair =>
-        metric.distance(pair.head, pair.last) shouldEqual metric.distance(pair.last, pair.head)
-      }
+          metric.distance(pair.head, pair.last) shouldEqual metric.distance(pair.last, pair.head)
+        }
     }
   }
 
@@ -130,8 +150,8 @@ final class AtomMetricSpecTest extends FunSpec with Matchers {
     it("Associative property should hold for any distance over predicates") {
       List(predicateA, predicateB, predicateC, predicateD, predicateE, predicateF, predicateG)
         .sliding(2).foreach { pair =>
-        metric.distance(pair.head, pair.last) shouldEqual metric.distance(pair.last, pair.head)
-      }
+          metric.distance(pair.head, pair.last) shouldEqual metric.distance(pair.last, pair.head)
+        }
     }
   }
 
@@ -191,8 +211,8 @@ final class AtomMetricSpecTest extends FunSpec with Matchers {
     it("Associative property should hold for any distance over predicates") {
       List(predicateA, predicateB, predicateC, predicateD, predicateE, predicateF)
         .sliding(2).foreach { pair =>
-        metric.distance(pair.head, pair.last) shouldEqual metric.distance(pair.last, pair.head)
-      }
+          metric.distance(pair.head, pair.last) shouldEqual metric.distance(pair.last, pair.head)
+        }
     }
   }
 
@@ -240,8 +260,8 @@ final class AtomMetricSpecTest extends FunSpec with Matchers {
     it("Associative property should hold for any distance over predicates") {
       List(predicateA, predicateB, predicateC, predicateD)
         .sliding(2).foreach { pair =>
-        metric.distance(pair.head, pair.last) shouldEqual metric.distance(pair.last, pair.head)
-      }
+          metric.distance(pair.head, pair.last) shouldEqual metric.distance(pair.last, pair.head)
+        }
     }
   }
 

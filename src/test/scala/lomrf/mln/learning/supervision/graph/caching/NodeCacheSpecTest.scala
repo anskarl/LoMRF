@@ -1,8 +1,28 @@
+/*
+ *
+ *  o                        o     o   o         o
+ *  |             o          |     |\ /|         | /
+ *  |    o-o o--o    o-o  oo |     | O |  oo o-o OO   o-o o   o
+ *  |    | | |  | | |    | | |     |   | | | |   | \  | |  \ /
+ *  O---oo-o o--O |  o-o o-o-o     o   o o-o-o   o  o o-o   o
+ *              |
+ *           o--o
+ *  o--o              o               o--o       o    o
+ *  |   |             |               |    o     |    |
+ *  O-Oo   oo o-o   o-O o-o o-O-o     O-o    o-o |  o-O o-o
+ *  |  \  | | |  | |  | | | | | |     |    | |-' | |  |  \
+ *  o   o o-o-o  o  o-o o-o o o o     o    | o-o o  o-o o-o
+ *
+ *  Logical Markov Random Fields (LoMRF).
+ *
+ *
+ */
+
 package lomrf.mln.learning.supervision.graph.caching
 
 import lomrf.logic._
 import lomrf.mln.learning.supervision.graph.Node
-import org.scalatest.{FunSpec, Matchers}
+import org.scalatest.{ FunSpec, Matchers }
 
 final class NodeCacheSpecTest extends FunSpec with Matchers {
 

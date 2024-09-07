@@ -14,7 +14,7 @@
  *  o   o o-o-o  o  o-o o-o o o o     o    | o-o o  o-o o-o
  *
  *  Logical Markov Random Fields (LoMRF).
- *     
+ *
  *
  */
 
@@ -87,6 +87,12 @@ object SemiSupervisionCLI extends CLIApp {
   // By default do not perform hard selection
   private var _hardSelection: Boolean = false
 
+  // By default do not build priority trees
+  private var _priorityTrees: Boolean = false
+
+  // By default do not build signature trees
+  private var _signatureTrees: Boolean = false
+
   // Epsilon threshold for the eNN graph
   private var _epsilon = 0.75
 
@@ -111,8 +117,11 @@ object SemiSupervisionCLI extends CLIApp {
   // Minimum node occurrence
   private var _minOccSize = 1
 
-  // Re-weighting graph edges using node counts
+  // Re-weight graph edges using node counts
   private var _edgeReWeighing: Boolean = false
+
+  // Re-weight labelled examples using node counts
+  private var _labelReWeighing: Boolean = false
 
   // Augment labeled nodes
   private var _augment: Boolean = false
@@ -253,8 +262,20 @@ object SemiSupervisionCLI extends CLIApp {
     _hardSelection = true
   })
 
+  flagOpt("pt", "priority-trees", "Use feature priority to build the isolation trees.", {
+    _priorityTrees = true
+  })
+
+  flagOpt("st", "signature-trees", "Use signature features to build the isolation trees.", {
+    _signatureTrees = true
+  })
+
   flagOpt("rw", "edge-re-weighting", "Re-weight edges using node counts.", {
     _edgeReWeighing = true
+  })
+
+  flagOpt("lw", "label-re-weighting", "Re-weight labels using node counts.", {
+    _labelReWeighing = true
   })
 
   flagOpt("ag", "augment", "Augment labelled nodes.", {
@@ -332,12 +353,16 @@ object SemiSupervisionCLI extends CLIApp {
       + "\n\t(compress-results) Output all results in a single file: " + _compressResults
       + "\n\t(cluster-unlabeled) Cluster identical unlabelled nodes: " + _clusterUnlabeled
       + "\n\t(feature-selection) Perform instance and feature selection: " + _selection
+      + "\n\t(hard-selection) Perform hard instance and feature selection: " + _hardSelection
       + "\n\t(isolation-trees) Number of isolation trees for mass metric: " + _trees
+      + "\n\t(signature-trees) Use signature features to build the isolation trees: " + _signatureTrees
+      + "\n\t(priority-trees) Use feature priority to build the isolation trees: " + _priorityTrees
       + "\n\t(alpha) Alpha parameter for LGC solver: " + _alpha
       + "\n\t(max-density) Maximum density parameter for instance selection: " + _maxDensity
       + "\n\t(min-node-size) Minimum node size: " + _minNodeSize
       + "\n\t(min-node-occ) Minimum node occurrence: " + _minOccSize
       + "\n\t(edge-re-weighting) Re-weight edges: " + _edgeReWeighing
+      + "\n\t(label-re-weighting) Re-weight labels: " + _labelReWeighing
       + "\n\t(augment) Augment labeled nodes: " + _augment
       + "\n\t(memory) Streaming memory: " + _memory)
 
@@ -368,9 +393,15 @@ object SemiSupervisionCLI extends CLIApp {
     // Measure distance creation time (useful mainly for isolation trees)
     val startDistanceCreation = System.currentTimeMillis
     val distance: Metric[_ <: AtomicFormula] =
-      if (_distance == DistanceType.Hybrid) HybridMetric(AtomMetric(HungarianMatcher), MassMetric(signatures, modes, _trees))
-      else if (_distance == DistanceType.Mass) MassMetric(signatures, modes, _trees)
-      else if (_distance == DistanceType.Binary) BinaryMetric(HungarianMatcher)
+      if (_distance == DistanceType.Hybrid) HybridMetric(
+        AtomMetric(HungarianMatcher),
+        if (_signatureTrees) MassMetric(signatures, modes, _trees)
+        else MassMetric(signatures, kb.predicateSchema, constants, modes, _trees, _priorityTrees)
+      )
+      else if (_distance == DistanceType.Mass) {
+        if (_signatureTrees) MassMetric(signatures, modes, _trees)
+        else MassMetric(signatures, kb.predicateSchema, constants, modes, _trees, _priorityTrees)
+      } else if (_distance == DistanceType.Binary) BinaryMetric(HungarianMatcher)
       else if (_distance == DistanceType.Atomic) AtomMetric(HungarianMatcher)
       else EvidenceMetric(modes, HungarianMatcher)
     logger.info(msecTimeToTextUntilNow(s"'${_distance}' distance created in: ", startDistanceCreation))
@@ -392,13 +423,17 @@ object SemiSupervisionCLI extends CLIApp {
       if (_hardSelection) builder ++= s".fhs[${_maxDensity}]"
       else if (_selection) builder ++= s".fs[${_maxDensity}]"
 
-      if (_distance == DistanceType.Mass || _distance == DistanceType.Hybrid) builder ++= s".${_distance}[${_trees}]"
-      else builder ++= s".${_distance}"
+      if (_distance == DistanceType.Mass || _distance == DistanceType.Hybrid) {
+        builder ++= s".${_distance}[${_trees}]"
+        if (_signatureTrees) builder ++= ".st" else builder ++= ".at"
+        if (_priorityTrees) builder ++= ".pt"
+      } else builder ++= s".${_distance}"
 
       if (_solver == LGC_TLP || _solver == LGC_SPLICE) builder ++= s".${_solver}[${_alpha}]"
       else builder ++= s".${_solver}"
 
       if (_edgeReWeighing) builder ++= ".rw"
+      if (_labelReWeighing) builder ++= ".lw"
       if (_augment) builder ++= ".ag"
       if (_solver == HFC_TLP || _solver == LGC_TLP) builder ++= s".mem[${_memory}]"
 
@@ -458,8 +493,9 @@ object SemiSupervisionCLI extends CLIApp {
               querySignature,
               connector,
               distance,
-              if (_solver == LP_TLP) LP() else if ( _solver == HFC_TLP) new HFc else LGCc(alpha = _alpha),
+              if (_solver == LP_TLP) LP() else if (_solver == HFC_TLP) new HFc else LGCc(alpha = _alpha),
               _edgeReWeighing,
+              _labelReWeighing,
               useHoeffding,
               _minNodeSize,
               _minOccSize,
@@ -476,8 +512,9 @@ object SemiSupervisionCLI extends CLIApp {
               querySignature,
               connector,
               distance,
-              if (_solver == LP_TLP) LP() else if ( _solver == HFC_TLP) new HFc else LGCc(alpha = _alpha),
+              if (_solver == LP_SPLICE) LP() else if (_solver == HFC_SPLICE) new HFc else LGCc(alpha = _alpha),
               _edgeReWeighing,
+              _labelReWeighing,
               useHoeffding,
               _minNodeSize,
               _minOccSize,
@@ -578,32 +615,33 @@ object SemiSupervisionCLI extends CLIApp {
       /*
        * OK, lets store the resulted completed supervision
        */
-      if (_compressResults) {
-        val compressedOutput =
-          if (step < 1) new PrintStream(s"${currentTrainingFile.getParentFile.getParent}/$resultName.db")
-          else new PrintStream(new FileOutputStream(s"${currentTrainingFile.getParentFile.getParent}/$resultName.db", true))
-
-        compressedOutput.println {
-          s"""
-             |Step ${step + 1} / ${strTrainingFileNames.length}:
-             |Chunk ${currentTrainingFile.getName}
-           """.stripMargin
-        }
-        outputCompletedResults(compressedOutput)
-      } else {
-        val resultsFolder = new File(s"${currentTrainingFile.getParentFile.getParent}/$resultName")
-        resultsFolder.mkdirs
-
-        val completedBatch = new PrintStream(resultsFolder.getCanonicalPath + "/" + currentTrainingFile.getName)
-
-        val inputStream = Source.fromFile(currentTrainingFile)
-        inputStream.getLines.filter { line =>
-          _nonEvidenceAtoms.map(_.symbol).forall(!line.contains(_)) && line.nonEmpty
-        }.foreach(completedBatch.println)
-        inputStream.close()
-
-        outputCompletedResults(completedBatch)
-      }
+      //      if (_compressResults) {
+      //        val compressedOutput =
+      //          if (step < 1) new PrintStream(s"${currentTrainingFile.getParentFile.getParent}/$resultName.db")
+      //          else new PrintStream(new FileOutputStream(s"${currentTrainingFile.getParentFile.getParent}/$resultName.db", true))
+      //
+      //        compressedOutput.println {
+      //          s"""
+      //             |Step ${step + 1} / ${strTrainingFileNames.length}:
+      //             |Chunk ${currentTrainingFile.getName}
+      //           """.stripMargin
+      //        }
+      //        outputCompletedResults(compressedOutput)
+      //      } else {
+      //        val resultsFolder = new File(s"${currentTrainingFile.getParentFile.getParent}/$resultName")
+      //        resultsFolder.mkdirs
+      //
+      //        val completedBatch = new PrintStream(resultsFolder.getCanonicalPath + "/" + currentTrainingFile.getName)
+      //
+      //        val inputStream = Source.fromFile(currentTrainingFile)
+      //        inputStream.getLines.filter { line =>
+      //          _nonEvidenceAtoms.map(_.symbol).forall(!line.contains(_)) && line.nonEmpty
+      //        }.foreach(completedBatch.println)
+      //        inputStream.close()
+      //
+      //        outputCompletedResults(completedBatch)
+      //      }
+      // TODO COMMENT UP TO THIS POINT
 
       // In case annotation files are given, output statistics
       if (strAnnotationFileNames.nonEmpty) {

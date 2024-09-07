@@ -63,6 +63,7 @@ final class SPLICE private[graph] (
     nodeCache: NodeCache,
     solver: GraphSolver,
     edgeReWeighting: Boolean,
+    labelReWeighting: Boolean,
     minNodeSize: Int,
     minNodeOcc: Int,
     augment: Boolean,
@@ -97,7 +98,22 @@ final class SPLICE private[graph] (
     val startSolution = System.currentTimeMillis
 
     // Vector holding the labeled values
-    val fl = DenseVector(labeledNodes.map(_.value).toArray)
+
+    val fl =
+      if (labelReWeighting) {
+        var (positiveFactor, negativeFactor) = (0L, 0L)
+        labeledNodes.foreach { node =>
+          if (node.isPositive)
+            positiveFactor += node.size * nodeCache.getOrElse(node, 0)
+          else
+            negativeFactor += node.size * nodeCache.getOrElse(node, 0)
+        }
+
+        DenseVector(labeledNodes.map { node =>
+          if (node.isPositive) node.value * node.size * nodeCache.getOrElse(node, 0) / positiveFactor
+          else node.value * node.size * nodeCache.getOrElse(node, 0) / negativeFactor
+        }.toArray)
+      } else DenseVector(labeledNodes.map(_.value).toArray)
 
     val fullSolution = solver.solve(W, D, fl).toArray
     val solution = fullSolution.slice(numberOfLabeled, numberOfNodes)
@@ -107,8 +123,8 @@ final class SPLICE private[graph] (
 
     logger.whenDebugEnabled {
       logger.debug {
-        (unlabeledNodes.map(_.query) zip solution)
-          .map { case (atom, state) => s"$atom = $state" }.mkString("\n")
+        (unlabeledNodes zip solution).sortBy { case (node, _) => node }
+          .map { case (node, state) => s"${node.query} = $state" }.mkString("\n")
       }
     }
 
@@ -203,6 +219,7 @@ final class SPLICE private[graph] (
         nodeCache,
         solver,
         edgeReWeighting,
+        labelReWeighting,
         minNodeSize,
         minNodeOcc,
         augment,
@@ -264,6 +281,7 @@ final class SPLICE private[graph] (
         updatedNodeCache,
         solver,
         edgeReWeighting,
+        labelReWeighting,
         minNodeSize,
         minNodeOcc,
         augment,

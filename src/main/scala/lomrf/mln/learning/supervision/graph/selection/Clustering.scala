@@ -27,7 +27,7 @@ import lomrf.mln.learning.supervision.graph.caching.NodeCache
 /**
   * @param maxDensity clusters maximum density
   */
-case class Clustering(maxDensity: Double, retainNoise: Boolean = false) extends LazyLogging {
+case class Clustering(maxDensity: Double, retainNoise: Boolean = true) extends LazyLogging {
 
   def cluster(nodes: Seq[Node], cache: NodeCache): Set[NodeCluster] = {
 

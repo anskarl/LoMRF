@@ -30,7 +30,7 @@ import lomrf.mln.model.ModeDeclarations
 import optimus.algebra.Expression
 import optimus.optimization.MPModel
 import optimus.optimization.enums.{ PreSolve, SolverLib }
-import optimus.optimization.model.{ MPBinaryVar, MPFloatVar }
+import optimus.optimization.model.{ MPBinaryVar, MPFloatVar, MPIntVar }
 import optimus.algebra.AlgebraOps.sum
 
 case class LargeMarginNN(k: Int, mu: Double) extends LazyLogging {
@@ -64,6 +64,10 @@ case class LargeMarginNN(k: Int, mu: Double) extends LazyLogging {
         indexedNodes.withFilter { case (node, _) => cs.contains(node) }.foreach {
           case (node, idx) =>
 
+            //            println("======================")
+            //            println(node.toText)
+            //            println("======================")
+
             // Find indices of all nodes in the current class
             val indices = classes.find(_.contains(node)).get.nodes.map(n => indexedNodes.find(_._1 == n).get._2)
 
@@ -71,12 +75,28 @@ case class LargeMarginNN(k: Int, mu: Double) extends LazyLogging {
               .zipWithIndex.partition { case (_, jdx) => indices.contains(jdx) }
 
             val nearestHits = {
-              val topK =
-                if (hits.length == 1) hits.map(_._1)
-                else hits.map(_._1).filterNot(_ == idx).distinct.sorted.reverse.take(k)
+              //              val topK =
+              //                if (hits.length == 1) hits.map(_._1)
+              //                else hits.map(_._1).filterNot(_ == idx).distinct.sorted.reverse.take(k)
+              //
+              //              hits.withFilter(x => topK.contains(x._1)).map(_._2)
 
-              hits.withFilter(x => topK.contains(x._1)).map(_._2)
+              if (hits.length == 1) hits.map(_._2)
+              else {
+                //                val targets = hits.map(_._2).filter { i =>
+                //                  val comm = nodes(i).features.intersect(node.features)
+                //                  val a = nodes(i).features.diff(comm)
+                //                  val b = node.features.diff(comm)
+                //                  a.nonEmpty && b.nonEmpty && a.size == 1 && b.size == 1
+                //                }
+                //                if (targets.isEmpty) Array(idx)
+                //                else targets
+                Array(idx)
+              }
             }
+
+            //            nearestHits.map(i => nodes(i).toText).foreach(println)
+            //            println("###################################")
 
             val nodeFeatures1 = node.atoms.map(Feature.fromAtomicFormula)
 
@@ -99,13 +119,13 @@ case class LargeMarginNN(k: Int, mu: Double) extends LazyLogging {
               val commonFeatures = nodeFeatures intersect hitNodeFeatures
               val nodeDiff = nodeFeatures diff commonFeatures
               val hitNodeDiff = hitNodeFeatures diff commonFeatures
-              expressions ::= cache.get(node).get * cache.get(hitNode).get * {
-                sum((nodeDiff ++ hitNodeDiff).map(globalWeights(_)))
-                //+ sum(commonFeatures.map(globalWeights(_) * 1e-10))
-              }
+              //              expressions ::= cache.get(node).get * cache.get(hitNode).get * {
+              //                sum((nodeDiff ++ hitNodeDiff).map(globalWeights(_))) + sum(commonFeatures.map(1e-10 * globalWeights(_)))
+              //              }
 
               // foreach hit node we should add constraints for the misses
               misses.map(_._2).map(nodes(_)).foreach { missNode =>
+
                 val missNodeFeatures1 = missNode.atoms.map(Feature.fromAtomicFormula)
                 val missNodeFeatureCounts = missNodeFeatures1.groupBy(Predef.identity).mapValues(_.length)
                 val missNodeFeatures = missNodeFeatureCounts.foldLeft(IndexedSeq.empty[Feature]) {
@@ -119,13 +139,11 @@ case class LargeMarginNN(k: Int, mu: Double) extends LazyLogging {
                 val missNodeDiff = missNodeFeatures diff commFeatures
 
                 val expr =
-                  sum((nodeDiffComm ++ missNodeDiff).map(globalWeights(_))) //+
-                //sum(commFeatures.map(globalWeights(_) * 1e-10)) -
-                -sum((nodeDiff ++ hitNodeDiff).map(globalWeights(_))) //-
-                //sum(commonFeatures.map(globalWeights(_) * 1e-10))
+                  sum((nodeDiffComm ++ missNodeDiff).map(globalWeights(_))) -
+                    sum((nodeDiff ++ hitNodeDiff).map(globalWeights(_)))
 
                 slackVariables ::= MPBinaryVar()(model)
-                model.add(expr >:= 1 /*- slackVariables.head*/ )
+                model.add(expr >:= 1 - slackVariables.head)
               }
             }
 
@@ -141,10 +159,12 @@ case class LargeMarginNN(k: Int, mu: Double) extends LazyLogging {
 
               model.add(sum(a1.map(a => globalWeights(a))) >:= 1)
             }
+
+          //          cs.nodes.foreach(n => model.add(sum(n.atoms.map(a => globalWeights(Feature.fromAtomicFormula(a)))) >:= 1))
         }
       }
 
-      model.minimize((1 - mu) * sum(expressions) + mu * sum(slackVariables))
+      model.minimize(sum(slackVariables))
       model.start(preSolve = PreSolve.AGGRESSIVE)
     }
 
@@ -152,6 +172,10 @@ case class LargeMarginNN(k: Int, mu: Double) extends LazyLogging {
       s"""
          |Slack variables:
          |${slackVariables.map(v => s"${v.toText} := ${v.value}").mkString("\n")}
+         |""".stripMargin
+    }
+    logger.info {
+      s"""
          |Global binary weights:
          |${globalWeights.mapValues(_.value.getOrElse(Double.NaN)).mkString("\n")}
          |""".stripMargin
